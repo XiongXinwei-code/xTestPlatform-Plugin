@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<!-- ← windows 保留（P/Invoke 调 lvLib.dll） -->
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Platforms>AnyCPU;x86</Platforms>
+		<PlatformTarget>x86</PlatformTarget>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<!-- ← LvLibWrapper 可能需要 -->
+		<!-- UseWPF 不写 = 不依赖 WPF ✅ -->
+		<AssemblyName>LabVIEWCall.StepPlugin</AssemblyName>
+		<RootNamespace>LabVIEWCallPlugin</RootNamespace>
+		<OutputPath>..\..\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\LabVIEWCall\</OutputPath>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MessagePack" Version="3.1.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.0" />
+	</ItemGroup>
+
+	<!-- ✅ 补上：lvLib.dll 需要随插件输出 -->
+	<ItemGroup>
+		<Content Include="Resources\lvLib.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<TargetPath>lvLib.dll</TargetPath>
+		</Content>
+		<Content Include="Resources\lvLibItems.vi">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<TargetPath>lvLibItems.vi</TargetPath>
+		</Content>
+	</ItemGroup>
+</Project>

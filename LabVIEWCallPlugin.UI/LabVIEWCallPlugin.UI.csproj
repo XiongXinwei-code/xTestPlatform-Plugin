@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Platforms>AnyCPU;x86</Platforms>
+    <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <!-- 输出文件名规范：*.StepPlugin.UI.dll，供主程序扫描编辑器插件 -->
+    <AssemblyName>LabVIEWCall.StepPlugin.UI</AssemblyName>
+    <RootNamespace>LabVIEWCallPlugin.UI</RootNamespace>
+    <!-- 直接输出到主程序 Plugins 目录 -->
+    <OutputPath>..\..\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\LabVIEWCall\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Icons\check.png" />
+    <None Remove="Resources\Icons\file-edit-custom.png" />
+    <None Remove="Resources\Icons\labview.png" />
+    <None Remove="Resources\Icons\open-in-app-custom.png" />
+    <None Remove="Resources\Icons\reload-custom.png" />
+    <None Remove="Resources\Icons\variable.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="MessagePack" Version="3.1.4" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.SfBusyIndicator.WPF" Version="32.2.3" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.GridCommon.Wpf" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.SfGrid.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.SfInput.WPF" Version="32.1.25" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 核心执行器（无WPF，LabVIEW可直接加载） -->
+    <ProjectReference Include="..\LabVIEWCallPlugin\LabVIEWCallPlugin.csproj" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Icons\check.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Icons\file-edit-custom.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Icons\labview.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Icons\open-in-app-custom.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Icons\reload-custom.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\Icons\variable.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+</Project>
