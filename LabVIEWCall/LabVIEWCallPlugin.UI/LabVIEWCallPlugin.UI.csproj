@@ -41,7 +41,7 @@
   <ItemGroup>
     <!-- 核心执行器（无WPF，LabVIEW可直接加载） -->
     <ProjectReference Include="..\LabVIEWCallPlugin\LabVIEWCallPlugin.csproj" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.0" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>
