@@ -1,5 +1,5 @@
 using LabVIEWCallPlugin.LVadapter;
-using LabVIEWCallPlugin.LVadapter.Interop;
+using System.Collections.Generic;
 using LabVIEWCallPlugin.Models;
 using LabVIEWCallPlugin.UI.Converters;
 using LabVIEWCallPlugin.UI.Models;
@@ -113,9 +113,9 @@ namespace LabVIEWCallPlugin.UI
 
             // ── 阶段四：上下文校验（变量定义 / 表达式 / 类型匹配）────────────
             await ValidatePanelNodesWithContextAsync(
-                s.InputParameters, "输入控件", evaluator, context, errors, cancellationToken);
+                s.InputParameters, "输入控件", evaluator, context, errors, cancellationToken, isOutput: false);
             await ValidatePanelNodesWithContextAsync(
-                s.OutputParameters, "输出指示器", evaluator, context, errors, cancellationToken);
+                s.OutputParameters, "输出指示器", evaluator, context, errors, cancellationToken, isOutput: true);
 
             return errors;
         }
@@ -158,11 +158,14 @@ namespace LabVIEWCallPlugin.UI
         private static async Task ValidatePanelNodesWithContextAsync(
             string json, string panelLabel,
             IExpressionEvaluator evaluator, IExecutionContext context,
-            List<StepSettingError> errors, CancellationToken ct)
+            List<StepSettingError> errors, CancellationToken ct,
+            bool isOutput = false)
         {
             foreach (var node in EnumerateNodes(LvPanelConverter.ConvertFromJson(json)))
             {
-                if (node.ValueSourceTypeEnum != ValueSourceType.Variable) continue;
+                // 输入控件：仅源类型为 Variable 时校验
+                // 输出指示器：只要 Variable 有值就校验（输出只能写入变量）
+                if (!isOutput && node.ValueSourceTypeEnum != ValueSourceType.Variable) continue;
                 if (string.IsNullOrWhiteSpace(node.Variable)) continue;
 
                 ct.ThrowIfCancellationRequested();
@@ -252,7 +255,7 @@ namespace LabVIEWCallPlugin.UI
             LvExpectedKind.UInt64 => result is ulong,
             LvExpectedKind.Enum => result is sbyte or byte or short or ushort
                                            or int or uint or long or ulong or string,
-            LvExpectedKind.Cluster => result is System.Collections.IDictionary,
+            LvExpectedKind.Cluster => result is IDictionary<string, object?>,
             LvExpectedKind.Array => result is System.Collections.IEnumerable and not string,
             _ => true
         };
