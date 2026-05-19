@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>xTestPlatform.StepEditor.SDK</id>
+    <version>1.0.5</version>
+    <authors>xTestPlatform Team</authors>
+    <description>xTestPlatform 步骤编辑器插件开发 SDK</description>
+    <tags>xTestPlatform StepEditor Plugin SDK</tags>
+    <repository type="git" commit="ee3cc44911261fa8287c256377c7d0d33ba049cb" />
+    <dependencies>
+      <group targetFramework="net8.0-windows7.0" />
+    </dependencies>
+    <frameworkReferences>
+      <group targetFramework="net8.0-windows7.0">
+        <frameworkReference name="Microsoft.WindowsDesktop.App.WPF" />
+      </group>
+    </frameworkReferences>
+  </metadata>
+  <files>
+    <file src="D:\xTestPlatform\StepEditor\Abstractions\bin\x86\Debug\net8.0-windows\Abstractions.dll" target="lib\net8.0-windows7.0\Abstractions.dll" />
+    <file src="D:\xTestPlatform\StepEditor\ExperssionEditor\bin\x86\Debug\net8.0-windows\ExperssionEditor.dll" target="lib\net8.0-windows7.0\ExperssionEditor.dll" />
+    <file src="D:\xTestPlatform\StepEditor\ExperssionTextBox\bin\x86\Debug\net8.0-windows\ExperssionTextBox.dll" target="lib\net8.0-windows7.0\ExperssionTextBox.dll" />
+    <file src="D:\xTestPlatform\xTestPlatform.Core\bin\x86\Debug\net8.0\xTestPlatform.Core.dll" target="lib\net8.0-windows7.0\xTestPlatform.Core.dll" />
+    <file src="D:\xTestPlatform\xTestPlatform.Dialogs\bin\x86\Debug\net8.0-windows\xTestPlatform.Dialogs.dll" target="lib\net8.0-windows7.0\xTestPlatform.Dialogs.dll" />
+    <file src="D:\xTestPlatform\SDK\xTestPlatform.StepEditor.SDK\bin\x86\Debug\net8.0-windows\xTestPlatform.StepEditor.SDK.dll" target="lib\net8.0-windows7.0\xTestPlatform.StepEditor.SDK.dll" />
+  </files>
+</package>
