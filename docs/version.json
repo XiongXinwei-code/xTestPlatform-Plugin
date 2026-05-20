@@ -1,13 +1,13 @@
 {
-  "version": "0.0.2",
-  "releaseName": "LabVIEWCall v0.0.2",
+  "version": "0.0.3",
+  "releaseName": "LabVIEWCall v0.0.3",
   "releaseNotes": "请访问 GitHub Release 页面查看完整更新说明。",
-  "htmlUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/tag/v0.0.2",
+  "htmlUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/tag/v0.0.3",
   "assets": [
     {
-      "name": "LabVIEWCall-0.0.2.zip",
-      "downloadUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/download/v0.0.2/LabVIEWCall-0.0.2.zip",
-      "size": 5678898
+      "name": "LabVIEWCall-0.0.3.zip",
+      "downloadUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/download/v0.0.3/LabVIEWCall-0.0.3.zip",
+      "size": 5679750
     }
   ]
 }
