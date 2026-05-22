@@ -1,57 +1,92 @@
-name: 发布插件
+name: 自动发布插件（PR 合并后）
 
 on:
-  push:
-    tags:
-      - "v*"
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+  workflow_dispatch:
 
 env:
   PLUGIN_NAME: LabVIEWCall
   DOTNET_VERSION: "8.0.x"
 
 jobs:
-  build-and-release:
+  auto-release:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     runs-on: windows-latest
 
     steps:
-      # ── 1. 检出代码 ────────────────────────────────────────────────────
-      - name: 检出代码
+      # ── 1. 检出 master 分支 ────────────────────────────────────────────
+      - name: 检出 master 分支
         uses: actions/checkout@v4.2.2
         with:
+          ref: refs/heads/master
           fetch-depth: 0
+          token: ${{ secrets.GIST_TOKEN }}
 
-      # ── 2. 安装 .NET 8 ─────────────────────────────────────────────────
+      # ── 2. 自动递增版本号（基于最新 tag） ──────────────────────────────
+      - name: 递增版本号
+        id: bump_version
+        shell: pwsh
+        run: |
+          # 获取最新 tag
+          $latestTag = git describe --tags --abbrev=0 2>$null
+          if ($latestTag) {
+              $version = $latestTag.TrimStart('v')
+              $parts = $version.Split('.')
+              $major = [int]$parts[0]
+              $minor = [int]$parts[1]
+              $patch = [int]$parts[2] + 1
+          } else {
+              $major = 1; $minor = 0; $patch = 0
+          }
+          $newVersion = "$major.$minor.$patch"
+          $newTag = "v$newVersion"
+          Write-Host "✅ 版本号已递增为 $newVersion"
+          echo "new_version=$newVersion" >> $env:GITHUB_OUTPUT
+          echo "new_tag=$newTag" >> $env:GITHUB_OUTPUT
+
+      # ── 3. 创建并推送 tag ──────────────────────────────────────────────
+      - name: 创建并推送标签
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.bump_version.outputs.new_tag }}
+          git push origin ${{ steps.bump_version.outputs.new_tag }}
+
+      # ── 4. 安装 .NET 8 ─────────────────────────────────────────────────
       - name: 安装 .NET 8
         uses: actions/setup-dotnet@v4.3.1
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # ── 3. 编译核心插件 ────────────────────────────────────────────────
+      # ── 5. 编译核心插件 ────────────────────────────────────────────────
       - name: 编译核心插件
         run: |
           dotnet build LabVIEWCall/LabVIEWCallPlugin/LabVIEWCallPlugin.csproj `
             -c Release -p:Platform=x86 `
             -p:OutputPath="$env:GITHUB_WORKSPACE\publish\${{ env.PLUGIN_NAME }}"
 
-      # ── 4. 编译 UI 插件 ────────────────────────────────────────────────
+      # ── 6. 编译 UI 插件 ────────────────────────────────────────────────
       - name: 编译 UI 插件
         run: |
           dotnet build LabVIEWCall/LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj `
             -c Release -p:Platform=x86 `
             -p:OutputPath="$env:GITHUB_WORKSPACE\publish\${{ env.PLUGIN_NAME }}"
 
-      # ── 5. 验证产物 ────────────────────────────────────────────────────
+      # ── 7. 验证产物 ────────────────────────────────────────────────────
       - name: 验证编译产物
         run: |
           $files = Get-ChildItem "$env:GITHUB_WORKSPACE\publish\${{ env.PLUGIN_NAME }}" -ErrorAction Stop
           Write-Host "✅ 编译产物："
           $files | ForEach-Object { Write-Host "   $($_.Name)  ($([math]::Round($_.Length/1KB,1)) KB)" }
 
-      # ── 6. 打包 ZIP ────────────────────────────────────────────────────
+      # ── 8. 打包 ZIP ────────────────────────────────────────────────────
       - name: 打包 ZIP
         run: |
-          $tag     = "${{ github.ref_name }}"
-          $version = $tag.TrimStart('v')
+          $version = "${{ steps.bump_version.outputs.new_version }}"
           $zipName = "${{ env.PLUGIN_NAME }}-$version.zip"
 
           Compress-Archive `
@@ -64,30 +99,40 @@ jobs:
           "ZIP_NAME=$zipName"    | Out-File -FilePath $env:GITHUB_ENV -Append
           "PLUGIN_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # ── 7. 创建 GitHub Release 并上传 ZIP ─────────────────────────────
+      # ── 9. 生成 Release Notes ─────────────────────────────────────────
+      - name: 生成 Release Notes
+        shell: pwsh
+        run: |
+          $currentTag = "${{ steps.bump_version.outputs.new_tag }}"
+          $tags = git tag --sort=-v:refname
+          $index = $tags.IndexOf($currentTag)
+          if ($index -lt $tags.Count - 1) {
+              $previousTag = $tags[$index + 1]
+              $log = git log "$previousTag..$currentTag" --pretty=format:"- %s (%an)" --no-merges
+          } else {
+              $log = git log --pretty=format:"- %s (%an)" --no-merges
+          }
+          if (-not $log) { $log = "无代码变更，仅版本更新。" }
+          Set-Content -Path "$env:GITHUB_WORKSPACE\release_notes.md" -Value $log -Encoding UTF8
+          Write-Host "✅ Release Notes 已生成"
+          Get-Content "$env:GITHUB_WORKSPACE\release_notes.md"
+
+      # ── 10. 创建 GitHub Release 并上传 ZIP ────────────────────────────
       - name: 创建 Release 并上传插件包
         uses: softprops/action-gh-release@v2
         with:
-          name: "${{ github.ref_name }}"
-          body: |
-            ## ${{ env.PLUGIN_NAME }} ${{ github.ref_name }}
-
-            ### 安装说明
-            1. 下载 `${{ env.ZIP_NAME }}`
-            2. 解压到 xTestPlatform 的 `Plugins\LabVIEWCall\` 目录
-            3. 重启 xTestPlatform
-
-            ### 更新内容
-            请查看 [提交记录](https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}) 了解详细变更。
+          tag_name: ${{ steps.bump_version.outputs.new_tag }}
+          name: "${{ steps.bump_version.outputs.new_tag }}"
+          body_path: ${{ github.workspace }}\release_notes.md
           files: ${{ env.ZIP_NAME }}
           generate_release_notes: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GIST_TOKEN }}
 
-      # ── 8. 更新版本清单 version.json ──────────────────────────────────
+      # ── 11. 更新版本清单 version.json ─────────────────────────────────
       - name: 更新版本清单
         run: |
-          $tag         = "${{ github.ref_name }}"
-          $version     = $env:PLUGIN_VERSION
+          $tag         = "${{ steps.bump_version.outputs.new_tag }}"
+          $version     = "${{ steps.bump_version.outputs.new_version }}"
           $zipName     = $env:ZIP_NAME
           $zipFile     = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
           $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
@@ -116,7 +161,7 @@ jobs:
           Write-Host "   大小:  $([math]::Round($zipFile.Length/1MB,2)) MB"
           Write-Host "   下载:  $downloadUrl"
 
-      # ── 9. 将 version.json 提交回 master 分支 ─────────────────────────
+      # ── 12. 将 version.json 提交回 master 分支 ────────────────────────
       - name: 提交版本清单到 master
         run: |
           git config user.name  "github-actions[bot]"
@@ -125,6 +170,7 @@ jobs:
           if (git diff --staged --quiet) {
             Write-Host "version.json 无变化，跳过提交"
           } else {
-            git commit -m "chore: 更新版本清单至 ${{ github.ref_name }}"
+            git commit -m "chore: 更新版本清单至 ${{ steps.bump_version.outputs.new_tag }} [skip ci]"
             git push origin HEAD:master
+          }
           }
