@@ -24,9 +24,9 @@ jobs:
         with:
           ref: refs/heads/master
           fetch-depth: 0
-          token: ${{ secrets.GIST_TOKEN }}
+          token: ${{ secrets.PLUGIN_TOKEN }}
 
-      # ── 2. 自动递增版本号（基于最新 tag） ──────────────────────────────
+      # ── 2. 自动递增版本号（基于最新 tag）
       - name: 递增版本号
         id: bump_version
         shell: pwsh
@@ -126,9 +126,9 @@ jobs:
           body_path: ${{ github.workspace }}\release_notes.md
           files: ${{ env.ZIP_NAME }}
           generate_release_notes: false
-          token: ${{ secrets.GIST_TOKEN }}
+          token: ${{ secrets.PLUGIN_TOKEN }}
 
-      # ── 11. 更新版本清单 version.json ─────────────────────────────────
+      # ── 11. 更新版本清单
       - name: 更新版本清单
         run: |
           $tag         = "${{ steps.bump_version.outputs.new_tag }}"
