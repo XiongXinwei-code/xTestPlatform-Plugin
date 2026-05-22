@@ -14,6 +14,8 @@ namespace LabVIEWCallPlugin
     /// </summary>
     public sealed class LabVIEWCallStepPlugin : StepPluginBase<LabVIEWCallSetting>
     {
+        protected override int CurrentSettingVersion => 1;
+
         public override string StepTypeId => "LabVIEWCall";
         public override string DisplayName => "LabVIEW Call";
         public override string Category => "Adapte";
