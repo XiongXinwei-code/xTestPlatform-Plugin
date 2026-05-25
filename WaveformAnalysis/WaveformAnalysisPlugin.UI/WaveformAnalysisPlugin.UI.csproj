@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<Nullable>enable</Nullable>
+	<UseWPF>true</UseWPF>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Platforms>AnyCPU;x86</Platforms>
+	<PlatformTarget>x86</PlatformTarget>
+	<AssemblyName>WaveformAnalysis.StepPlugin.UI</AssemblyName>
+	<RootNamespace>WaveformAnalysisPlugin.UI</RootNamespace>
+	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\WaveformAnalysis\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<None Remove="Resources\Icons\waveform.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Resource Include="Resources\Icons\waveform.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+	<PackageReference Include="MessagePack" Version="3.1.4" />
+	<PackageReference Include="Syncfusion.SfChart.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.SfInput.WPF" Version="32.1.25" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\WaveformAnalysisPlugin\WaveformAnalysisPlugin.csproj" />
+  </ItemGroup>
+
+</Project>

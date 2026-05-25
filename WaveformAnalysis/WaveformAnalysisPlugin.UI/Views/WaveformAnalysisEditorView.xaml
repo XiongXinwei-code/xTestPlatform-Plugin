@@ -1,0 +1,173 @@
+<UserControl x:Class="WaveformAnalysisPlugin.UI.Views.WaveformAnalysisEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:skinManager="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             skinManager:SfSkinManager.Theme="{skinManager:SkinManagerExtension ThemeName=Windows11Light}"
+             mc:Ignorable="d"
+             d:DesignWidth="1200" d:DesignHeight="300"
+             Padding="12">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <syncfusion:TabControlExt>
+
+        <!-- ═══ Tab 1: 基本设置 ═══ -->
+        <syncfusion:TabItemExt>
+            <syncfusion:TabItemExt.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/WaveformAnalysis.StepPlugin.UI;component/Resources/Icons/waveform.png"
+                           Width="16" Height="16" Margin="0,0,6,0"/>
+                    <TextBlock Text="基本设置" VerticalAlignment="Center"/>
+                </StackPanel>
+            </syncfusion:TabItemExt.Header>
+            <StackPanel>
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="分析类型:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnalysisTypes}"
+                              SelectedItem="{Binding AnalysisType}" Margin="0,0,16,8"/>
+
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="采样率 (Hz):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <syncfusion:DoubleTextBox Grid.Row="0" Grid.Column="3" Value="{Binding SampleRate, Mode=TwoWay}"
+                                              MinValue="0.001" NumberDecimalDigits="2" Margin="0,0,0,8"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="输入变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding InputVariableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8"/>
+
+                    <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                              IsChecked="{Binding ShowChartOnExecution}" Content="执行时弹出图表窗口" Margin="0,4,0,0"/>
+                </Grid>
+
+                <!-- 输出变量映射 -->
+                <GroupBox Header="输出结果 → 变量映射" Margin="12,8,12,0">
+                    <DataGrid ItemsSource="{Binding OutputFields}" AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                              Margin="4">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="输出字段" Binding="{Binding FieldName}" IsReadOnly="True" Width="120"/>
+                            <DataGridTextColumn Header="类型" Binding="{Binding TypeDescription}" IsReadOnly="True" Width="180"/>
+                            <DataGridTextColumn Header="映射到变量" Binding="{Binding UserVariableName, UpdateSourceTrigger=LostFocus}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </GroupBox>
+            </StackPanel>
+        </syncfusion:TabItemExt>
+
+        <!-- ═══ Tab 2: 滤波设置 ═══ -->
+        <syncfusion:TabItemExt Header="滤波设置">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="低截止频率 (Hz):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:DoubleTextBox Grid.Row="0" Grid.Column="1" Value="{Binding CutoffFrequencyLow, Mode=TwoWay}"
+                                          MinValue="0" NumberDecimalDigits="2" Margin="0,0,16,8"/>
+
+                <TextBlock Grid.Row="0" Grid.Column="2" Text="高截止频率 (Hz):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:DoubleTextBox Grid.Row="0" Grid.Column="3" Value="{Binding CutoffFrequencyHigh, Mode=TwoWay}"
+                                          MinValue="0" NumberDecimalDigits="2" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="滤波器阶数:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox Grid.Row="1" Grid.Column="1" Value="{Binding FilterOrder, Mode=TwoWay}"
+                                           MinValue="1" MaxValue="20" Margin="0,0,16,8"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" Margin="0,8,0,0"
+                           Foreground="Gray" TextWrapping="Wrap"
+                           Text="提示: 低通滤波使用低截止频率，高通滤波使用高截止频率，带通滤波两者均需设置。"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+
+        <!-- ═══ Tab 3: 峰值检测 ═══ -->
+        <syncfusion:TabItemExt Header="峰值检测">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="峰值阈值:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:DoubleTextBox Grid.Row="0" Grid.Column="1" Value="{Binding PeakThreshold, Mode=TwoWay}"
+                                          MinValue="0" NumberDecimalDigits="4" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                           Foreground="Gray" TextWrapping="Wrap"
+                           Text="仅当信号幅值超过阈值时才标记为峰值。谷值使用负阈值判定。"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+
+        <!-- ═══ Tab 4: 数据预览 ═══ -->
+        <syncfusion:TabItemExt Header="波形预览">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- CSV 导入 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="📂 导入 CSV 预览" Padding="12,4" Command="{Binding ImportCsvCommand}"/>
+                    <TextBlock Text="{Binding CsvInfo}" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray"/>
+                </StackPanel>
+
+                <!-- 统计信息 -->
+                <TextBlock Grid.Row="1" Text="{Binding StatisticsText}" Margin="0,0,0,8"
+                           Foreground="DarkBlue" FontWeight="SemiBold"/>
+
+                <!-- Syncfusion 波形图表 -->
+                <syncfusion:SfChart Grid.Row="2" MinHeight="220">
+                    <syncfusion:SfChart.PrimaryAxis>
+                        <syncfusion:NumericalAxis Header="时间 (s)"/>
+                    </syncfusion:SfChart.PrimaryAxis>
+                    <syncfusion:SfChart.SecondaryAxis>
+                        <syncfusion:NumericalAxis Header="幅值"/>
+                    </syncfusion:SfChart.SecondaryAxis>
+
+                    <syncfusion:FastLineSeries ItemsSource="{Binding OriginalSeries}"
+                                               XBindingPath="X" YBindingPath="Y"
+                                               Label="原始" Interior="Gray"/>
+
+                    <syncfusion:FastLineSeries ItemsSource="{Binding ProcessedSeries}"
+                                               XBindingPath="X" YBindingPath="Y"
+                                               Label="处理后" Interior="DodgerBlue"/>
+
+                    <syncfusion:ScatterSeries ItemsSource="{Binding PeakMarkers}"
+                                              XBindingPath="X" YBindingPath="Y"
+                                              Label="峰值" Interior="Red"
+                                              ScatterHeight="8" ScatterWidth="8"/>
+                </syncfusion:SfChart>
+            </Grid>
+        </syncfusion:TabItemExt>
+
+    </syncfusion:TabControlExt>
+</UserControl>

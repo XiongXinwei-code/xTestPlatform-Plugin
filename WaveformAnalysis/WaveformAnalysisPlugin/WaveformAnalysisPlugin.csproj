@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Platforms>AnyCPU;x86</Platforms>
+		<PlatformTarget>x86</PlatformTarget>
+		<AssemblyName>WaveformAnalysis.StepPlugin</AssemblyName>
+		<RootNamespace>WaveformAnalysisPlugin</RootNamespace>
+		<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\WaveformAnalysis\</OutputPath>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MessagePack" Version="3.1.4" />
+		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.6" />
+	</ItemGroup>
+
+</Project>
