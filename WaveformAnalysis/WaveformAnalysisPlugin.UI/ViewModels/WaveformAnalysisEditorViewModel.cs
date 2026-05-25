@@ -39,12 +39,13 @@ namespace WaveformAnalysisPlugin.UI.ViewModels
             _analysisType = _setting.AnalysisType;
             _sampleRate = _setting.SampleRate;
             _inputVariableName = _setting.InputVariableName;
-            _outputVariableName = _setting.OutputVariableName;
             _cutoffFrequencyLow = _setting.CutoffFrequencyLow;
             _cutoffFrequencyHigh = _setting.CutoffFrequencyHigh;
             _peakThreshold = _setting.PeakThreshold;
             _filterOrder = _setting.FilterOrder;
             _showChartOnExecution = _setting.ShowChartOnExecution;
+
+            RefreshOutputFields();
         }
 
         public Array AnalysisTypes => Enum.GetValues<AnalysisType>();
@@ -56,7 +57,6 @@ namespace WaveformAnalysisPlugin.UI.ViewModels
 
         [ObservableProperty] private double _sampleRate;
         [ObservableProperty] private string _inputVariableName = string.Empty;
-        [ObservableProperty] private string _outputVariableName = string.Empty;
         [ObservableProperty] private double _cutoffFrequencyLow;
         [ObservableProperty] private double _cutoffFrequencyHigh;
         [ObservableProperty] private double _peakThreshold;
@@ -69,14 +69,16 @@ namespace WaveformAnalysisPlugin.UI.ViewModels
         [ObservableProperty] private ObservableCollection<ChartDataPoint> _processedSeries = [];
         [ObservableProperty] private ObservableCollection<ChartDataPoint> _peakMarkers = [];
 
+        /// <summary>当前分析类型对应的输出字段列表（供 DataGrid 绑定）</summary>
+        [ObservableProperty] private ObservableCollection<OutputFieldMapping> _outputFields = [];
+
         public bool IsFilterVisible => AnalysisType is AnalysisType.LowPassFilter
             or AnalysisType.HighPassFilter or AnalysisType.BandPassFilter;
         public bool IsPeakVisible => AnalysisType == AnalysisType.PeakDetection;
 
-        partial void OnAnalysisTypeChanged(AnalysisType value) { _setting.AnalysisType = value; Save(); UpdatePreview(); }
+        partial void OnAnalysisTypeChanged(AnalysisType value) { _setting.AnalysisType = value; Save(); UpdatePreview(); RefreshOutputFields(); }
         partial void OnSampleRateChanged(double value) { _setting.SampleRate = value; Save(); UpdatePreview(); }
         partial void OnInputVariableNameChanged(string value) { _setting.InputVariableName = value; Save(); }
-        partial void OnOutputVariableNameChanged(string value) { _setting.OutputVariableName = value; Save(); }
         partial void OnCutoffFrequencyLowChanged(double value) { _setting.CutoffFrequencyLow = value; Save(); UpdatePreview(); }
         partial void OnCutoffFrequencyHighChanged(double value) { _setting.CutoffFrequencyHigh = value; Save(); UpdatePreview(); }
         partial void OnPeakThresholdChanged(double value) { _setting.PeakThreshold = value; Save(); UpdatePreview(); }
@@ -167,9 +169,48 @@ namespace WaveformAnalysisPlugin.UI.ViewModels
 
         private void Save()
         {
+            // 同步输出映射到 setting
+            _setting.OutputVariableMap = OutputFields
+                .Where(f => !string.IsNullOrWhiteSpace(f.UserVariableName))
+                .ToDictionary(f => f.FieldName, f => f.UserVariableName);
+
             var bytes = MessagePack.MessagePackSerializer.Serialize(_setting, _opts);
             if (_step.StepSetting != null)
                 _step.StepSetting.Setting = bytes;
         }
+
+        private void RefreshOutputFields()
+        {
+            var fields = Execution.WaveformAnalysisExecutor.GetOutputFields(AnalysisType);
+            OutputFields.Clear();
+            foreach (var (fieldName, typeDesc) in fields)
+            {
+                // 恢复已保存的映射
+                _setting.OutputVariableMap.TryGetValue(fieldName, out var savedVar);
+                var mapping = new OutputFieldMapping(fieldName, typeDesc, savedVar ?? string.Empty);
+                mapping.PropertyChanged += (_, _) => Save();
+                OutputFields.Add(mapping);
+            }
+        }
+    }
+
+    /// <summary>输出字段 → 用户变量映射行</summary>
+    public partial class OutputFieldMapping : ObservableObject
+    {
+        public OutputFieldMapping(string fieldName, string typeDescription, string userVariableName)
+        {
+            FieldName = fieldName;
+            TypeDescription = typeDescription;
+            _userVariableName = userVariableName;
+        }
+
+        /// <summary>结果字段名（只读）</summary>
+        public string FieldName { get; }
+
+        /// <summary>类型说明（只读）</summary>
+        public string TypeDescription { get; }
+
+        /// <summary>用户填写的目标变量名</summary>
+        [ObservableProperty] private string _userVariableName;
     }
 }

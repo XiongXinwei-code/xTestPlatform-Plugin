@@ -16,7 +16,7 @@ namespace WaveformAnalysisPlugin
         protected override int CurrentSettingVersion => 1;
 
         public override string StepTypeId => "WaveformAnalysis";
-        public override string DisplayName => "波形分析";
+        public override string DisplayName => "Waveform Analysis";
         public override string Category => "Analysis";
         public override string IconPath =>
             "pack://application:,,,/WaveformAnalysis.StepPlugin.UI;component/Resources/Icons/waveform.png";

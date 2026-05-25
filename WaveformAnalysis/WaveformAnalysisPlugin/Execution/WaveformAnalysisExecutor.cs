@@ -80,15 +80,21 @@ namespace WaveformAnalysisPlugin.Execution
                 return ErrorResult($"分析执行失败: {ex.Message}");
             }
 
-            // ── 4. 将结果写入输出变量 ────────────────────────────────────
-            if (!string.IsNullOrWhiteSpace(setting.OutputVariableName))
+            // ── 4. 将结果写入用户映射的输出变量 ────────────────────────
+            var map = setting.OutputVariableMap;
+            if (map.Count > 0)
             {
-                context.SetVariable(setting.OutputVariableName, result.ProcessedData.ToList());
+                var outputValues = GetOutputValues(setting.AnalysisType, result);
+                foreach (var (fieldName, userVarName) in map)
+                {
+                    if (!string.IsNullOrWhiteSpace(userVarName) && outputValues.TryGetValue(fieldName, out var value))
+                        context.SetVariable(userVarName, value);
+                }
             }
 
             // ── 5. 将完整结果序列化存入特殊变量（供 UI 层弹窗读取）────────
             var resultJson = JsonSerializer.Serialize(result);
-            context.SetVariable($"__{setting.OutputVariableName}_ChartData", resultJson);
+            context.SetVariable("__WaveformAnalysis_ChartData", resultJson);
 
             var message = setting.AnalysisType switch
             {
@@ -111,5 +117,72 @@ namespace WaveformAnalysisPlugin.Execution
                 Error = new ErrorInfo { Message = message }
             }
         };
+
+        /// <summary>
+        /// 根据分析类型，提取所有可输出的结果字段
+        /// </summary>
+        private static Dictionary<string, object> GetOutputValues(AnalysisType type, WaveformAnalysisResult result)
+        {
+            var values = new Dictionary<string, object>();
+            switch (type)
+            {
+                case AnalysisType.Statistics:
+                    var s = result.Statistics!;
+                    values["Mean"] = s.Mean;
+                    values["RMS"] = s.RMS;
+                    values["StdDev"] = s.StandardDeviation;
+                    values["Max"] = s.Max;
+                    values["Min"] = s.Min;
+                    values["PeakToPeak"] = s.PeakToPeak;
+                    break;
+                case AnalysisType.PeakDetection:
+                    values["FilteredData"] = result.ProcessedData.ToList();
+                    values["PeakCount"] = result.PeakIndices.Count;
+                    values["ValleyCount"] = result.ValleyIndices.Count;
+                    values["PeakIndices"] = result.PeakIndices;
+                    values["ValleyIndices"] = result.ValleyIndices;
+                    break;
+                case AnalysisType.FFT:
+                    values["Magnitude"] = result.ProcessedData.ToList();
+                    values["FrequencyAxis"] = result.FrequencyAxis.ToList();
+                    break;
+                default: // 滤波
+                    values["FilteredData"] = result.ProcessedData.ToList();
+                    break;
+            }
+            return values;
+        }
+
+        /// <summary>
+        /// 获取指定分析类型可输出的字段定义（字段名 + 类型描述），供 UI 显示
+        /// </summary>
+        public static IReadOnlyList<(string FieldName, string TypeDesc)> GetOutputFields(AnalysisType type)
+        {
+            return type switch
+            {
+                AnalysisType.Statistics => [
+                    ("Mean", "double - 均值"),
+                    ("RMS", "double - 均方根"),
+                    ("StdDev", "double - 标准差"),
+                    ("Max", "double - 最大值"),
+                    ("Min", "double - 最小值"),
+                    ("PeakToPeak", "double - 峰峰值")
+                ],
+                AnalysisType.PeakDetection => [
+                    ("FilteredData", "List<double> - 数据"),
+                    ("PeakCount", "int - 峰值数量"),
+                    ("ValleyCount", "int - 谷值数量"),
+                    ("PeakIndices", "List<int> - 峰值索引"),
+                    ("ValleyIndices", "List<int> - 谷值索引")
+                ],
+                AnalysisType.FFT => [
+                    ("Magnitude", "List<double> - 频谱幅值"),
+                    ("FrequencyAxis", "List<double> - 频率轴")
+                ],
+                _ => [
+                    ("FilteredData", "List<double> - 滤波后数据")
+                ]
+            };
+        }
     }
 }

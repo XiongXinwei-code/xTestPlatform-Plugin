@@ -17,37 +17,57 @@
     <syncfusion:TabControlExt>
 
         <!-- ═══ Tab 1: 基本设置 ═══ -->
-        <syncfusion:TabItemExt Header="基本设置">
-            <Grid Margin="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <syncfusion:TabItemExt>
+            <syncfusion:TabItemExt.Header>
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/WaveformAnalysis.StepPlugin.UI;component/Resources/Icons/waveform.png"
+                           Width="16" Height="16" Margin="0,0,6,0"/>
+                    <TextBlock Text="基本设置" VerticalAlignment="Center"/>
+                </StackPanel>
+            </syncfusion:TabItemExt.Header>
+            <StackPanel>
+                <Grid Margin="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="分析类型:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnalysisTypes}"
-                          SelectedItem="{Binding AnalysisType}" Margin="0,0,16,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="分析类型:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding AnalysisTypes}"
+                              SelectedItem="{Binding AnalysisType}" Margin="0,0,16,8"/>
 
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="采样率 (Hz):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <syncfusion:DoubleTextBox Grid.Row="0" Grid.Column="3" Value="{Binding SampleRate, Mode=TwoWay}"
-                                          MinValue="0.001" NumberDecimalDigits="2" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Text="采样率 (Hz):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <syncfusion:DoubleTextBox Grid.Row="0" Grid.Column="3" Value="{Binding SampleRate, Mode=TwoWay}"
+                                              MinValue="0.001" NumberDecimalDigits="2" Margin="0,0,0,8"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="输入变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding InputVariableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,16,8"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="输入变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding InputVariableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="输出变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding OutputVariableName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8"/>
+                    <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
+                              IsChecked="{Binding ShowChartOnExecution}" Content="执行时弹出图表窗口" Margin="0,4,0,0"/>
+                </Grid>
 
-                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4"
-                          IsChecked="{Binding ShowChartOnExecution}" Content="执行时弹出图表窗口" Margin="0,4,0,0"/>
-            </Grid>
+                <!-- 输出变量映射 -->
+                <GroupBox Header="输出结果 → 变量映射" Margin="12,8,12,0">
+                    <DataGrid ItemsSource="{Binding OutputFields}" AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                              Margin="4">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="输出字段" Binding="{Binding FieldName}" IsReadOnly="True" Width="120"/>
+                            <DataGridTextColumn Header="类型" Binding="{Binding TypeDescription}" IsReadOnly="True" Width="180"/>
+                            <DataGridTextColumn Header="映射到变量" Binding="{Binding UserVariableName, UpdateSourceTrigger=LostFocus}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </GroupBox>
+            </StackPanel>
         </syncfusion:TabItemExt>
 
         <!-- ═══ Tab 2: 滤波设置 ═══ -->

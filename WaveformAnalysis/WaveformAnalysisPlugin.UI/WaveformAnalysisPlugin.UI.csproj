@@ -11,6 +11,7 @@
 	<RootNamespace>WaveformAnalysisPlugin.UI</RootNamespace>
 	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\WaveformAnalysis\</OutputPath>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,11 +25,11 @@
   <ItemGroup>
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 	<PackageReference Include="MessagePack" Version="3.1.4" />
-	<PackageReference Include="Syncfusion.SfChart.WPF" Version="27.2.5" />
-	<PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="27.2.5" />
-	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="27.2.5" />
-	<PackageReference Include="Syncfusion.Tools.WPF" Version="27.2.5" />
-	<PackageReference Include="Syncfusion.SfInput.WPF" Version="27.2.5" />
+	<PackageReference Include="Syncfusion.SfChart.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.SfInput.WPF" Version="32.1.25" />
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.6" />
   </ItemGroup>
 

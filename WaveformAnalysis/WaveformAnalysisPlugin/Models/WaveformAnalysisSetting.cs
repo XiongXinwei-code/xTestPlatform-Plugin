@@ -35,7 +35,6 @@ namespace WaveformAnalysisPlugin.Models
         private int _filterOrder = 4;
         private double _peakThreshold = 0.5;
         private string _inputVariableName = string.Empty;
-        private string _outputVariableName = string.Empty;
         private bool _showChartOnExecution = true;
 
         /// <summary>分析类型</summary>
@@ -87,12 +86,13 @@ namespace WaveformAnalysisPlugin.Models
             set => SetProperty(ref _inputVariableName, value);
         }
 
-        /// <summary>输出结果步骤变量名</summary>
-        public string OutputVariableName
+        /// <summary>输出变量映射（结果字段名 → 用户变量名）</summary>
+        public Dictionary<string, string> OutputVariableMap
         {
-            get => _outputVariableName;
-            set => SetProperty(ref _outputVariableName, value);
+            get => _outputVariableMap;
+            set => SetProperty(ref _outputVariableMap, value);
         }
+        private Dictionary<string, string> _outputVariableMap = new();
 
         /// <summary>执行时是否弹出图表窗口</summary>
         public bool ShowChartOnExecution
