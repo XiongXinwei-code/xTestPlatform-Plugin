@@ -8,6 +8,11 @@ on:
       - closed
   workflow_dispatch:
 
+# 防止并发发布导致版本冲突
+concurrency:
+  group: auto-release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   DOTNET_VERSION: "8.0.x"
   PUBLISH_DIR: publish
@@ -26,13 +31,13 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.PLUGIN_TOKEN }}
 
-      # ── 2. 自动递增版本号（基于最新 tag）
+      # ── 2. 自动递增版本号（基于最新 tag） ─────────────────────────────
       - name: 递增版本号
         id: bump_version
         shell: pwsh
         run: |
           $latestTag = git describe --tags --abbrev=0 2>$null
-          if ($latestTag) {
+          if ($LASTEXITCODE -eq 0 -and $latestTag) {
               $version = $latestTag.TrimStart('v')
               $parts = $version.Split('.')
               $major = [int]$parts[0]
@@ -129,8 +134,8 @@ jobs:
           $zipFile = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
           Write-Host "✅ 已打包: $($zipFile.Name)  ($([math]::Round($zipFile.Length/1MB,2)) MB)"
 
+          # 仅保留后续需要使用的 ZIP_NAME
           "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "PLUGIN_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # ── 8. 生成 Release Notes ─────────────────────────────────────────
       - name: 生成 Release Notes
@@ -138,12 +143,14 @@ jobs:
         run: |
           $currentTag = "${{ steps.bump_version.outputs.new_tag }}"
           $tags = git tag --sort=-v:refname
-          $index = $tags.IndexOf($currentTag)
-          if ($index -lt $tags.Count - 1) {
+          $index = [array]::IndexOf($tags, $currentTag)
+          if ($index -ge 0 -and $index -lt ($tags.Count - 1)) {
               $previousTag = $tags[$index + 1]
               $log = git log "$previousTag..$currentTag" --pretty=format:"- %s (%an)" --no-merges
           } else {
-              $log = git log --pretty=format:"- %s (%an)" --no-merges
+              # 首个版本或未找到前一个标签，仅记录最近一次提交
+              $log = git log -1 --pretty=format:"- %s (%an)" --no-merges
+              if (-not $log) { $log = "初始版本发布。" }
           }
           if (-not $log) { $log = "无代码变更，仅版本更新。" }
           Set-Content -Path "$env:GITHUB_WORKSPACE\release_notes.md" -Value $log -Encoding UTF8
@@ -208,5 +215,4 @@ jobs:
           } else {
             git commit -m "chore: 更新版本清单至 ${{ steps.bump_version.outputs.new_tag }} [skip ci]"
             git push origin HEAD:master
-          }
           }
