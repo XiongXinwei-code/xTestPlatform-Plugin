@@ -3,7 +3,6 @@ using LabVIEWCallPlugin.Models;
 using System.IO;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
-using xTestPlatform.Core.SequenceModels;
 
 namespace LabVIEWCallPlugin
 {
@@ -31,8 +30,5 @@ namespace LabVIEWCallPlugin
                 ? "LabVIEW Call"
                 : $"Call: {Path.GetFileName(s.ViFilePath)}";
         }
-
-        public override IReadOnlyList<Variables> GetDefaultStepVariables()
-            => [StepVariableProfiles.CreateResultCluster()];
     }
 }

@@ -30,7 +30,7 @@
 	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
 	<PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
 	<PackageReference Include="Syncfusion.SfInput.WPF" Version="32.1.25" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.6" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.7" />
   </ItemGroup>
 
   <ItemGroup>

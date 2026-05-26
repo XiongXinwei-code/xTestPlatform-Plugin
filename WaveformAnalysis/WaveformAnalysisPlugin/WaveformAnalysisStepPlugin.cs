@@ -3,7 +3,6 @@ using WaveformAnalysisPlugin.Execution;
 using WaveformAnalysisPlugin.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
-using xTestPlatform.Core.SequenceModels;
 
 namespace WaveformAnalysisPlugin
 {
@@ -28,8 +27,5 @@ namespace WaveformAnalysisPlugin
             var s = DeserializeSetting(setting);
             return $"波形分析: {s.AnalysisType}";
         }
-
-        public override IReadOnlyList<Variables> GetDefaultStepVariables()
-            => [StepVariableProfiles.CreateResultCluster()];
     }
 }
