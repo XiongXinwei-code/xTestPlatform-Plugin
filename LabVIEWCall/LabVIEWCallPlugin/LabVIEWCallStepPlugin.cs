@@ -17,7 +17,9 @@ namespace LabVIEWCallPlugin
 
         public override string StepTypeId => "LabVIEWCall";
         public override string DisplayName => "LabVIEW Call";
-        public override string Category => "Adapte";
+
+        public override string Description => "调用 LabVIEW 虚拟仪器（VI）文件，执行其中定义的功能。适用于需要在测试流程中集成 LabVIEW 功能的场景。";
+        public override string Category => "Adapter";
         public override string IconPath =>
                         "pack://application:,,,/LabVIEWCall.StepPlugin.UI;component/Resources/Icons/labview.png";
 
