@@ -3,7 +3,6 @@ using WaveformAnalysisPlugin.Execution;
 using WaveformAnalysisPlugin.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
-using xTestPlatform.Core.SequenceModels;
 
 namespace WaveformAnalysisPlugin
 {
@@ -17,6 +16,7 @@ namespace WaveformAnalysisPlugin
 
         public override string StepTypeId => "WaveformAnalysis";
         public override string DisplayName => "Waveform Analysis";
+        public override string Description => "波形分析步骤，支持多种分析类型（如峰值检测、频谱分析等）。输入数据应为数值数组，输出结果根据分析类型不同而异。适用于需要对测试数据进行深入分析的场景。";
         public override string Category => "Analysis";
         public override string IconPath =>
             "pack://application:,,,/WaveformAnalysis.StepPlugin.UI;component/Resources/Icons/waveform.png";
@@ -28,8 +28,5 @@ namespace WaveformAnalysisPlugin
             var s = DeserializeSetting(setting);
             return $"波形分析: {s.AnalysisType}";
         }
-
-        public override IReadOnlyList<Variables> GetDefaultStepVariables()
-            => [StepVariableProfiles.CreateResultCluster()];
     }
 }

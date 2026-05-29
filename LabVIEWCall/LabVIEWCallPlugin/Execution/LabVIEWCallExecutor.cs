@@ -280,10 +280,10 @@ namespace LabVIEWCallPlugin.Execution
             else
             {
                 // 叶节点
-                string targetPath = string.IsNullOrWhiteSpace(node.TargetVariable)
-                    ? $"Step.{node.Name}"
-                    : node.TargetVariable;
-                result[targetPath] = value;
+                if (string.IsNullOrWhiteSpace(node.TargetVariable))
+                    return;
+
+                result[node.TargetVariable] = value;
             }
         }
 

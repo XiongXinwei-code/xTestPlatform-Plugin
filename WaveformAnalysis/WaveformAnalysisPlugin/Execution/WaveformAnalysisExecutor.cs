@@ -31,16 +31,16 @@ namespace WaveformAnalysisPlugin.Execution
             }
             catch (Exception ex)
             {
-                return ErrorResult($"反序列化设置失败: {ex.Message}");
+                return ExecutionResult.Error($"反序列化设置失败: {ex.Message}");
             }
 
             // ── 2. 从步骤变量获取输入数据 ────────────────────────────────
             if (string.IsNullOrWhiteSpace(setting.InputVariableName))
-                return ErrorResult("未配置输入变量名");
+                return ExecutionResult.Error("未配置输入变量名");
 
             var inputVar = context.GetVariable(setting.InputVariableName);
             if (inputVar == null)
-                return ErrorResult($"变量 '{setting.InputVariableName}' 不存在");
+                return ExecutionResult.Error($"变量 '{setting.InputVariableName}' 不存在");
 
             double[] data;
             try
@@ -54,11 +54,11 @@ namespace WaveformAnalysisPlugin.Execution
             }
             catch (Exception ex)
             {
-                return ErrorResult(ex.Message);
+                return ExecutionResult.Error(ex.Message);
             }
 
             if (data.Length == 0)
-                return ErrorResult("输入数据为空");
+                return ExecutionResult.Error("输入数据为空");
 
             // ── 3. 执行分析 ──────────────────────────────────────────────
             WaveformAnalysisResult result;
@@ -77,7 +77,7 @@ namespace WaveformAnalysisPlugin.Execution
             }
             catch (Exception ex)
             {
-                return ErrorResult($"分析执行失败: {ex.Message}");
+                return ExecutionResult.Error($"分析执行失败: {ex.Message}");
             }
 
             // ── 4. 将结果写入用户映射的输出变量 ────────────────────────
@@ -96,27 +96,10 @@ namespace WaveformAnalysisPlugin.Execution
             var resultJson = JsonSerializer.Serialize(result);
             context.SetVariable("__WaveformAnalysis_ChartData", resultJson);
 
-            var message = setting.AnalysisType switch
-            {
-                AnalysisType.Statistics => $"均值={result.Statistics!.Mean:F4}, RMS={result.Statistics.RMS:F4}, 标准差={result.Statistics.StandardDeviation:F4}",
-                AnalysisType.PeakDetection => $"检测到 {result.PeakIndices.Count} 个峰值, {result.ValleyIndices.Count} 个谷值",
-                _ => $"分析完成，输出 {result.ProcessedData.Length} 个数据点"
-            };
-
-            return new ExecutionResult
-            {
-                StepResult = new StepResult { Status = TestStatus.Passed }
-            };
+            return ExecutionResult.Success();
         }
 
-        private static ExecutionResult ErrorResult(string message) => new()
-        {
-            StepResult = new StepResult
-            {
-                Status = TestStatus.Error,
-                Error = new ErrorInfo { Message = message }
-            }
-        };
+
 
         /// <summary>
         /// 根据分析类型，提取所有可输出的结果字段
