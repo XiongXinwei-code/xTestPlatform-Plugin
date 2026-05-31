@@ -1,13 +1,13 @@
 {
-  "version": "0.0.8",
-  "releaseName": "xTestPlatform-Plugins v0.0.8",
+  "version": "0.0.9",
+  "releaseName": "xTestPlatform-Plugins v0.0.9",
   "releaseNotes": "请访问 GitHub Release 页面查看完整更新说明。",
-  "htmlUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/tag/v0.0.8",
+  "htmlUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/tag/v0.0.9",
   "assets": [
     {
-      "name": "Plugins-v0.0.8.zip",
-      "downloadUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/download/v0.0.8/Plugins-v0.0.8.zip",
-      "size": 15302530
+      "name": "Plugins-v0.0.9.zip",
+      "downloadUrl": "https://github.com/XiongXinwei-code/xTestPlatform-Plugin/releases/download/v0.0.9/Plugins-v0.0.9.zip",
+      "size": 15302536
     }
   ]
 }
