@@ -16,7 +16,7 @@
 	<ItemGroup>
 		<PackageReference Include="MessagePack" Version="3.1.4" />
 		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.8" />
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.9" />
 	</ItemGroup>
 
 </Project>
