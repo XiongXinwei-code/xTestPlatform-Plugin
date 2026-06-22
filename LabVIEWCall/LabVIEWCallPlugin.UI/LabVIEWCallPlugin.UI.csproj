@@ -12,7 +12,7 @@
     <AssemblyName>LabVIEWCall.StepPlugin.UI</AssemblyName>
     <RootNamespace>LabVIEWCallPlugin.UI</RootNamespace>
     <!-- 直接输出到主程序 Plugins 目录 -->
-	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\LabVIEWCall\</OutputPath>
+	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x64\Plugins\LabVIEWCall\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="MessagePack" Version="3.1.4" />
+    <PackageReference Include="MessagePack" Version="3.1.7" />
     <PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
     <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
     <PackageReference Include="Syncfusion.SfBusyIndicator.WPF" Version="32.2.3" />
