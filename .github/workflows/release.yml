@@ -92,7 +92,7 @@ jobs:
               foreach ($proj in $projects) {
                   Write-Host "   🔨 $($proj.Name)"
                   dotnet build $proj.FullName `
-                    -c Release -p:Platform=x86 `
+                    -c Release -p:Platform=x64 `
                     -p:OutputPath="$publishRoot\$($dir.Name)"
                   if ($LASTEXITCODE -ne 0) {
                       Write-Error "❌ 编译失败: $($proj.Name)"
