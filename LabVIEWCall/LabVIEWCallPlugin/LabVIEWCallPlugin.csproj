@@ -5,8 +5,8 @@
 		<!-- ← windows 保留（P/Invoke 调 lvLib.dll） -->
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Platforms>AnyCPU;x86</Platforms>
-		<PlatformTarget>x86</PlatformTarget>
+		<Platforms>AnyCPU;x64</Platforms>
+		<PlatformTarget>x64</PlatformTarget>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<!-- ← LvLibWrapper 可能需要 -->
 		<!-- UseWPF 不写 = 不依赖 WPF ✅ -->
@@ -22,7 +22,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.9" />
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.10" />
 	</ItemGroup>
 
 	<!-- ✅ 补上：lvLib.dll 需要随插件输出 -->
