@@ -9,7 +9,7 @@
 	  <PlatformTarget>x64</PlatformTarget>
 	<AssemblyName>WaveformAnalysis.StepPlugin.UI</AssemblyName>
 	<RootNamespace>WaveformAnalysisPlugin.UI</RootNamespace>
-	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\WaveformAnalysis\</OutputPath>
+	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x64\Plugins\WaveformAnalysis\</OutputPath>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -24,7 +24,7 @@
 
   <ItemGroup>
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-	<PackageReference Include="MessagePack" Version="3.1.4" />
+	<PackageReference Include="MessagePack" Version="3.1.7" />
 	<PackageReference Include="Syncfusion.SfChart.WPF" Version="32.1.25" />
 	<PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
 	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />

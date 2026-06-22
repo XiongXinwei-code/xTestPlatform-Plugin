@@ -8,13 +8,13 @@
 		<PlatformTarget>x64</PlatformTarget>
 		<AssemblyName>WaveformAnalysis.StepPlugin</AssemblyName>
 		<RootNamespace>WaveformAnalysisPlugin</RootNamespace>
-		<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\WaveformAnalysis\</OutputPath>
+		<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x64\Plugins\WaveformAnalysis\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MessagePack" Version="3.1.4" />
+		<PackageReference Include="MessagePack" Version="3.1.7" />
 		<PackageReference Include="MathNet.Numerics" Version="5.0.0" />
 		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.10" />
 	</ItemGroup>

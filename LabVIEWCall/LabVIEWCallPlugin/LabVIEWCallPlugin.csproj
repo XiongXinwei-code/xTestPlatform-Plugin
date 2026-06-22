@@ -12,13 +12,13 @@
 		<!-- UseWPF 不写 = 不依赖 WPF ✅ -->
 		<AssemblyName>LabVIEWCall.StepPlugin</AssemblyName>
 		<RootNamespace>LabVIEWCallPlugin</RootNamespace>
-		<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x86\Plugins\LabVIEWCall\</OutputPath>
+		<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Platform)\$(Configuration)\$(TargetFramework)\win-x64\Plugins\LabVIEWCall\</OutputPath>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MessagePack" Version="3.1.4" />
+		<PackageReference Include="MessagePack" Version="3.1.7" />
 	</ItemGroup>
 
 	<ItemGroup>
