@@ -184,26 +184,12 @@
                           SelectionChanged="EnumComboBox_SelectionChanged"
                           Tag="{Binding}"/>
         </DataTemplate>
-        
-        <!-- 变量编辑模板 -->
+
+        <!-- 变量编辑模板：只放文本框，用于双击修改文本 -->
         <DataTemplate x:Key="VariableEditTemplate">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0"
-                         Text="{Binding Variable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         BorderThickness="0"/>
-                <syncfusion:ButtonAdv Grid.Column="1"
-                            SizeMode="Small"
-                            ToolTip="VariableView"
-                            SmallIcon ="pack://application:,,,/LabVIEWCall.StepPlugin.UI;component/Resources/Icons/variable.png"
-                            Width="24" 
-                            Margin="0,0,5,0"
-                            Command="{Binding DataContext.OpenVariableViewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            CommandParameter="{Binding}"/>
-            </Grid>
+            <TextBox Text="{Binding Variable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+             BorderThickness="0"
+             VerticalContentAlignment="Center"/>
         </DataTemplate>
 
         <!-- 浮点数显示模板 -->
@@ -261,7 +247,7 @@
             </Grid>
         </DataTemplate>
 
-        <!-- 变量显示模板 -->
+        <!-- 变量显示模板：直接提供按钮 -->
         <DataTemplate x:Key="VariableDisplayTemplate">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -269,20 +255,22 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" 
-                           Text="{Binding Variable}" 
-                           VerticalAlignment="Center"
-                           Padding="5,0"/>
+                   Text="{Binding Variable}" 
+                   VerticalAlignment="Center"
+                   Padding="5,0"/>
                 <syncfusion:ButtonAdv Grid.Column="1"
-                            SizeMode="Small"
-                            ToolTip="VariableView"
-                            SmallIcon ="pack://application:,,,/LabVIEWCall.StepPlugin.UI;component/Resources/Icons/variable.png"
-                            Width="24" 
-                            Margin="0,0,5,0"/>
+                    SizeMode="Small"
+                    ToolTip="VariableView"
+                    SmallIcon ="pack://application:,,,/LabVIEWCall.StepPlugin.UI;component/Resources/Icons/variable.png"
+                    Width="24" 
+                    Margin="0,0,5,0"
+                    Command="{Binding DataContext.OpenVariableViewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}"/>
             </Grid>
         </DataTemplate>
-        
 
-            <!-- 显示模板选择器 -->
+
+        <!-- 显示模板选择器 -->
         <helpers:ValueEditorTemplateSelector x:Key="ValueDisplaySelector"
                                              NumericTemplate="{StaticResource NumericDisplayTemplate}"
                                              IntegerTemplate="{StaticResource IntegerDisplayTemplate}"

@@ -1,13 +1,19 @@
 using LabVIEWCallPlugin.LVadapter;
-using System.Collections.Generic;
 using LabVIEWCallPlugin.Models;
 using LabVIEWCallPlugin.UI.Converters;
+using LabVIEWCallPlugin.UI.Helper;          // 引入 LabVIEWTypeConverter
 using LabVIEWCallPlugin.UI.Models;
 using LabVIEWCallPlugin.UI.Views;
 using MessagePack;
 using MessagePack.Resolvers;
 using StepEditor.Abstractions;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -120,7 +126,6 @@ namespace LabVIEWCallPlugin.UI
             return errors;
         }
 
-
         // ── 阶段三实现：基础校验 ──────────────────────────────────────────
 
         private static void ValidatePanelNodesBasic(
@@ -153,7 +158,7 @@ namespace LabVIEWCallPlugin.UI
             }
         }
 
-        // ── 阶段四实现：上下文校验 ────────────────────────────────────────
+        // ── 阶段四实现：上下文校验（使用 LabVIEWTypeConverter）───────────
 
         private static async Task ValidatePanelNodesWithContextAsync(
             string json, string panelLabel,
@@ -198,71 +203,86 @@ namespace LabVIEWCallPlugin.UI
                     continue;
                 }
 
-                // 4. 返回类型与 LabVIEW 节点类型匹配
-                if (TryMapLvType(node.Type, out var expectedKind) &&
-                    !IsLvTypeMatch(expectedKind, result))
+                // 4. 返回类型与 LabVIEW 节点类型匹配（使用平台 VariableDataType）
+                var expectedType = LabVIEWTypeConverter.Convert(node.Type);
+                if (expectedType != VariableDataType.Dynamic &&   // Dynamic 匹配任何类型
+                    !IsCompatibleWith(expectedType, result))
                 {
                     var actual = result?.GetType().Name ?? "null";
                     errors.Add(StepSettingError.Error("LV_TYPE_MISMATCH",
-                        $"{panelLabel} [{node.Name}] 类型不匹配: 期望 {node.Type}，实际 {actual}"));
+                        $"{panelLabel} [{node.Name}] 类型不匹配: 期望 {node.Type}（平台 {expectedType}），实际 {actual}"));
                 }
             }
         }
 
-        // ── 辅助：LabVIEW 类型名 → 内部枚举 ──────────────────────────────
+        // ── 类型兼容性检查（基于 VariableDataType）────────────────────
 
-        private static bool TryMapLvType(string typeName, out LvExpectedKind kind)
+        /// <summary>
+        /// 检查表达式计算结果是否与 LabVIEW 控件期望的数据类型兼容。
+        /// LabVIEW 通过其 .NET 适配器接收数据，不同类型的接收规则如下。
+        /// </summary>
+        private static bool IsCompatibleWith(VariableDataType expected, object? result)
         {
-            if (string.IsNullOrWhiteSpace(typeName)) { kind = LvExpectedKind.Unknown; return false; }
+            if (result == null)
+                return true; // null 可以传给任何控件（LabVIEW 会使用默认值）
 
-            var n = NormalizeLvTypeName(typeName);
-            if (n.StartsWith("enum", StringComparison.Ordinal)) { kind = LvExpectedKind.Enum; return true; }
+            Type t = result.GetType();
 
-            kind = n switch
+            return expected switch
             {
-                "doublefloat" or "double" => LvExpectedKind.Double,
-                "singlefloat" or "single" => LvExpectedKind.Single,
-                "boolean" or "bool" => LvExpectedKind.Boolean,
-                "string" => LvExpectedKind.String,
-                "i8" or "int8" => LvExpectedKind.Int8,
-                "u8" or "uint8" => LvExpectedKind.UInt8,
-                "i16" or "int16" => LvExpectedKind.Int16,
-                "u16" or "uint16" => LvExpectedKind.UInt16,
-                "i32" or "int32" => LvExpectedKind.Int32,
-                "u32" or "uint32" => LvExpectedKind.UInt32,
-                "i64" or "int64" => LvExpectedKind.Int64,
-                "u64" or "uint64" => LvExpectedKind.UInt64,
-                "cluster" => LvExpectedKind.Cluster,
-                "array" => LvExpectedKind.Array,
-                _ => LvExpectedKind.Unknown
+                // 整数类型
+                VariableDataType.SByte => t == typeof(sbyte),
+                VariableDataType.Byte => t == typeof(byte),
+                VariableDataType.Short => t == typeof(short),
+                VariableDataType.UShort => t == typeof(ushort),
+                VariableDataType.Int => t == typeof(int),
+                VariableDataType.UInt => t == typeof(uint),
+                VariableDataType.Long => t == typeof(long),
+                VariableDataType.ULong => t == typeof(ulong),
+
+                // 浮点类型
+                VariableDataType.Float => t == typeof(float),
+                VariableDataType.Double => t == typeof(double),
+
+                // 基础类型
+                VariableDataType.Bool => t == typeof(bool),
+                VariableDataType.String => t == typeof(string),
+
+                // 枚举：LabVIEW 接收字符串（当前值）或对应的底层整数
+                VariableDataType.Enum => t == typeof(string) ||
+                                         t == typeof(sbyte) || t == typeof(byte) ||
+                                         t == typeof(short) || t == typeof(ushort) ||
+                                         t == typeof(int) || t == typeof(uint) ||
+                                         t == typeof(long) || t == typeof(ulong),
+
+                // 结构体（Cluster）：接受 IDictionary<string, object?> 或具有无参构造的复合对象
+                VariableDataType.Struct => (t.IsGenericType &&
+                                            t.GetGenericTypeDefinition() == typeof(Dictionary<,>) &&
+                                            t.GetGenericArguments()[0] == typeof(string)) ||
+                                           t.GetConstructor(Type.EmptyTypes) != null,
+
+                // 列表（1D 数组）：接受 IEnumerable（非字符串），且元素类型可进一步细化
+                VariableDataType.List or VariableDataType.ListBool or VariableDataType.ListInt or
+                VariableDataType.ListLong or VariableDataType.ListFloat or VariableDataType.ListDouble or
+                VariableDataType.ListString or VariableDataType.ListDynamic or VariableDataType.ListByte
+                    => t != typeof(string) && typeof(IEnumerable).IsAssignableFrom(t),
+
+                // 矩阵（2D 数组）：接受 rank=2 的数组或多维集合
+                VariableDataType.Matrix or VariableDataType.MatrixBool or VariableDataType.MatrixInt or
+                VariableDataType.MatrixLong or VariableDataType.MatrixFloat or VariableDataType.MatrixDouble or
+                VariableDataType.MatrixString
+                    => t.IsArray && t.GetArrayRank() == 2,
+
+                // Dynamic / Object / Expression / Reference：不做限制
+                VariableDataType.Dynamic or VariableDataType.Object or
+                VariableDataType.Expression or VariableDataType.Reference
+                    => true,
+
+                _ => false
             };
-            return kind != LvExpectedKind.Unknown;
         }
 
-        private static bool IsLvTypeMatch(LvExpectedKind kind, object? result) => kind switch
-        {
-            LvExpectedKind.Double => result is double,
-            LvExpectedKind.Single => result is float,
-            LvExpectedKind.Boolean => result is bool,
-            LvExpectedKind.String => result is string,
-            LvExpectedKind.Int8 => result is sbyte,
-            LvExpectedKind.UInt8 => result is byte,
-            LvExpectedKind.Int16 => result is short,
-            LvExpectedKind.UInt16 => result is ushort,
-            LvExpectedKind.Int32 => result is int,
-            LvExpectedKind.UInt32 => result is uint,
-            LvExpectedKind.Int64 => result is long,
-            LvExpectedKind.UInt64 => result is ulong,
-            LvExpectedKind.Enum => result is sbyte or byte or short or ushort
-                                           or int or uint or long or ulong or string,
-            LvExpectedKind.Cluster => result is IDictionary<string, object?>,
-            LvExpectedKind.Array => result is System.Collections.IEnumerable and not string,
-            _ => true
-        };
-
-        private static string NormalizeLvTypeName(string s) =>
-            new string(s.Where(c => !char.IsWhiteSpace(c) && c != '-' && c != '_').ToArray())
-                .ToLowerInvariant();
+        // ── 辅助：枚举所有子节点 ────────────────────────────────────────
 
         private static IEnumerable<LvPanelNode> EnumerateNodes(IEnumerable<LvPanelNode> nodes)
         {
@@ -272,13 +292,6 @@ namespace LabVIEWCallPlugin.UI
                 foreach (var child in EnumerateNodes(node.Children))
                     yield return child;
             }
-        }
-
-        private enum LvExpectedKind
-        {
-            Unknown, Boolean, String, Double, Single,
-            Int8, UInt8, Int16, UInt16, Int32, UInt32, Int64, UInt64,
-            Enum, Cluster, Array
         }
     }
 }
