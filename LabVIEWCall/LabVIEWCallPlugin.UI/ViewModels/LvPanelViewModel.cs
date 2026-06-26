@@ -4,6 +4,7 @@ using ExperssionEditor;
 using LabVIEWCallPlugin.LVadapter;
 using LabVIEWCallPlugin.UI.Converters;
 using LabVIEWCallPlugin.UI.Models;
+using LabVIEWCallPlugin.UI.Helper;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
@@ -86,11 +87,15 @@ namespace LabVIEWCallPlugin.UI.ViewModels
 
             Application.Current.Dispatcher.Invoke(() =>
             {
+
+                // 将 LabVIEW 类型转换为平台类型名
+                string platformType = LabVIEWTypeConverter.ConvertToString(node?.Type);
+
                 var dialog = new ExpressionEditorDialog(
                     SequenceFile,
                     EditPosition,
                     node?.Variable ?? string.Empty,
-                    node?.Type ?? string.Empty)
+                    platformType)
                 {
                     Owner = Application.Current.MainWindow,
                     WindowStartupLocation = WindowStartupLocation.CenterOwner
