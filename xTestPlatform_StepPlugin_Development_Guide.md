@@ -1,6 +1,6 @@
 # xTestPlatform 步骤插件开发手册
 
-> **版本**：3.0.0 | **框架**：.NET 8 / WPF | **日期**：2026-03-25  
+> **版本**：3.1.0 | **框架**：.NET 8 / WPF | **日期**：2025-07-15  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -77,11 +77,16 @@ public interface IStepPlugin {
     string  StepTypeId  { get; }   // 全局唯一，推荐格式：公司.分类.步骤名
     string  DisplayName { get; }   // 工具箱 / 步骤列表显示名称
     string  Category    { get; }   // 工具箱分组，相同值聚合在一起
-    string  IconPath    { get; }   // WPF Pack URI（非 nullable）
+    string? IconPath    { get; }   // WPF Pack URI（nullable，无图标可返回 null）
+
+    /// <summary>插件功能的简短描述，供 AI 助手和 UI 工具提示理解用途</summary>
+    string Description => string.Empty;
+
+    /// <summary>该步骤类型是否支持包含子步骤（树形结构中可作为父节点）</summary>
+    bool CanHaveChildren => false;
 
     IStepSettingSerializer   CreateSerializer();
     IStepExecutor            CreateExecutor();
-    IReadOnlyList<Variables> GetDefaultStepVariables();
 
     // 根据序列化后的 Setting 字节生成可读描述文本（显示在步骤列表中）
     string GenerateDescription(byte[] setting) => string.Empty;
@@ -93,15 +98,24 @@ public interface IStepPlugin {
 | `StepTypeId`                | ✅   | 全局唯一，后注册的覆盖先注册的             |
 | `DisplayName`               | ✅   | 工具箱显示名称                     |
 | `Category`                  | ✅   | 工具箱分组名                      |
-| `IconPath`                  | ✅   | Pack URI（不可为 null，无图标填空字符串）  |
+| `IconPath`                  | ✅   | Pack URI（nullable，无图标可返回 null 或空字符串） |
+| `Description`               | ✅   | 插件功能描述，**必须**准确反映实际行为，供 AI 助手正确使用插件 |
+| `CanHaveChildren`           | ⭕   | 是否支持子步骤，默认 `false`          |
 | `CreateSerializer()`        | ✅   | 基类已自动实现，无需手写                |
 | `CreateExecutor()`          | ✅   | 每次调用返回新实例                   |
-| `GetDefaultStepVariables()` | ⭕   | 默认返回 `[]`                   |
 | `GenerateDescription()`     | ⭕   | 默认返回空字符串，override 后显示在步骤列表 |
 
 > ⚠️ **v3.0 变更**：`ValidateSettingAsync()` 已从 `IStepPlugin` 中移除。  
 > 纯 Core 层不依赖 WPF/Expression 的静态校验可在 `CreateExecutor()` 的 `ExecuteAsync` 中完成；  
 > 需要 UI 上下文的校验请实现 `IStepEditorPlugin.ValidateWithContextAsync()`（见第 4 节）。
+
+> ⚠️ **v3.1 变更**：  
+> - `GetDefaultStepVariables()` 已从 `IStepPlugin` 中**移除**，步骤变量改由框架管理。  
+> - 新增 `Description` 属性，供 AI 助手理解插件用途。  
+> - 新增 `CanHaveChildren` 属性，标记是否支持子步骤。  
+> - `IconPath` 改为 `string?`（nullable）。  
+> - `IStepSettingSerializer` 新增版本管理（`SettingVersion` + `Deserialize(data, dataVersion)`）。  
+> - 新增 `[ExpressionField]` 特性，用于标记会通过 Roslyn 求值的表达式属性。
 
 ### 2.2 IStepExecutor — 执行器契约
 
@@ -119,13 +133,15 @@ public interface IStepExecutor {
 
 ```csharp
 public interface IStepSettingSerializer {
+    int     SettingVersion { get; }           // 当前设置结构版本
     byte[]  Serialize(object setting);
-    object  Deserialize(byte[] data);
+    object  Deserialize(byte[] data, int dataVersion);  // 传入数据版本号
     object  CreateDefault();     // data 长度为 0 时使用
 }
 ```
 
-> ⚠️ **无需手动实现**，`StepPluginBase<TSetting>` 已通过 MessagePack + LZ4BlockArray 自动提供。
+> ⚠️ **无需手动实现**，`StepPluginBase<TSetting>` 已通过 MessagePack + LZ4BlockArray 自动提供。  
+> 版本管理由基类的 `CurrentSettingVersion` 和 `MigrateSetting()` 钩子实现（见第 3 节）。
 
 ### 2.4 ExecutionResult — 执行结果
 
@@ -220,10 +236,9 @@ public abstract class StepPluginBase<TSetting> : IStepPlugin
 
 | 方法                          | 内置行为                                                       |
 | --------------------------- | ---------------------------------------------------------- |
-| `CreateSerializer()`        | MessagePack 3.1.4 + LZ4BlockArray + ContractlessStandardResolver |
-| `GetDefaultStepVariables()` | 返回 `[]`                                                    |
+| `CreateSerializer()`        | MessagePack 3.1.4 + LZ4BlockArray + ContractlessStandardResolver + 版本管理 |
 | `GenerateDescription()`     | 返回空字符串                                                     |
-| `DeserializeSetting(byte[])` | 内部辅助方法，直接返回 `TSetting` 实例（可在子类中使用）                      |
+| `DeserializeSetting(byte[], int)` | 内部辅助方法，直接返回 `TSetting` 实例（可在子类中使用）                      |
 
 **必须 override 的抽象成员：**
 
@@ -231,22 +246,34 @@ public abstract class StepPluginBase<TSetting> : IStepPlugin
 public abstract string        StepTypeId  { get; }
 public abstract string        DisplayName { get; }
 public abstract string        Category    { get; }
-public abstract string        IconPath    { get; }   // 非 nullable
+public abstract string        IconPath { get; }
 public abstract IStepExecutor CreateExecutor();
 ```
 
 **可选 override：**
 
 ```csharp
+// 插件功能描述（供 AI 助手理解用途）
+public virtual string Description => string.Empty;
+
+// 是否支持子步骤（树形结构）
+public virtual bool CanHaveChildren => false;
+
 // 在步骤列表中显示可读描述
 public override string GenerateDescription(byte[] setting) {
     var s = DeserializeSetting(setting);
     return $"Delay: {s.DelayMs} ms";
 }
 
-// 声明步骤产生的变量
-public override IReadOnlyList<Variables> GetDefaultStepVariables() =>
-    [StepVariableProfiles.CreateResultCluster()];
+// ── 设置版本管理 ──────────────────────────────────────────────
+// 当前设置结构版本（升级 Setting 结构时递增）
+protected virtual int CurrentSettingVersion => 1;
+
+// 迁移钩子：将旧版本数据转换为当前版本对象
+protected virtual TSetting MigrateSetting(byte[] data, int fromVersion) {
+    throw new NotSupportedException(
+        $"插件 {StepTypeId} 不支持从版本 {fromVersion} 迁移到 {CurrentSettingVersion}");
+}
 ```
 
 ---
@@ -318,6 +345,9 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
     public override string DisplayName => "我的步骤";
     public override string Category    => "自定义步骤";
     public override string IconPath    => string.Empty;  // 无图标填空字符串
+
+    public override string Description =>
+        "检查指定变量的值是否满足条件。Setting 字段：TargetVariable(string,目标变量路径)。";
 
     public override IStepExecutor CreateExecutor() => new MyExecutor();
 
@@ -418,12 +448,17 @@ public interface IExecutionContext {
     StepExecutionInfo? CurrentStep     { get; set; }
     Sequence?          CurrentSequence { get; set; }
 
-    IVariableScope StationGlobals { get; }
+    IVariableScope ProjectGlobals { get; }
     IVariableScope FileGlobals    { get; }
     IVariableScope Locals         { get; }
     IVariableScope Parameters     { get; }
-    IVariableScope StepVariables  { get; }
     IVariableScope RunState       { get; }
+
+    /// <summary>引擎是否已发出中止命令，插件可在耗时循环中轮询</summary>
+    bool IsAbortRequested => false;
+
+    /// <summary>日志输出委托，供表达式脚本中调用 Log("消息")</summary>
+    Action<string>? LogAction => null;
 }
 
 public class StepExecutionInfo {
@@ -438,7 +473,7 @@ public class StepExecutionInfo {
 ### 6.2 变量查找优先级
 
 ```text
-StepVariables → Parameters → Locals → FileGlobals → StationGlobals
+RunState → Parameters → Locals → FileGlobals → ProjectGlobals
 ```
 
 ### 6.3 IVariableScope
@@ -823,6 +858,49 @@ public class NestedConfig {
 | 循环引用对象图                   | MessagePack 不支持 |
 | 已发布字段的改名/删除               | 只允许**新增**字段     |
 
+### 12.1 `[ExpressionField]` 特性（表达式预编译）
+
+如果 Setting 类中包含会在运行时通过 Roslyn 求值的 `string` 属性，**必须**添加 `[ExpressionField]` 特性：
+
+```csharp
+using xTestPlatform.Core.Models.StepSettings;
+
+[MessagePackObject(true)]
+public class MySetting {
+    [ExpressionField]
+    public string ValueExpression { get; set; } = string.Empty;  // ✅ 运行时求值
+
+    public string DisplayName { get; set; } = string.Empty;      // ❌ 不标记（纯配置）
+}
+```
+
+**作用**：引擎在序列启动前自动扫描所有标记了 `[ExpressionField]` 的属性，并行预编译表达式，消除首次执行的编译延迟。
+
+> ⚠️ 仅标记会在运行时通过 Roslyn 求值的 string 属性。字面量配置、文件路径、显示名称等**不应标记**。
+
+### 12.2 设置版本管理
+
+当 Setting 结构需要升级（新增/修改字段）时，使用版本管理确保旧数据兼容：
+
+```csharp
+public sealed class MyPlugin : StepPluginBase<MySetting> {
+    // 递增版本号
+    protected override int CurrentSettingVersion => 2;
+
+    // 实现迁移逻辑
+    protected override MySetting MigrateSetting(byte[] data, int fromVersion) {
+        if (fromVersion == 1) {
+            var old = MessagePackSerializer.Deserialize<MySettingV1>(data, SerializerOptions);
+            return new MySetting {
+                TargetVariable = old.TargetVariable,
+                NewField = "默认值"  // v2 新增字段
+            };
+        }
+        return base.MigrateSetting(data, fromVersion);  // 不支持的版本抛异常
+    }
+}
+```
+
 ---
 
 ## 13. 设置校验规范
@@ -869,6 +947,72 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 ```
 
 **错误码命名规范：** `插件缩写_3位数字`，例如 `DC_001`
+
+---
+
+## 13.3 异常处理规范（重要）
+
+**插件执行器（IStepExecutor）绝不能抛出未捕获的异常中断程序。**
+
+框架的 `PluginStepHandler` 已在外层提供兜底保护，但最佳实践是在执行器内部自行处理：
+
+```csharp
+public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct) {
+    var result = ctx.CurrentStep!.Step.StepSetting;  // 获取设置
+    try {
+        // ... 业务逻辑 ...
+        return new ExecutionResult {
+            StepResult = new StepResult { Status = TestStatus.Passed }
+        };
+    }
+    catch (OperationCanceledException) {
+        return new ExecutionResult {
+            StepResult = new StepResult { Status = TestStatus.Aborted }
+        };
+    }
+    catch (Exception ex) {
+        return new ExecutionResult {
+            StepResult = new StepResult {
+                Status = TestStatus.Error,
+                Error  = new ErrorInfo { Message = ex.Message }
+            }
+        };
+    }
+}
+```
+
+**关键原则：**
+
+| 异常类型                      | 处理方式                            |
+| ------------------------- | ------------------------------- |
+| `OperationCanceledException` | 设置 `TestStatus.Aborted`，正常返回   |
+| 其他 `Exception`            | 设置 `TestStatus.Error` + 错误信息，正常返回 |
+| 绝不允许                      | 直接 `throw` 导致引擎崩溃              |
+
+> ⚠️ 即使框架有兜底 try/catch，插件内部处理异常可以提供更精确的错误信息和上下文。
+
+### 13.4 调试日志输出
+
+插件开发完成后，在测试平台调试时可通过 `IExecutionContext.LogAction` 输出日志到平台的调试界面（LogMonitor）：
+
+```csharp
+public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct) {
+    ctx.LogAction?.Invoke("开始执行延时检测...");
+
+    var s = DeserializeSetting(ctx.CurrentStep!.Step.StepSetting.Setting);
+    ctx.LogAction?.Invoke($"目标变量: {s.TargetVariable}, 延时: {s.DelayMs}ms");
+
+    await Task.Delay(s.DelayMs, ct);
+
+    var value = ctx.GetVariable(s.TargetVariable);
+    ctx.LogAction?.Invoke($"读取到值: {value}");
+
+    // ... 业务逻辑 ...
+}
+```
+
+> 💡 `LogAction` 输出的消息会实时显示在平台调试界面的日志窗口中，方便开发者定位问题。  
+> 生产环境中建议减少日志量，避免影响性能。
 
 ---
 
@@ -927,6 +1071,7 @@ StepEditor/
 [MessagePackObject(true)]
 public class DelayCheckSetting {
     public int    DelayMs        { get; set; } = 500;
+    [ExpressionField]
     public string TargetVariable { get; set; } = string.Empty;
     public string ExpectedValue  { get; set; } = string.Empty;
     public bool   LogResult      { get; set; } = true;
@@ -942,6 +1087,11 @@ public sealed class DelayCheckPlugin : StepPluginBase<DelayCheckSetting> {
     public override string DisplayName => "延时检测";
     public override string Category    => "自定义步骤";
     public override string IconPath    => string.Empty;
+
+    public override string Description =>
+        "等待指定毫秒后读取目标变量并与期望值比较。" +
+        "Setting 字段：DelayMs(int,延时毫秒), TargetVariable(string,要读取的变量路径), " +
+        "ExpectedValue(string,期望值), LogResult(bool,是否记录结果)。";
 
     public override IStepExecutor CreateExecutor() => new DelayCheckExecutor();
 
@@ -1113,31 +1263,6 @@ ctx.StartEngine()
         ├─► 注册内置 StepHandler（SequenceCall / TimeDelay / NumericLimit）
         └─► 注册插件 StepHandler（PluginStepHandler 包装所有 IStepPlugin）
 ```
-
----
-
-## 17. LabVIEW 宿主集成
-
-在 LabVIEW 等非标准宿主中，EXE 路径和插件路径可能不一致。  
-可通过以下方式指定插件目录：
-
-```csharp
-// 方式一：通过 RuntimeContext 构造函数（推荐）
-var ctx = new RuntimeContext(@"D:\MyLabVIEWApp\Plugins");
-
-// 方式二：静态属性（在 BuildRegistry 调用前设置）
-BuiltInPluginRegistrar.CustomPluginDirectory = @"D:\MyLabVIEWApp\Plugins";
-var ctx = new RuntimeContext();
-```
-
-**插件目录解析优先级：**
-
-1. `BuiltInPluginRegistrar.CustomPluginDirectory`（显式配置）
-2. `AppContext.BaseDirectory + "Plugins"`（EXE 旁边）
-3. Core.dll 所在目录 + "Plugins"（兜底）
-
-**依赖项解析**：框架已通过 `RegisterAssemblyResolver()` 自动处理插件依赖查找，  
-只需确保插件目录中包含所有私有依赖（如 `MessagePack.dll`）。
 
 ---
 
