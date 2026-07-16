@@ -23,9 +23,8 @@
 14. [完整示例](#14-完整示例)
 15. [工具箱集成](#15-工具箱集成)
 16. [RuntimeContext 与引擎启动时序](#16-runtimecontext-与引擎启动时序)
-17. [LabVIEW 宿主集成](#17-labview-宿主集成)
-18. [常见问题 FAQ](#18-常见问题-faq)
-19. [附录：目录结构参考](#19-附录目录结构参考)
+17. [常见问题 FAQ](#17-常见问题-faq)
+18. [附录：目录结构参考](#18-附录目录结构参考)
 
 ---
 
@@ -818,6 +817,48 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 }
 ```
 
+### 11.6 表达式编辑控件（ExperssionTextBox）
+
+如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExperssionTextBox` 控件，而不是普通 `TextBox`。
+
+**XAML 用法：**
+
+```xml
+xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
+
+<!-- ✅ 表达式字段必须使用 ExperssionTextBox -->
+<expr:ExperssionTextBox
+    ScriptText="{Binding TargetExpression, Mode=TwoWay}"
+    ExpectedResultType="System.Double"
+    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+```
+
+**⚠️ 关键依赖属性（必须注入）：**
+
+| 依赖属性 | 类型 | 说明 |
+|---------|------|------|
+| `ScriptText` | `string` | 双向绑定到 ViewModel 的表达式字符串 |
+| `ExpectedResultType` | `string` | 期望返回类型的完整名称（如 `System.Double`、`System.String`） |
+| `SequenceFile` | `SequenceFile?` | **必须注入**，用于变量自动补全和智能提示 |
+| `EditPosition` | `EditPosition?` | **必须注入**，用于定位当前编辑上下文 |
+
+> ❌ **常见错误**：忘记绑定 `SequenceFile` 和 `EditPosition`，导致表达式编辑器无法提供变量补全和类型校验。
+
+**View 中如何获取这些依赖属性的值：**
+
+框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的公开属性中（见 §10.2），  
+XAML 中通过 `RelativeSource` 绑定即可传递给 `ExperssionTextBox`：
+
+```csharp
+// View.xaml.cs 中声明（框架自动注入）
+public SequenceFile?  SequenceFile  { get; set; }
+public EditPosition?  EditPosition  { get; set; }
+```
+
+> 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExperssionTextBox` 控件。  
+> 两者必须配对使用：Setting 端标记确保预编译，编辑器端使用专用控件确保用户体验。
+
 ---
 
 ## 12. 序列化规范
@@ -1266,7 +1307,7 @@ ctx.StartEngine()
 
 ---
 
-## 18. 常见问题 FAQ
+## 17. 常见问题 FAQ
 
 **Q1：StepTypeId 冲突了怎么办？**
 
@@ -1374,7 +1415,7 @@ try {
 
 ---
 
-## 19. 附录：目录结构参考
+## 18. 附录：目录结构参考
 
 ```text
 D:\xTestPlatform
