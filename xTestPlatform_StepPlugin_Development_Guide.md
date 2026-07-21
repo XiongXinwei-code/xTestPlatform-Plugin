@@ -1,6 +1,6 @@
 # xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.0 | **框架**：.NET 8 / WPF | **日期**：2025-07-15  
+> **版本**：3.1.1 | **框架**：.NET 8 / WPF | **日期**：2025-07-21  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -23,8 +23,9 @@
 14. [完整示例](#14-完整示例)
 15. [工具箱集成](#15-工具箱集成)
 16. [RuntimeContext 与引擎启动时序](#16-runtimecontext-与引擎启动时序)
-17. [常见问题 FAQ](#17-常见问题-faq)
-18. [附录：目录结构参考](#18-附录目录结构参考)
+17. [自定义事件（Custom Event）](#17-自定义事件custom-event)
+18. [常见问题 FAQ](#18-常见问题-faq)
+19. [附录：目录结构参考](#19-附录目录结构参考)
 
 ---
 
@@ -1307,7 +1308,95 @@ ctx.StartEngine()
 
 ---
 
-## 17. 常见问题 FAQ
+## 17. 自定义事件（Custom Event）
+
+插件在执行过程中可以通过 `IExecutionContext.RaiseCustomEvent()` 向生产界面发送自定义事件通知，例如数据采集完成后通知界面刷新图表。
+
+### 17.1 架构概览
+
+```text
+插件 Executor / StepHandler
+│
+│  ctx.RaiseCustomEvent("DataReady", payload)
+▼
+RuntimeContext  ──►  SequenceRunner.CustomEventRaised  ──►  生产界面订阅处理
+```
+
+### 17.2 IExecutionContext API
+
+```csharp
+/// <summary>
+/// 触发自定义事件，通知生产界面或其他订阅者。
+/// </summary>
+/// <param name="eventName">事件名称，界面按此名称过滤。</param>
+/// <param name="payload">可选的附加数据。</param>
+void RaiseCustomEvent(string eventName, object? payload = null) { }
+```
+
+### 17.3 事件参数
+
+```csharp
+public sealed class CustomEventRaisedEventArgs : EventArgs
+{
+    public string  EventName { get; }   // 事件名称
+    public object? Payload   { get; }   // 附加数据（可为 null）
+}
+```
+
+### 17.4 在插件 Executor 中使用
+
+```csharp
+public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct)
+{
+    // ... 执行数据采集逻辑 ...
+    var collectedData = new { Temperature = 25.3, Voltage = 3.14 };
+
+    // 通知生产界面刷新
+    ctx.RaiseCustomEvent("DataCollectionCompleted", collectedData);
+
+    return new ExecutionResult
+    {
+        StepResult = new StepResult { Status = TestStatus.Completed }
+    };
+}
+```
+
+### 17.5 生产界面订阅
+
+在生产界面中通过 `SequenceRunner`（实现 `ISequenceStepEventSource`）的 `CustomEventRaised` 事件订阅通知：
+
+```csharp
+sequenceRunner.CustomEventRaised += (sender, e) =>
+{
+    // 按事件名称过滤
+    if (e.EventName == "DataCollectionCompleted")
+    {
+        // 在 UI 线程上刷新图表
+        Dispatcher.Invoke(() =>
+        {
+            RefreshChart(e.Payload);
+        });
+    }
+};
+```
+
+### 17.6 内置 Event_Raise 步骤
+
+框架提供了内置的 `Event_Raise` 步骤类型（`StepType.EventRaise`），无需编写插件即可在序列中直接发送自定义事件：
+
+| 参数 | 类型 | 说明 |
+| --- | --- | --- |
+| `EventName` | `string` | 必填，事件名称 |
+| `Payload` | `string`（表达式） | 可选，支持表达式求值，结果作为附加数据发送 |
+
+在序列编辑器的工具箱中找到 **Utility → Event_Raise**，拖入序列即可使用。
+
+> **适用场景**：数据采集完成通知、阶段性进度更新、界面状态同步等。  
+> **注意**：事件是单向通知（Fire-and-Forget），不会阻塞步骤执行。界面收到事件后应自行在 UI 线程处理。
+
+---
+
+## 18. 常见问题 FAQ
 
 **Q1：StepTypeId 冲突了怎么办？**
 
@@ -1415,7 +1504,7 @@ try {
 
 ---
 
-## 18. 附录：目录结构参考
+## 19. 附录：目录结构参考
 
 ```text
 D:\xTestPlatform
