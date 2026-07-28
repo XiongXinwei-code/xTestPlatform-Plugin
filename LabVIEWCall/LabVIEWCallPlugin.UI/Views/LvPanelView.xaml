@@ -10,7 +10,7 @@
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
-             xmlns:experssion="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
+             xmlns:expression="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
              xmlns:notification="clr-namespace:Syncfusion.Windows.Controls.Notification;assembly=Syncfusion.SfBusyIndicator.WPF"
              x:Class="LabVIEWCallPlugin.UI.Views.LvPanelView"
              mc:Ignorable="d" 

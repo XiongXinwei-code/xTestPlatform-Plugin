@@ -22,7 +22,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.12" />
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.13" />
 	</ItemGroup>
 
 	<!-- ✅ 补上：lvLib.dll 需要随插件输出 -->

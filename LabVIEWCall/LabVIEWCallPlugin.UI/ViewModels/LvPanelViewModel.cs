@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ExperssionEditor;
+using ExpressionEditor;
 using LabVIEWCallPlugin.LVadapter;
 using LabVIEWCallPlugin.UI.Converters;
 using LabVIEWCallPlugin.UI.Models;
