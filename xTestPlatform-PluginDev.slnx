@@ -16,4 +16,8 @@
       <Platform Solution="Release|x86" Project="x86" />
     </Project>
   </Folder>
+  <Folder Name="/SerialPort/">
+    <Project Path="SerialPort/SerialPortPlugin.UI/SerialPortPlugin.UI.csproj" />
+    <Project Path="SerialPort/SerialPortPlugin/SerialPortPlugin.csproj" />
+  </Folder>
 </Solution>
