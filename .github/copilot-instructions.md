@@ -2,6 +2,7 @@
 
 ## 项目指南
 - 用户不希望在 LabVIEWCallExecutor 中，当 TargetVariable 未设置时自动生成默认变量名（Step.{node.Name}）。
+- **插件单一职责原则**：每个步骤插件只做一件事。如果一个通信协议有多种操作模式（如 Modbus 的读/写），应拆分为独立插件（如 `ModbusRead`、`ModbusWrite`），而不是用功能码字段在一个插件内切换。拆分后每个插件的 Setting 更精简、编辑器 UI 更清晰、Description 更准确。
 
 ---
 
