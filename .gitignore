@@ -11,3 +11,6 @@
 
 # Isolated development worktrees
 .worktrees/
+
+# Local deployment verification output
+TestDeployment/

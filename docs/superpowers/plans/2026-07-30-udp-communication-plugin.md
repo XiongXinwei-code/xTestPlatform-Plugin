@@ -94,7 +94,7 @@ git commit -m "feat: add UDP setting and payload codec"
 - Consumes Task 1 codec, matcher, enums and setting.
 - Produces `UdpCommunicationPlugin : StepPluginBase<UdpCommunicationSetting>` and `UdpCommunicationExecutor : IStepExecutor`.
 
-- [ ] **Step 1: Write failing loopback transport tests using an ephemeral-port UDP Echo Server.**
+- [x] **Step 1: Write failing loopback transport tests using an ephemeral-port UDP Echo Server.**
 
 ```csharp
 [Fact]
@@ -106,21 +106,21 @@ public async Task Echo_server_returns_sent_datagram()
 }
 ```
 
-- [ ] **Step 2: Run the transport test and confirm it fails because `UdpTransport` does not exist.**
+- [x] **Step 2: Run the transport test and confirm it fails because `UdpTransport` does not exist.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj --filter FullyQualifiedName~UdpTransportTests`
 
-- [ ] **Step 3: Implement a focused `UdpTransport` helper and use it from the executor.**
+- [x] **Step 3: Implement a focused `UdpTransport` helper and use it from the executor.**
 
 `UdpTransport.SendAsync` must bind the configured local port, resolve the remote endpoint, send one datagram and dispose the client. `SendAndReceiveAsync` must receive one datagram with the supplied cancellation token. The executor must map mismatch to `TestStatus.Failed`, timeout/socket/configuration failures to `TestStatus.Error`, and cancellation to `TestStatus.Aborted`.
 
-- [ ] **Step 4: Run the full test project and build the plugin project.**
+- [x] **Step 4: Run the full test project and build the plugin project.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj`
 
 Run: `dotnet build UdpCommunicationStepPlugin/UdpCommunicationStepPlugin.csproj --configuration Release -p:xTestPlatformAppDir="$PWD/TestDeployment"`
 
-- [ ] **Step 5: Commit execution and transport behavior.**
+- [x] **Step 5: Commit execution and transport behavior.**
 
 ```powershell
 git add UdpCommunicationStepPlugin UdpCommunicationStepPlugin.Tests
@@ -143,7 +143,7 @@ git commit -m "feat: add UDP step executor"
 - Consumes `UdpCommunicationPlugin.CreateSerializer()` and `UdpCommunicationSetting`.
 - Produces `IStepEditorPlugin.CreateEditor`, `ValidateWithContextAsync`, and a ViewModel with editable setting properties and debounced save.
 
-- [ ] **Step 1: Add failing tests for editor-independent validation.**
+- [x] **Step 1: Add failing tests for editor-independent validation.**
 
 ```csharp
 [Theory]
@@ -153,19 +153,19 @@ public void Validate_reports_invalid_endpoint(string host, int remotePort, strin
     => Assert.Contains(UdpSettingValidator.Validate(new UdpCommunicationSetting { RemoteHost = host, RemotePort = remotePort }), e => e.Code == code);
 ```
 
-- [ ] **Step 2: Run validation tests and confirm failure before implementing `UdpSettingValidator`.**
+- [x] **Step 2: Run validation tests and confirm failure before implementing `UdpSettingValidator`.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj --filter FullyQualifiedName~UdpSettingValidatorTests`
 
-- [ ] **Step 3: Implement shared validation, editor plugin, ViewModel and XAML.**
+- [x] **Step 3: Implement shared validation, editor plugin, ViewModel and XAML.**
 
 The XAML must expose remote/local ports, mode, data format and payload. It must show response timeout, match mode, expected response and variable name only when `OperationMode == SendAndWaitForResponse`. `ValidateWithContextAsync` must convert validation issues into `StepSettingError` values using `UDP_001` through `UDP_006`.
 
-- [ ] **Step 4: Write deployment and test instructions.**
+- [x] **Step 4: Write deployment and test instructions.**
 
 `DEPLOYMENT.md` must include the exact build command, expected `Plugins/UdpCommunication` output, DLL naming check and dependency copy check. `TESTING.md` must include a PowerShell UDP Echo Server command, one sequence configuration for each supported mode, expected status, expected `Step.UdpResponse` value and log evidence.
 
-- [ ] **Step 5: Run tests, build release output and inspect deployment files.**
+- [x] **Step 5: Run tests, build release output and inspect deployment files.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj`
 
@@ -173,7 +173,7 @@ Run: `dotnet build UdpCommunicationStepPlugin/UdpCommunicationStepPlugin.csproj 
 
 Run: `Get-ChildItem TestDeployment/Plugins/UdpCommunication`
 
-- [ ] **Step 6: Commit editor and operational documentation.**
+- [x] **Step 6: Commit editor and operational documentation.**
 
 ```powershell
 git add UdpCommunicationStepPlugin UdpCommunicationStepPlugin.Tests
