@@ -14,7 +14,8 @@ public sealed class UdsClearDtcPlugin : StepPluginBase<UdsClearDtcSetting>
 
     public override string Description =>
         "清除 ECU 故障码（UDS 服务 0x14）。" +
-        "Setting 字段：DtcGroup(string,DTC组 0xFFFFFF=全部清除)。";
+        "Setting 字段：DtcGroup(string,表达式,DTC组 0xFFFFFF=全部清除), " +
+        "ConnectionName(string,表达式,CAN连接名), TxId(string,表达式), RxId(string,表达式), ResponseTimeoutMs(int)。";
 
     public override IStepExecutor CreateExecutor() => new UdsClearDtcExecutor();
 

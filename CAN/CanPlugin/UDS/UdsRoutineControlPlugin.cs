@@ -14,8 +14,9 @@ public sealed class UdsRoutineControlPlugin : StepPluginBase<UdsRoutineControlSe
 
     public override string Description =>
         "执行 ECU 例程控制（UDS 服务 0x31）。" +
-        "Setting 字段：ControlType(枚举,Start/Stop/RequestResults), RoutineId(string,例程ID), " +
-        "OptionRecord(string,输入参数十六进制), ResultVariable(string,结果变量)。";
+        "Setting 字段：ControlType(枚举,Start/Stop/RequestResults), RoutineId(string,表达式,例程ID), " +
+        "OptionRecord(string,表达式,输入参数十六进制), ResultVariable(string,结果变量), " +
+        "ConnectionName(string,表达式,CAN连接名), TxId(string,表达式), RxId(string,表达式), ResponseTimeoutMs(int)。";
 
     public override IStepExecutor CreateExecutor() => new UdsRoutineControlExecutor();
 

@@ -8,6 +8,7 @@ namespace CAN.UDS.Models;
 public class UdsCommonSetting
 {
     /// <summary>CAN 连接标识名（引用 CAN_Open 创建的连接）</summary>
+    [ExpressionField]
     public string ConnectionName { get; set; } = "CAN1";
 
     /// <summary>请求 CAN ID（Tester → ECU）</summary>

@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
              syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -16,7 +17,11 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Column="1" Text="{Binding ConnectionName, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <expr:ExpressionTextBox Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                    ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+                    ExpectedResultType="System.String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

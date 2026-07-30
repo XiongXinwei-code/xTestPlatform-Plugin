@@ -8,6 +8,7 @@ namespace CAN.Models;
 public class CanReadSetting
 {
     /// <summary>连接标识名</summary>
+    [ExpressionField]
     public string ConnectionName { get; set; } = "CAN1";
 
     /// <summary>过滤 CAN ID（为空则接收任意 ID），支持表达式</summary>

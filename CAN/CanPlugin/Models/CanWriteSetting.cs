@@ -8,6 +8,7 @@ namespace CAN.Models;
 public class CanWriteSetting
 {
     /// <summary>连接标识名</summary>
+    [ExpressionField]
     public string ConnectionName { get; set; } = "CAN1";
 
     /// <summary>CAN ID（支持表达式，如 0x7DF）</summary>

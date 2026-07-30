@@ -12,6 +12,7 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <local:EnumToIntConverter x:Key="EnumToIntConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="Module">
@@ -76,7 +77,11 @@
                 </ComboBox>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ConnectionName, UpdateSourceTrigger=PropertyChanged}" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                    ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+                    ExpectedResultType="System.String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

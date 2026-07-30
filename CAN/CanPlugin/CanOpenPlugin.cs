@@ -14,9 +14,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
 
     public override string Description =>
         "打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD、CAN XL 协议。" +
-        "Setting 字段：AdapterType(枚举,硬件类型:NI/PEAK/Vector/ZLG), Channel(string,通道名称), " +
+        "Setting 字段：AdapterType(枚举,硬件类型:NI/PEAK/Vector/ZLG), Channel(string,表达式,通道名称), " +
         "BaudRate(int,仲裁段波特率), Protocol(枚举,协议类型:Classic/FD/XL), " +
-        "DataBitRate(int,数据段波特率), ConnectionName(string,连接标识名)。";
+        "DataBitRate(int,数据段波特率), ConnectionName(string,表达式,连接标识名)。";
 
     public override IStepExecutor CreateExecutor() => new CanOpenExecutor();
 

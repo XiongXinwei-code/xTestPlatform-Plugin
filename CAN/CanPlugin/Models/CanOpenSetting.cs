@@ -24,5 +24,6 @@ public class CanOpenSetting
     public int DataBitRate { get; set; } = 2_000_000;
 
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
+    [ExpressionField]
     public string ConnectionName { get; set; } = "CAN1";
 }

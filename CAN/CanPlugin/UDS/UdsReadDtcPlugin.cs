@@ -14,7 +14,8 @@ public sealed class UdsReadDtcPlugin : StepPluginBase<UdsReadDtcSetting>
 
     public override string Description =>
         "读取 ECU 故障码（UDS 服务 0x19）。" +
-        "Setting 字段：SubFunction(byte,子功能如0x02), StatusMask(byte,状态掩码), ResultVariable(string,结果变量)。";
+        "Setting 字段：SubFunction(byte,子功能如0x02), StatusMask(byte,状态掩码), ResultVariable(string,结果变量), " +
+        "ConnectionName(string,表达式,CAN连接名), TxId(string,表达式), RxId(string,表达式), ResponseTimeoutMs(int)。";
 
     public override IStepExecutor CreateExecutor() => new UdsReadDtcExecutor();
 

@@ -16,7 +16,7 @@ public sealed class UdsDiagSessionPlugin : StepPluginBase<UdsDiagSessionSetting>
         "切换 ECU 诊断会话模式（UDS 服务 0x10）。" +
         "Setting 字段：SessionType(枚举,Default/Programming/Extended), " +
         "SuppressPositiveResponse(bool,是否抑制正响应), " +
-        "ConnectionName(string), TxId(string), RxId(string), ResponseTimeoutMs(int)。";
+        "ConnectionName(string,表达式,CAN连接名), TxId(string,表达式), RxId(string,表达式), ResponseTimeoutMs(int)。";
 
     public override IStepExecutor CreateExecutor() => new UdsDiagSessionExecutor();
 

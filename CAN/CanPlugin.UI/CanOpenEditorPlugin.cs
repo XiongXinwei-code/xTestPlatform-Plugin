@@ -31,6 +31,8 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_001", "通道名称不能为空"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_002", "连接标识名不能为空"));
+        else if (!evaluator.ValidateExpression(s.ConnectionName, context, out var connErr))
+            errors.Add(StepSettingError.Error("CAN_004", $"ConnectionName 表达式无效: {connErr}"));
         if (s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("CAN_003", "波特率必须大于 0"));
         return errors;

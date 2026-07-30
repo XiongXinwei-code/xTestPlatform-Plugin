@@ -29,6 +29,8 @@ public sealed class UdsDiagSessionEditorPlugin : IStepEditorPlugin
         var s = (UdsDiagSessionSetting)new UdsDiagSessionPlugin().CreateSerializer().Deserialize(setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
+        else if (!evaluator.ValidateExpression(s.ConnectionName, context, out var connErr))
+            errors.Add(StepSettingError.Error("UDS_004", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.TxId))
             errors.Add(StepSettingError.Error("UDS_002", "TX ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.RxId))
@@ -56,6 +58,8 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
         var s = (UdsSecurityAccessSetting)new UdsSecurityAccessPlugin().CreateSerializer().Deserialize(setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
+        else if (!evaluator.ValidateExpression(s.ConnectionName, context, out var connErr))
+            errors.Add(StepSettingError.Error("UDS_004", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.KeyExpression))
             errors.Add(StepSettingError.Error("UDS_010", "Key 表达式不能为空"));
         return errors;
