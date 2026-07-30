@@ -1,6 +1,6 @@
 # xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.1 | **框架**：.NET 8 / WPF | **日期**：2025-07-21  
+> **版本**：3.1.3 | **框架**：.NET 8 / WPF | **日期**：2025-07-30  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -24,8 +24,9 @@
 15. [工具箱集成](#15-工具箱集成)
 16. [RuntimeContext 与引擎启动时序](#16-runtimecontext-与引擎启动时序)
 17. [自定义事件（Custom Event）](#17-自定义事件custom-event)
-18. [常见问题 FAQ](#18-常见问题-faq)
-19. [附录：目录结构参考](#19-附录目录结构参考)
+18. [插件设计原则](#18-插件设计原则)
+19. [常见问题 FAQ](#19-常见问题-faq)
+20. [附录：目录结构参考](#20-附录目录结构参考)
 
 ---
 
@@ -74,7 +75,7 @@
 
 ```csharp
 public interface IStepPlugin {
-    string  StepTypeId  { get; }   // 全局唯一，推荐格式：公司.分类.步骤名
+    string  StepTypeId  { get; }   // 全局唯一，推荐格式：分类_步骤名
     string  DisplayName { get; }   // 工具箱 / 步骤列表显示名称
     string  Category    { get; }   // 工具箱分组，相同值聚合在一起
     string? IconPath    { get; }   // WPF Pack URI（nullable，无图标可返回 null）
@@ -213,7 +214,32 @@ return new ExecutionResult {
 };
 ```
 
-### 2.5 StepSettingError — 校验错误
+### 2.5 ErrorInfo — 错误信息结构
+
+```csharp
+public class ErrorInfo {
+    public int    ErrorCode { get; set; }   // 错误码（可选，默认 0）
+    public string Message   { get; set; }   // 错误描述信息（必填）
+}
+```
+
+**使用场景与写法：**
+
+```csharp
+// 业务校验失败（自定义错误码）
+Error = new ErrorInfo { ErrorCode = 1001, Message = "串口未打开，请检查连接" }
+
+// 捕获异常（通用错误码）
+Error = new ErrorInfo { ErrorCode = -1, Message = ex.Message }
+
+// 简单报错（不设置错误码）
+Error = new ErrorInfo { Message = "超时：未在指定时间内收到响应" }
+```
+
+> 💡 `ErrorInfo.Message` 会显示在测试报告和步骤结果列表中，应使用**用户可理解的中文描述**，避免堆栈信息。  
+> `ErrorCode` 为可选字段，可用于程序化判断错误类型（如生产界面根据错误码做不同处理）。
+
+### 2.6 StepSettingError — 校验错误
 
 ```csharp
 StepSettingError.Error("E001", "变量未配置");    // Severity = Error，通常阻止运行
@@ -248,13 +274,15 @@ public abstract string        DisplayName { get; }
 public abstract string        Category    { get; }
 public abstract string        IconPath { get; }
 public abstract IStepExecutor CreateExecutor();
+
+// 插件功能描述（供 AI 助手理解用途），必须详细准确反映实际行为，最好有settings字段说明和示例
+public virtual string Description => string.Empty;
+
 ```
 
 **可选 override：**
 
 ```csharp
-// 插件功能描述（供 AI 助手理解用途）
-public virtual string Description => string.Empty;
 
 // 是否支持子步骤（树形结构）
 public virtual bool CanHaveChildren => false;
@@ -400,7 +428,7 @@ Step
     ├── StepID            int
     ├── Setting           byte[]           ★ TSetting 的序列化结果
     ├── StepAddress       string           步骤在序列中的唯一地址
-    └── StepVariable      List<Variables>  步骤变量列表
+    └── SettingVersion    int              设置结构版本号（序列化时写入）
 ```
 
 > **插件开发者只需读写 `Step.StepSetting.Setting`（`byte[]`）字段，其余由框架管理。**
@@ -518,6 +546,60 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
     };
 }
 ```
+
+### 6.5 表达式求值 API（IExpressionEvaluator）
+
+插件执行器中如果需要对 `[ExpressionField]` 标记的字符串属性求值（运行时通过 Roslyn 计算表达式结果），  
+需要使用 `IExpressionEvaluator` 接口。
+
+**获取实例：**
+
+```csharp
+using xTestPlatform.Core.Engine;
+using xTestPlatform.Core.Services.ExpressionEngine;
+
+// 在 Executor 中使用单例（推荐）
+private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+```
+
+**接口方法：**
+
+```csharp
+public interface IExpressionEvaluator {
+    object? Evaluate(string expression, IExecutionContext context);        // 同步求值
+    T?      Evaluate<T>(string expression, IExecutionContext context);     // 同步求值 + 类型转换
+    Task<object?> EvaluateAsync(string expression, IExecutionContext context);  // 异步求值（推荐）
+    Task<T?>      EvaluateAsync<T>(string expression, IExecutionContext context); // 异步求值 + 类型转换（推荐）
+    bool ValidateExpression(string expression, IExecutionContext context, out string? errorMessage);
+}
+```
+
+**在执行器中使用示例：**
+
+```csharp
+public sealed class MyExecutor : IStepExecutor {
+    private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+    public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct) {
+        var step = ctx.CurrentStep!.Step;
+        var serializer = new MyPlugin().CreateSerializer();
+        var s = (MySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
+        // 对表达式字段求值（Setting 中标记了 [ExpressionField] 的属性）
+        string portName = await Evaluator.EvaluateAsync<string>(s.PortNameExpression, ctx)
+                          ?? string.Empty;
+
+        double threshold = await Evaluator.EvaluateAsync<double>(s.ThresholdExpression, ctx);
+
+        // ... 使用求值结果执行业务逻辑 ...
+    }
+}
+```
+
+> ⚠️ **注意**：只有 Setting 中类型为 `string` 且标记了 `[ExpressionField]` 的属性才需要求值。  
+> 普通配置字段（如 `int DelayMs`、`bool LogResult`）直接使用即可，无需求值。
+
+> 💡 **`ExpressionEvaluatorFactory.Default`** 是进程级单例，多次调用 `.Default` 返回相同实例，线程安全。
 
 ---
 
@@ -784,7 +866,7 @@ public class MyEditorViewModel : INotifyPropertyChanged {
         _suppressSave = true;
         try {
             _setting = _step.StepSetting.Setting is { Length: > 0 } d
-                ? (MySetting)_serializer.Deserialize(d)
+                ? (MySetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (MySetting)_serializer.CreateDefault();
             OnPropertyChanged(string.Empty);
         } finally { _suppressSave = false; }
@@ -822,7 +904,34 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 
 如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExperssionTextBox` 控件，而不是普通 `TextBox`。
 
-**XAML 用法：**
+> ⚠️ **额外依赖**：使用 `ExperssionTextBox` 控件时，插件项目需要额外引用以下 NuGet 包：
+>
+> ```xml
+> <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+> <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+> ```
+
+#### 控件功能
+
+| 功能 | 说明 |
+| --- | --- |
+| **变量自动补全** | 根据 `SequenceFile` 和 `EditPosition` 提供当前作用域内可用变量的 IntelliSense |
+| **语法高亮** | C# 表达式语法着色 |
+| **类型校验** | 根据 `ExpectedResultType` 验证表达式返回类型是否匹配 |
+| **错误提示** | 实时显示语法错误、类型不匹配等问题 |
+| **多行支持** | 支持复杂表达式的多行编辑 |
+
+#### 何时使用
+
+| 场景 | 控件选择 |
+| --- | --- |
+| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExperssionTextBox` ✅ |
+| 用户输入固定文本（文件路径、名称、标签等） | 普通 `TextBox` ✅ |
+| 用户输入数值（延迟毫秒、端口号等） | 普通 `TextBox` 或 `NumericUpDown` ✅ |
+
+> 💡 **判断依据**：Setting 中标记了 `[ExpressionField]` 的属性，在编辑器中对应使用 `ExperssionTextBox`。
+
+#### XAML 用法
 
 ```xml
 xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
@@ -831,18 +940,90 @@ xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
 <expr:ExperssionTextBox
     ScriptText="{Binding TargetExpression, Mode=TwoWay}"
     ExpectedResultType="System.Double"
+    IsMultiLine="True"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 ```
 
-**⚠️ 关键依赖属性（必须注入）：**
+#### 依赖属性详解
 
-| 依赖属性 | 类型 | 说明 |
-|---------|------|------|
-| `ScriptText` | `string` | 双向绑定到 ViewModel 的表达式字符串 |
-| `ExpectedResultType` | `string` | 期望返回类型的完整名称（如 `System.Double`、`System.String`） |
-| `SequenceFile` | `SequenceFile?` | **必须注入**，用于变量自动补全和智能提示 |
-| `EditPosition` | `EditPosition?` | **必须注入**，用于定位当前编辑上下文 |
+| 依赖属性 | 类型 | 必须 | 默认值 | 说明 |
+|---------|------|:---:|:---:|------|
+| `ScriptText` | `string` | ✅ | `""` | 双向绑定到 ViewModel 的表达式字符串属性 |
+| `ExpectedResultType` | `string` | ✅ | — | 期望返回类型的完整名称，控件据此进行**类型校验** |
+| `SequenceFile` | `SequenceFile?` | ✅ | `null` | 用于变量自动补全和智能提示 |
+| `EditPosition` | `EditPosition?` | ✅ | `null` | 用于定位当前编辑上下文（确定可见的变量作用域） |
+| `IsMultiLine` | `bool` | ⬜ | `false` | 设置为 `True` 时启用多行编辑模式，适合较长表达式 |
+
+**`ExpectedResultType` 常用值：**
+
+| 类型 | 值 |
+| --- | --- |
+| 字符串 | `System.String` |
+| 双精度浮点 | `System.Double` |
+| 整数 | `System.Int32` |
+| 布尔值 | `System.Boolean` |
+| 任意对象 | `System.Object` |
+
+> ⚠️ `ExpectedResultType` 是**编辑时类型校验**（ExpressionTextBox 内部独立校验），  
+> 与 `[ExpressionField]` 的**运行时预编译**是独立的两套机制，两者都应正确配置。
+
+#### 完整示例：Setting → ViewModel → XAML → Executor 对应关系
+
+```csharp
+// 1️⃣ Setting：标记表达式字段
+[MessagePackObject(true)]
+public class MySetting {
+    [ExpressionField]
+    public string ThresholdExpression { get; set; } = "3.14";  // 运行时求值
+
+    public string DeviceName { get; set; } = "";  // 纯配置，不求值
+}
+```
+
+```csharp
+// 2️⃣ ViewModel：暴露表达式属性（双向绑定）
+public string ThresholdExpression {
+    get => _setting?.ThresholdExpression ?? string.Empty;
+    set {
+        if (_setting == null || _setting.ThresholdExpression == value) return;
+        _setting.ThresholdExpression = value;
+        OnPropertyChanged();
+        QueueSave();
+    }
+}
+```
+
+```xml
+<!-- 3️⃣ XAML：使用 ExperssionTextBox -->
+<TextBlock Text="阈值表达式:" Margin="0,12,0,4"/>
+<expr:ExperssionTextBox
+    ScriptText="{Binding ThresholdExpression, Mode=TwoWay}"
+    ExpectedResultType="System.Double"
+    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+<!-- 纯配置字段使用普通 TextBox -->
+<TextBlock Text="设备名称:" Margin="0,12,0,4"/>
+<TextBox Text="{Binding DeviceName, UpdateSourceTrigger=PropertyChanged}" />
+```
+
+```csharp
+// 4️⃣ Executor：运行时对表达式字段求值（见 §6.5）
+private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct) {
+    var s = DeserializeSetting(ctx.CurrentStep!.Step);
+
+    // [ExpressionField] 字段需要求值
+    double threshold = await Evaluator.EvaluateAsync<double>(s.ThresholdExpression, ctx);
+
+    // 普通字段直接使用
+    string device = s.DeviceName;
+
+    // ...
+}
+```
 
 > ❌ **常见错误**：忘记绑定 `SequenceFile` 和 `EditPosition`，导致表达式编辑器无法提供变量补全和类型校验。
 
@@ -947,9 +1128,15 @@ public sealed class MyPlugin : StepPluginBase<MySetting> {
 
 ## 13. 设置校验规范
 
+> ⚠️ **校验是必须实现的**。每个插件都必须提供校验逻辑，确保用户配置的参数在运行前被充分检查。  
+> 框架的静态校验管线会在序列保存/运行前自动调用插件校验，未实现校验的插件可能导致运行时难以定位的错误。
+
 校验分两层：
 
-### 13.1 UI 上下文校验（IStepEditorPlugin）
+### 13.1 UI 上下文校验（IStepEditorPlugin）— **必须实现**
+
+`ValidateWithContextAsync` 虽然接口有默认空实现，但**所有外部插件必须 override 并提供实际校验逻辑**。  
+框架在序列文件校验时会自动调用此方法，错误定位信息（文件名/序列名/行号）由框架统一填充，插件只需返回错误列表。
 
 ```csharp
 public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
@@ -1154,7 +1341,7 @@ public sealed class DelayCheckExecutor : IStepExecutor {
         CancellationToken ct = default) {
         var step    = ctx.CurrentStep!.Step;
         var setting = new DelayCheckPlugin().CreateSerializer();
-        var s       = (DelayCheckSetting)setting.Deserialize(step.StepSetting.Setting);
+        var s       = (DelayCheckSetting)setting.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         if (string.IsNullOrWhiteSpace(s.TargetVariable))
             return new ExecutionResult {
@@ -1253,7 +1440,6 @@ public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
 | `IconPath`       | `IStepPlugin.IconPath`    |
 
 拖拽步骤到序列时，框架使用 `StepTypeId` 创建 `Step` 对象，  
-并调用 `GetDefaultStepVariables()` 初始化步骤变量列表，  
 调用 `GenerateDescription()` 生成步骤初始描述。
 
 ---
@@ -1396,7 +1582,47 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 ---
 
-## 18. 常见问题 FAQ
+## 18. 插件设计原则
+
+### 18.1 单一职责原则（强制）
+
+**每个插件完成一个明确的测试动作或流程控制，禁止通过模式/类型参数在一个插件内实现多种不同行为。**
+
+| ✅ 正确做法 | ❌ 错误做法 |
+| --- | --- |
+| `Queue_Create` — 创建队列 | `Queue` — 通过 `Mode` 参数切换 Create/Destroy/Enqueue |
+| `Queue_Enqueue` — 入队 | |
+| `Queue_Dequeue` — 出队 | |
+| `Serial_Open` — 打开串口 | `Serial` — 通过 `Action` 参数切换 Open/Close/Read/Write |
+| `Serial_Write` — 写入数据 | |
+
+### 18.2 命名规范
+
+- `StepTypeId`：使用 `公司.分类.步骤名` 格式，如 `Ruhlamat.IO.SerialOpen`
+- `DisplayName`：使用下划线 `_` 分隔层级，如 `Serial_Open`、`Queue_Create`
+- 工具箱会自动按 `_` 拆分为多级树结构
+
+### 18.3 设计检查清单
+
+开发新插件前，请对照以下清单：
+
+- [ ] 该插件是否只做一件事？能否用一句话描述其功能？
+- [ ] Setting 中是否有「模式切换」字段（如 `Mode`、`Action`、`OperationType`）？如果有，应拆分为多个插件。
+- [ ] `Description` 是否准确反映程序实际行为？（AI 助手依赖此字段理解插件用途）
+- [ ] 如果 Setting 包含复杂集合类型，`Description` 中是否有 JSON 示例说明？
+- [ ] 每个插件是否对应独立的 StepType、Setting、Plugin、Editor 和 Executor？
+- [ ] 是否实现了 `ValidateWithContextAsync` 校验逻辑？（**必须**，见 §13.1）
+
+### 18.4 为什么要求功能单一
+
+1. **AI 可理解性**：AI 助手需要根据 `Description` 自动选择和生成步骤参数，功能单一的插件更容易被正确使用。
+2. **用户可识别性**：工具箱中每个节点对应一个明确动作，用户无需打开编辑器就能知道步骤做什么。
+3. **可维护性**：修改一个功能不会影响同一插件中的其他功能。
+4. **序列可读性**：步骤列表中每一行都能清楚表达意图。
+
+---
+
+## 19. 常见问题 FAQ
 
 **Q1：StepTypeId 冲突了怎么办？**
 
@@ -1504,7 +1730,7 @@ try {
 
 ---
 
-## 19. 附录：目录结构参考
+## 20. 附录：目录结构参考
 
 ```text
 D:\xTestPlatform
