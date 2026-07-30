@@ -61,6 +61,7 @@
 ```
 
 **核心原则**：
+
 - 执行层（`IStepPlugin` / `IStepExecutor`）只依赖 `xTestPlatform.Core`
 - 编辑器层（`IStepEditorPlugin`）依赖 `xTestPlatform.Core` + `StepEditor.Abstractions`
 - **严禁**依赖主程序集或其他 UI 程序集
@@ -94,23 +95,24 @@ public interface IStepPlugin {
 }
 ```
 
-| 成员                          | 必须  | 说明                          |
-| --------------------------- |:---:| --------------------------- |
-| `StepTypeId`                | ✅   | 全局唯一，后注册的覆盖先注册的             |
-| `DisplayName`               | ✅   | 工具箱显示名称                     |
-| `Category`                  | ✅   | 工具箱分组名                      |
-| `IconPath`                  | ✅   | Pack URI（nullable，无图标可返回 null 或空字符串） |
-| `Description`               | ✅   | 插件功能描述，**必须**准确反映实际行为，供 AI 助手正确使用插件 |
-| `CanHaveChildren`           | ⭕   | 是否支持子步骤，默认 `false`          |
-| `CreateSerializer()`        | ✅   | 基类已自动实现，无需手写                |
-| `CreateExecutor()`          | ✅   | 每次调用返回新实例                   |
-| `GenerateDescription()`     | ⭕   | 默认返回空字符串，override 后显示在步骤列表 |
+| 成员                      | 必须  | 说明                                   |
+| ----------------------- |:---:| ------------------------------------ |
+| `StepTypeId`            | ✅   | 全局唯一，后注册的覆盖先注册的                      |
+| `DisplayName`           | ✅   | 工具箱显示名称                              |
+| `Category`              | ✅   | 工具箱分组名                               |
+| `IconPath`              | ✅   | Pack URI（nullable，无图标可返回 null 或空字符串） |
+| `Description`           | ✅   | 插件功能描述，**必须**准确反映实际行为，供 AI 助手正确使用插件  |
+| `CanHaveChildren`       | ⭕   | 是否支持子步骤，默认 `false`                   |
+| `CreateSerializer()`    | ✅   | 基类已自动实现，无需手写                         |
+| `CreateExecutor()`      | ✅   | 每次调用返回新实例                            |
+| `GenerateDescription()` | ⭕   | 默认返回空字符串，override 后显示在步骤列表           |
 
 > ⚠️ **v3.0 变更**：`ValidateSettingAsync()` 已从 `IStepPlugin` 中移除。  
 > 纯 Core 层不依赖 WPF/Expression 的静态校验可在 `CreateExecutor()` 的 `ExecuteAsync` 中完成；  
 > 需要 UI 上下文的校验请实现 `IStepEditorPlugin.ValidateWithContextAsync()`（见第 4 节）。
 
 > ⚠️ **v3.1 变更**：  
+> 
 > - `GetDefaultStepVariables()` 已从 `IStepPlugin` 中**移除**，步骤变量改由框架管理。  
 > - 新增 `Description` 属性，供 AI 助手理解插件用途。  
 > - 新增 `CanHaveChildren` 属性，标记是否支持子步骤。  
@@ -260,11 +262,11 @@ public abstract class StepPluginBase<TSetting> : IStepPlugin
 
 **已内置，无需 override：**
 
-| 方法                          | 内置行为                                                       |
-| --------------------------- | ---------------------------------------------------------- |
-| `CreateSerializer()`        | MessagePack 3.1.4 + LZ4BlockArray + ContractlessStandardResolver + 版本管理 |
-| `GenerateDescription()`     | 返回空字符串                                                     |
-| `DeserializeSetting(byte[], int)` | 内部辅助方法，直接返回 `TSetting` 实例（可在子类中使用）                      |
+| 方法                                | 内置行为                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `CreateSerializer()`              | MessagePack 3.1.4 + LZ4BlockArray + ContractlessStandardResolver + 版本管理 |
+| `GenerateDescription()`           | 返回空字符串                                                                  |
+| `DeserializeSetting(byte[], int)` | 内部辅助方法，直接返回 `TSetting` 实例（可在子类中使用）                                      |
 
 **必须 override 的抽象成员：**
 
@@ -277,13 +279,11 @@ public abstract IStepExecutor CreateExecutor();
 
 // 插件功能描述（供 AI 助手理解用途），必须详细准确反映实际行为，最好有settings字段说明和示例
 public virtual string Description => string.Empty;
-
 ```
 
 **可选 override：**
 
 ```csharp
-
 // 是否支持子步骤（树形结构）
 public virtual bool CanHaveChildren => false;
 
@@ -341,11 +341,11 @@ namespace StepEditor.Abstractions {
 
 ### 4.1 何时实现 IStepEditorPlugin
 
-| 场景                          | 实现方式                                        |
-| --------------------------- | ------------------------------------------- |
-| 外部插件，**需要**自定义编辑器 UI       | 单独创建一个类实现 `IStepEditorPlugin`               |
-| 外部插件，**无需**编辑器 UI          | 只需继承 `StepPluginBase<T>`，无需 IStepEditorPlugin |
-| 内建步骤（TestStep / SequenceCall） | 框架手动注册编辑器工厂，不实现接口                           |
+| 场景                            | 实现方式                                          |
+| ----------------------------- | --------------------------------------------- |
+| 外部插件，**需要**自定义编辑器 UI          | 单独创建一个类实现 `IStepEditorPlugin`                 |
+| 外部插件，**无需**编辑器 UI             | 只需继承 `StepPluginBase<T>`，无需 IStepEditorPlugin |
+| 内建步骤（TestStep / SequenceCall） | 框架手动注册编辑器工厂，不实现接口                             |
 
 ### 4.2 CreateEditor 参数说明
 
@@ -607,11 +607,11 @@ public sealed class MyExecutor : IStepExecutor {
 
 ### 7.1 职责对比
 
-|             | `StepPluginRegistry`                 | `StepPluginEditorRegistry`                      |
-| ----------- | ------------------------------------ | ----------------------------------------------- |
-| **文件**      | `Core/Plugins/StepPluginRegistry.cs` | `StepEditorManager/StepPluginEditorRegistry.cs` |
-| **存储内容**    | `IStepPlugin` 实例                     | `Func<Step, UserControl>` 工厂函数                  |
-| **使用方**     | 执行引擎、工具箱、校验器                         | `StepEditorManagerViewModel`                    |
+|          | `StepPluginRegistry`                 | `StepPluginEditorRegistry`                      |
+| -------- | ------------------------------------ | ----------------------------------------------- |
+| **文件**   | `Core/Plugins/StepPluginRegistry.cs` | `StepEditorManager/StepPluginEditorRegistry.cs` |
+| **存储内容** | `IStepPlugin` 实例                     | `Func<Step, UserControl>` 工厂函数                  |
+| **使用方**  | 执行引擎、工具箱、校验器                         | `StepEditorManagerViewModel`                    |
 
 ### 7.2 StepPluginRegistry API
 
@@ -905,7 +905,7 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExperssionTextBox` 控件，而不是普通 `TextBox`。
 
 > ⚠️ **额外依赖**：使用 `ExperssionTextBox` 控件时，插件项目需要额外引用以下 NuGet 包：
->
+> 
 > ```xml
 > <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 > <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
@@ -913,21 +913,21 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 
 #### 控件功能
 
-| 功能 | 说明 |
-| --- | --- |
+| 功能         | 说明                                                            |
+| ---------- | ------------------------------------------------------------- |
 | **变量自动补全** | 根据 `SequenceFile` 和 `EditPosition` 提供当前作用域内可用变量的 IntelliSense |
-| **语法高亮** | C# 表达式语法着色 |
-| **类型校验** | 根据 `ExpectedResultType` 验证表达式返回类型是否匹配 |
-| **错误提示** | 实时显示语法错误、类型不匹配等问题 |
-| **多行支持** | 支持复杂表达式的多行编辑 |
+| **语法高亮**   | C# 表达式语法着色                                                    |
+| **类型校验**   | 根据 `ExpectedResultType` 验证表达式返回类型是否匹配                         |
+| **错误提示**   | 实时显示语法错误、类型不匹配等问题                                             |
+| **多行支持**   | 支持复杂表达式的多行编辑                                                  |
 
 #### 何时使用
 
-| 场景 | 控件选择 |
-| --- | --- |
-| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExperssionTextBox` ✅ |
-| 用户输入固定文本（文件路径、名称、标签等） | 普通 `TextBox` ✅ |
-| 用户输入数值（延迟毫秒、端口号等） | 普通 `TextBox` 或 `NumericUpDown` ✅ |
+| 场景                        | 控件选择                             |
+| ------------------------- | -------------------------------- |
+| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExperssionTextBox` ✅            |
+| 用户输入固定文本（文件路径、名称、标签等）     | 普通 `TextBox` ✅                   |
+| 用户输入数值（延迟毫秒、端口号等）         | 普通 `TextBox` 或 `NumericUpDown` ✅ |
 
 > 💡 **判断依据**：Setting 中标记了 `[ExpressionField]` 的属性，在编辑器中对应使用 `ExperssionTextBox`。
 
@@ -947,23 +947,23 @@ xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
 
 #### 依赖属性详解
 
-| 依赖属性 | 类型 | 必须 | 默认值 | 说明 |
-|---------|------|:---:|:---:|------|
-| `ScriptText` | `string` | ✅ | `""` | 双向绑定到 ViewModel 的表达式字符串属性 |
-| `ExpectedResultType` | `string` | ✅ | — | 期望返回类型的完整名称，控件据此进行**类型校验** |
-| `SequenceFile` | `SequenceFile?` | ✅ | `null` | 用于变量自动补全和智能提示 |
-| `EditPosition` | `EditPosition?` | ✅ | `null` | 用于定位当前编辑上下文（确定可见的变量作用域） |
-| `IsMultiLine` | `bool` | ⬜ | `false` | 设置为 `True` 时启用多行编辑模式，适合较长表达式 |
+| 依赖属性                 | 类型              | 必须  | 默认值     | 说明                           |
+| -------------------- | --------------- |:---:|:-------:| ---------------------------- |
+| `ScriptText`         | `string`        | ✅   | `""`    | 双向绑定到 ViewModel 的表达式字符串属性    |
+| `ExpectedResultType` | `string`        | ✅   | —       | 期望返回类型的完整名称，控件据此进行**类型校验**   |
+| `SequenceFile`       | `SequenceFile?` | ✅   | `null`  | 用于变量自动补全和智能提示                |
+| `EditPosition`       | `EditPosition?` | ✅   | `null`  | 用于定位当前编辑上下文（确定可见的变量作用域）      |
+| `IsMultiLine`        | `bool`          | ⬜   | `false` | 设置为 `True` 时启用多行编辑模式，适合较长表达式 |
 
 **`ExpectedResultType` 常用值：**
 
-| 类型 | 值 |
-| --- | --- |
-| 字符串 | `System.String` |
-| 双精度浮点 | `System.Double` |
-| 整数 | `System.Int32` |
-| 布尔值 | `System.Boolean` |
-| 任意对象 | `System.Object` |
+| 类型    | 值                |
+| ----- | ---------------- |
+| 字符串   | `System.String`  |
+| 双精度浮点 | `System.Double`  |
+| 整数    | `System.Int32`   |
+| 布尔值   | `System.Boolean` |
+| 任意对象  | `System.Object`  |
 
 > ⚠️ `ExpectedResultType` 是**编辑时类型校验**（ExpressionTextBox 内部独立校验），  
 > 与 `[ExpressionField]` 的**运行时预编译**是独立的两套机制，两者都应正确配置。
@@ -1045,15 +1045,15 @@ public EditPosition?  EditPosition  { get; set; }
 
 ## 12. 序列化规范
 
-| 项目          | 规范                                              |
-| ----------- | ----------------------------------------------- |
-| 格式          | MessagePack **3.1.4**                           |
-| 压缩          | `LZ4BlockArray`                                 |
-| 解析器         | `ContractlessStandardResolver`（无需 Key 特性）       |
-| Setting 类注解 | **必须**加 `[MessagePackObject(true)]`             |
-| 嵌套类         | 也需加 `[MessagePackObject(true)]`                 |
-| 存储位置        | `Step.StepSetting.Setting`（`byte[]`）            |
-| 空 Setting   | `byte[0]` → 调用 `CreateDefault()`                |
+| 项目          | 规范                                        |
+| ----------- | ----------------------------------------- |
+| 格式          | MessagePack **3.1.4**                     |
+| 压缩          | `LZ4BlockArray`                           |
+| 解析器         | `ContractlessStandardResolver`（无需 Key 特性） |
+| Setting 类注解 | **必须**加 `[MessagePackObject(true)]`       |
+| 嵌套类         | 也需加 `[MessagePackObject(true)]`           |
+| 存储位置        | `Step.StepSetting.Setting`（`byte[]`）      |
+| 空 Setting   | `byte[0]` → 调用 `CreateDefault()`          |
 
 ```csharp
 [MessagePackObject(true)]
@@ -1077,7 +1077,7 @@ public class NestedConfig {
 | ------------------------- | --------------- |
 | `FrameworkElement` 及其子类   | WPF 对象不可序列化     |
 | `delegate` / `event`      | 不可序列化           |
-| `ObservableCollection<T>` | 改用 `List<T>`   |
+| `ObservableCollection<T>` | 改用 `List<T>`    |
 | 循环引用对象图                   | MessagePack 不支持 |
 | 已发布字段的改名/删除               | 只允许**新增**字段     |
 
@@ -1212,11 +1212,11 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 **关键原则：**
 
-| 异常类型                      | 处理方式                            |
-| ------------------------- | ------------------------------- |
-| `OperationCanceledException` | 设置 `TestStatus.Aborted`，正常返回   |
-| 其他 `Exception`            | 设置 `TestStatus.Error` + 错误信息，正常返回 |
-| 绝不允许                      | 直接 `throw` 导致引擎崩溃              |
+| 异常类型                         | 处理方式                              |
+| ---------------------------- | --------------------------------- |
+| `OperationCanceledException` | 设置 `TestStatus.Aborted`，正常返回      |
+| 其他 `Exception`               | 设置 `TestStatus.Error` + 错误信息，正常返回 |
+| 绝不允许                         | 直接 `throw` 导致引擎崩溃                 |
 
 > ⚠️ 即使框架有兜底 try/catch，插件内部处理异常可以提供更精确的错误信息和上下文。
 
@@ -1570,10 +1570,10 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 框架提供了内置的 `Event_Raise` 步骤类型（`StepType.EventRaise`），无需编写插件即可在序列中直接发送自定义事件：
 
-| 参数 | 类型 | 说明 |
-| --- | --- | --- |
-| `EventName` | `string` | 必填，事件名称 |
-| `Payload` | `string`（表达式） | 可选，支持表达式求值，结果作为附加数据发送 |
+| 参数          | 类型            | 说明                    |
+| ----------- | ------------- | --------------------- |
+| `EventName` | `string`      | 必填，事件名称               |
+| `Payload`   | `string`（表达式） | 可选，支持表达式求值，结果作为附加数据发送 |
 
 在序列编辑器的工具箱中找到 **Utility → Event_Raise**，拖入序列即可使用。
 
@@ -1588,13 +1588,13 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 **每个插件完成一个明确的测试动作或流程控制，禁止通过模式/类型参数在一个插件内实现多种不同行为。**
 
-| ✅ 正确做法 | ❌ 错误做法 |
-| --- | --- |
-| `Queue_Create` — 创建队列 | `Queue` — 通过 `Mode` 参数切换 Create/Destroy/Enqueue |
-| `Queue_Enqueue` — 入队 | |
-| `Queue_Dequeue` — 出队 | |
-| `Serial_Open` — 打开串口 | `Serial` — 通过 `Action` 参数切换 Open/Close/Read/Write |
-| `Serial_Write` — 写入数据 | |
+| ✅ 正确做法                | ❌ 错误做法                                            |
+| --------------------- | ------------------------------------------------- |
+| `Queue_Create` — 创建队列 | `Queue` — 通过 `Mode` 参数切换 Create/Destroy/Enqueue   |
+| `Queue_Enqueue` — 入队  |                                                   |
+| `Queue_Dequeue` — 出队  |                                                   |
+| `Serial_Open` — 打开串口  | `Serial` — 通过 `Action` 参数切换 Open/Close/Read/Write |
+| `Serial_Write` — 写入数据 |                                                   |
 
 ### 18.2 命名规范
 
@@ -1686,6 +1686,7 @@ return new ExecutionResult {
 **Q6：v3.0 中 `ValidateSettingAsync()` 去哪了？**
 
 已从 `IStepPlugin` 中移除。  
+
 - 运行时校验：在 `ExecuteAsync()` 开头检查，返回 `TestStatus.Error`  
 - UI 层校验：实现 `IStepEditorPlugin.ValidateWithContextAsync()`
 
