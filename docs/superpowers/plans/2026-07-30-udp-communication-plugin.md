@@ -38,7 +38,7 @@
 
 The plugin project must reference `xTestPlatform.StepEditor.SDK` `1.0.14`, `MessagePack` `3.1.4`, and `Syncfusion.Tools.WPF` `34.1.32`. Its local `nuget.config` must add `..` as the `xTestPlatform-SDK` package source and `https://api.nuget.org/v3/index.json` as the public package source. The test project must reference `Microsoft.NET.Test.Sdk` `17.12.0`, `xunit` `2.9.3`, and `xunit.runner.visualstudio` `2.8.2`.
 
-- [ ] **Step 1: Write failing codec and matcher tests**
+- [x] **Step 1: Write failing codec and matcher tests**
 
 ```csharp
 [Theory]
@@ -56,11 +56,11 @@ public void IsMatch_implements_configured_strategy(string actual, string expecte
     => Assert.Equal(expectedResult, UdpResponseMatcher.IsMatch(actual, expected, mode));
 ```
 
-- [ ] **Step 2: Run tests and confirm they fail because the types do not exist.**
+- [x] **Step 2: Run tests and confirm they fail because the types do not exist.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj --no-restore`
 
-- [ ] **Step 3: Add project references, enums, setting defaults, codec and matcher.**
+- [x] **Step 3: Add project references, enums, setting defaults, codec and matcher.**
 
 ```csharp
 public enum UdpOperationMode { SendOnly, SendAndWaitForResponse }
@@ -70,11 +70,11 @@ public enum UdpResponseMatchMode { AnyResponse, Exact, Contains }
 
 `Encode` must remove whitespace in hex mode, reject odd digit counts and non-hex characters with `FormatException`; `Decode` must return UTF-8 text or uppercase hex. `IsMatch` must use ordinal comparison.
 
-- [ ] **Step 4: Restore and run all pure-logic tests.**
+- [x] **Step 4: Restore and run all pure-logic tests.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj`
 
-- [ ] **Step 5: Commit the isolated model and test layer.**
+- [x] **Step 5: Commit the isolated model and test layer.**
 
 ```powershell
 git add UdpCommunicationStepPlugin UdpCommunicationStepPlugin.Tests

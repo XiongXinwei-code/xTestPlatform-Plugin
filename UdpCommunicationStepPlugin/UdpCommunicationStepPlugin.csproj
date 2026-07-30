@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Example.Network.UdpCommunication.StepPlugin</AssemblyName>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <OutputPath Condition="'$(xTestPlatformAppDir)' != ''">$(xTestPlatformAppDir)\Plugins\UdpCommunication\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+    <PackageReference Include="MessagePack" Version="3.1.4" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="34.1.32" />
+  </ItemGroup>
+</Project>
