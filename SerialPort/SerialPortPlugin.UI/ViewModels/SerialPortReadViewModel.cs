@@ -51,4 +51,10 @@ public sealed class SerialPortReadViewModel : SerialPortViewModelBase
         get => _setting?.Terminator ?? "\n";
         set { if (_setting != null && _setting.Terminator != value) { _setting.Terminator = value; OnPropertyChanged(); QueueSave(); } }
     }
+
+    public string ResultVariable
+    {
+        get => _setting?.ResultVariable ?? string.Empty;
+        set { if (_setting != null && _setting.ResultVariable != value) { _setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }
+    }
 }

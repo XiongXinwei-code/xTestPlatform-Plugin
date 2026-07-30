@@ -88,7 +88,9 @@ public sealed class SerialPortReadExecutor : IStepExecutor
 
             var result = SerialPortHelper.ConvertFromBytes(buffer, s.DataFormat);
 
-            context.SetVariable("Step.ReadData", result);
+            if (!string.IsNullOrWhiteSpace(s.ResultVariable))
+                context.SetVariable(s.ResultVariable, result);
+
             context.LogAction?.Invoke($"串口 {portName} 读取 {buffer.Length} 字节 ({s.DataFormat})");
 
             return new ExecutionResult

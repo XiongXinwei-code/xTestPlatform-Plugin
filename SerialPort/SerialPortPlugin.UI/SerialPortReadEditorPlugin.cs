@@ -43,6 +43,11 @@ public sealed class SerialPortReadEditorPlugin : IStepEditorPlugin
         if (s.ReadBytes < 0)
             errors.Add(StepSettingError.Error("SP_032", "ReadBytes 不能为负数"));
 
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("SP_033", "ResultVariable 未配置，必须指定读取结果存放的变量路径"));
+        else if (!context.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("SP_034", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }
