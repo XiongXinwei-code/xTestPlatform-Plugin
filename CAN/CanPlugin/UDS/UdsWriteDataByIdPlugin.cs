@@ -9,7 +9,7 @@ public sealed class UdsWriteDataByIdPlugin : StepPluginBase<UdsWriteDataByIdSett
 {
     public override string StepTypeId => "UDS.WriteDataByID";
     public override string DisplayName => "UDS_WriteDataByID";
-    public override string Category => "UDS";
+    public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
     public override string Description =>

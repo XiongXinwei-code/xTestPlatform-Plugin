@@ -9,7 +9,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
 {
     public override string StepTypeId => "IO.CanOpen";
     public override string DisplayName => "CAN_Open";
-    public override string Category => "CAN";
+    public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
     public override string Description =>

@@ -9,7 +9,7 @@ public sealed class UdsDiagSessionPlugin : StepPluginBase<UdsDiagSessionSetting>
 {
     public override string StepTypeId => "UDS.DiagSession";
     public override string DisplayName => "UDS_DiagSession";
-    public override string Category => "UDS";
+    public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
     public override string Description =>
