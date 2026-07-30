@@ -23,4 +23,4 @@ while ($true) { $request = $server.Receive([ref]$remote); [void]$server.Send($re
 | 等待响应 | Hex / `50 49 4E 47` | 完全匹配 `50494E47` | Passed，`Step.UdpResponse` 为 `50494E47` |
 | 等待响应 | UTF-8 / `PING` | 完全匹配 `PONG` | Failed |
 
-将 Echo Server 停止后再运行等待响应步骤，应得到 `Error`（超时或 socket 错误）；取消正在等待的步骤，应得到 `Aborted`。这些检查覆盖 SDK 的扫描、设置序列化、编辑器注入、执行器、变量写回和结果呈现链路。当前工作区未提供 xTestPlatform 宿主，因此最后一组宿主检查需在部署后的实际平台中完成。
+将 Echo Server 停止后再运行等待响应步骤，应得到 `Error`（超时或 socket 错误）；取消正在等待的步骤，应得到 `Aborted`。部署目录必须同时存在 `UdpCommunication.StepPlugin.dll` 与 `UdpCommunication.StepPlugin.UI.dll`。这些检查覆盖 SDK 的扫描、设置序列化、编辑器注入、执行器、变量写回和结果呈现链路。当前工作区未提供 xTestPlatform 宿主，因此最后一组宿主检查需在部署后的实际平台中完成。
