@@ -189,25 +189,25 @@ git commit -m "feat: add UDP plugin editor and deployment guide"
 - Consumes release plugin output and local Echo Server.
 - Produces a documented verification record and a clean Git working tree.
 
-- [ ] **Step 1: Start the local Echo Server and run the transport test suite.**
+- [x] **Step 1: Start the local Echo Server and run the transport test suite.**
 
 Run: `dotnet test UdpCommunicationStepPlugin.Tests/UdpCommunicationStepPlugin.Tests.csproj --configuration Release`
 
-- [ ] **Step 2: Verify SDK package resolution and release build output.**
+- [x] **Step 2: Verify SDK package resolution and release build output.**
 
 Run: `dotnet restore UdpCommunicationStepPlugin/UdpCommunicationStepPlugin.csproj`
 
 Run: `dotnet build UdpCommunicationStepPlugin/UdpCommunicationStepPlugin.csproj --configuration Release -p:xTestPlatformAppDir="$PWD/TestDeployment"`
 
-- [ ] **Step 3: Verify plugin deployment contract.**
+- [x] **Step 3: Verify plugin deployment contract.**
 
 Check that `TestDeployment/Plugins/UdpCommunication/Example.Network.UdpCommunication.StepPlugin.dll` exists and that the folder contains all private dependencies required by the build output.
 
-- [ ] **Step 4: Record limitations for actual host validation.**
+- [x] **Step 4: Record limitations for actual host validation.**
 
 Document that actual automatic discovery, editor injection and sequence execution must be run in the supplied xTestPlatform host, which is not present in this workspace.
 
-- [ ] **Step 5: Commit final verification documentation.**
+- [x] **Step 5: Commit final verification documentation.**
 
 ```powershell
 git add UdpCommunicationStepPlugin/TESTING.md
