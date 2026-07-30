@@ -9,7 +9,7 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
 {
     public override string StepTypeId => "IO.CanRead";
     public override string DisplayName => "CAN_Read";
-    public override string Category => "CAN";
+    public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
     public override string Description =>

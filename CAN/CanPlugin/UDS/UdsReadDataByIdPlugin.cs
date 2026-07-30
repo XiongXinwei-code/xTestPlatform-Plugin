@@ -9,7 +9,7 @@ public sealed class UdsReadDataByIdPlugin : StepPluginBase<UdsReadDataByIdSettin
 {
     public override string StepTypeId => "UDS.ReadDataByID";
     public override string DisplayName => "UDS_ReadDataByID";
-    public override string Category => "UDS";
+    public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
     public override string Description =>

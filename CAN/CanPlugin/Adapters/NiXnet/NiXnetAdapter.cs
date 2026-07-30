@@ -18,6 +18,20 @@ public sealed class NiXnetAdapter : ICanAdapter
     {
         if (_isConnected) throw new InvalidOperationException("CAN 通道已打开");
 
+        try
+        {
+            OpenInternal(config);
+        }
+        catch (DllNotFoundException)
+        {
+            throw new InvalidOperationException(
+                "未找到 nixnet.dll，请安装 NI-XNET 驱动程序。" +
+                "下载地址: https://www.ni.com/zh-cn/support/downloads/drivers/download.ni-xnet.html");
+        }
+    }
+
+    private void OpenInternal(CanAdapterConfig config)
+    {
         _protocol = config.Protocol;
         var interfaceName = config.Channel; // 如 "CAN1"
 
