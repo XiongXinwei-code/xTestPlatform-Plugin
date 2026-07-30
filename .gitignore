@@ -8,3 +8,6 @@
 
 # Machine-specific Obsidian state
 .obsidian/workspace.json
+
+# Isolated development worktrees
+.worktrees/
