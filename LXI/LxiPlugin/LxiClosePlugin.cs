@@ -13,7 +13,7 @@ public sealed class LxiClosePlugin : StepPluginBase<LxiCloseSetting>
 	public override string IconPath => "pack://application:,,,/LXI.StepPlugin.UI;component/Resources/Icons/lxi.png";
 
 	public override string Description =>
-		"Disconnect from LXI/SCPI instrument. Setting: IpAddress(string,expression,IP).";
+		"断开与 LXI/SCPI 仪器的 TCP 连接。Setting 字段：IpAddress(string,表达式,仪器IP)。";
 
 	public override IStepExecutor CreateExecutor() => new LxiCloseExecutor();
 

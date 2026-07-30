@@ -13,7 +13,7 @@ public sealed class LxiQueryPlugin : StepPluginBase<LxiQuerySetting>
 	public override string IconPath => "pack://application:,,,/LXI.StepPlugin.UI;component/Resources/Icons/lxi.png";
 
 	public override string Description =>
-		"Send SCPI query and read response (Write+Read). Setting: IpAddress(string,expression,IP), Command(string,expression,SCPI query), Terminator(string,line terminator), ReadTimeoutMs(int,read timeout ms), ResultVariable(string,target variable path).";
+		"向已连接的 LXI/SCPI 仪器发送查询命令并读取响应（Write+Read）。Setting 字段：IpAddress(string,表达式,仪器IP), Command(string,表达式,SCPI查询命令), Terminator(string,终止符), ReadTimeoutMs(int,读取超时ms), ResultVariable(string,结果变量路径)。";
 
 	public override IStepExecutor CreateExecutor() => new LxiQueryExecutor();
 

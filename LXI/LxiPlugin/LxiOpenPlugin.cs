@@ -13,7 +13,7 @@ public sealed class LxiOpenPlugin : StepPluginBase<LxiOpenSetting>
 	public override string IconPath => "pack://application:,,,/LXI.StepPlugin.UI;component/Resources/Icons/lxi.png";
 
 	public override string Description =>
-		"Connect to LXI/SCPI instrument via TCP. Setting: IpAddress(string,expression,IP), Port(int,default 5025), ConnectTimeoutMs(int,timeout ms), Terminator(string,line terminator).";
+		"通过 TCP 连接到 LXI/SCPI 仪器。Setting 字段：IpAddress(string,表达式,仪器IP), Port(int,端口默认5025), ConnectTimeoutMs(int,连接超时ms), Terminator(string,终止符)。";
 
 	public override IStepExecutor CreateExecutor() => new LxiOpenExecutor();
 

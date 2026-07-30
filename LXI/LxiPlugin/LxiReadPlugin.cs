@@ -13,7 +13,7 @@ public sealed class LxiReadPlugin : StepPluginBase<LxiReadSetting>
 	public override string IconPath => "pack://application:,,,/LXI.StepPlugin.UI;component/Resources/Icons/lxi.png";
 
 	public override string Description =>
-		"Read response from LXI instrument and store in variable. Setting: IpAddress(string,expression,IP), ReadTimeoutMs(int,read timeout ms), Terminator(string,line terminator), ResultVariable(string,target variable path).";
+		"从已连接的 LXI/SCPI 仪器读取响应数据并存入变量。Setting 字段：IpAddress(string,表达式,仪器IP), ReadTimeoutMs(int,读取超时ms), Terminator(string,终止符), ResultVariable(string,结果变量路径)。";
 
 	public override IStepExecutor CreateExecutor() => new LxiReadExecutor();
 
