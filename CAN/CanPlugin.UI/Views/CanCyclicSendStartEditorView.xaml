@@ -59,7 +59,7 @@
                     <DataGrid.Columns>
                         <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
                         <DataGridTextColumn Header="CAN ID" Binding="{Binding CanId, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
-                        <DataGridTextColumn Header="FrameType (0=Std,1=Ext)" Binding="{Binding FrameType, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                        <DataGridTextColumn Header="FrameType (0=Std,1=Ext)" Binding="{Binding FrameTypeInt, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                         <DataGridTextColumn Header="Data (Hex)" Binding="{Binding Data, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
                         <DataGridTextColumn Header="Cycle (ms)" Binding="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
                     </DataGrid.Columns>

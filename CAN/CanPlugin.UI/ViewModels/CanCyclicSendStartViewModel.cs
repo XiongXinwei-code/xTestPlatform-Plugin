@@ -16,7 +16,7 @@ public class CanCyclicSendStartViewModel : INotifyPropertyChanged
     private IStepSettingSerializer? _serializer;
     private CanCyclicSendStartSetting? _setting;
 
-    public ObservableCollection<CyclicMessageItemViewModel> Messages { get; } = [];
+    public ObservableCollection<CyclicMessageItem> Messages => _setting?.Messages ?? [];
 
     public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
     public void AttachStep(Step step) { _step = step; Load(); }
@@ -31,25 +31,18 @@ public class CanCyclicSendStartViewModel : INotifyPropertyChanged
                 ? (CanCyclicSendStartSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (CanCyclicSendStartSetting)_serializer.CreateDefault();
 
-            Messages.Clear();
+            // 订阅每个 item 的 PropertyChanged 以触发保存
             foreach (var item in _setting.Messages)
-            {
-                var vm = new CyclicMessageItemViewModel(item);
-                vm.PropertyChanged += (_, _) => SyncAndSave();
-                Messages.Add(vm);
-            }
+                item.PropertyChanged += OnItemChanged;
+
+            _setting.Messages.CollectionChanged += (_, _) => QueueSave();
 
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
     }
 
-    private void SyncAndSave()
-    {
-        if (_setting == null) return;
-        _setting.Messages = Messages.Select(vm => vm.ToModel()).ToList();
-        QueueSave();
-    }
+    private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 
     private void QueueSave()
     {
@@ -65,54 +58,22 @@ public class CanCyclicSendStartViewModel : INotifyPropertyChanged
 
     public void AddMessage()
     {
+        if (_setting == null) return;
         var item = new CyclicMessageItem();
-        var vm = new CyclicMessageItemViewModel(item);
-        vm.PropertyChanged += (_, _) => SyncAndSave();
-        Messages.Add(vm);
-        SyncAndSave();
+        item.PropertyChanged += OnItemChanged;
+        _setting.Messages.Add(item);
+        OnPropertyChanged(nameof(Messages));
+        QueueSave();
     }
 
-    public void RemoveMessage(CyclicMessageItemViewModel vm)
+    public void RemoveMessage(CyclicMessageItem item)
     {
-        Messages.Remove(vm);
-        SyncAndSave();
+        if (_setting == null) return;
+        item.PropertyChanged -= OnItemChanged;
+        _setting.Messages.Remove(item);
+        OnPropertyChanged(nameof(Messages));
+        QueueSave();
     }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
-}
-
-public class CyclicMessageItemViewModel : INotifyPropertyChanged
-{
-    private string _canId;
-    private string _data;
-    private int _cycleTimeMs;
-    private bool _enabled;
-    private CanFrameType _frameType;
-
-    public CyclicMessageItemViewModel(CyclicMessageItem model)
-    {
-        _canId = model.CanId;
-        _data = model.Data;
-        _cycleTimeMs = model.CycleTimeMs;
-        _enabled = model.Enabled;
-        _frameType = model.FrameType;
-    }
-
-    public string CanId { get => _canId; set { if (_canId == value) return; _canId = value; OnPropertyChanged(); } }
-    public string Data { get => _data; set { if (_data == value) return; _data = value; OnPropertyChanged(); } }
-    public int CycleTimeMs { get => _cycleTimeMs; set { if (_cycleTimeMs == value) return; _cycleTimeMs = value; OnPropertyChanged(); } }
-    public bool Enabled { get => _enabled; set { if (_enabled == value) return; _enabled = value; OnPropertyChanged(); } }
-    public int FrameType { get => (int)_frameType; set { if ((int)_frameType == value) return; _frameType = (CanFrameType)value; OnPropertyChanged(); } }
-
-    public CyclicMessageItem ToModel() => new()
-    {
-        CanId = _canId,
-        Data = _data,
-        CycleTimeMs = _cycleTimeMs,
-        Enabled = _enabled,
-        FrameType = _frameType
-    };
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

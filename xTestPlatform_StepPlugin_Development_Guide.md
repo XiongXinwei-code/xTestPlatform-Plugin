@@ -1081,9 +1081,67 @@ public class NestedConfig {
 | ------------------------- | --------------- |
 | `FrameworkElement` 及其子类   | WPF 对象不可序列化     |
 | `delegate` / `event`      | 不可序列化           |
-| `ObservableCollection<T>` | 改用 `List<T>`    |
 | 循环引用对象图                   | MessagePack 不支持 |
 | 已发布字段的改名/删除               | 只允许**新增**字段     |
+
+### 12.0.1 集合属性与子项设计规范
+
+当 Setting 中包含**列表类型的子项**（如报文列表、参数映射列表）时，**必须**遵循以下规范：
+
+| 规范 | 说明 |
+| --- | --- |
+| 集合类型 | 使用 `ObservableCollection<T>` |
+| 子项类型 | **必须**实现 `INotifyPropertyChanged`，采用 `SetProperty` 模式 |
+| 序列化标注 | 子项类也需加 `[MessagePackObject(true)]` |
+| 非序列化属性 | 用 `[IgnoreMember]` 标注（如 UI 绑定用的转换属性） |
+
+**参考模式：**
+
+```csharp
+[MessagePackObject(true)]
+public class MyItemModel : INotifyPropertyChanged
+{
+    private string _name = "";
+    private int _value = 0;
+
+    public string Name
+    {
+        get => _name;
+        set => SetProperty(ref _name, value);
+    }
+
+    public int Value
+    {
+        get => _value;
+        set => SetProperty(ref _value, value);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value))
+            return false;
+        storage = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+
+[MessagePackObject(true)]
+public class MySetting
+{
+    public string Name { get; set; } = "";
+    public ObservableCollection<MyItemModel> Items { get; set; } = [];
+}
+```
+
+> ⚠️ **不要**为子项额外创建 ViewModel 包装类。子项自身实现 `INotifyPropertyChanged` 后可直接绑定到 DataGrid，ViewModel 层只需订阅 `PropertyChanged` 触发保存即可。
 
 ### 12.1 `[ExpressionField]` 特性（表达式预编译）
 

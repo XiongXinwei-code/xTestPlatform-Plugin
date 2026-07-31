@@ -1,4 +1,5 @@
 using MessagePack;
+using System.Collections.ObjectModel;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace CAN.Models;
@@ -18,5 +19,5 @@ public class CanCyclicSendStartSetting
     public bool EnableLog { get; set; } = false;
 
     /// <summary>周期发送报文列表</summary>
-    public List<CyclicMessageItem> Messages { get; set; } = [];
+    public ObservableCollection<CyclicMessageItem> Messages { get; set; } = [];
 }
