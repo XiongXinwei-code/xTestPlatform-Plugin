@@ -11,6 +11,11 @@ namespace UdpCommunication.StepPlugin.UI;
 
 internal static class UdpEditorValidation
 {
+    public static UdpSendSetting Deserialize(byte[] data, IStepSettingSerializer serializer, bool receive) =>
+        data is { Length: > 0 }
+            ? (UdpSendSetting)serializer.Deserialize(data, 1)
+            : (UdpSendSetting)serializer.CreateDefault();
+
     public static IReadOnlyList<StepSettingError> Validate(UdpSendSetting setting, bool receive, IExecutionContext context)
     {
         var errors = new List<StepSettingError>();

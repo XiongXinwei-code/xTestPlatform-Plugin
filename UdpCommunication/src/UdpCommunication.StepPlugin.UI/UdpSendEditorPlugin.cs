@@ -14,5 +14,5 @@ public sealed class UdpSendEditorPlugin : IStepEditorPlugin
     public string StepTypeId => "Network.UDP_Send";
     public string IconPath => string.Empty;
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) { var view = new UdpEditorView(new UdpSendPlugin().CreateSerializer(), false); view.RefreshFromStep(step); return view; }
-    public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken cancellationToken = default) => Task.FromResult(UdpEditorValidation.Validate((UdpSendSetting)new UdpSendPlugin().CreateSerializer().Deserialize(setting, 1), false, context));
+    public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken cancellationToken = default) { var serializer = new UdpSendPlugin().CreateSerializer(); return Task.FromResult(UdpEditorValidation.Validate(UdpEditorValidation.Deserialize(setting, serializer, false), false, context)); }
 }
