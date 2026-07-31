@@ -1,0 +1,80 @@
+﻿<UserControl x:Class="Modbus.UI.Views.ModbusReadEditorView"
+			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+			 xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+			 xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+			 syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
+			 d:DesignHeight="400" d:DesignWidth="800"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+		<syncfusion:TabItemExt Header="Modbus Read">
+			<Grid Margin="16">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="130"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+
+				<TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+					ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="System.String"
+					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+				<TextBlock Grid.Row="1" Grid.Column="0" Text="SlaveAddress:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<TextBox Grid.Row="1" Grid.Column="1" Width="100" HorizontalAlignment="Left" Margin="0,0,0,8"
+						 Text="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}"/>
+
+				<TextBlock Grid.Row="2" Grid.Column="0" Text="RegisterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<ComboBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+						  SelectedIndex="{Binding RegisterType}">
+					<ComboBoxItem Content="Coil (0x)"/>
+					<ComboBoxItem Content="Discrete Input (1x)"/>
+					<ComboBoxItem Content="Holding Register (4x)"/>
+					<ComboBoxItem Content="Input Register (3x)"/>
+				</ComboBox>
+
+				<TextBlock Grid.Row="3" Grid.Column="0" Text="StartAddress:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+					ScriptText="{Binding StartAddress, Mode=TwoWay}" ExpectedResultType="System.String"
+					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+				<TextBlock Grid.Row="4" Grid.Column="0" Text="Quantity:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+					ScriptText="{Binding Quantity, Mode=TwoWay}" ExpectedResultType="System.String"
+					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+				<TextBlock Grid.Row="5" Grid.Column="0" Text="DataFormat:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<ComboBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+						  SelectedIndex="{Binding DataFormat}">
+					<ComboBoxItem Content="UInt16"/>
+					<ComboBoxItem Content="Int16"/>
+					<ComboBoxItem Content="UInt32 (AB CD)"/>
+					<ComboBoxItem Content="Int32 (AB CD)"/>
+					<ComboBoxItem Content="Float (AB CD)"/>
+					<ComboBoxItem Content="UInt32 (CD AB)"/>
+					<ComboBoxItem Content="Int32 (CD AB)"/>
+					<ComboBoxItem Content="Float (CD AB)"/>
+				</ComboBox>
+
+				<TextBlock Grid.Row="6" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+					ScriptText="{Binding ResultVariable, Mode=TwoWay}" ExpectedResultType="System.String"
+					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+			</Grid>
+		</syncfusion:TabItemExt>
+	</syncfusion:TabControlExt>
+</UserControl>
