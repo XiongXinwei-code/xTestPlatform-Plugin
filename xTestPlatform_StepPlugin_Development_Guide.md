@@ -1,6 +1,6 @@
 # xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.3 | **框架**：.NET 8 / WPF | **日期**：2025-07-30  
+> **版本**：3.1.4 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -264,7 +264,7 @@ public abstract class StepPluginBase<TSetting> : IStepPlugin
 
 | 方法                                | 内置行为                                                                    |
 | --------------------------------- | ----------------------------------------------------------------------- |
-| `CreateSerializer()`              | MessagePack 3.1.4 + LZ4BlockArray + ContractlessStandardResolver + 版本管理 |
+| `CreateSerializer()`              | MessagePack 3.x + LZ4BlockArray + ContractlessStandardResolver + 版本管理 |
 | `GenerateDescription()`           | 返回空字符串                                                                  |
 | `DeserializeSetting(byte[], int)` | 内部辅助方法，直接返回 `TSetting` 实例（可在子类中使用）                                      |
 
@@ -369,7 +369,7 @@ foreach (var plugin in editorPlugins)   // 扫描 *.StepPlugin.dll 中的 IStepE
 ```csharp
 // ── 执行插件（IStepPlugin，Core 层）────────────────────────────────
 public sealed class MyStepPlugin : StepPluginBase<MySetting> {
-    public override string StepTypeId  => "MyCompany.Check.MyStep";
+    public override string StepTypeId  => "Check.MyStep";
     public override string DisplayName => "我的步骤";
     public override string Category    => "自定义步骤";
     public override string IconPath    => string.Empty;  // 无图标填空字符串
@@ -387,7 +387,7 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
 
 // ── 编辑器插件（IStepEditorPlugin，UI 层）──────────────────────────
 public sealed class MyStepEditorPlugin : IStepEditorPlugin {
-    public string StepTypeId => "MyCompany.Check.MyStep";  // ← 与执行插件一致
+    public string StepTypeId => "Check.MyStep";  // ← 与执行插件一致
     public string IconPath   => string.Empty;
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
@@ -619,8 +619,8 @@ public sealed class MyExecutor : IStepExecutor {
 registry.Register(new MyPlugin());
 registry.RegisterRange(new IStepPlugin[] { /* ... */ });
 
-IStepPlugin?   plugin  = registry.Get("MyCompany.Check.MyStep");
-bool           ok      = registry.IsSupported("MyCompany.Check.MyStep");
+IStepPlugin?   plugin  = registry.Get("Check.MyStep");
+bool           ok      = registry.IsSupported("Check.MyStep");
 IReadOnlyList<IStepPlugin> all = registry.GetAll();
 
 // 按 Category 分组（工具箱使用）
@@ -636,8 +636,8 @@ registry.Register("PassFailTest", step => new TestStepEditorView { Step = step }
 // 从 IStepEditorPlugin 自动提取并注册（外部插件）
 registry.RegisterFromPlugin(editorPlugin, sequenceFile: null);
 
-bool         ok   = registry.IsSupported("MyCompany.Check.MyStep");
-UserControl? view = registry.Create("MyCompany.Check.MyStep", step);
+bool         ok   = registry.IsSupported("Check.MyStep");
+UserControl? view = registry.Create("Check.MyStep", step);
 ```
 
 ---
@@ -653,16 +653,19 @@ UserControl? view = registry.Create("MyCompany.Check.MyStep", step);
 
 ### 8.2 DLL 命名规范（强制）
 
-> ⚠️ **文件名必须以 `.StepPlugin.dll` 结尾，否则不会被扫描！**
+> ⚠️ **执行层文件名必须以 `.StepPlugin.dll` 结尾，UI 层必须以 `.StepPlugin.UI.dll` 结尾，否则不会被扫描！**
 
 | 正确示例                                   | 错误示例                         |
 | -------------------------------------- | ---------------------------- |
-| `MyCompany.DelayCheck.StepPlugin.dll`✅ | `MyCompany.DelayCheck.dll` ❌ |
-| `Ruhlamat.IO.StepPlugin.dll` ✅         | `DelayCheck.Plugin.dll` ❌    |
+| `DelayCheck.StepPlugin.dll` ✅          | `MyCompany.DelayCheck.dll` ❌ |
+| `DelayCheck.StepPlugin.UI.dll` ✅       | `DelayCheck.Plugin.dll` ❌    |
+| `SerialPort.StepPlugin.dll` ✅          | `SerialPort.dll` ❌           |
 
 ```xml
-<!-- csproj 中设置 -->
-<AssemblyName>MyCompany.DelayCheck.StepPlugin</AssemblyName>
+<!-- 执行层 csproj -->
+<AssemblyName>DelayCheck.StepPlugin</AssemblyName>
+<!-- UI 层 csproj -->
+<AssemblyName>DelayCheck.StepPlugin.UI</AssemblyName>
 ```
 
 ### 8.3 部署步骤
@@ -670,8 +673,9 @@ UserControl? view = registry.Create("MyCompany.Check.MyStep", step);
 ```text
 <AppDir>/
 └── Plugins/
-    └── MyCompany.DelayCheck/
-        ├── MyCompany.DelayCheck.StepPlugin.dll   ← 插件主体
+    └── DelayCheck/
+        ├── DelayCheck.StepPlugin.dll              ← 执行层主体
+        ├── DelayCheck.StepPlugin.UI.dll           ← UI 层（编辑器）
         ├── MessagePack.dll                        ← 插件依赖（见下方说明）
         └── [其他私有依赖 DLL]
 ```
@@ -1047,7 +1051,7 @@ public EditPosition?  EditPosition  { get; set; }
 
 | 项目          | 规范                                        |
 | ----------- | ----------------------------------------- |
-| 格式          | MessagePack **3.1.4**                     |
+| 格式          | MessagePack **3.x**（当前推荐 3.1.7）         |
 | 压缩          | `LZ4BlockArray`                           |
 | 解析器         | `ContractlessStandardResolver`（无需 Key 特性） |
 | Setting 类注解 | **必须**加 `[MessagePackObject(true)]`       |
@@ -1249,24 +1253,55 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 ### 14.1 项目结构
 
+推荐将执行层和 UI 层拆分为两个独立项目（执行层无 WPF 依赖，可独立测试）：
+
 ```text
-StepEditor/
-└── DelayCheckStepPlugin/
-    ├── DelayCheckStepPlugin.csproj           ← AssemblyName = MyCompany.DelayCheck.StepPlugin
-    ├── DelayCheckPlugin.cs                   ← 实现 StepPluginBase（执行层）
-    ├── DelayCheckEditorPlugin.cs             ← 实现 IStepEditorPlugin（UI 层）
-    ├── Models/
-    │   └── DelayCheckSetting.cs              ← [MessagePackObject(true)]
-    ├── Executor/
-    │   └── DelayCheckExecutor.cs             ← 实现 IStepExecutor
-    ├── View/
+DelayCheck/
+├── DelayCheckPlugin/                         ← 执行层项目
+│   ├── DelayCheckPlugin.csproj                  AssemblyName = DelayCheck.StepPlugin
+│   ├── DelayCheckPlugin.cs                   ← 实现 StepPluginBase（执行层）
+│   ├── Models/
+│   │   └── DelayCheckSetting.cs              ← [MessagePackObject(true)]
+│   └── Executors/
+│       └── DelayCheckExecutor.cs             ← 实现 IStepExecutor
+│
+└── DelayCheckPlugin.UI/                      ← UI 层项目
+    ├── DelayCheckPlugin.UI.csproj               AssemblyName = DelayCheck.StepPlugin.UI
+    ├── DelayCheckEditorPlugin.cs             ← 实现 IStepEditorPlugin
+    ├── Views/
     │   ├── DelayCheckEditorView.xaml
     │   └── DelayCheckEditorView.xaml.cs      ← UserControl + IRefreshableEditor
     └── ViewModels/
         └── DelayCheckViewModel.cs
 ```
 
+> 💡 UI 项目引用执行层项目，两者输出到同一个 Plugins 子目录。框架会同时扫描 `*.StepPlugin.dll` 和 `*.StepPlugin.UI.dll`。
+
 ### 14.2 csproj
+
+**执行层项目**（DelayCheckPlugin.csproj）：
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- ✅ 文件名必须以 .StepPlugin.dll 结尾 -->
+        <AssemblyName>DelayCheck.StepPlugin</AssemblyName>
+        <!-- ✅ 确保 MessagePack.dll 等依赖复制到插件目录 -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- ✅ 通过 NuGet SDK 包获取 Core + Abstractions，禁止依赖主程序集 -->
+        <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+        <PackageReference Include="MessagePack" Version="3.1.7" />
+    </ItemGroup>
+</Project>
+```
+
+**UI 层项目**（DelayCheckPlugin.UI.csproj）：
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -1275,23 +1310,28 @@ StepEditor/
         <Nullable>enable</Nullable>
         <UseWPF>true</UseWPF>
         <ImplicitUsings>enable</ImplicitUsings>
-        <!-- ✅ 文件名必须以 .StepPlugin.dll 结尾 -->
-        <AssemblyName>MyCompany.DelayCheck.StepPlugin</AssemblyName>
-        <!-- ✅ 确保 MessagePack.dll 等依赖复制到插件目录 -->
+        <!-- ✅ UI DLL 以 .StepPlugin.UI.dll 结尾 -->
+        <AssemblyName>DelayCheck.StepPlugin.UI</AssemblyName>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- ✅ 只依赖 Core + Abstractions，禁止依赖主程序集 -->
-        <ProjectReference Include="....\xTestPlatform.Core\xTestPlatform.Core.csproj" />
-        <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <PackageReference Include="MessagePack" Version="3.1.4" />
+        <!-- 引用执行层项目 -->
+        <ProjectReference Include="..\DelayCheckPlugin\DelayCheckPlugin.csproj" />
+        <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+        <PackageReference Include="MessagePack" Version="3.1.7" />
+        <!-- UI 层可选依赖 -->
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+        <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
+        <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
     </ItemGroup>
 </Project>
 ```
+
+> 💡 `xTestPlatform.StepEditor.SDK` NuGet 包包含了 `xTestPlatform.Core` 和 `StepEditor.Abstractions` 的所有接口和基类。  
+> `CommunityToolkit.Mvvm` 可用于简化 ViewModel 的 `INotifyPropertyChanged` 实现（可选）。  
+> Syncfusion 版本应与主程序保持一致，当前为 **32.1.25**。
 
 ### 14.3 Setting 模型
 
@@ -1312,7 +1352,7 @@ public class DelayCheckSetting {
 ```csharp
 // DelayCheckPlugin.cs
 public sealed class DelayCheckPlugin : StepPluginBase<DelayCheckSetting> {
-    public override string StepTypeId  => "MyCompany.Check.DelayCheck";
+    public override string StepTypeId  => "Utility.DelayCheck";
     public override string DisplayName => "延时检测";
     public override string Category    => "自定义步骤";
     public override string IconPath    => string.Empty;
@@ -1377,7 +1417,7 @@ public sealed class DelayCheckExecutor : IStepExecutor {
 ```csharp
 // DelayCheckEditorPlugin.cs
 public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
-    public string StepTypeId => "MyCompany.Check.DelayCheck";  // ← 与执行插件一致
+    public string StepTypeId => "Utility.DelayCheck";  // ← 与执行插件一致
     public string IconPath   => string.Empty;
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
@@ -1598,7 +1638,7 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 ### 18.2 命名规范
 
-- `StepTypeId`：使用 `公司.分类.步骤名` 格式，如 `Ruhlamat.IO.SerialOpen`
+- `StepTypeId`：使用 `分类.步骤名` 格式，如 `IO.SerialPortOpen`、`IO.CanOpen`
 - `DisplayName`：使用下划线 `_` 分隔层级，如 `Serial_Open`、`Queue_Create`
 - 工具箱会自动按 `_` 拆分为多级树结构
 
@@ -1611,7 +1651,7 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 - [ ] `Description` 是否准确反映程序实际行为？（AI 助手依赖此字段理解插件用途）
 - [ ] 如果 Setting 包含复杂集合类型，`Description` 中是否有 JSON 示例说明？
 - [ ] 每个插件是否对应独立的 StepType、Setting、Plugin、Editor 和 Executor？
-- [ ] 是否实现了 `ValidateWithContextAsync` 校验逻辑？（**必须**，见 §13.1）
+- [ ] 如果实现了 `IStepEditorPlugin`，是否实现了 `ValidateWithContextAsync` 校验逻辑？（**推荐**，见 §13.1）
 
 ### 18.4 为什么要求功能单一
 
@@ -1626,8 +1666,8 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 **Q1：StepTypeId 冲突了怎么办？**
 
-后注册的会覆盖先注册的。强制使用 `公司.分类.步骤名` 格式：  
-`Ruhlamat.IO.DigitalRead`、`MyCompany.Check.DelayCheck`。
+后注册的会覆盖先注册的。推荐使用 `分类.步骤名` 格式：  
+`IO.SerialPortOpen`、`IO.CanOpen`、`Utility.DelayCheck`。
 
 ---
 
@@ -1750,18 +1790,16 @@ D:\xTestPlatform
 │       ├── StepPluginRegistry.cs              ← 插件注册表（能力层）
 │       └── StepPluginLoader.cs                ← DLL 热插拔加载器
 │
-├── StepEditor
-│   ├── Abstractions
-│   │   └── Interface
-│   │       ├── IStepEditorPlugin.cs           ← ★ 编辑器插件接口（独立于 IStepPlugin）
-│   │       └── IRefreshableEditor.cs          ← 编辑器刷新接口
-│   └── [YourPlugin]\                          ← ★ 新插件在此创建
-│       ├── [YourPlugin].csproj                  （CopyLocalLockFileAssemblies=true）
-│       ├── [YourPlugin]Plugin.cs                ← 继承 StepPluginBase<T>
-│       ├── [YourPlugin]EditorPlugin.cs          ← 实现 IStepEditorPlugin
-│       ├── Models/[YourPlugin]Setting.cs        ← [MessagePackObject(true)]
-│       ├── Executor/[YourPlugin]Executor.cs     ← 实现 IStepExecutor → ExecutionResult
-│       ├── View/[YourPlugin]EditorView.xaml
+├── [YourPlugin]/                              ← ★ 新插件在此创建（两个项目）
+│   ├── [YourPlugin]Plugin/                    ← 执行层项目
+│   │   ├── [YourPlugin]Plugin.csproj              AssemblyName = [Name].StepPlugin
+│   │   ├── [YourPlugin]Plugin.cs              ← 继承 StepPluginBase<T>
+│   │   ├── Models/[YourPlugin]Setting.cs       ← [MessagePackObject(true)]
+│   │   └── Executors/[YourPlugin]Executor.cs   ← 实现 IStepExecutor
+│   └── [YourPlugin]Plugin.UI/                 ← UI 层项目
+│       ├── [YourPlugin]Plugin.UI.csproj           AssemblyName = [Name].StepPlugin.UI
+│       ├── [YourPlugin]EditorPlugin.cs         ← 实现 IStepEditorPlugin
+│       ├── Views/[YourPlugin]EditorView.xaml
 │       └── ViewModels/[YourPlugin]ViewModel.cs
 │
 ├── StepEditorManager
@@ -1769,8 +1807,13 @@ D:\xTestPlatform
 │   └── StepEditorManagerViewModel.cs          ← 编辑器生命周期管理
 │
 └── Plugins\                                   ← 运行时插件部署目录
-    └── LabVIEWCall
+    ├── SerialPort/
+    │   ├── SerialPort.StepPlugin.dll
+    │   ├── SerialPort.StepPlugin.UI.dll
+    │   ├── MessagePack.dll                    ← 插件私有依赖（必须在此目录）
+    │   └── MessagePack.Annotations.dll
+    └── LabVIEWCall/
         ├── LabVIEWCall.StepPlugin.dll
-        ├── MessagePack.dll                    ← 插件私有依赖（必须在此目录）
-        └── MessagePack.Annotations.dll
+        ├── LabVIEWCall.StepPlugin.UI.dll
+        └── MessagePack.dll
 ```
