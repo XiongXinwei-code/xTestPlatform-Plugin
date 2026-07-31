@@ -13,6 +13,6 @@ public sealed class UdpSendAndReceiveEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "Network.UDP_SendAndReceive";
     public string IconPath => string.Empty;
-    public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) { var view = new UdpEditorView(new UdpSendAndReceivePlugin().CreateSerializer(), true); view.RefreshFromStep(step); return view; }
+    public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) { var plugin = new UdpSendAndReceivePlugin(); var view = new UdpEditorView(plugin.CreateSerializer(), plugin.GenerateDescription, true); view.RefreshFromStep(step); return view; }
     public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken cancellationToken = default) { var serializer = new UdpSendAndReceivePlugin().CreateSerializer(); return Task.FromResult(UdpEditorValidation.Validate(UdpEditorValidation.Deserialize(setting, serializer, true), true, context)); }
 }
