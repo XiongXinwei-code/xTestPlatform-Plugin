@@ -1,43 +1,44 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace Modbus.Models;
 
+/// <summary>
+/// Modbus 连接步骤的设置参数
+/// </summary>
 [MessagePackObject(true)]
 public class ModbusConnectSetting
 {
-	/// <summary>杩炴帴鏍囪瘑鍚?/summary>
+	/// <summary>连接名称，用于在后续步骤中引用此连接</summary>
 	[ExpressionField]
 	public string ConnectionName { get; set; } = "Modbus1";
 
-	/// <summary>浼犺緭绫诲瀷 TCP/RTU</summary>
+	/// <summary>传输类型：TCP 或 RTU</summary>
 	public ModbusTransportType TransportType { get; set; } = ModbusTransportType.TCP;
 
-	// --- TCP ---
-	/// <summary>IP 鍦板潃</summary>
+	/// <summary>TCP 模式下的目标 IP 地址</summary>
 	[ExpressionField]
 	public string IpAddress { get; set; } = "192.168.1.1";
 
-	/// <summary>TCP 绔彛</summary>
+	/// <summary>TCP 模式下的端口号（默认 502）</summary>
 	public int TcpPort { get; set; } = 502;
 
-	// --- RTU ---
-	/// <summary>涓插彛鍚嶇О</summary>
+	/// <summary>RTU 模式下的串口名称</summary>
 	[ExpressionField]
 	public string PortName { get; set; } = "COM1";
 
-	/// <summary>娉㈢壒鐜?/summary>
+	/// <summary>RTU 模式下的波特率</summary>
 	public int BaudRate { get; set; } = 9600;
 
-	/// <summary>鏁版嵁浣?/summary>
+	/// <summary>RTU 模式下的数据位</summary>
 	public int DataBits { get; set; } = 8;
 
-	/// <summary>鍋滄浣?(1=One, 2=Two)</summary>
+	/// <summary>RTU 模式下的停止位</summary>
 	public int StopBits { get; set; } = 1;
 
-	/// <summary>鏍￠獙 (0=None, 1=Odd, 2=Even)</summary>
+	/// <summary>RTU 模式下的校验位（0=None, 1=Odd, 2=Even）</summary>
 	public int Parity { get; set; } = 0;
 
-	/// <summary>瓒呮椂(ms)</summary>
+	/// <summary>通信超时时间（毫秒）</summary>
 	public int TimeoutMs { get; set; } = 3000;
 }

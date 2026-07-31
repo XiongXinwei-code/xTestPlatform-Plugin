@@ -1,10 +1,13 @@
-﻿using Modbus.Executors;
+using Modbus.Executors;
 using Modbus.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Modbus;
 
+/// <summary>
+/// Modbus 批量读取插件，一次执行多个地址段的读取操作
+/// </summary>
 public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSetting>
 {
 	public override string StepTypeId => "IO.ModbusBatchRead";
@@ -13,8 +16,8 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
 	public override string Description =>
-		"鎵归噺璇诲彇澶氫釜 Modbus 鍦板潃娈碉紝姣忎釜椤瑰彲鎸囧畾涓嶅悓浠庣珯銆佸瘎瀛樺櫒绫诲瀷鍜屾暟鎹牸寮忋€? +
-		"Setting 瀛楁锛欳onnectionName(string,琛ㄨ揪寮?, Items(鍒楄〃,姣忛」鍚玈laveAddress/RegisterType/StartAddress/Quantity/DataFormat/ResultVariable), IntervalMs(int)銆?;
+		"批量读取多个 Modbus 地址段，每个项可指定不同从站、寄存器类型和数据格式。" +
+		"Setting 字段：ConnectionName(string,表达式), Items(列表,每项含 SlaveAddress/RegisterType/StartAddress/Quantity/DataFormat/ResultVariable), IntervalMs(int,读取间隔)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusBatchReadExecutor();
 

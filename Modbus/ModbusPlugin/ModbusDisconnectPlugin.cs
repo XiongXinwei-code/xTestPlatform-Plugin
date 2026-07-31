@@ -1,10 +1,13 @@
-﻿using Modbus.Executors;
+using Modbus.Executors;
 using Modbus.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Modbus;
 
+/// <summary>
+/// Modbus 断开连接插件，关闭并释放指定的 Modbus 连接资源
+/// </summary>
 public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSetting>
 {
 	public override string StepTypeId => "IO.ModbusDisconnect";
@@ -13,8 +16,8 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
 	public override string Description =>
-		"鍏抽棴鎸囧畾鐨?Modbus 杩炴帴銆? +
-		"Setting 瀛楁锛欳onnectionName(string,琛ㄨ揪寮?杩炴帴鏍囪瘑鍚?銆?;
+		"关闭指定的 Modbus 连接。" +
+		"Setting 字段：ConnectionName(string,表达式,连接标识名)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusDisconnectExecutor();
 

@@ -1,4 +1,4 @@
-﻿using Modbus.Helpers;
+using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
 using xTestPlatform.Core.Engine;
@@ -8,9 +8,14 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.Executors;
 
+/// <summary>
+/// Modbus 批量写入执行器，逐项写入多个地址段
+/// </summary>
 public sealed class ModbusBatchWriteExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+	/// <summary>执行 Modbus 批量写入操作</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
@@ -30,7 +35,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 					StepResult = new StepResult
 					{
 						Status = TestStatus.Error,
-						Error = new ErrorInfo { Message = $"鏈壘鍒?Modbus 杩炴帴: {connName}" }
+						Error = new ErrorInfo { Message = $"未找到 Modbus 连接: {connName}" }
 					}
 				};
 			}
@@ -61,11 +66,11 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 					await Task.Delay(setting.IntervalMs, cancellationToken);
 			}
 
-			context.LogAction?.Invoke($"Modbus BatchWrite: {setting.Items.Count} items written");
+			context.LogAction?.Invoke($"Modbus 批量写入: 已写入 {setting.Items.Count} 项");
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"宸插啓鍏?{setting.Items.Count} 椤? }
+				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已写入 {setting.Items.Count} 项" }
 			};
 		}
 		catch (OperationCanceledException)
@@ -79,7 +84,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 鎵归噺鍐欏叆澶辫触: {ex.Message}" }
+					Error = new ErrorInfo { Message = $"Modbus 批量写入失败: {ex.Message}" }
 				}
 			};
 		}

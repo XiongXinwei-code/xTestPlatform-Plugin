@@ -1,10 +1,13 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 using Modbus.UI.ViewModels;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.SequenceModels;
 
 namespace Modbus.UI.Views;
 
+/// <summary>
+/// Modbus 断开连接编辑器视图
+/// </summary>
 public partial class ModbusDisconnectEditorView : UserControl, IRefreshableEditor
 {
 	public ModbusDisconnectViewModel ViewModel { get; }

@@ -1,4 +1,4 @@
-﻿using Modbus.Helpers;
+using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
 using xTestPlatform.Core.Engine;
@@ -8,9 +8,14 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.Executors;
 
+/// <summary>
+/// Modbus 批量读取执行器，逐项读取多个地址段并将结果存入变量
+/// </summary>
 public sealed class ModbusBatchReadExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+	/// <summary>执行 Modbus 批量读取操作</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
@@ -30,7 +35,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 					StepResult = new StepResult
 					{
 						Status = TestStatus.Error,
-						Error = new ErrorInfo { Message = $"鏈壘鍒?Modbus 杩炴帴: {connName}" }
+						Error = new ErrorInfo { Message = $"未找到 Modbus 连接: {connName}" }
 					}
 				};
 			}
@@ -89,7 +94,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 鎵归噺璇诲彇澶辫触: {ex.Message}" }
+					Error = new ErrorInfo { Message = $"Modbus 批量读取失败: {ex.Message}" }
 				}
 			};
 		}

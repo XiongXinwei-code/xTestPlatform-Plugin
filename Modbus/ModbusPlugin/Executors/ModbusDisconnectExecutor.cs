@@ -1,4 +1,4 @@
-﻿using System.IO.Ports;
+using System.IO.Ports;
 using System.Net.Sockets;
 using Modbus.Helpers;
 using Modbus.Models;
@@ -10,9 +10,14 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.Executors;
 
+/// <summary>
+/// Modbus 断开连接执行器，关闭并释放 Master 和传输层资源
+/// </summary>
 public sealed class ModbusDisconnectExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+	/// <summary>执行 Modbus 断开连接操作</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
@@ -38,10 +43,10 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 				context.CurrentStep.RuntimeData.Remove(key + "_transport");
 			}
 
-			context.LogAction?.Invoke($"Modbus 杩炴帴宸插叧闂? {connName}");
+			context.LogAction?.Invoke($"Modbus 连接已关闭: {connName}");
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"宸叉柇寮€: {connName}" }
+				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已断开: {connName}" }
 			};
 		}
 		catch (Exception ex)
@@ -51,7 +56,7 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 鏂紑澶辫触: {ex.Message}" }
+					Error = new ErrorInfo { Message = $"Modbus 断开失败: {ex.Message}" }
 				}
 			};
 		}

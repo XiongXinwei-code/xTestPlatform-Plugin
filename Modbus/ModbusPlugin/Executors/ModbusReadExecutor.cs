@@ -1,4 +1,4 @@
-﻿using Modbus.Helpers;
+using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
 using xTestPlatform.Core.Engine;
@@ -8,9 +8,14 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.Executors;
 
+/// <summary>
+/// Modbus 读取执行器，支持读取线圈、离散输入、保持寄存器、输入寄存器
+/// </summary>
 public sealed class ModbusReadExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+	/// <summary>执行 Modbus 读取操作，读取结果存入指定变量</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
@@ -30,7 +35,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 					StepResult = new StepResult
 					{
 						Status = TestStatus.Error,
-						Error = new ErrorInfo { Message = $"鏈壘鍒?Modbus 杩炴帴: {connName}" }
+						Error = new ErrorInfo { Message = $"未找到 Modbus 连接: {connName}" }
 					}
 				};
 			}
@@ -83,7 +88,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 璇诲彇澶辫触: {ex.Message}" }
+					Error = new ErrorInfo { Message = $"Modbus 读取失败: {ex.Message}" }
 				}
 			};
 		}

@@ -12,7 +12,9 @@
 		<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
 	</UserControl.Resources>
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-		<syncfusion:TabItemExt Header="Modbus Connect">
+		<syncfusion:TabItemExt Header="Modbus Connect"
+								   Image="pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png"
+								   ImageHeight="20" ImageWidth="20">
 			<Grid Margin="16">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="130"/>

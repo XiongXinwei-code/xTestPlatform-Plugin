@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using Modbus.Models;
 using Modbus.UI.ViewModels;
@@ -7,6 +7,9 @@ using xTestPlatform.Core.SequenceModels;
 
 namespace Modbus.UI.Views;
 
+/// <summary>
+/// Modbus 批量读取编辑器视图，支持动态添加/删除读取项
+/// </summary>
 public partial class ModbusBatchReadEditorView : UserControl, IRefreshableEditor
 {
 	public ModbusBatchReadViewModel ViewModel { get; }

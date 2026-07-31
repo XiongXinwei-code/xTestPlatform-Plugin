@@ -1,4 +1,4 @@
-# xTestPlatform 步骤插件开发手册
+﻿# xTestPlatform 步骤插件开发手册
 
 > **版本**：3.1.5 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
@@ -932,11 +932,11 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 }
 ```
 
-### 11.6 表达式编辑控件（ExperssionTextBox）
+### 11.6 表达式编辑控件（ExpressionTextBox）
 
-如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExperssionTextBox` 控件，而不是普通 `TextBox`。
+如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExpressionTextBox` 控件，而不是普通 `TextBox`。
 
-> ⚠️ **额外依赖**：使用 `ExperssionTextBox` 控件时，插件项目需要额外引用以下 NuGet 包：
+> ⚠️ **额外依赖**：使用 `ExpressionTextBox` 控件时，插件项目需要额外引用以下 NuGet 包：
 > 
 > ```xml
 > <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -957,19 +957,19 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 
 | 场景                        | 控件选择                             |
 | ------------------------- | -------------------------------- |
-| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExperssionTextBox` ✅            |
+| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExpressionTextBox` ✅            |
 | 用户输入固定文本（文件路径、名称、标签等）     | 普通 `TextBox` ✅                   |
 | 用户输入数值（延迟毫秒、端口号等）         | 普通 `TextBox` 或 `NumericUpDown` ✅ |
 
-> 💡 **判断依据**：Setting 中标记了 `[ExpressionField]` 的属性，在编辑器中对应使用 `ExperssionTextBox`。
+> 💡 **判断依据**：Setting 中标记了 `[ExpressionField]` 的属性，在编辑器中对应使用 `ExpressionTextBox`。
 
 #### XAML 用法
 
 ```xml
-xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
+xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 
-<!-- ✅ 表达式字段必须使用 ExperssionTextBox -->
-<expr:ExperssionTextBox
+<!-- ✅ 表达式字段必须使用 ExpressionTextBox -->
+<expr:ExpressionTextBox
     ScriptText="{Binding TargetExpression, Mode=TwoWay}"
     ExpectedResultType="System.Double"
     IsMultiLine="True"
@@ -977,7 +977,7 @@ xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 ```
 
-> ⚠️ **布局要求**：`ExperssionTextBox` **不要设置固定宽度**（如 `Width="240"`），应让它自动填充 Grid 列的可用宽度。推荐使用 `Grid` 布局，第一列固定标签宽度，第二列 `Width="*"` 自适应：
+> ⚠️ **布局要求**：`ExpressionTextBox` **不要设置固定宽度**（如 `Width="240"`），应让它自动填充 Grid 列的可用宽度。推荐使用 `Grid` 布局，第一列固定标签宽度，第二列 `Width="*"` 自适应：
 >
 > ```xml
 > <Grid.ColumnDefinitions>
@@ -986,7 +986,7 @@ xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
 > </Grid.ColumnDefinitions>
 >
 > <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center"/>
-> <expr:ExperssionTextBox Grid.Row="0" Grid.Column="1"
+> <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1"
 >     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
 >     ExpectedResultType="System.String"
 >     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -1043,9 +1043,9 @@ public string ThresholdExpression {
 ```
 
 ```xml
-<!-- 3️⃣ XAML：使用 ExperssionTextBox -->
+<!-- 3️⃣ XAML：使用 ExpressionTextBox -->
 <TextBlock Text="阈值表达式:" Margin="0,12,0,4"/>
-<expr:ExperssionTextBox
+<expr:ExpressionTextBox
     ScriptText="{Binding ThresholdExpression, Mode=TwoWay}"
     ExpectedResultType="System.Double"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -1078,7 +1078,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 **View 中如何获取这些依赖属性的值：**
 
 框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的公开属性中（见 §10.2），  
-XAML 中通过 `RelativeSource` 绑定即可传递给 `ExperssionTextBox`：
+XAML 中通过 `RelativeSource` 绑定即可传递给 `ExpressionTextBox`：
 
 ```csharp
 // View.xaml.cs 中声明（框架自动注入）
@@ -1086,7 +1086,7 @@ public SequenceFile?  SequenceFile  { get; set; }
 public EditPosition?  EditPosition  { get; set; }
 ```
 
-> 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExperssionTextBox` 控件。  
+> 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExpressionTextBox` 控件。  
 > 两者必须配对使用：Setting 端标记确保预编译，编辑器端使用专用控件确保用户体验。
 
 ---

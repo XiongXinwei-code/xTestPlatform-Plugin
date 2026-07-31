@@ -9,7 +9,9 @@
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-		<syncfusion:TabItemExt Header="Modbus BatchRead">
+		<syncfusion:TabItemExt Header="Modbus BatchRead"
+								   Image="pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png"
+								   ImageHeight="20" ImageWidth="20">
 			<DockPanel Margin="16">
 				<Grid DockPanel.Dock="Top" Margin="0,0,0,8">
 					<Grid.ColumnDefinitions>

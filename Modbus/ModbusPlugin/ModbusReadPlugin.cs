@@ -1,10 +1,13 @@
-﻿using Modbus.Executors;
+using Modbus.Executors;
 using Modbus.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Modbus;
 
+/// <summary>
+/// Modbus 读取插件，支持读取线圈、离散输入、保持寄存器、输入寄存器
+/// </summary>
 public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 {
 	public override string StepTypeId => "IO.ModbusRead";
@@ -13,9 +16,9 @@ public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
 	public override string Description =>
-		"浠?Modbus 璁惧璇诲彇鏁版嵁锛屾敮鎸佺嚎鍦堛€佺鏁ｈ緭鍏ャ€佷繚鎸佸瘎瀛樺櫒銆佽緭鍏ュ瘎瀛樺櫒銆? +
-		"Setting 瀛楁锛欳onnectionName(string,琛ㄨ揪寮?, SlaveAddress(byte), RegisterType(鏋氫妇), " +
-		"StartAddress(string,琛ㄨ揪寮?, Quantity(string,琛ㄨ揪寮?, DataFormat(鏋氫妇), ResultVariable(string,琛ㄨ揪寮?銆?;
+		"从 Modbus 设备读取数据，支持线圈、离散输入、保持寄存器、输入寄存器。" +
+		"Setting 字段：ConnectionName(string,表达式), SlaveAddress(byte,从站地址), RegisterType(枚举,寄存器类型), " +
+		"StartAddress(string,表达式,起始地址), Quantity(string,表达式,读取数量), DataFormat(枚举,数据格式), ResultVariable(string,表达式,结果变量名)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusReadExecutor();
 

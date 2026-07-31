@@ -1,10 +1,13 @@
-﻿using Modbus.Executors;
+using Modbus.Executors;
 using Modbus.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Modbus;
 
+/// <summary>
+/// Modbus 批量写入插件，一次执行多个地址段的写入操作
+/// </summary>
 public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSetting>
 {
 	public override string StepTypeId => "IO.ModbusBatchWrite";
@@ -13,8 +16,8 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
 	public override string Description =>
-		"鎵归噺鍐欏叆澶氫釜 Modbus 鍦板潃娈点€? +
-		"Setting 瀛楁锛欳onnectionName(string,琛ㄨ揪寮?, Items(鍒楄〃,姣忛」鍚玈laveAddress/RegisterType/StartAddress/Values/DataFormat), IntervalMs(int)銆?;
+		"批量写入多个 Modbus 地址段。" +
+		"Setting 字段：ConnectionName(string,表达式), Items(列表,每项含 SlaveAddress/RegisterType/StartAddress/Values/DataFormat), IntervalMs(int,写入间隔)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusBatchWriteExecutor();
 

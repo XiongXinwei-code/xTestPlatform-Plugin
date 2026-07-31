@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using Modbus.Models;
 using Modbus.UI.Views;
 using StepEditor.Abstractions;
@@ -9,6 +9,9 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.UI;
 
+/// <summary>
+/// Modbus 连接步骤的编辑器插件，提供 UI 编辑器创建和设置校验
+/// </summary>
 public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
 {
 	public string StepTypeId => "IO.ModbusConnect";
@@ -28,11 +31,11 @@ public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
 		var errors = new List<StepSettingError>();
 		var s = (ModbusConnectSetting)new ModbusConnectPlugin().CreateSerializer().Deserialize(setting, 1);
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("MB_001", "杩炴帴鏍囪瘑鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_001", "连接标识名不能为空"));
 		if (s.TransportType == ModbusTransportType.TCP && string.IsNullOrWhiteSpace(s.IpAddress))
-			errors.Add(StepSettingError.Error("MB_002", "IP 鍦板潃涓嶈兘涓虹┖"));
+			errors.Add(StepSettingError.Error("MB_002", "TCP 模式下 IP 地址不能为空"));
 		if (s.TransportType == ModbusTransportType.RTU && string.IsNullOrWhiteSpace(s.PortName))
-			errors.Add(StepSettingError.Error("MB_003", "涓插彛鍚嶇О涓嶈兘涓虹┖"));
+			errors.Add(StepSettingError.Error("MB_003", "RTU 模式下串口名称不能为空"));
 		return errors;
 	}
 }
@@ -56,7 +59,7 @@ public sealed class ModbusDisconnectEditorPlugin : IStepEditorPlugin
 		var errors = new List<StepSettingError>();
 		var s = (ModbusDisconnectSetting)new ModbusDisconnectPlugin().CreateSerializer().Deserialize(setting, 1);
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("MB_010", "杩炴帴鏍囪瘑鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_010", "连接标识名不能为空"));
 		return errors;
 	}
 }
@@ -80,9 +83,9 @@ public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
 		var errors = new List<StepSettingError>();
 		var s = (ModbusReadSetting)new ModbusReadPlugin().CreateSerializer().Deserialize(setting, 1);
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("MB_020", "杩炴帴鏍囪瘑鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_020", "连接标识名不能为空"));
 		if (string.IsNullOrWhiteSpace(s.ResultVariable))
-			errors.Add(StepSettingError.Error("MB_021", "缁撴灉鍙橀噺鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_021", "结果变量名不能为空"));
 		return errors;
 	}
 }
@@ -106,9 +109,9 @@ public sealed class ModbusWriteEditorPlugin : IStepEditorPlugin
 		var errors = new List<StepSettingError>();
 		var s = (ModbusWriteSetting)new ModbusWritePlugin().CreateSerializer().Deserialize(setting, 1);
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("MB_030", "杩炴帴鏍囪瘑鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_030", "连接标识名不能为空"));
 		if (string.IsNullOrWhiteSpace(s.Values))
-			errors.Add(StepSettingError.Error("MB_031", "鍐欏叆鍊间笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_031", "写入值不能为空"));
 		return errors;
 	}
 }
@@ -132,9 +135,9 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
 		var errors = new List<StepSettingError>();
 		var s = (ModbusBatchReadSetting)new ModbusBatchReadPlugin().CreateSerializer().Deserialize(setting, 1);
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("MB_040", "杩炴帴鏍囪瘑鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_040", "连接标识名不能为空"));
 		if (s.Items.Count == 0)
-			errors.Add(StepSettingError.Warning("MB_041", "鎵归噺璇诲彇鍒楄〃涓虹┖"));
+			errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
 		return errors;
 	}
 }
@@ -158,9 +161,9 @@ public sealed class ModbusBatchWriteEditorPlugin : IStepEditorPlugin
 		var errors = new List<StepSettingError>();
 		var s = (ModbusBatchWriteSetting)new ModbusBatchWritePlugin().CreateSerializer().Deserialize(setting, 1);
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("MB_050", "杩炴帴鏍囪瘑鍚嶄笉鑳戒负绌?));
+			errors.Add(StepSettingError.Error("MB_050", "连接标识名不能为空"));
 		if (s.Items.Count == 0)
-			errors.Add(StepSettingError.Warning("MB_051", "鎵归噺鍐欏叆鍒楄〃涓虹┖"));
+			errors.Add(StepSettingError.Warning("MB_051", "批量写入列表为空"));
 		return errors;
 	}
 }

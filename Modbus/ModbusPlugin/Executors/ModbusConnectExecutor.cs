@@ -1,4 +1,4 @@
-﻿using System.IO.Ports;
+using System.IO.Ports;
 using System.Net.Sockets;
 using Modbus.Helpers;
 using Modbus.Models;
@@ -10,9 +10,14 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.Executors;
 
+/// <summary>
+/// Modbus 连接执行器，建立 TCP 或 RTU 连接并将 IModbusMaster 存入运行时数据
+/// </summary>
 public sealed class ModbusConnectExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+	/// <summary>执行 Modbus 连接操作</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
@@ -46,7 +51,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 				port.ReadTimeout = setting.TimeoutMs;
 				port.WriteTimeout = setting.TimeoutMs;
 				port.Open();
-				master = factory.CreateRtuMaster(port);
+					master = factory.CreateRtuMaster(new SerialPortAdapter(port));
 				transport = port;
 			}
 
@@ -56,11 +61,11 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 			context.CurrentStep.RuntimeData[key] = master;
 			context.CurrentStep.RuntimeData[key + "_transport"] = transport;
 
-			context.LogAction?.Invoke($"Modbus 杩炴帴宸插缓绔? {connName} ({setting.TransportType})");
+			context.LogAction?.Invoke($"Modbus 连接已建立: {connName} ({setting.TransportType})");
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"宸茶繛鎺? {connName}" }
+				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已连接: {connName}" }
 			};
 		}
 		catch (OperationCanceledException)
@@ -74,7 +79,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 杩炴帴澶辫触: {ex.Message}" }
+					Error = new ErrorInfo { Message = $"Modbus 连接失败: {ex.Message}" }
 				}
 			};
 		}

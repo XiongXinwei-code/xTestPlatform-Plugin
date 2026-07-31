@@ -1,33 +1,36 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace Modbus.Models;
 
+/// <summary>
+/// Modbus 读取步骤的设置参数
+/// </summary>
 [MessagePackObject(true)]
 public class ModbusReadSetting
 {
-	/// <summary>杩炴帴鏍囪瘑鍚?/summary>
+	/// <summary>使用的连接名称</summary>
 	[ExpressionField]
 	public string ConnectionName { get; set; } = "Modbus1";
 
-	/// <summary>浠庣珯鍦板潃</summary>
+	/// <summary>从站地址（1~247）</summary>
 	public byte SlaveAddress { get; set; } = 1;
 
-	/// <summary>瀵勫瓨鍣ㄧ被鍨?/summary>
+	/// <summary>要读取的寄存器/线圈类型</summary>
 	public ModbusRegisterType RegisterType { get; set; } = ModbusRegisterType.HoldingRegister;
 
-	/// <summary>璧峰鍦板潃</summary>
+	/// <summary>起始地址（支持表达式）</summary>
 	[ExpressionField]
 	public string StartAddress { get; set; } = "0";
 
-	/// <summary>璇诲彇鏁伴噺</summary>
+	/// <summary>读取数量（支持表达式）</summary>
 	[ExpressionField]
 	public string Quantity { get; set; } = "1";
 
-	/// <summary>鏁版嵁鏍煎紡</summary>
+	/// <summary>数据解析格式</summary>
 	public ModbusDataFormat DataFormat { get; set; } = ModbusDataFormat.UInt16;
 
-	/// <summary>缁撴灉淇濆瓨鍙橀噺鍚?/summary>
+	/// <summary>存储读取结果的变量名（支持表达式）</summary>
 	[ExpressionField]
 	public string ResultVariable { get; set; } = "ModbusResult";
 }

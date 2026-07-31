@@ -1,10 +1,13 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 using Modbus.UI.ViewModels;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.SequenceModels;
 
 namespace Modbus.UI.Views;
 
+/// <summary>
+/// Modbus 写入编辑器视图
+/// </summary>
 public partial class ModbusWriteEditorView : UserControl, IRefreshableEditor
 {
 	public ModbusWriteViewModel ViewModel { get; }

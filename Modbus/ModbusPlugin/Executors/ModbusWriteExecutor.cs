@@ -1,4 +1,4 @@
-﻿using Modbus.Helpers;
+using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
 using xTestPlatform.Core.Engine;
@@ -8,9 +8,14 @@ using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace Modbus.Executors;
 
+/// <summary>
+/// Modbus 写入执行器，支持写入线圈和保持寄存器
+/// </summary>
 public sealed class ModbusWriteExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+
+	/// <summary>执行 Modbus 写入操作</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
@@ -30,7 +35,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 					StepResult = new StepResult
 					{
 						Status = TestStatus.Error,
-						Error = new ErrorInfo { Message = $"鏈壘鍒?Modbus 杩炴帴: {connName}" }
+						Error = new ErrorInfo { Message = $"未找到 Modbus 连接: {connName}" }
 					}
 				};
 			}
@@ -60,7 +65,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"宸插啓鍏? Addr={startAddr}" }
+				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已写入: Addr={startAddr}" }
 			};
 		}
 		catch (OperationCanceledException)
@@ -74,7 +79,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 鍐欏叆澶辫触: {ex.Message}" }
+					Error = new ErrorInfo { Message = $"Modbus 写入失败: {ex.Message}" }
 				}
 			};
 		}

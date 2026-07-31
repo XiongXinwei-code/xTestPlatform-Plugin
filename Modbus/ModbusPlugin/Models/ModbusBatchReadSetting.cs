@@ -1,18 +1,21 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace Modbus.Models;
 
+/// <summary>
+/// Modbus 批量读取步骤的设置参数
+/// </summary>
 [MessagePackObject(true)]
 public class ModbusBatchReadSetting
 {
-	/// <summary>杩炴帴鏍囪瘑鍚?/summary>
+	/// <summary>使用的连接名称</summary>
 	[ExpressionField]
 	public string ConnectionName { get; set; } = "Modbus1";
 
-	/// <summary>鎵归噺璇诲彇椤瑰垪琛?/summary>
+	/// <summary>批量读取项列表</summary>
 	public List<ModbusBatchItem> Items { get; set; } = new();
 
-	/// <summary>璇诲彇闂撮殧(ms)锛?=鏃犻棿闅?/summary>
+	/// <summary>每次读取之间的间隔时间（毫秒），0 表示无间隔</summary>
 	public int IntervalMs { get; set; } = 0;
 }

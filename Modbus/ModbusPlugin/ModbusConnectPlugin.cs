@@ -1,10 +1,13 @@
-﻿using Modbus.Executors;
+using Modbus.Executors;
 using Modbus.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Modbus;
 
+/// <summary>
+/// Modbus 连接插件，支持 TCP 和 RTU(串口) 两种传输方式
+/// </summary>
 public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 {
 	public override string StepTypeId => "IO.ModbusConnect";
@@ -13,10 +16,10 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
 	public override string Description =>
-		"寤虹珛 Modbus 杩炴帴锛屾敮鎸?TCP 鍜?RTU(涓插彛) 涓ょ浼犺緭鏂瑰紡銆? +
-		"Setting 瀛楁锛欳onnectionName(string,琛ㄨ揪寮?杩炴帴鏍囪瘑鍚?, TransportType(鏋氫妇,TCP/RTU), " +
-		"IpAddress(string,琛ㄨ揪寮?TCP鍦板潃), TcpPort(int,TCP绔彛), " +
-		"PortName(string,琛ㄨ揪寮?涓插彛鍚?, BaudRate(int), DataBits(int), StopBits(int), Parity(int), TimeoutMs(int)銆?;
+		"建立 Modbus 连接，支持 TCP 和 RTU(串口) 两种传输方式。" +
+		"Setting 字段：ConnectionName(string,表达式,连接标识名), TransportType(枚举,TCP/RTU), " +
+		"IpAddress(string,表达式,TCP地址), TcpPort(int,TCP端口), " +
+		"PortName(string,表达式,串口名), BaudRate(int,波特率), DataBits(int), StopBits(int), Parity(int), TimeoutMs(int,超时)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusConnectExecutor();
 

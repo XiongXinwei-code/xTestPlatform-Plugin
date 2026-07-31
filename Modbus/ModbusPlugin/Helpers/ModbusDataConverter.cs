@@ -1,9 +1,15 @@
-﻿using Modbus.Models;
+using Modbus.Models;
 
 namespace Modbus.Helpers;
 
+/// <summary>
+/// Modbus 寄存器数据格式转换工具，支持多种字节序和数据类型
+/// </summary>
 public static class ModbusDataConverter
 {
+	/// <summary>
+	/// 将读取到的原始寄存器值按指定格式解析为对应的数据类型
+	/// </summary>
 	public static object ConvertRegisters(ushort[] registers, ModbusDataFormat format)
 	{
 		if (registers.Length == 0) return Array.Empty<ushort>();
@@ -32,6 +38,9 @@ public static class ModbusDataConverter
 		};
 	}
 
+	/// <summary>
+	/// 将寄存器数组按两两一组进行转换（用于 32 位数据类型）
+	/// </summary>
 	private static object ConvertPairs<T>(ushort[] registers, Func<ushort, ushort, T> converter)
 	{
 		var results = new List<T>();
@@ -41,6 +50,9 @@ public static class ModbusDataConverter
 		return results.ToArray();
 	}
 
+	/// <summary>
+	/// 将逗号分隔的字符串值按指定格式转换为 ushort 寄存器数组（用于写入操作）
+	/// </summary>
 	public static ushort[] ConvertToRegisters(string valuesStr, ModbusDataFormat format)
 	{
 		var parts = valuesStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
