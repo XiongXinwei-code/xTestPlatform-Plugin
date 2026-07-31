@@ -1,82 +1,71 @@
-# UDP Communication Plugin Design
+# UDP 通讯插件设计
 
-## Scope
+## 范围
 
-Create a new xTestPlatform UDP communication plugin using only the supplied
-SDK package, development guide, and README.  The plugin exposes two independent
-steps, following the guide's single-responsibility rule:
+仅使用已提供的 SDK 包、开发指南和 README，新建一个 xTestPlatform UDP 通讯插件。
+插件提供两个相互独立的步骤，符合开发指南的单一职责原则：
 
-| Step type ID | Display name | Responsibility |
+| 步骤类型 ID | 显示名称 | 职责 |
 | --- | --- | --- |
-| `Network.UDP_Send` | `UDP_Send` | Send one UDP datagram. |
-| `Network.UDP_SendAndReceive` | `UDP_SendAndReceive` | Send one UDP datagram, receive one reply, and validate it. |
+| `Network.UDP_Send` | `UDP_Send` | 发送一帧 UDP 报文。 |
+| `Network.UDP_SendAndReceive` | `UDP_SendAndReceive` | 发送一帧 UDP 报文、接收一帧回复并校验回复。 |
 
-The project targets `net8.0-windows7.0`, uses WPF, references
-`xTestPlatform.StepEditor.SDK` version `1.0.14` from the local package source,
-and produces a DLL whose name ends in `.StepPlugin.dll`.
+项目目标框架为 `net8.0-windows7.0`，使用 WPF，从本地包源引用
+`xTestPlatform.StepEditor.SDK` `1.0.14`，输出程序集名称以 `.StepPlugin.dll` 结尾。
 
-## Architecture
+## 架构
 
-Each step has an independent settings model, `StepPluginBase<TSetting>` plugin,
-`IStepExecutor` executor, and `IStepEditorPlugin` WPF editor.  The editor and
-runtime plugin share the same `StepTypeId`.  The editor validates user-entered
-settings before execution; the executor repeats essential validation so invalid
-serialized data cannot cause an unhandled runtime error.
+两个步骤各自拥有独立的设置模型、继承 `StepPluginBase<TSetting>` 的插件、
+`IStepExecutor` 执行器和实现 `IStepEditorPlugin` 的 WPF 编辑器。编辑器和运行时
+插件使用相同的 `StepTypeId`。编辑器负责预先校验用户输入；执行器会再次校验关键
+参数，防止无效的已序列化数据造成未处理异常。
 
-No operation/action selector is used.  Sending only and sending with reply
-validation are separate steps.
+不使用“操作类型”或“模式”配置。仅发送和发送后接收回复是两个独立的步骤。
 
-## Settings
+## 配置项
 
-Both steps expose these editable settings:
+两个步骤均提供以下可编辑配置：
 
-| Setting | Default | Rules |
+| 配置项 | 默认值 | 规则 |
 | --- | --- | --- |
-| Remote address | none | Required IPv4 address. |
-| Remote port | none | Required, 1 through 65535. |
-| Local bind address | `127.0.0.1` | Required IPv4 address. |
-| Local bind port | `0` | 0 lets the OS select a port; otherwise 1 through 65535. |
-| Request data | empty | UTF-8 text or a hexadecimal byte sequence. |
-| Request format | UTF-8 text | Text or hexadecimal. |
+| 目标地址 | 无 | 必填 IPv4 地址。 |
+| 目标端口 | 无 | 必填，范围为 1 至 65535。 |
+| 本地绑定地址 | `127.0.0.1` | 必填 IPv4 地址。 |
+| 本地绑定端口 | `0` | `0` 表示由系统分配；其他值范围为 1 至 65535。 |
+| 发送报文 | 空 | UTF-8 文本或十六进制字节序列。 |
+| 发送报文格式 | UTF-8 文本 | 文本或十六进制。 |
 
-`UDP_SendAndReceive` additionally exposes:
+`UDP_SendAndReceive` 额外提供：
 
-| Setting | Default | Rules |
+| 配置项 | 默认值 | 规则 |
 | --- | --- | --- |
-| Receive timeout (ms) | 3000 | Required positive integer. |
-| Reply format | UTF-8 text | Text or hexadecimal. |
-| Expected reply | empty | Optional.  Empty accepts any received reply. |
-| Match mode | Exact | Exact whole-string comparison or Contains substring comparison. |
-| Response variable | empty | Optional variable name to receive the decoded reply. |
+| 接收超时（毫秒） | `3000` | 必填正整数。 |
+| 回复报文格式 | UTF-8 文本 | 文本或十六进制。 |
+| 期望回复 | 空 | 可选；留空时接受任意收到的回复。 |
+| 匹配模式 | 完全相等 | 完整字符串相等或包含指定字段。 |
+| 回复变量 | 空 | 可选；用于保存已解码的回复。 |
 
-Hexadecimal input ignores whitespace and must contain an even number of valid
-hexadecimal characters.  Text is encoded and decoded as UTF-8.
+十六进制输入允许空白字符，去除空白后必须是偶数个合法十六进制字符。文本使用 UTF-8
+编码和解码。
 
-## Runtime behavior
+## 运行行为
 
-Every execution creates and disposes an independent `UdpClient`, bound to the
-configured local address and port.  The receive step uses this same socket to
-send its request and await a single reply, so replies sent to a chosen fixed
-local port are supported.
+每次执行都创建并释放独立的 `UdpClient`，并使用配置的本地地址和端口进行绑定。
+收发步骤通过同一个 socket 发送请求并等待一帧回复，因此可支持设备向指定固定本地端口
+发送回包的场景。
 
-On success, the executor returns `StepResult.Status = Passed`.  The send step's
-value reports its sent data; the send-and-receive step's value reports the
-decoded reply.  If a response variable is configured, the decoded reply is
-saved to that execution variable.
+成功时，执行器返回 `StepResult.Status = Passed`。发送步骤的 `Value` 记录已发送内容；
+收发步骤的 `Value` 记录已解码的回复内容。配置“回复变量”后，会将已解码的回复保存到
+该执行变量。
 
-The receive step fails (`TestStatus.Failed`) when its receive operation times
-out or the received reply does not match a configured expected reply.  Invalid
-addresses, ports, request data, and timeout values also return a user-readable
-failure result.  Socket or other unexpected network errors return `Error` with
-a concise Chinese message.  Cancellation returns `Aborted`, and all asynchronous
-I/O observes the supplied cancellation token.
+收发步骤在接收超时或回复与已配置的期望回复不匹配时返回 `TestStatus.Failed`。地址、端口、
+发送报文或超时配置无效时也返回带有用户可读中文提示的失败结果。Socket 或其他意外网络
+异常返回 `Error`；取消执行返回 `Aborted`；所有异步 I/O 均使用传入的取消令牌。
 
-## Editor validation and tests
+## 编辑器校验与测试
 
-The WPF editors validate required fields, IPv4 addresses, port ranges, timeout,
-and hexadecimal syntax.  Expected reply matching is applied only when an
-expected reply is supplied.
+WPF 编辑器校验必填项、IPv4 地址、端口范围、超时时间和十六进制格式。仅在填写“期望回复”
+时使用匹配规则。
 
-Automated tests run against a local UDP endpoint and cover: send-only delivery,
-successful exact matching, successful contains matching, timeout, mismatch,
-UTF-8 and hexadecimal payloads, and configured local bind address/port.
+自动化测试使用本机 UDP 服务，覆盖：仅发送送达、完全相等匹配成功、包含字段匹配成功、
+超时、回复不匹配、UTF-8/十六进制报文，以及配置本地绑定地址和端口的场景。
