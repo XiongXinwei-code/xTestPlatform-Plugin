@@ -25,20 +25,20 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
                     ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="TX ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding TxId, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="RX ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding RxId, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
@@ -55,13 +55,13 @@
                 </ComboBox>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Routine ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding RoutineId, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Option Record:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Width="300" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding OptionRecord, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
