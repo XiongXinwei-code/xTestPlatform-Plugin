@@ -107,6 +107,28 @@ public interface IStepPlugin {
 | `CreateExecutor()`      | ✅   | 每次调用返回新实例                            |
 | `GenerateDescription()` | ⭕   | 默认返回空字符串，override 后显示在步骤列表           |
 
+#### IconPath 图标路径规范
+
+插件图标使用 WPF Pack URI 格式，图标文件放在 **UI 项目** 的 `Resources/Icons/` 目录下，并在 `.csproj` 中设为 `Resource`。
+
+**格式模板：**
+
+```
+pack://application:,,,/{UI程序集名};component/Resources/Icons/{图标文件名}
+```
+
+**示例：**
+
+```csharp
+// CAN 插件（UI 程序集名 = CAN.StepPlugin.UI）
+public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+
+// SerialPort 插件（UI 程序集名 = SerialPort.StepPlugin.UI）
+public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+```
+
+> ⚠️ **每个插件都应提供图标**。即使暂时没有设计好的图标，也应放一个占位图片（如通用齿轮图标），不要留 `string.Empty`。没有图标的插件在工具箱和步骤列表中会显示空白，影响用户体验。
+
 > ⚠️ **v3.0 变更**：`ValidateSettingAsync()` 已从 `IStepPlugin` 中移除。  
 > 纯 Core 层不依赖 WPF/Expression 的静态校验可在 `CreateExecutor()` 的 `ExecuteAsync` 中完成；  
 > 需要 UI 上下文的校验请实现 `IStepEditorPlugin.ValidateWithContextAsync()`（见第 4 节）。
@@ -372,7 +394,7 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
     public override string StepTypeId  => "Check.MyStep";
     public override string DisplayName => "我的步骤";
     public override string Category    => "自定义步骤";
-    public override string IconPath    => string.Empty;  // 无图标填空字符串
+    public override string IconPath    => "pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png";
 
     public override string Description =>
         "检查指定变量的值是否满足条件。Setting 字段：TargetVariable(string,目标变量路径)。";
@@ -388,7 +410,7 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
 // ── 编辑器插件（IStepEditorPlugin，UI 层）──────────────────────────
 public sealed class MyStepEditorPlugin : IStepEditorPlugin {
     public string StepTypeId => "Check.MyStep";  // ← 与执行插件一致
-    public string IconPath   => string.Empty;
+    public string IconPath   => "pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
         var view = new MyEditorView();
@@ -789,12 +811,16 @@ public interface IRefreshableEditor {
 ```xml
 <!-- ✅ 正确：只放业务 Tab，Properties 自动注入 -->
 <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-    <syncfusion:TabItemExt Header="Module">
+    <syncfusion:TabItemExt Header="DelayCheck"
+                           Image="pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png"
+                           ImageHeight="20" ImageWidth="20">
         <!-- 插件自己的编辑 UI 放这里 -->
     </syncfusion:TabItemExt>
     <!-- ❌ 请勿手动添加 Properties TabItem，框架自动追加 -->
 </syncfusion:TabControlExt>
 ```
+
+> ⚠️ `TabItemExt` 的 `Header` 应使用插件的**实际功能名称**（如 `CAN Write`、`UDS DiagSession`），不要用通用的 `Module`。同时**必须**设置 `Image`、`ImageHeight`、`ImageWidth` 属性显示图标。
 
 ### 11.3 标准 XAML 模板
 
@@ -810,7 +836,9 @@ public interface IRefreshableEditor {
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module">
+        <syncfusion:TabItemExt Header="MyPlugin"
+                               Image="pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <!-- 插件自定义编辑界面 -->
             </Grid>
@@ -949,6 +977,22 @@ xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 ```
 
+> ⚠️ **布局要求**：`ExperssionTextBox` **不要设置固定宽度**（如 `Width="240"`），应让它自动填充 Grid 列的可用宽度。推荐使用 `Grid` 布局，第一列固定标签宽度，第二列 `Width="*"` 自适应：
+>
+> ```xml
+> <Grid.ColumnDefinitions>
+>     <ColumnDefinition Width="130"/>
+>     <ColumnDefinition Width="*"/>
+> </Grid.ColumnDefinitions>
+>
+> <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center"/>
+> <expr:ExperssionTextBox Grid.Row="0" Grid.Column="1"
+>     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+>     ExpectedResultType="System.String"
+>     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+>     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+> ```
+
 #### 依赖属性详解
 
 | 依赖属性                 | 类型              | 必须  | 默认值     | 说明                           |
@@ -1066,7 +1110,7 @@ public class MySetting {
     public double        LimitHigh      { get; set; } = 100.0;
     public double        LimitLow       { get; set; } = 0.0;
     public bool          LogResult      { get; set; } = true;
-    public List<string>  Tags           { get; set; } = new();  // ✅ 用 List<T>
+    public List<string>  Tags           { get; set; } = new();  // ✅ 基础类型集合用 List<T>
 }
 
 [MessagePackObject(true)]
@@ -1086,7 +1130,9 @@ public class NestedConfig {
 
 ### 12.0.1 集合属性与子项设计规范
 
-当 Setting 中包含**列表类型的子项**（如报文列表、参数映射列表）时，**必须**遵循以下规范：
+当 Setting 中包含**复杂对象的列表**（如报文列表、参数映射列表）时，**必须**遵循以下规范：
+
+> 💡 基础类型集合（如 `List<string>`、`List<int>`、`List<double>`）不受此规范约束，仍可使用 `List<T>`。此规范仅针对**自定义类**作为集合元素的场景。
 
 | 规范 | 说明 |
 | --- | --- |
@@ -1413,7 +1459,7 @@ public sealed class DelayCheckPlugin : StepPluginBase<DelayCheckSetting> {
     public override string StepTypeId  => "Utility.DelayCheck";
     public override string DisplayName => "延时检测";
     public override string Category    => "自定义步骤";
-    public override string IconPath    => string.Empty;
+    public override string IconPath    => "pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png";
 
     public override string Description =>
         "等待指定毫秒后读取目标变量并与期望值比较。" +
@@ -1476,7 +1522,7 @@ public sealed class DelayCheckExecutor : IStepExecutor {
 // DelayCheckEditorPlugin.cs
 public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
     public string StepTypeId => "Utility.DelayCheck";  // ← 与执行插件一致
-    public string IconPath   => string.Empty;
+    public string IconPath   => "pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
         var view = new DelayCheckEditorView();
@@ -1513,7 +1559,9 @@ public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module">
+        <syncfusion:TabItemExt Header="DelayCheck"
+                               Image="pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png"
+                               ImageHeight="20" ImageWidth="20">
             <StackPanel Margin="16">
                 <TextBlock Text="延时 (ms):" Margin="0,0,0,4"/>
                 <TextBox Text="{Binding DelayMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left"/>
