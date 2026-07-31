@@ -27,7 +27,8 @@ public sealed class UdsReadDtcExecutor : IStepExecutor
                 var hex = UdsExecutorHelper.ToHex(response.Data);
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     context.SetVariable(setting.ResultVariable, hex);
-                context.LogAction?.Invoke($"UDS ReadDTC: SubFunc=0x{setting.SubFunction:X2}, Data=[{hex}]");
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS ReadDTC: SubFunc=0x{setting.SubFunction:X2}, Data=[{hex}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
             }
             else

@@ -9,7 +9,7 @@
              syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
              mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module"
+        <syncfusion:TabItemExt Header="UDS RawRequest"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
                                            ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
@@ -21,6 +21,7 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -44,7 +45,7 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Request (Hex):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
@@ -57,6 +58,9 @@
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

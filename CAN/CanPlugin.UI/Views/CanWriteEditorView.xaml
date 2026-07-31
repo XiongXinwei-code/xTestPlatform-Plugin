@@ -14,7 +14,7 @@
         <local:EnumToIntConverter x:Key="EnumToIntConverter"/>
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module"
+        <syncfusion:TabItemExt Header="CAN Write"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
                                            ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
@@ -23,6 +23,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -45,7 +46,7 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="FrameType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="2" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ComboBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding FrameType, Converter={StaticResource EnumToIntConverter}}">
                     <ComboBoxItem Content="Standard (11-bit)"/>
                     <ComboBoxItem Content="Extended (29-bit)"/>
@@ -60,6 +61,9 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Use FD Frame:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding UseFdFrame}" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox Grid.Row="5" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

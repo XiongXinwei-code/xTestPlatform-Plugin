@@ -42,7 +42,7 @@
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
 				<TextBlock Grid.Row="1" Grid.Column="0" Text="DataFormat:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<ComboBox Grid.Row="1" Grid.Column="1" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"
+				<ComboBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						  SelectedIndex="{Binding DataFormat, Converter={StaticResource EnumToIntConverter}}">
 					<ComboBoxItem Content="String"/>
 					<ComboBoxItem Content="HEX"/>
@@ -50,16 +50,16 @@
 				</ComboBox>
 
 				<TextBlock Grid.Row="2" Grid.Column="0" Text="ReadTimeout(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ReadTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+				<TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ReadTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="ReadBytes:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ReadBytes, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+				<TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ReadBytes, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="Terminator:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource EscapeStringConverter}}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8" MaxLines="1" AcceptsReturn="False"/>
+				<TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource EscapeStringConverter}}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" MaxLines="1" AcceptsReturn="False"/>
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+				<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
 				<TextBlock Grid.Row="6" Grid.Column="0" Text="WriteData:" VerticalAlignment="Top" Margin="0,4,8,0"/>
 				<expr:ExpressionTextBox Grid.Row="6" Grid.Column="1"

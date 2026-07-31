@@ -23,4 +23,7 @@ public class CanReadSetting
 
     /// <summary>存储接收到的 CAN ID 的变量路径</summary>
     public string IdVariable { get; set; } = "";
+
+    /// <summary>是否输出日志</summary>
+    public bool EnableLog { get; set; } = true;
 }

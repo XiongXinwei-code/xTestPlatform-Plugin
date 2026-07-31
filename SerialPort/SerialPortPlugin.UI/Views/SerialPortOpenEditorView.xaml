@@ -37,13 +37,13 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="BaudRate:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BaudRate, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding BaudRate, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="DataBits:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DataBits, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DataBits, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="StopBits:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding StopBits}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8">
+                <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding StopBits}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8">
                     <ComboBoxItem Content="None"/>
                     <ComboBoxItem Content="1"/>
                     <ComboBoxItem Content="2"/>
@@ -51,7 +51,7 @@
                 </ComboBox>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Parity:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="4" Grid.Column="1" SelectedIndex="{Binding Parity}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8">
+                <ComboBox Grid.Row="4" Grid.Column="1" SelectedIndex="{Binding Parity}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8">
                     <ComboBoxItem Content="None"/>
                     <ComboBoxItem Content="Odd"/>
                     <ComboBoxItem Content="Even"/>
@@ -60,10 +60,10 @@
                 </ComboBox>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="ReadTimeout(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ReadTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ReadTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="WriteTimeout(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WriteTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WriteTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

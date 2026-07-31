@@ -48,6 +48,7 @@ public abstract class UdsViewModelBase<TSetting> : INotifyPropertyChanged where 
     public int FrameType { get => (int)(Setting?.FrameType ?? CAN.Models.CanFrameType.Standard); set { if (Setting == null) return; Setting.FrameType = (CAN.Models.CanFrameType)value; OnPropertyChanged(); QueueSave(); } }
     public bool UseFdFrame { get => Setting?.UseFdFrame ?? false; set { if (Setting == null || Setting.UseFdFrame == value) return; Setting.UseFdFrame = value; OnPropertyChanged(); QueueSave(); } }
     public int ResponseTimeoutMs { get => Setting?.ResponseTimeoutMs ?? 5000; set { if (Setting == null || Setting.ResponseTimeoutMs == value) return; Setting.ResponseTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+    public bool EnableLog { get => Setting?.EnableLog ?? true; set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

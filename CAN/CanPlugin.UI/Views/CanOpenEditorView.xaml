@@ -15,7 +15,7 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module"
+        <syncfusion:TabItemExt Header="CAN Open"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
                                            ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
@@ -39,8 +39,15 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="AdapterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="1" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Channel:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding Channel, Mode=TwoWay}"
+                    ExpectedResultType="System.String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="AdapterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding AdapterType, Converter={StaticResource EnumToIntConverter}}">
                     <ComboBoxItem Content="NI"/>
                     <ComboBoxItem Content="PEAK"/>
@@ -48,15 +55,8 @@
                     <ComboBoxItem Content="ZLG"/>
                 </ComboBox>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Channel:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding Channel, Mode=TwoWay}"
-                    ExpectedResultType="System.String"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="BaudRate:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="3" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           IsEditable="True"
                           Text="{Binding BaudRate, UpdateSourceTrigger=PropertyChanged}">
                     <ComboBoxItem Content="125000"/>
@@ -66,7 +66,7 @@
                 </ComboBox>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Protocol:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="4" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ComboBox Grid.Row="4" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding Protocol, Converter={StaticResource EnumToIntConverter}}">
                     <ComboBoxItem Content="Classic"/>
                     <ComboBoxItem Content="CAN FD"/>
@@ -75,7 +75,7 @@
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="DataBitRate:" VerticalAlignment="Center" Margin="0,0,8,8"
                            Visibility="{Binding ShowDataBitRate, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <ComboBox Grid.Row="5" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ComboBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           IsEditable="True"
                           Text="{Binding DataBitRate, UpdateSourceTrigger=PropertyChanged}"
                           Visibility="{Binding ShowDataBitRate, Converter={StaticResource BooleanToVisibilityConverter}}">
