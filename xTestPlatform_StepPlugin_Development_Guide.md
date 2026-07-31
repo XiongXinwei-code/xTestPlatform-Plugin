@@ -1,6 +1,6 @@
 # xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.4 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
+> **版本**：3.1.5 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
