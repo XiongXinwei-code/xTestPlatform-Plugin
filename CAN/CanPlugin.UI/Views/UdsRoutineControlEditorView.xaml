@@ -9,7 +9,9 @@
              syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
              mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module">
+        <syncfusion:TabItemExt Header="UDS RoutineControl"
+                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                                           ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140"/>
@@ -20,32 +22,33 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
                     ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="TX ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding TxId, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="RX ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding RxId, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Control Type:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="4" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ComboBox Grid.Row="4" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding ControlTypeIndex}">
                     <ComboBoxItem Content="Start (0x01)"/>
                     <ComboBoxItem Content="Stop (0x02)"/>
@@ -53,19 +56,22 @@
                 </ComboBox>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Routine ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Width="150" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding RoutineId, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Option Record:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Width="300" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding OptionRecord, Mode=TwoWay}" ExpectedResultType="System.String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="7" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

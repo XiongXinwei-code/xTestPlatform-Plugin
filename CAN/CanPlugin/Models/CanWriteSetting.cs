@@ -24,4 +24,7 @@ public class CanWriteSetting
 
     /// <summary>是否使用 CAN FD 帧格式发送</summary>
     public bool UseFdFrame { get; set; } = false;
+
+    /// <summary>是否输出日志</summary>
+    public bool EnableLog { get; set; } = true;
 }

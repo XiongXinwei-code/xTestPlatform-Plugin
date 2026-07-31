@@ -1,6 +1,6 @@
-# xTestPlatform 步骤插件开发手册
+﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.4 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
+> **版本**：3.1.5 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -106,6 +106,28 @@ public interface IStepPlugin {
 | `CreateSerializer()`    | ✅   | 基类已自动实现，无需手写                         |
 | `CreateExecutor()`      | ✅   | 每次调用返回新实例                            |
 | `GenerateDescription()` | ⭕   | 默认返回空字符串，override 后显示在步骤列表           |
+
+#### IconPath 图标路径规范
+
+插件图标使用 WPF Pack URI 格式，图标文件放在 **UI 项目** 的 `Resources/Icons/` 目录下，并在 `.csproj` 中设为 `Resource`。
+
+**格式模板：**
+
+```
+pack://application:,,,/{UI程序集名};component/Resources/Icons/{图标文件名}
+```
+
+**示例：**
+
+```csharp
+// CAN 插件（UI 程序集名 = CAN.StepPlugin.UI）
+public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+
+// SerialPort 插件（UI 程序集名 = SerialPort.StepPlugin.UI）
+public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+```
+
+> ⚠️ **每个插件都应提供图标**。即使暂时没有设计好的图标，也应放一个占位图片（如通用齿轮图标），不要留 `string.Empty`。没有图标的插件在工具箱和步骤列表中会显示空白，影响用户体验。
 
 > ⚠️ **v3.0 变更**：`ValidateSettingAsync()` 已从 `IStepPlugin` 中移除。  
 > 纯 Core 层不依赖 WPF/Expression 的静态校验可在 `CreateExecutor()` 的 `ExecuteAsync` 中完成；  
@@ -372,7 +394,7 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
     public override string StepTypeId  => "Check.MyStep";
     public override string DisplayName => "我的步骤";
     public override string Category    => "自定义步骤";
-    public override string IconPath    => string.Empty;  // 无图标填空字符串
+    public override string IconPath    => "pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png";
 
     public override string Description =>
         "检查指定变量的值是否满足条件。Setting 字段：TargetVariable(string,目标变量路径)。";
@@ -388,7 +410,7 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
 // ── 编辑器插件（IStepEditorPlugin，UI 层）──────────────────────────
 public sealed class MyStepEditorPlugin : IStepEditorPlugin {
     public string StepTypeId => "Check.MyStep";  // ← 与执行插件一致
-    public string IconPath   => string.Empty;
+    public string IconPath   => "pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
         var view = new MyEditorView();
@@ -789,12 +811,16 @@ public interface IRefreshableEditor {
 ```xml
 <!-- ✅ 正确：只放业务 Tab，Properties 自动注入 -->
 <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-    <syncfusion:TabItemExt Header="Module">
+    <syncfusion:TabItemExt Header="DelayCheck"
+                           Image="pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png"
+                           ImageHeight="20" ImageWidth="20">
         <!-- 插件自己的编辑 UI 放这里 -->
     </syncfusion:TabItemExt>
     <!-- ❌ 请勿手动添加 Properties TabItem，框架自动追加 -->
 </syncfusion:TabControlExt>
 ```
+
+> ⚠️ `TabItemExt` 的 `Header` 应使用插件的**实际功能名称**（如 `CAN Write`、`UDS DiagSession`），不要用通用的 `Module`。同时**必须**设置 `Image`、`ImageHeight`、`ImageWidth` 属性显示图标。
 
 ### 11.3 标准 XAML 模板
 
@@ -810,7 +836,9 @@ public interface IRefreshableEditor {
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module">
+        <syncfusion:TabItemExt Header="MyPlugin"
+                               Image="pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <!-- 插件自定义编辑界面 -->
             </Grid>
@@ -904,11 +932,11 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 }
 ```
 
-### 11.6 表达式编辑控件（ExperssionTextBox）
+### 11.6 表达式编辑控件（ExpressionTextBox）
 
-如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExperssionTextBox` 控件，而不是普通 `TextBox`。
+如果插件参数需要支持表达式（运行时通过 Roslyn 求值），**必须**使用框架提供的 `ExpressionTextBox` 控件，而不是普通 `TextBox`。
 
-> ⚠️ **额外依赖**：使用 `ExperssionTextBox` 控件时，插件项目需要额外引用以下 NuGet 包：
+> ⚠️ **额外依赖**：使用 `ExpressionTextBox` 控件时，插件项目需要额外引用以下 NuGet 包：
 > 
 > ```xml
 > <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -929,25 +957,41 @@ public class MyEditorViewModel : INotifyPropertyChanged {
 
 | 场景                        | 控件选择                             |
 | ------------------------- | -------------------------------- |
-| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExperssionTextBox` ✅            |
+| 用户输入将在运行时通过 Roslyn 求值的表达式 | `ExpressionTextBox` ✅            |
 | 用户输入固定文本（文件路径、名称、标签等）     | 普通 `TextBox` ✅                   |
 | 用户输入数值（延迟毫秒、端口号等）         | 普通 `TextBox` 或 `NumericUpDown` ✅ |
 
-> 💡 **判断依据**：Setting 中标记了 `[ExpressionField]` 的属性，在编辑器中对应使用 `ExperssionTextBox`。
+> 💡 **判断依据**：Setting 中标记了 `[ExpressionField]` 的属性，在编辑器中对应使用 `ExpressionTextBox`。
 
 #### XAML 用法
 
 ```xml
-xmlns:expr="clr-namespace:ExperssionTextBox;assembly=ExperssionTextBox"
+xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 
-<!-- ✅ 表达式字段必须使用 ExperssionTextBox -->
-<expr:ExperssionTextBox
+<!-- ✅ 表达式字段必须使用 ExpressionTextBox -->
+<expr:ExpressionTextBox
     ScriptText="{Binding TargetExpression, Mode=TwoWay}"
     ExpectedResultType="System.Double"
     IsMultiLine="True"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 ```
+
+> ⚠️ **布局要求**：`ExpressionTextBox` **不要设置固定宽度**（如 `Width="240"`），应让它自动填充 Grid 列的可用宽度。推荐使用 `Grid` 布局，第一列固定标签宽度，第二列 `Width="*"` 自适应：
+>
+> ```xml
+> <Grid.ColumnDefinitions>
+>     <ColumnDefinition Width="130"/>
+>     <ColumnDefinition Width="*"/>
+> </Grid.ColumnDefinitions>
+>
+> <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center"/>
+> <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1"
+>     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+>     ExpectedResultType="System.String"
+>     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+>     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+> ```
 
 #### 依赖属性详解
 
@@ -999,9 +1043,9 @@ public string ThresholdExpression {
 ```
 
 ```xml
-<!-- 3️⃣ XAML：使用 ExperssionTextBox -->
+<!-- 3️⃣ XAML：使用 ExpressionTextBox -->
 <TextBlock Text="阈值表达式:" Margin="0,12,0,4"/>
-<expr:ExperssionTextBox
+<expr:ExpressionTextBox
     ScriptText="{Binding ThresholdExpression, Mode=TwoWay}"
     ExpectedResultType="System.Double"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -1034,7 +1078,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 **View 中如何获取这些依赖属性的值：**
 
 框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的公开属性中（见 §10.2），  
-XAML 中通过 `RelativeSource` 绑定即可传递给 `ExperssionTextBox`：
+XAML 中通过 `RelativeSource` 绑定即可传递给 `ExpressionTextBox`：
 
 ```csharp
 // View.xaml.cs 中声明（框架自动注入）
@@ -1042,7 +1086,7 @@ public SequenceFile?  SequenceFile  { get; set; }
 public EditPosition?  EditPosition  { get; set; }
 ```
 
-> 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExperssionTextBox` 控件。  
+> 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExpressionTextBox` 控件。  
 > 两者必须配对使用：Setting 端标记确保预编译，编辑器端使用专用控件确保用户体验。
 
 ---
@@ -1066,7 +1110,7 @@ public class MySetting {
     public double        LimitHigh      { get; set; } = 100.0;
     public double        LimitLow       { get; set; } = 0.0;
     public bool          LogResult      { get; set; } = true;
-    public List<string>  Tags           { get; set; } = new();  // ✅ 用 List<T>
+    public List<string>  Tags           { get; set; } = new();  // ✅ 基础类型集合用 List<T>
 }
 
 [MessagePackObject(true)]
@@ -1081,9 +1125,69 @@ public class NestedConfig {
 | ------------------------- | --------------- |
 | `FrameworkElement` 及其子类   | WPF 对象不可序列化     |
 | `delegate` / `event`      | 不可序列化           |
-| `ObservableCollection<T>` | 改用 `List<T>`    |
 | 循环引用对象图                   | MessagePack 不支持 |
 | 已发布字段的改名/删除               | 只允许**新增**字段     |
+
+### 12.0.1 集合属性与子项设计规范
+
+当 Setting 中包含**复杂对象的列表**（如报文列表、参数映射列表）时，**必须**遵循以下规范：
+
+> 💡 基础类型集合（如 `List<string>`、`List<int>`、`List<double>`）不受此规范约束，仍可使用 `List<T>`。此规范仅针对**自定义类**作为集合元素的场景。
+
+| 规范 | 说明 |
+| --- | --- |
+| 集合类型 | 使用 `ObservableCollection<T>` |
+| 子项类型 | **必须**实现 `INotifyPropertyChanged`，采用 `SetProperty` 模式 |
+| 序列化标注 | 子项类也需加 `[MessagePackObject(true)]` |
+| 非序列化属性 | 用 `[IgnoreMember]` 标注（如 UI 绑定用的转换属性） |
+
+**参考模式：**
+
+```csharp
+[MessagePackObject(true)]
+public class MyItemModel : INotifyPropertyChanged
+{
+    private string _name = "";
+    private int _value = 0;
+
+    public string Name
+    {
+        get => _name;
+        set => SetProperty(ref _name, value);
+    }
+
+    public int Value
+    {
+        get => _value;
+        set => SetProperty(ref _value, value);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value))
+            return false;
+        storage = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+
+    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
+
+[MessagePackObject(true)]
+public class MySetting
+{
+    public string Name { get; set; } = "";
+    public ObservableCollection<MyItemModel> Items { get; set; } = [];
+}
+```
+
+> ⚠️ **不要**为子项额外创建 ViewModel 包装类。子项自身实现 `INotifyPropertyChanged` 后可直接绑定到 DataGrid，ViewModel 层只需订阅 `PropertyChanged` 触发保存即可。
 
 ### 12.1 `[ExpressionField]` 特性（表达式预编译）
 
@@ -1355,7 +1459,7 @@ public sealed class DelayCheckPlugin : StepPluginBase<DelayCheckSetting> {
     public override string StepTypeId  => "Utility.DelayCheck";
     public override string DisplayName => "延时检测";
     public override string Category    => "自定义步骤";
-    public override string IconPath    => string.Empty;
+    public override string IconPath    => "pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png";
 
     public override string Description =>
         "等待指定毫秒后读取目标变量并与期望值比较。" +
@@ -1418,7 +1522,7 @@ public sealed class DelayCheckExecutor : IStepExecutor {
 // DelayCheckEditorPlugin.cs
 public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
     public string StepTypeId => "Utility.DelayCheck";  // ← 与执行插件一致
-    public string IconPath   => string.Empty;
+    public string IconPath   => "pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
         var view = new DelayCheckEditorView();
@@ -1455,7 +1559,9 @@ public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module">
+        <syncfusion:TabItemExt Header="DelayCheck"
+                               Image="pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png"
+                               ImageHeight="20" ImageWidth="20">
             <StackPanel Margin="16">
                 <TextBlock Text="延时 (ms):" Margin="0,0,0,4"/>
                 <TextBox Text="{Binding DelayMs, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left"/>

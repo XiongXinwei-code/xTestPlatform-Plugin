@@ -27,4 +27,7 @@ public class UdsCommonSetting
 
     /// <summary>响应超时 (ms)</summary>
     public int ResponseTimeoutMs { get; set; } = 5000;
+
+    /// <summary>是否输出日志</summary>
+    public bool EnableLog { get; set; } = true;
 }

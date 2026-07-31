@@ -45,6 +45,7 @@ public class CanReadViewModel : INotifyPropertyChanged
     public int ReadTimeoutMs { get => _setting?.ReadTimeoutMs ?? 1000; set { if (_setting == null || _setting.ReadTimeoutMs == value) return; _setting.ReadTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     public string ResultVariable { get => _setting?.ResultVariable ?? ""; set { if (_setting == null || _setting.ResultVariable == value) return; _setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }
     public string IdVariable { get => _setting?.IdVariable ?? ""; set { if (_setting == null || _setting.IdVariable == value) return; _setting.IdVariable = value; OnPropertyChanged(); QueueSave(); } }
+    public bool EnableLog { get => _setting?.EnableLog ?? true; set { if (_setting == null || _setting.EnableLog == value) return; _setting.EnableLog = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

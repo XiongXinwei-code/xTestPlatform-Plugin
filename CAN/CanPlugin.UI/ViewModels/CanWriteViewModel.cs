@@ -45,6 +45,7 @@ public class CanWriteViewModel : INotifyPropertyChanged
     public int FrameType { get => (int)(_setting?.FrameType ?? CanFrameType.Standard); set { if (_setting == null) return; _setting.FrameType = (CanFrameType)value; OnPropertyChanged(); QueueSave(); } }
     public string Data { get => _setting?.Data ?? ""; set { if (_setting == null || _setting.Data == value) return; _setting.Data = value; OnPropertyChanged(); QueueSave(); } }
     public bool UseFdFrame { get => _setting?.UseFdFrame ?? false; set { if (_setting == null || _setting.UseFdFrame == value) return; _setting.UseFdFrame = value; OnPropertyChanged(); QueueSave(); } }
+    public bool EnableLog { get => _setting?.EnableLog ?? true; set { if (_setting == null || _setting.EnableLog == value) return; _setting.EnableLog = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

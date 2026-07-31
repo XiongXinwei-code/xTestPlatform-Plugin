@@ -5,7 +5,7 @@
 
 ## 完整开发手册
 
-详细开发规范请参考：[xTestPlatform 步骤插件开发手册](../xTestPlatform_StepPlugin_Development_Guide.md)
+详细开发规范请参考：[xTestPlatform 步骤插件开发手册](xTestPlatform_StepPlugin_Development_Guide.md)
 
 Copilot 在生成或修改插件代码时，**必须**遵循该手册中的所有规范，包括但不限于：
 - 项目结构（执行层 + UI 层两个独立项目）
@@ -16,3 +16,29 @@ Copilot 在生成或修改插件代码时，**必须**遵循该手册中的所�
 - 异常处理（永不抛出未捕获异常）
 - 编辑器规范（TabControlExt、IRefreshableEditor、防抖保存）
 - 表达式字段（`[ExpressionField]` + `ExpressionTextBox`）
+
+## 文件创建规范（重要）
+
+当需要批量创建新文件（特别是包含 XML/XAML 内容的文件）时，**禁止**在终端中直接使用 `Set-Content` 或 here-string (`@'...'@`) 写入 XML/XAML 内容，因为 PowerShell 5 会将 `<` 解析为命令导致失败，并且中文字符会因编码问题被损坏。
+
+**正确做法**：
+1. 先用 `create_file` 工具创建一个 `.ps1` 脚本文件
+2. 脚本中使用 `[IO.File]::WriteAllText($path, $content, $utf8)` 写入文件内容（`$utf8 = New-Object System.Text.UTF8Encoding($false)`）
+3. 对于包含 XML 标签的内容（如 `.csproj`、`.xaml`），必须使用**字符串变量 + `WriteAllText`**，不要用 `Set-Content`
+4. 然后通过 `& .\script.ps1` 执行脚本
+
+**示例**：
+```powershell
+# 在 .ps1 脚本中
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+$content = '<Project Sdk="Microsoft.NET.Sdk">...</Project>'
+[IO.File]::WriteAllText("$PSScriptRoot\MyProject.csproj", $content, $utf8)
+```
+
+## 语言与编码规范
+
+- **插件描述（Description）必须使用中文**，面向中文用户。
+- **校验错误信息必须使用中文**（`StepSettingError.Error(...)` 中的消息文本）。
+- **日志消息（LogAction）使用中文**。
+- 所有 `.cs` 文件必须保存为 **UTF-8 无 BOM** 编码，避免中文字符出现乱码。
+- 通过 PowerShell 脚本创建包含中文的文件时，必须使用 `[IO.File]::WriteAllText($path, $content, $utf8)`（其中 `$utf8 = New-Object System.Text.UTF8Encoding($false)`），**禁止**使用 `Set-Content` 或 here-string `@'...'@`，否则中文会被损坏。

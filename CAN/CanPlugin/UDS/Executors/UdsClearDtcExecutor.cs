@@ -30,7 +30,8 @@ public sealed class UdsClearDtcExecutor : IStepExecutor
 
             if (response.IsPositive)
             {
-                context.LogAction?.Invoke($"UDS ClearDTC: 清除成功 (Group=0x{group:X6})");
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS ClearDTC: 清除成功 (Group=0x{group:X6})");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = $"0x{group:X6}" } };
             }
             else

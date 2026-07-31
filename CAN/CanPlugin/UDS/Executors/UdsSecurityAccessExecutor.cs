@@ -42,7 +42,8 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
 
             // 提取 Seed (响应: 67 [subFunc] [seed bytes...])
             byte[] seed = seedResponse.Data.Length > 1 ? seedResponse.Data[1..] : [];
-            context.LogAction?.Invoke($"UDS SecurityAccess: Seed=[{UdsExecutorHelper.ToHex(seed)}]");
+            if (setting.EnableLog)
+                context.LogAction?.Invoke($"UDS SecurityAccess: Seed=[{UdsExecutorHelper.ToHex(seed)}]");
 
             // 将 Seed 存入变量供表达式使用
             context.SetVariable("Step.Seed", seed);
@@ -70,7 +71,8 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                 };
             }
 
-            context.LogAction?.Invoke($"UDS SecurityAccess: Key=[{UdsExecutorHelper.ToHex(key)}]");
+            if (setting.EnableLog)
+                context.LogAction?.Invoke($"UDS SecurityAccess: Key=[{UdsExecutorHelper.ToHex(key)}]");
 
             // Step 3: Send Key (偶数子功能)
             byte keySubFunc = (byte)(setting.SecurityLevel * 2);
@@ -88,7 +90,8 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
 
             if (unlocked)
             {
-                context.LogAction?.Invoke($"UDS SecurityAccess: 解锁成功 (Level {setting.SecurityLevel})");
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS SecurityAccess: 解锁成功 (Level {setting.SecurityLevel})");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = "Unlocked" } };
             }
             else

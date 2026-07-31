@@ -38,7 +38,8 @@ public sealed class UdsWriteDataByIdExecutor : IStepExecutor
 
             if (response.IsPositive)
             {
-                context.LogAction?.Invoke($"UDS WriteDataByID: DID=0x{did:X4} 写入成功");
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS WriteDataByID: DID=0x{did:X4} 写入成功");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = $"DID=0x{did:X4}" } };
             }
             else

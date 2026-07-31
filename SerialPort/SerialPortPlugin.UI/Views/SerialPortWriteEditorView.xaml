@@ -37,7 +37,7 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="DataFormat:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="1" Grid.Column="1" Width="120" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ComboBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding DataFormat, Converter={StaticResource EnumToIntConverter}}">
                     <ComboBoxItem Content="String"/>
                     <ComboBoxItem Content="HEX"/>

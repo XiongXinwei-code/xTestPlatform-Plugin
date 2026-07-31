@@ -35,11 +35,11 @@ public sealed class CanWriteExecutor : IStepExecutor
 
             // 求值 CAN ID
             var canIdStr = await Evaluator.EvaluateAsync<string>(setting.CanId, context) ?? setting.CanId;
-            uint canId = ParseCanId(canIdStr);
+            uint canId = CanHelper.ParseCanId(canIdStr);
 
             // 求值数据
             var dataStr = await Evaluator.EvaluateAsync<string>(setting.Data, context) ?? setting.Data;
-            byte[] data = ParseHexData(dataStr);
+            byte[] data = CanHelper.ParseHexData(dataStr);
 
             var message = new CanMessage
             {
@@ -51,7 +51,8 @@ public sealed class CanWriteExecutor : IStepExecutor
 
             adapter.Write(message);
 
-            context.LogAction?.Invoke($"CAN 发送: ID=0x{canId:X}, Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
+            if (setting.EnableLog)
+                context.LogAction?.Invoke($"CAN 发送: ID=0x{canId:X}, Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
 
             return new ExecutionResult
             {
@@ -82,21 +83,4 @@ public sealed class CanWriteExecutor : IStepExecutor
         }
     }
 
-    private static uint ParseCanId(string idStr)
-    {
-        idStr = idStr.Trim();
-        if (idStr.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-            return Convert.ToUInt32(idStr[2..], 16);
-        return uint.Parse(idStr);
     }
-
-    private static byte[] ParseHexData(string hexStr)
-    {
-        if (string.IsNullOrWhiteSpace(hexStr)) return [];
-        hexStr = hexStr.Replace("-", "").Replace(" ", "").Replace(",", "");
-        var bytes = new byte[hexStr.Length / 2];
-        for (int i = 0; i < bytes.Length; i++)
-            bytes[i] = Convert.ToByte(hexStr.Substring(i * 2, 2), 16);
-        return bytes;
-    }
-}
