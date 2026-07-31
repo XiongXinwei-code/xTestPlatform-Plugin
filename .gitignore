@@ -1,19 +1,2 @@
-# .NET build and IDE artifacts
-[Bb]in/
-[Oo]bj/
-.vs/
-.idea/
-*.user
-*.suo
-
-# Machine-specific Obsidian state
-.obsidian/workspace.json
-
-# Isolated development worktrees
-.worktrees/
-
-# Local deployment verification output
-TestDeployment/
-
-# Local deployable plugin output
-Plugins/
+**/bin/
+**/obj/
