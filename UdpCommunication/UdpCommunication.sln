@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin.Tests", "tests\UdpCommunication.StepPlugin.Tests\UdpCommunication.StepPlugin.Tests.csproj", "{4D8B6F99-8A2B-4B23-9071-8765EFD22450}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin.UI", "src\UdpCommunication.StepPlugin.UI\UdpCommunication.StepPlugin.UI.csproj", "{A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}"
+EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution
         Debug|Any CPU = Debug|Any CPU
@@ -20,5 +22,9 @@ Global
         {4D8B6F99-8A2B-4B23-9071-8765EFD22450}.Debug|Any CPU.Build.0 = Debug|Any CPU
         {4D8B6F99-8A2B-4B23-9071-8765EFD22450}.Release|Any CPU.ActiveCfg = Release|Any CPU
         {4D8B6F99-8A2B-4B23-9071-8765EFD22450}.Release|Any CPU.Build.0 = Release|Any CPU
+        {A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+        {A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+        {A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+        {A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}.Release|Any CPU.Build.0 = Release|Any CPU
     EndGlobalSection
 EndGlobal

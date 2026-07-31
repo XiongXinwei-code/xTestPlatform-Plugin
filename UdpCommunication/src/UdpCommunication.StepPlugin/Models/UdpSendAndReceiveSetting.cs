@@ -1,7 +1,9 @@
+using MessagePack;
 using UdpCommunication.StepPlugin.Protocol;
 
 namespace UdpCommunication.StepPlugin.Models;
 
+[MessagePackObject(true)]
 public sealed class UdpSendAndReceiveSetting : UdpSendSetting
 {
     public int ReceiveTimeoutMs { get; set; } = 3000;

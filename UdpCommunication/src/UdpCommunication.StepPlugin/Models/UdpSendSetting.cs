@@ -1,7 +1,9 @@
+using MessagePack;
 using UdpCommunication.StepPlugin.Protocol;
 
 namespace UdpCommunication.StepPlugin.Models;
 
+[MessagePackObject(true)]
 public class UdpSendSetting
 {
     public string RemoteAddress { get; set; } = "127.0.0.1";
