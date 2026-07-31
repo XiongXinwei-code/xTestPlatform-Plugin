@@ -56,7 +56,14 @@
 				<TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ReadBytes, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="Terminator:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource EscapeStringConverter}}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" MaxLines="1" AcceptsReturn="False"/>
+				<ComboBox Grid.Row="4" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+						  IsEditable="True"
+						  Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource EscapeStringConverter}}">
+					<ComboBoxItem Content="\n"/>
+					<ComboBoxItem Content="\r"/>
+					<ComboBoxItem Content="\r\n"/>
+					<ComboBoxItem Content=""/>
+				</ComboBox>
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>

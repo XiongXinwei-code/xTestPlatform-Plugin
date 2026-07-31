@@ -1,4 +1,4 @@
-﻿<Solution>
+<Solution>
   <Configurations>
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
@@ -20,17 +20,17 @@
       <Platform Solution="Release|x86" Project="x86" />
     </Project>
   </Folder>
-  <Folder Name="/LXI/">
-    <Project Path="LXI/LxiPlugin.UI/LxiPlugin.UI.csproj" />
-    <Project Path="LXI/LxiPlugin/LxiPlugin.csproj" />
-  </Folder>
     <Folder Name="/Modbus/">
-    <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
-    <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
-  </Folder>
+      <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
+      <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
+    </Folder>
   <Folder Name="/SerialPort/">
     <Project Path="SerialPort/SerialPortPlugin.UI/SerialPortPlugin.UI.csproj" />
     <Project Path="SerialPort/SerialPortPlugin/SerialPortPlugin.csproj" />
+  </Folder>
+  <Folder Name="/VISA/">
+    <Project Path="VISA/VisaPlugin.UI/VisaPlugin.UI.csproj" />
+    <Project Path="VISA/VisaPlugin/VisaPlugin.csproj" />
   </Folder>
 </Solution>
 
