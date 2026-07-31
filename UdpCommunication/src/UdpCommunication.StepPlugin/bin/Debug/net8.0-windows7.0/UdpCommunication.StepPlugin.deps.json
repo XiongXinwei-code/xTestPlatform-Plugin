@@ -1,0 +1,61 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "UdpCommunication.StepPlugin/1.0.0": {
+        "dependencies": {
+          "xTestPlatform.StepEditor.SDK": "1.0.14"
+        },
+        "runtime": {
+          "UdpCommunication.StepPlugin.dll": {}
+        }
+      },
+      "xTestPlatform.StepEditor.SDK/1.0.14": {
+        "runtime": {
+          "lib/net8.0-windows7.0/Abstractions.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          },
+          "lib/net8.0-windows7.0/ExpressionEditor.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          },
+          "lib/net8.0-windows7.0/ExpressionTextBox.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          },
+          "lib/net8.0-windows7.0/xTestPlatform.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          },
+          "lib/net8.0-windows7.0/xTestPlatform.Dialogs.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          },
+          "lib/net8.0-windows7.0/xTestPlatform.StepEditor.SDK.dll": {
+            "assemblyVersion": "1.0.14.0",
+            "fileVersion": "1.0.14.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "UdpCommunication.StepPlugin/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "xTestPlatform.StepEditor.SDK/1.0.14": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/YXziqQdRiQ8ekPUHqZvr1RaGdtVW/4icoR5hI5xm+i4/uoqLvOWnajU1ZPkm9aJxUWDhgMsdqhVsnvq0eKvDA==",
+      "path": "xtestplatform.stepeditor.sdk/1.0.14",
+      "hashPath": "xtestplatform.stepeditor.sdk.1.0.14.nupkg.sha512"
+    }
+  }
+}
