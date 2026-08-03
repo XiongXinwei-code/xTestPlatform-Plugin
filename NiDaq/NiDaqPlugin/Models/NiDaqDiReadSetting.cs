@@ -1,4 +1,5 @@
 using MessagePack;
+using xTestPlatform.Core.Models.StepSettings;
 
 namespace NiDaq.Models;
 

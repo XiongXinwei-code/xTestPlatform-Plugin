@@ -24,6 +24,10 @@
       <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
       <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
     </Folder>
+  <Folder Name="/NI_DAQ/" Id="f7394a31-46d6-370b-66da-9088f84a9bc3">
+    <Project Path="NiDaq/NiDaqPlugin.UI/NiDaqPlugin.UI.csproj" />
+    <Project Path="NiDaq/NiDaqPlugin/NiDaqPlugin.csproj" />
+  </Folder>
   <Folder Name="/OPC_UA/" Id="ad1bf027-2a23-54fa-b8df-053e3de6f9bd">
     <Project Path="OpcUa/OpcUaPlugin.UI/OpcUaPlugin.UI.csproj" />
     <Project Path="OpcUa/OpcUaPlugin/OpcUaPlugin.csproj" />

@@ -1,9 +1,11 @@
 using NationalInstruments.DAQmx;
+using DaqTask = NationalInstruments.DAQmx.Task;
 using NiDaq.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -19,10 +21,11 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var channel = await Evaluator.EvaluateAsync<string>(setting.Channel, context) ?? setting.Channel;
             var valueStr = await Evaluator.EvaluateAsync<string>(setting.Value, context) ?? setting.Value;
 
-            using var task = new NationalInstruments.DAQmx.Task();
+            using var task = new DaqTask();
             task.DOChannels.CreateChannel(channel, "", ChannelLineGrouping.OneChannelForAllLines);
 
             var writer = new DigitalSingleChannelWriter(task.Stream);

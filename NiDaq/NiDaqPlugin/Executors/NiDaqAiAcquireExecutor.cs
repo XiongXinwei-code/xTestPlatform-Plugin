@@ -1,9 +1,11 @@
 using NationalInstruments.DAQmx;
+using DaqTask = NationalInstruments.DAQmx.Task;
 using NiDaq.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -19,6 +21,7 @@ public sealed class NiDaqAiAcquireExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var prefix = await Evaluator.EvaluateAsync<string>(setting.ResultVariablePrefix, context) ?? setting.ResultVariablePrefix;
 
             if (setting.Channels.Count == 0)
@@ -33,7 +36,7 @@ public sealed class NiDaqAiAcquireExecutor : IStepExecutor
                 };
             }
 
-            using var task = new NationalInstruments.DAQmx.Task();
+            using var task = new DaqTask();
 
             foreach (var ch in setting.Channels)
             {

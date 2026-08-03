@@ -1,9 +1,11 @@
 using NationalInstruments.DAQmx;
+using DaqTask = NationalInstruments.DAQmx.Task;
 using NiDaq.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -19,6 +21,7 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var counterCh = await Evaluator.EvaluateAsync<string>(setting.CounterChannel, context) ?? setting.CounterChannel;
             var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
 
@@ -29,13 +32,14 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
                 _ => CIEncoderDecodingType.X4
             };
 
-            using var task = new NationalInstruments.DAQmx.Task();
+            using var task = new DaqTask();
             task.CIChannels.CreateAngularEncoderChannel(
                 counterCh, "",
                 decodingType,
                 setting.ZIndexEnable, 0,
-                CIAngularEncoderUnits.Ticks,
-                setting.PulsesPerRevolution, 0, CIFrequencyMeasurementMethod.LowFrequencyOneCounter);
+                CIEncoderZIndexPhase.AHighBHigh,
+                setting.PulsesPerRevolution, 0,
+                CIAngularEncoderUnits.Ticks);
 
             var reader = new CounterSingleChannelReader(task.Stream);
             task.Start();

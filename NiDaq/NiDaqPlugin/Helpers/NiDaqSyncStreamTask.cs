@@ -1,13 +1,15 @@
+using NationalInstruments.Tdms;
 using NationalInstruments.DAQmx;
 using NiDaq.Models;
+using DaqTask = NationalInstruments.DAQmx.Task;
 
 namespace NiDaq.Helpers;
 
 /// <summary>同步采集后台任务（AI + 编码器共享时钟），边采边写磁盘</summary>
 public sealed class NiDaqSyncStreamTask : IDisposable
 {
-    private readonly NationalInstruments.DAQmx.Task _aiTask;
-    private readonly NationalInstruments.DAQmx.Task _ciTask;
+    private readonly DaqTask _aiTask;
+    private readonly DaqTask _ciTask;
     private readonly AnalogMultiChannelReader _aiReader;
     private readonly CounterMultiChannelReader _ciReader;
     private readonly string _filePath;
@@ -18,7 +20,7 @@ public sealed class NiDaqSyncStreamTask : IDisposable
     private readonly int _maxDurationMs;
     private readonly DaqExportFormat _exportFormat;
     private readonly CancellationTokenSource _cts = new();
-    private Task? _backgroundTask;
+    private System.Threading.Tasks.Task? _backgroundTask;
     private StreamWriter? _csvWriter;
     private NationalInstruments.Tdms.TdmsFile? _tdmsFile;
     private NationalInstruments.Tdms.TdmsChannel[]? _tdmsAiChannels;
@@ -39,8 +41,8 @@ public sealed class NiDaqSyncStreamTask : IDisposable
     public bool IsRunning => _backgroundTask != null && !_backgroundTask.IsCompleted;
 
     public NiDaqSyncStreamTask(
-        NationalInstruments.DAQmx.Task aiTask,
-        NationalInstruments.DAQmx.Task ciTask,
+        DaqTask aiTask,
+        DaqTask ciTask,
         AnalogMultiChannelReader aiReader,
         CounterMultiChannelReader ciReader,
         string[] aiChannelNames,
@@ -81,7 +83,7 @@ public sealed class NiDaqSyncStreamTask : IDisposable
         InitFileWriter();
         _ciTask.Start();
         _aiTask.Start();
-        _backgroundTask = Task.Run(() => CollectLoop(_cts.Token));
+        _backgroundTask = System.Threading.Tasks.Task.Run(() => CollectLoop(_cts.Token));
     }
 
     public async Task<Dictionary<string, ChannelStatistics>> StopAsync()
@@ -188,13 +190,13 @@ public sealed class NiDaqSyncStreamTask : IDisposable
         if (_exportFormat is DaqExportFormat.Tdms or DaqExportFormat.TdmsAndVariable)
         {
             _tdmsFile = new NationalInstruments.Tdms.TdmsFile(_filePath);
-            var group = _tdmsFile.AddGroup("SyncAcquisition");
+            var group = _tdmsFile.AddChannelGroup("SyncAcquisition");
             _tdmsAiChannels = new NationalInstruments.Tdms.TdmsChannel[_aiChannelNames.Length];
             _tdmsEncoderChannels = new NationalInstruments.Tdms.TdmsChannel[_encoderChannelNames.Length];
             for (int i = 0; i < _aiChannelNames.Length; i++)
-                _tdmsAiChannels[i] = group.AddChannel<double>(_aiChannelNames[i]);
+                _tdmsAiChannels[i] = group.AddChannel(_aiChannelNames[i], TdmsDataType.Double);
             for (int i = 0; i < _encoderChannelNames.Length; i++)
-                _tdmsEncoderChannels[i] = group.AddChannel<double>(_encoderChannelNames[i]);
+                _tdmsEncoderChannels[i] = group.AddChannel(_encoderChannelNames[i], TdmsDataType.Double);
         }
     }
 

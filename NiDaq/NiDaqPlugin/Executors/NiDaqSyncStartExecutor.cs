@@ -1,10 +1,12 @@
 using NationalInstruments.DAQmx;
+using DaqTask = NationalInstruments.DAQmx.Task;
 using NiDaq.Helpers;
 using NiDaq.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -20,6 +22,7 @@ public sealed class NiDaqSyncStartExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
             var outputDir = await Evaluator.EvaluateAsync<string>(setting.OutputDirectory, context) ?? setting.OutputDirectory;
             var statPrefix = await Evaluator.EvaluateAsync<string>(setting.StatVariablePrefix, context) ?? setting.StatVariablePrefix;
@@ -33,7 +36,7 @@ public sealed class NiDaqSyncStartExecutor : IStepExecutor
             var filePath = Path.Combine(outputDir, fileName);
 
             // 创建 AI 任务
-            var aiTask = new NationalInstruments.DAQmx.Task();
+            var aiTask = new DaqTask();
             foreach (var ch in setting.AiChannels)
             {
                 var termConfig = ch.Terminal switch
@@ -61,7 +64,7 @@ public sealed class NiDaqSyncStartExecutor : IStepExecutor
             }
 
             // 创建 Counter（编码器）任务
-            var ciTask = new NationalInstruments.DAQmx.Task();
+            var ciTask = new DaqTask();
             var distancePerPulse = new double[setting.EncoderChannels.Count];
             for (int i = 0; i < setting.EncoderChannels.Count; i++)
             {
@@ -75,8 +78,9 @@ public sealed class NiDaqSyncStartExecutor : IStepExecutor
                 ciTask.CIChannels.CreateAngularEncoderChannel(
                     enc.CounterChannel, enc.ColumnName,
                     decodingType, enc.ZIndexEnable, 0,
-                    CIAngularEncoderUnits.Ticks,
-                    enc.PulsesPerRevolution, 0, CIFrequencyMeasurementMethod.LowFrequencyOneCounter);
+                    CIEncoderZIndexPhase.AHighBHigh,
+                    enc.PulsesPerRevolution, 0,
+                    CIAngularEncoderUnits.Ticks);
                 distancePerPulse[i] = enc.DistancePerPulse;
             }
 

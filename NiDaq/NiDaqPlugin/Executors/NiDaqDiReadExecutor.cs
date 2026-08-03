@@ -1,9 +1,11 @@
 using NationalInstruments.DAQmx;
+using DaqTask = NationalInstruments.DAQmx.Task;
 using NiDaq.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -19,10 +21,11 @@ public sealed class NiDaqDiReadExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var channel = await Evaluator.EvaluateAsync<string>(setting.Channel, context) ?? setting.Channel;
             var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
 
-            using var task = new NationalInstruments.DAQmx.Task();
+            using var task = new DaqTask();
             task.DIChannels.CreateChannel(channel, "", ChannelLineGrouping.OneChannelForAllLines);
 
             var reader = new DigitalSingleChannelReader(task.Stream);

@@ -5,6 +5,7 @@ using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -20,6 +21,7 @@ public sealed class NiDaqDataAnalyzeExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var filePath = await Evaluator.EvaluateAsync<string>(setting.FilePath, context) ?? setting.FilePath;
             var channelName = await Evaluator.EvaluateAsync<string>(setting.ChannelName, context) ?? setting.ChannelName;
             var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
@@ -39,16 +41,17 @@ public sealed class NiDaqDataAnalyzeExecutor : IStepExecutor
             }
 
             using var tdmsFile = new TdmsFile(filePath, TdmsFileAccess.Read);
-            var groups = tdmsFile.GetGroups();
+            tdmsFile.Open();
+            var groups = tdmsFile.GetChannelGroups();
             TdmsChannel? mainCh = null;
             TdmsChannel? refCh = null;
 
-            foreach (var group in groups)
+            foreach (TdmsChannelGroup group in groups)
             {
                 var channels = group.GetChannels();
-                mainCh ??= channels.FirstOrDefault(c => c.Name == channelName);
+                mainCh ??= channels.Cast<TdmsChannel>().FirstOrDefault(c => c.Name == channelName);
                 if (!string.IsNullOrEmpty(refChannel))
-                    refCh ??= channels.FirstOrDefault(c => c.Name == refChannel);
+                    refCh ??= channels.Cast<TdmsChannel>().FirstOrDefault(c => c.Name == refChannel);
             }
 
             if (mainCh == null)

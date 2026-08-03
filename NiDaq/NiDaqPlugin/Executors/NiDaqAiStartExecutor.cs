@@ -1,10 +1,12 @@
 using NationalInstruments.DAQmx;
+using DaqTask = NationalInstruments.DAQmx.Task;
 using NiDaq.Helpers;
 using NiDaq.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
+using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
@@ -20,6 +22,7 @@ public sealed class NiDaqAiStartExecutor : IStepExecutor
 
         try
         {
+            NiDriverCheck.EnsureDriver();
             var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
             var outputDir = await Evaluator.EvaluateAsync<string>(setting.OutputDirectory, context) ?? setting.OutputDirectory;
             var statPrefix = await Evaluator.EvaluateAsync<string>(setting.StatVariablePrefix, context) ?? setting.StatVariablePrefix;
@@ -32,7 +35,7 @@ public sealed class NiDaqAiStartExecutor : IStepExecutor
             var fileName = $"{taskName}_{DateTime.Now:yyyyMMdd_HHmmss}.tdms";
             var filePath = Path.Combine(outputDir, fileName);
 
-            var daqTask = new NationalInstruments.DAQmx.Task();
+            var daqTask = new DaqTask();
             foreach (var ch in setting.Channels)
             {
                 var termConfig = ch.Terminal switch

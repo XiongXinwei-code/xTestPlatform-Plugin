@@ -1,13 +1,15 @@
+using NationalInstruments.Tdms;
 using System.Collections.Concurrent;
 using NationalInstruments.DAQmx;
 using NiDaq.Models;
+using DaqTask = NationalInstruments.DAQmx.Task;
 
 namespace NiDaq.Helpers;
 
 /// <summary>AI 连续采集后台任务，边采边写磁盘</summary>
 public sealed class NiDaqAiStreamTask : IDisposable
 {
-    private readonly NationalInstruments.DAQmx.Task _daqTask;
+    private readonly DaqTask _daqTask;
     private readonly AnalogMultiChannelReader _reader;
     private readonly string _filePath;
     private readonly string[] _channelNames;
@@ -15,7 +17,7 @@ public sealed class NiDaqAiStreamTask : IDisposable
     private readonly int _maxDurationMs;
     private readonly DaqExportFormat _exportFormat;
     private readonly CancellationTokenSource _cts = new();
-    private Task? _backgroundTask;
+    private System.Threading.Tasks.Task? _backgroundTask;
     private StreamWriter? _csvWriter;
     private NationalInstruments.Tdms.TdmsFile? _tdmsFile;
     private NationalInstruments.Tdms.TdmsChannel[]? _tdmsChannels;
@@ -31,7 +33,7 @@ public sealed class NiDaqAiStreamTask : IDisposable
     public bool IsRunning => _backgroundTask != null && !_backgroundTask.IsCompleted;
 
     public NiDaqAiStreamTask(
-        NationalInstruments.DAQmx.Task daqTask,
+        DaqTask daqTask,
         AnalogMultiChannelReader reader,
         string[] channelNames,
         string filePath,
@@ -64,7 +66,7 @@ public sealed class NiDaqAiStreamTask : IDisposable
     {
         InitFileWriter();
         _daqTask.Start();
-        _backgroundTask = Task.Run(() => CollectLoop(_cts.Token));
+        _backgroundTask = System.Threading.Tasks.Task.Run(() => CollectLoop(_cts.Token));
     }
 
     public async Task<Dictionary<string, ChannelStatistics>> StopAsync()
@@ -144,11 +146,11 @@ public sealed class NiDaqAiStreamTask : IDisposable
         if (_exportFormat is DaqExportFormat.Tdms or DaqExportFormat.TdmsAndVariable)
         {
             _tdmsFile = new NationalInstruments.Tdms.TdmsFile(_filePath);
-            var group = _tdmsFile.AddGroup("Acquisition");
+            var group = _tdmsFile.AddChannelGroup("Acquisition");
             _tdmsChannels = new NationalInstruments.Tdms.TdmsChannel[_channelNames.Length];
             for (int i = 0; i < _channelNames.Length; i++)
             {
-                _tdmsChannels[i] = group.AddChannel<double>(_channelNames[i]);
+                _tdmsChannels[i] = group.AddChannel(_channelNames[i], TdmsDataType.Double);
             }
         }
     }
