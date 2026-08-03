@@ -46,12 +46,12 @@ namespace LabVIEWCallPlugin.UI
         // ── 完整校验（三个阶段）─────────────────────────────────────────
 
         public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-            byte[] setting,
-            IExpressionEvaluator evaluator,
-            IExecutionContext context,
-            CancellationToken cancellationToken = default)
+            StepEditorValidationContext context, CancellationToken cancellationToken = default)
         {
             var errors = new List<StepSettingError>();
+            var setting = context.Setting;
+            var evaluator = context.Evaluator;
+            var execContext = context.ExecutionContext;
 
             LabVIEWCallSetting s;
             try
@@ -119,9 +119,9 @@ namespace LabVIEWCallPlugin.UI
 
             // ── 阶段四：上下文校验（变量定义 / 表达式 / 类型匹配）────────────
             await ValidatePanelNodesWithContextAsync(
-                s.InputParameters, "输入控件", evaluator, context, errors, cancellationToken, isOutput: false);
+                s.InputParameters, "输入控件", evaluator, execContext, errors, cancellationToken, isOutput: false);
             await ValidatePanelNodesWithContextAsync(
-                s.OutputParameters, "输出指示器", evaluator, context, errors, cancellationToken, isOutput: true);
+                s.OutputParameters, "输出指示器", evaluator, execContext, errors, cancellationToken, isOutput: true);
 
             return errors;
         }

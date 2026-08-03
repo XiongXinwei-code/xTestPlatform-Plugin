@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>NiDaq.StepPlugin</AssemblyName>
+	<RootNamespace>NiDaq</RootNamespace>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\NiDaq\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="MessagePack" Version="3.1.7" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.1" />
+  </ItemGroup>
+
+  <!-- NI DAQmx + TDMS DLL direct reference (requires NI-DAQmx driver installed) -->
+  <ItemGroup Condition="Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies\Current\NationalInstruments.DAQmx.dll')">
+	<Reference Include="NationalInstruments.DAQmx">
+	  <HintPath>C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies\Current\NationalInstruments.DAQmx.dll</HintPath>
+	  <Private>false</Private>
+	</Reference>
+	<Reference Include="NationalInstruments.Common">
+	  <HintPath>C:\Program Files (x86)\National Instruments\Measurement Studio\DotNET\v4.0\AnyCPU\NationalInstruments.Common 19.1.40\NationalInstruments.Common.dll</HintPath>
+	  <Private>false</Private>
+	</Reference>
+	<Reference Include="NationalInstruments.Tdms">
+	  <HintPath>C:\Program Files\National Instruments\Shared\Skyline\TDMReader\NationalInstruments.Tdms.dll</HintPath>
+	  <Private>true</Private>
+	</Reference>
+  </ItemGroup>
+
+  <!-- Stub mode when NI driver not installed -->
+  <PropertyGroup Condition="!Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies\Current\NationalInstruments.DAQmx.dll')">
+	<DefineConstants>$(DefineConstants);NIDAQ_STUB</DefineConstants>
+  </PropertyGroup>
+
+</Project>

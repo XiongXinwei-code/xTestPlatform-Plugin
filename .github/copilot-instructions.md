@@ -1,11 +1,20 @@
 ﻿# Copilot Instructions
 
+## 插件开发工作流（最高优先级）
+
+> **本解决方案是专门用于开发 xTestPlatform 步骤插件的工作区。**
+
+当用户要求开发新插件或修改现有插件时，Copilot **必须**：
+1. **首先确认已读取插件开发手册**（#file:'xTestPlatform_StepPlugin_Development_Guide.md'）。如果无法读取该文件，**立即要求用户提供插件开发手册**，不得凭猜测或仅参考解决方案中其他插件代码来开发。
+2. 严格按照手册中的规范进行开发，手册是唯一权威参考。
+3. 解决方案中的其他插件仅供辅助参考，不能替代手册规范。
+
 ## 项目指南
 - **插件单一职责原则**：每个步骤插件只做一件事。如果一个通信协议有多种操作模式（如 Modbus 的读/写），应拆分为独立插件（如 `ModbusRead`、`ModbusWrite`），而不是用功能码字段在一个插件内切换。拆分后每个插件的 Setting 更精简、编辑器 UI 更清晰、Description 更准确。
 
 ## 完整开发手册
 
-详细开发规范请参考：[xTestPlatform 步骤插件开发手册](xTestPlatform_StepPlugin_Development_Guide.md)
+详细开发规范请参考：#file:'xTestPlatform_StepPlugin_Development_Guide.md'
 
 Copilot 在生成或修改插件代码时，**必须**遵循该手册中的所有规范，包括但不限于：
 - 项目结构（执行层 + UI 层两个独立项目）

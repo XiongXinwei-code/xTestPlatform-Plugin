@@ -386,7 +386,28 @@ foreach (var plugin in editorPlugins)   // 扫描 *.StepPlugin.dll 中的 IStepE
 }
 ```
 
-### 4.4 实现示例（两个独立类）
+### 4.4 EditorPlugin 文件组织规范
+
+> **强制要求：每个 `IStepEditorPlugin` 实现类必须放在独立的 `.cs` 文件中。**
+
+当一个 UI 项目包含多个步骤编辑器时，**禁止**将所有 EditorPlugin 类写在同一个文件里。正确做法：
+
+```text
+[YourPlugin]Plugin.UI/
+├── Editors/                          ← 专用目录
+│   ├── [Step1]EditorPlugin.cs        ← 一个类一个文件
+│   ├── [Step2]EditorPlugin.cs
+│   └── [Step3]EditorPlugin.cs
+├── Views/
+│   ├── [Step1]EditorView.xaml(.cs)
+│   └── ...
+└── ViewModels/
+    └── ...
+```
+
+**命名约定**：`{StepName}EditorPlugin.cs`，与对应的 View/ViewModel 保持相同的 `{StepName}` 前缀。
+
+### 4.5 实现示例（两个独立类）
 
 ```csharp
 // ── 执行插件（IStepPlugin，Core 层）────────────────────────────────
@@ -1877,7 +1898,87 @@ try {
 
 ---
 
-## 20. 附录：目录结构参考
+## 20. 命名空间引用参考（using 指南）
+
+开发插件时，各层文件需要引用的命名空间如下。**请严格按照此表添加 using，避免遗漏。**
+
+### 20.1 执行层 — Plugin 主类（继承 StepPluginBase）
+
+```csharp
+using <YourNamespace>.Executors;               // 本插件的 Executor
+using <YourNamespace>.Models;                  // 本插件的 Setting 模型
+using xTestPlatform.Core.Plugins.BuiltIn;      // StepPluginBase<T>
+using xTestPlatform.Core.Plugins.Contracts;    // IStepPlugin, IStepExecutor, StepSettingError 等
+```
+
+### 20.2 执行层 — Setting 模型类
+
+```csharp
+using MessagePack;                             // [MessagePackObject(true)], [Key], [IgnoreMember]
+using xTestPlatform.Core.Models.StepSettings;  // [ExpressionField] 特性
+```
+
+### 20.3 执行层 — Executor（执行器）
+
+```csharp
+using <YourNamespace>.Models;                  // 本插件的 Setting 模型
+using xTestPlatform.Core.Engine;               // IExecutionContext
+using xTestPlatform.Core.Models;               // Step, LogAction 等
+using xTestPlatform.Core.Plugins.Contracts;    // IStepExecutor
+using xTestPlatform.Core.Services.ExpressionEngine; // ★ IExpressionEvaluator, ExpressionEvaluatorFactory
+```
+
+> **关键**：只要 Setting 中有 `[ExpressionField]` 标记的属性，Executor 就**必须**引用 `xTestPlatform.Core.Services.ExpressionEngine` 来对表达式求值。
+
+### 20.4 UI 层 — EditorPlugin（编辑器插件入口）
+
+```csharp
+using System.Windows;                          // FrameworkElement
+using <YourNamespace>.Models;                  // Setting 模型（与执行层共享）
+using <YourNamespace>.UI.Views;                // 编辑器 View
+using StepEditor.Abstractions;                 // IStepEditorPlugin, IRefreshableEditor, EditPosition
+using xTestPlatform.Core.Engine;               // IExecutionContext（校验时可能用到）
+using xTestPlatform.Core.Plugins.Contracts;    // StepSettingError
+using xTestPlatform.Core.SequenceModels;       // SequenceFile, Step
+using xTestPlatform.Core.Services.ExpressionEngine; // ★ 表达式校验 ValidateExpression()
+```
+
+### 20.5 UI 层 — View（编辑器视图 .xaml.cs）
+
+```csharp
+using System.Windows.Controls;                 // UserControl
+using <YourNamespace>.UI.ViewModels;           // ViewModel
+using StepEditor.Abstractions;                 // IRefreshableEditor
+using xTestPlatform.Core.SequenceModels;       // SequenceFile（RefreshFromModel 参数）
+```
+
+### 20.6 UI 层 — ViewModel
+
+```csharp
+using System.ComponentModel;                   // INotifyPropertyChanged
+using System.Runtime.CompilerServices;         // CallerMemberName
+using <YourNamespace>.Models;                  // Setting 模型
+using xTestPlatform.Core.Plugins.Contracts;    // StepSettingError（如果 ViewModel 参与校验）
+using xTestPlatform.Core.SequenceModels;       // SequenceFile
+```
+
+### 20.7 速查表
+
+| 命名空间 | 用途 | 使用位置 |
+|---------|------|---------|
+| `xTestPlatform.Core.Plugins.BuiltIn` | `StepPluginBase<T>` | Plugin 主类 |
+| `xTestPlatform.Core.Plugins.Contracts` | `IStepPlugin`, `IStepExecutor`, `StepSettingError` | Plugin 主类、Executor、Editor |
+| `xTestPlatform.Core.Models.StepSettings` | `[ExpressionField]` 特性 | Setting 模型 |
+| `xTestPlatform.Core.Engine` | `IExecutionContext` | Executor、Editor（校验） |
+| `xTestPlatform.Core.Models` | `Step`, `LogAction` | Executor |
+| **`xTestPlatform.Core.Services.ExpressionEngine`** | **`IExpressionEvaluator`, `ExpressionEvaluatorFactory`** | **Executor、Editor** |
+| `xTestPlatform.Core.SequenceModels` | `SequenceFile`, `Step` | Editor、View、ViewModel |
+| `StepEditor.Abstractions` | `IStepEditorPlugin`, `IRefreshableEditor`, `EditPosition` | Editor、View |
+| `MessagePack` | `[MessagePackObject(true)]` | Setting 模型 |
+
+---
+
+## 21. 附录：目录结构参考
 
 ```text
 D:\xTestPlatform
@@ -1904,9 +2005,12 @@ D:\xTestPlatform
 │   │   └── Executors/[YourPlugin]Executor.cs   ← 实现 IStepExecutor
 │   └── [YourPlugin]Plugin.UI/                 ← UI 层项目
 │       ├── [YourPlugin]Plugin.UI.csproj           AssemblyName = [Name].StepPlugin.UI
-│       ├── [YourPlugin]EditorPlugin.cs         ← 实现 IStepEditorPlugin
-│       ├── Views/[YourPlugin]EditorView.xaml
-│       └── ViewModels/[YourPlugin]ViewModel.cs
+│       ├── Editors/                            ← ★ 每个 EditorPlugin 一个独立文件
+│       │   ├── [Step1]EditorPlugin.cs
+│       │   ├── [Step2]EditorPlugin.cs
+│       │   └── ...
+│       ├── Views/[Step1]EditorView.xaml(.cs)
+│       └── ViewModels/[Step1]ViewModel.cs
 │
 ├── StepEditorManager
 │   ├── StepPluginEditorRegistry.cs            ← 编辑器工厂注册表（UI 层）

@@ -1,0 +1,108 @@
+<UserControl x:Class="NiDaq.UI.Views.NiDaqSyncConfigEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
+             d:DesignHeight="400" d:DesignWidth="800">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="基本配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png"
+                               ImageHeight="20" ImageWidth="20">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String" Margin="0,0,0,8"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="采样率 (Hz)" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SampleRate, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="采样数/通道" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SamplesPerChannel, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="采样模式" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="3" Grid.Column="1" SelectedItem="{Binding SampleMode}" Width="200" HorizontalAlignment="Left"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="时钟配置">
+            <Grid Margin="12" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="时钟源" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="触发配置">
+            <Grid Margin="12" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <CheckBox Grid.Row="0" Grid.Column="1" Content="使用触发" IsChecked="{Binding UseTrigger}" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="触发源" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TriggerSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="触发边沿" VerticalAlignment="Center"/>
+                <ComboBox Grid.Row="2" Grid.Column="1" SelectedItem="{Binding TriggerEdge}" Width="200" HorizontalAlignment="Left"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="AI 通道">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid Grid.Row="0" ItemsSource="{Binding AiChannels}" AutoGenerateColumns="False" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="物理通道" Binding="{Binding PhysicalChannel}" Width="*"/>
+                        <DataGridTextColumn Header="列名" Binding="{Binding ColumnName}" Width="100"/>
+                        <DataGridTextColumn Header="最小值 (V)" Binding="{Binding MinValue}" Width="80"/>
+                        <DataGridTextColumn Header="最大值 (V)" Binding="{Binding MaxValue}" Width="80"/>
+                        <DataGridComboBoxColumn Header="终端配置" SelectedItemBinding="{Binding Terminal}" Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="添加通道" Click="AddAiChannel_Click" Margin="0,0,8,0" Padding="12,4"/>
+                    <Button Content="删除通道" Click="RemoveAiChannel_Click" Padding="12,4"/>
+                </StackPanel>
+            </Grid>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="编码器通道">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid Grid.Row="0" ItemsSource="{Binding EncoderChannels}" AutoGenerateColumns="False" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Counter 通道" Binding="{Binding CounterChannel}" Width="*"/>
+                        <DataGridTextColumn Header="列名" Binding="{Binding ColumnName}" Width="100"/>
+                        <DataGridComboBoxColumn Header="解码类型" SelectedItemBinding="{Binding DecodingType}" Width="80"/>
+                        <DataGridTextColumn Header="PPR" Binding="{Binding PulsesPerRevolution}" Width="60"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="添加通道" Click="AddEncoderChannel_Click" Margin="0,0,8,0" Padding="12,4"/>
+                    <Button Content="删除通道" Click="RemoveEncoderChannel_Click" Padding="12,4"/>
+                </StackPanel>
+            </Grid>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>
