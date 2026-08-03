@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Keep only `UdpCommunication/` as the UDP project folder under the repository root; do not restore deleted legacy UDP directories.
+- Keep only `UdpCommunication/` as the UDP project folder under the repository root; remove the tracked legacy `UdpCommunicationStepPlugin*` root directories from this branch.
 - Keep the project folder names, assembly names, namespaces, plugin behavior, and package versions unchanged.
 - The target UDP layout is `UdpCommunication/UdpCommunication.StepPlugin/`, `UdpCommunication/UdpCommunication.StepPlugin.UI/`, `UdpCommunication/UdpCommunication.StepPlugin.Tests/`, `UdpCommunication/UdpCommunication.sln`, `UdpCommunication/Publish-Plugin.ps1`, and `UdpCommunication/TESTING.md`.
 - Do not stage or commit existing unrelated working-tree changes.
@@ -133,7 +133,7 @@ git add -A UdpCommunication docs/superpowers/plans/2026-08-03-udp-project-layout
 git commit -m "refactor: align UDP plugin layout"
 ```
 
-Expected: the commit contains only the UDP layout migration and its implementation plan; it excludes restored legacy-directory deletions and unrelated workspace files.
+Expected: the commit contains the UDP layout migration, deletion of the tracked legacy UDP root directories, and its implementation plan; it excludes unrelated workspace files.
 
 ## Plan Self-Review
 
