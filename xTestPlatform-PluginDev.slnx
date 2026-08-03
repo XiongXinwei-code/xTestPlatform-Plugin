@@ -1,0 +1,40 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/CAN/">
+    <Project Path="CAN/CanPlugin.UI/CanPlugin.UI.csproj" />
+    <Project Path="CAN/CanPlugin/CanPlugin.csproj" />
+  </Folder>
+  <Folder Name="/LabVIEWCall/">
+    <Project Path="LabVIEWCall/LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="Debug|x86" Project="x64" />
+      <Platform Solution="Release|x86" Project="x86" />
+    </Project>
+    <Project Path="LabVIEWCall/LabVIEWCallPlugin/LabVIEWCallPlugin.csproj">
+      <Platform Solution="*|x64" Project="x64" />
+      <Platform Solution="Debug|x86" Project="x64" />
+      <Platform Solution="Release|x86" Project="x86" />
+    </Project>
+  </Folder>
+    <Folder Name="/Modbus/">
+      <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
+      <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
+    </Folder>
+  <Folder Name="/OPC_UA/" Id="ad1bf027-2a23-54fa-b8df-053e3de6f9bd">
+    <Project Path="OpcUa/OpcUaPlugin.UI/OpcUaPlugin.UI.csproj" />
+    <Project Path="OpcUa/OpcUaPlugin/OpcUaPlugin.csproj" />
+  </Folder>
+  <Folder Name="/SerialPort/">
+    <Project Path="SerialPort/SerialPortPlugin.UI/SerialPortPlugin.UI.csproj" />
+    <Project Path="SerialPort/SerialPortPlugin/SerialPortPlugin.csproj" />
+  </Folder>
+  <Folder Name="/VISA/">
+    <Project Path="VISA/VisaPlugin.UI/VisaPlugin.UI.csproj" />
+    <Project Path="VISA/VisaPlugin/VisaPlugin.csproj" />
+  </Folder>
+</Solution>
+

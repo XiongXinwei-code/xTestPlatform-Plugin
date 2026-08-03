@@ -1,0 +1,53 @@
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using NiDaq.Models;
+using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.SequenceModels;
+
+namespace NiDaq.UI.ViewModels;
+
+public class NiDaqEncoderViewModel : INotifyPropertyChanged
+{
+    private const int SaveDebounceMs = 200;
+    private CancellationTokenSource? _saveCts;
+    private bool _suppressSave;
+    private Step? _step;
+    private IStepSettingSerializer? _serializer;
+    private NiDaqEncoderSetting? _setting;
+
+    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { _step = step; Load(); }
+
+    private void Load()
+    {
+        if (_serializer == null || _step == null) return;
+        _suppressSave = true;
+        try
+        {
+            _setting = _step.StepSetting.Setting is { Length: > 0 } d
+                ? (NiDaqEncoderSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
+                : (NiDaqEncoderSetting)_serializer.CreateDefault();
+            OnPropertyChanged(string.Empty);
+        }
+        finally { _suppressSave = false; }
+    }
+
+    private void QueueSave()
+    {
+        if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
+        _saveCts?.Cancel();
+        var cts = _saveCts = new CancellationTokenSource();
+        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+    }
+
+    public string CounterChannel { get => _setting?.CounterChannel ?? ""; set { if (_setting == null || _setting.CounterChannel == value) return; _setting.CounterChannel = value; OnPropertyChanged(); QueueSave(); } }
+    public EncoderDecodingType DecodingType { get => _setting?.DecodingType ?? EncoderDecodingType.X4; set { if (_setting == null || _setting.DecodingType == value) return; _setting.DecodingType = value; OnPropertyChanged(); QueueSave(); } }
+    public int PulsesPerRevolution { get => _setting?.PulsesPerRevolution ?? 1024; set { if (_setting == null || _setting.PulsesPerRevolution == value) return; _setting.PulsesPerRevolution = value; OnPropertyChanged(); QueueSave(); } }
+    public bool ZIndexEnable { get => _setting?.ZIndexEnable ?? false; set { if (_setting == null || _setting.ZIndexEnable == value) return; _setting.ZIndexEnable = value; OnPropertyChanged(); QueueSave(); } }
+    public double DistancePerPulse { get => _setting?.DistancePerPulse ?? 0.3515625; set { if (_setting == null || _setting.DistancePerPulse == value) return; _setting.DistancePerPulse = value; OnPropertyChanged(); QueueSave(); } }
+    public EncoderUnit Unit { get => _setting?.Unit ?? EncoderUnit.Degrees; set { if (_setting == null || _setting.Unit == value) return; _setting.Unit = value; OnPropertyChanged(); QueueSave(); } }
+    public string ResultVariable { get => _setting?.ResultVariable ?? ""; set { if (_setting == null || _setting.ResultVariable == value) return; _setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+}

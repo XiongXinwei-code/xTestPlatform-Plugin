@@ -1,0 +1,233 @@
+name: 自动发布插件（PR 合并后）
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+  workflow_dispatch:
+
+# 防止并发发布导致版本冲突
+concurrency:
+  group: auto-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  PUBLISH_DIR: publish
+
+jobs:
+  auto-release:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    runs-on: windows-latest
+
+    steps:
+      # ── 1. 检出 master 分支 ────────────────────────────────────────────
+      - name: 检出 master 分支
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: refs/heads/master
+          fetch-depth: 0
+          token: ${{ secrets.PLUGIN_TOKEN }}
+
+      # ── 2. 自动递增版本号（基于最新 tag） ─────────────────────────────
+      - name: 递增版本号
+        id: bump_version
+        shell: pwsh
+        run: |
+          $latestTag = git describe --tags --abbrev=0 2>$null
+          if ($LASTEXITCODE -eq 0 -and $latestTag) {
+              $version = $latestTag.TrimStart('v')
+              $parts = $version.Split('.')
+              $major = [int]$parts[0]
+              $minor = [int]$parts[1]
+              $patch = [int]$parts[2] + 1
+          } else {
+              $major = 1; $minor = 0; $patch = 0
+          }
+          $newVersion = "$major.$minor.$patch"
+          $newTag = "v$newVersion"
+          Write-Host "✅ 版本号已递增为 $newVersion"
+          echo "new_version=$newVersion" >> $env:GITHUB_OUTPUT
+          echo "new_tag=$newTag" >> $env:GITHUB_OUTPUT
+
+      # ── 3. 创建并推送 tag ──────────────────────────────────────────────
+      - name: 创建并推送标签
+        shell: pwsh
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.bump_version.outputs.new_tag }}
+          git push origin ${{ steps.bump_version.outputs.new_tag }}
+
+      # ── 4. 安装 .NET 8 ─────────────────────────────────────────────────
+      - name: 安装 .NET 8
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # ── 5. 自动发现并编译所有插件 ──────────────────────────────────────
+      - name: 编译所有插件
+        shell: pwsh
+        run: |
+          # 约定：顶层目录中包含 *Plugin*.csproj 的即为插件目录
+          $pluginDirs = Get-ChildItem -Directory | Where-Object {
+              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*.csproj" | Select-String -Pattern "Plugin" -SimpleMatch).Count -gt 0 -or
+              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+          }
+
+          if ($pluginDirs.Count -eq 0) {
+              Write-Error "❌ 未找到任何插件目录"
+              exit 1
+          }
+
+          $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
+          New-Item -ItemType Directory -Force -Path $publishRoot | Out-Null
+
+          foreach ($dir in $pluginDirs) {
+              Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+              Write-Host "📦 编译插件: $($dir.Name)"
+              $projects = Get-ChildItem "$($dir.FullName)" -Recurse -Filter "*.csproj"
+              foreach ($proj in $projects) {
+                  Write-Host "   🔨 $($proj.Name)"
+                  dotnet build $proj.FullName `
+                    -c Release -p:Platform=x64 `
+                    -p:OutputPath="$publishRoot\$($dir.Name)"
+                  if ($LASTEXITCODE -ne 0) {
+                      Write-Error "❌ 编译失败: $($proj.Name)"
+                      exit 1
+                  }
+              }
+          }
+
+          Write-Host "✅ 所有插件编译完成"
+
+      # ── 6. 验证产物 ────────────────────────────────────────────────────
+      - name: 验证编译产物
+        shell: pwsh
+        run: |
+          $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
+          $pluginDirs = Get-ChildItem $publishRoot -Directory
+          if ($pluginDirs.Count -eq 0) {
+              Write-Error "❌ 未找到编译产物"
+              exit 1
+          }
+          foreach ($dir in $pluginDirs) {
+              Write-Host "📦 $($dir.Name):"
+              Get-ChildItem $dir.FullName -File | ForEach-Object {
+                  Write-Host "   $($_.Name)  ($([math]::Round($_.Length/1KB,1)) KB)"
+              }
+          }
+
+      # ── 7. 打包 ZIP ────────────────────────────────────────────────────
+      - name: 打包 ZIP
+        shell: pwsh
+        run: |
+          $version = "${{ steps.bump_version.outputs.new_version }}"
+          $zipName = "Plugins-v$version.zip"
+
+          Compress-Archive `
+            -Path "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}\*" `
+            -DestinationPath "$env:GITHUB_WORKSPACE\$zipName"
+
+          $zipFile = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
+          Write-Host "✅ 已打包: $($zipFile.Name)  ($([math]::Round($zipFile.Length/1MB,2)) MB)"
+
+          # 仅保留后续需要使用的 ZIP_NAME
+          "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # ── 8. 生成 Release Notes ─────────────────────────────────────────
+      - name: 生成 Release Notes
+        shell: pwsh
+        run: |
+          $currentTag = "${{ steps.bump_version.outputs.new_tag }}"
+          $tags = git tag --sort=-v:refname
+          $index = [array]::IndexOf($tags, $currentTag)
+          if ($index -ge 0 -and $index -lt ($tags.Count - 1)) {
+              $previousTag = $tags[$index + 1]
+              $log = git log "$previousTag..$currentTag" --pretty=format:"- %s (%an)" --no-merges
+          } else {
+              # 首个版本或未找到前一个标签，仅记录最近一次提交
+              $log = git log -1 --pretty=format:"- %s (%an)" --no-merges
+              if (-not $log) { $log = "初始版本发布。" }
+          }
+          if (-not $log) { $log = "无代码变更，仅版本更新。" }
+          Set-Content -Path "$env:GITHUB_WORKSPACE\release_notes.md" -Value $log -Encoding UTF8
+          Write-Host "✅ Release Notes 已生成"
+          Get-Content "$env:GITHUB_WORKSPACE\release_notes.md"
+
+      # ── 9. 创建 GitHub Release 并上传 ZIP ─────────────────────────────
+      - name: 创建 Release 并上传插件包
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.bump_version.outputs.new_tag }}
+          name: "${{ steps.bump_version.outputs.new_tag }}"
+          body_path: ${{ github.workspace }}\release_notes.md
+          files: ${{ env.ZIP_NAME }}
+          generate_release_notes: false
+          token: ${{ secrets.PLUGIN_TOKEN }}
+
+      # ── 9.1 删除历史发布和标签 ──────────────────────────────────────────
+      - name: 删除历史发布和标签
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.PLUGIN_TOKEN }}
+        run: |
+          # 保留最近 3 个版本，删除更早的发布和标签
+          $allTags = gh release list --json tagName --jq '.[].tagName'
+          $toDelete = $allTags | Select-Object -Skip 3
+          foreach ($tag in $toDelete) {
+            Write-Host "🗑️ 删除发布: $tag"
+            gh release delete $tag --yes --cleanup-tag
+          }
+          Write-Host "✅ 历史发布已清理完毕（保留最近 3 个版本）"
+
+      # ── 10. 更新版本清单
+      - name: 更新版本清单
+        shell: pwsh
+        run: |
+          $tag         = "${{ steps.bump_version.outputs.new_tag }}"
+          $version     = "${{ steps.bump_version.outputs.new_version }}"
+          $zipName     = $env:ZIP_NAME
+          $zipFile     = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
+          $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
+
+          $manifest = [ordered]@{
+            version      = $version
+            releaseName  = "xTestPlatform-Plugins $tag"
+            releaseNotes = "请访问 GitHub Release 页面查看完整更新说明。"
+            htmlUrl      = "https://github.com/${{ github.repository }}/releases/tag/$tag"
+            assets       = @(
+              [ordered]@{
+                name        = $zipName
+                downloadUrl = $downloadUrl
+                size        = $zipFile.Length
+              }
+            )
+          }
+
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\docs" | Out-Null
+          $manifest | ConvertTo-Json -Depth 5 |
+            Set-Content "$env:GITHUB_WORKSPACE\docs\version.json" -Encoding UTF8
+
+          Write-Host "✅ version.json 已生成"
+          Write-Host "   版本:  $version"
+          Write-Host "   文件:  $zipName"
+          Write-Host "   大小:  $([math]::Round($zipFile.Length/1MB,2)) MB"
+          Write-Host "   下载:  $downloadUrl"
+
+      # ── 11. 将 version.json 提交回 master 分支 ────────────────────────
+      - name: 提交版本清单到 master
+        shell: pwsh
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/version.json
+          git diff --staged --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "version.json 无变化，跳过提交"
+          } else {
+            git commit -m "chore: 更新版本清单至 ${{ steps.bump_version.outputs.new_tag }} [skip ci]"
+            git push origin HEAD:master
+          }

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>NiDaq.StepPlugin</AssemblyName>
+	<RootNamespace>NiDaq</RootNamespace>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\NiDaq\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="MessagePack" Version="3.1.7" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+	<PackageReference Include="NationalInstruments.DAQmx" Version="24.8.0" />
+	<PackageReference Include="NationalInstruments.Tdms" Version="24.8.0" />
+  </ItemGroup>
+
+</Project>
