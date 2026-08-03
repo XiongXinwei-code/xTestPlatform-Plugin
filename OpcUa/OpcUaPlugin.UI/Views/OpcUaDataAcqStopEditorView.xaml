@@ -1,0 +1,58 @@
+<UserControl x:Class="OpcUa.UI.Views.OpcUaDataAcqStopEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
+             d:DesignHeight="350" d:DesignWidth="800"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="OpcUa DataAcq Stop"
+                               Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png"
+                               ImageHeight="20" ImageWidth="20">
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Task Name:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="System.String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Export Format:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                          SelectedIndex="{Binding ExportFormat}">
+                    <ComboBoxItem Content="CSV File"/>
+                    <ComboBoxItem Content="Variables Only"/>
+                    <ComboBoxItem Content="Both (CSV + Variables)"/>
+                </ComboBox>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="CSV File Path:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding CsvFilePath, Mode=TwoWay}" ExpectedResultType="System.String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+                          Content="Save Statistics (Avg/Max/Min)"
+                          IsChecked="{Binding SaveStatistics}"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Stat Var Prefix:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+                         Text="{Binding StatVariablePrefix, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

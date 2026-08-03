@@ -198,3 +198,60 @@ public sealed class OpcUaSubscribeEditorPlugin : IStepEditorPlugin
         return errors;
     }
 }
+
+public sealed class OpcUaDataAcqStartEditorPlugin : IStepEditorPlugin
+{
+    public string StepTypeId => "OpcUa.DataAcqStart";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+
+    public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
+    {
+        var view = new OpcUaDataAcqStartEditorView();
+        view.ViewModel.AttachSerializer(new OpcUaDataAcqStartPlugin().CreateSerializer());
+        view.ViewModel.AttachStep(step);
+        return view;
+    }
+
+    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+    {
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaDataAcqStartSetting)new OpcUaDataAcqStartPlugin().CreateSerializer().Deserialize(setting, 1);
+        if (string.IsNullOrWhiteSpace(s.TaskName))
+            errors.Add(StepSettingError.Error("OPCUA_070", "采集任务名不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("OPCUA_071", "连接标识名不能为空"));
+        if (s.Items.Count == 0)
+            errors.Add(StepSettingError.Warning("OPCUA_072", "采集节点列表为空"));
+        if (s.SamplingIntervalMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_073", "采样间隔必须大于 0"));
+        return errors;
+    }
+}
+
+public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
+{
+    public string StepTypeId => "OpcUa.DataAcqStop";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+
+    public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
+    {
+        var view = new OpcUaDataAcqStopEditorView();
+        view.ViewModel.AttachSerializer(new OpcUaDataAcqStopPlugin().CreateSerializer());
+        view.ViewModel.AttachStep(step);
+        return view;
+    }
+
+    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+    {
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaDataAcqStopSetting)new OpcUaDataAcqStopPlugin().CreateSerializer().Deserialize(setting, 1);
+        if (string.IsNullOrWhiteSpace(s.TaskName))
+            errors.Add(StepSettingError.Error("OPCUA_080", "采集任务名不能为空"));
+        if ((s.ExportFormat == DataAcqExportFormat.Csv || s.ExportFormat == DataAcqExportFormat.Both)
+            && string.IsNullOrWhiteSpace(s.CsvFilePath))
+            errors.Add(StepSettingError.Error("OPCUA_081", "CSV 导出路径不能为空"));
+        return errors;
+    }
+}
