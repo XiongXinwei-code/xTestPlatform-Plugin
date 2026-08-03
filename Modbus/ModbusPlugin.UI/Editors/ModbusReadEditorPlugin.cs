@@ -1,0 +1,36 @@
+using System.Windows;
+using Modbus.Models;
+using Modbus.UI.Views;
+using StepEditor.Abstractions;
+using xTestPlatform.Core.Engine;
+using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.SequenceModels;
+using xTestPlatform.Core.Services.ExpressionEngine;
+
+namespace Modbus.UI;
+
+public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
+{
+    public string StepTypeId => "IO.ModbusRead";
+    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+
+    public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
+    {
+        var view = new ModbusReadEditorView();
+        view.ViewModel.AttachSerializer(new ModbusReadPlugin().CreateSerializer());
+        view.ViewModel.AttachStep(step);
+        return view;
+    }
+
+    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+    {
+        var errors = new List<StepSettingError>();
+        var s = (ModbusReadSetting)new ModbusReadPlugin().CreateSerializer().Deserialize(setting, 1);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("MB_020", "连接标识名不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("MB_021", "结果变量名不能为空"));
+        return errors;
+    }
+}
