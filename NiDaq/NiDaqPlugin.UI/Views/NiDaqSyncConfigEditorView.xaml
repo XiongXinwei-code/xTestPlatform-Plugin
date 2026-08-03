@@ -12,7 +12,7 @@
         <syncfusion:TabItemExt Header="基本配置"
                                Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png"
                                ImageHeight="20" ImageWidth="20">
-            <Grid Margin="16" VerticalAlignment="Top">
+            <Grid Margin="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
                     <ColumnDefinition Width="*"/>
@@ -24,7 +24,9 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String" Margin="0,0,0,8"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String" Margin="0,0,0,8"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="采样率 (Hz)" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SampleRate, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="采样数/通道" VerticalAlignment="Center"/>
@@ -34,20 +36,17 @@
             </Grid>
         </syncfusion:TabItemExt>
         <syncfusion:TabItemExt Header="时钟配置">
-            <Grid Margin="16" VerticalAlignment="Top">
+            <Grid Margin="12" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="时钟源" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
         <syncfusion:TabItemExt Header="触发配置">
-            <Grid Margin="16" VerticalAlignment="Top">
+            <Grid Margin="12" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
                     <ColumnDefinition Width="*"/>
@@ -65,7 +64,7 @@
             </Grid>
         </syncfusion:TabItemExt>
         <syncfusion:TabItemExt Header="AI 通道">
-            <Grid Margin="16">
+            <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
@@ -86,7 +85,7 @@
             </Grid>
         </syncfusion:TabItemExt>
         <syncfusion:TabItemExt Header="编码器通道">
-            <Grid Margin="16">
+            <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>

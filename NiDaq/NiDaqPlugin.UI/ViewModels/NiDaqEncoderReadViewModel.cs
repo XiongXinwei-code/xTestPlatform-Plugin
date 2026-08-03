@@ -6,7 +6,7 @@ using xTestPlatform.Core.SequenceModels;
 
 namespace NiDaq.UI.ViewModels;
 
-public class NiDaqEncoderViewModel : INotifyPropertyChanged
+public class NiDaqEncoderReadViewModel : INotifyPropertyChanged
 {
     private const int SaveDebounceMs = 200;
     private CancellationTokenSource? _saveCts;
