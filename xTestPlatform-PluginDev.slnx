@@ -24,6 +24,10 @@
       <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
       <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
     </Folder>
+  <Folder Name="/OPC_UA/" Id="ad1bf027-2a23-54fa-b8df-053e3de6f9bd">
+    <Project Path="OpcUa/OpcUaPlugin.UI/OpcUaPlugin.UI.csproj" />
+    <Project Path="OpcUa/OpcUaPlugin/OpcUaPlugin.csproj" />
+  </Folder>
   <Folder Name="/SerialPort/">
     <Project Path="SerialPort/SerialPortPlugin.UI/SerialPortPlugin.UI.csproj" />
     <Project Path="SerialPort/SerialPortPlugin/SerialPortPlugin.csproj" />
