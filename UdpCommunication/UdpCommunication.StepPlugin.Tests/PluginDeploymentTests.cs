@@ -10,7 +10,7 @@ public sealed class PluginDeploymentTests
     public async Task PublishScript_CreatesDeployablePackageWithoutHostAssemblies()
     {
         var repositoryRoot = FindRepositoryRoot();
-        var script = Path.Combine(repositoryRoot, "UdpCommunication", "build", "Publish-Plugin.ps1");
+        var script = Path.Combine(repositoryRoot, "UdpCommunication", "Publish-Plugin.ps1");
         Assert.True(File.Exists(script), "缺少插件部署脚本");
 
         var outputDirectory = Path.Combine(Path.GetTempPath(), $"udp-plugin-{Guid.NewGuid():N}");

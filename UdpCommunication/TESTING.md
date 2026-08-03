@@ -4,7 +4,7 @@
 
 - xTestPlatform 使用 .NET 8 和 `xTestPlatform.StepEditor.SDK` 1.0.14。
 - 主程序的 Syncfusion WPF 版本为 32.1.25。
-- 使用 `UdpCommunication/build/Publish-Plugin.ps1` 生成 `Plugins/UdpCommunication`，不要手工混入 `xTestPlatform.Core.dll`、`xTestPlatform.StepEditor.SDK.dll` 或 `Abstractions.dll`。
+- 使用 `UdpCommunication/Publish-Plugin.ps1` 生成 `Plugins/UdpCommunication`，不要手工混入 `xTestPlatform.Core.dll`、`xTestPlatform.StepEditor.SDK.dll` 或 `Abstractions.dll`。
 
 ## 手工验收
 

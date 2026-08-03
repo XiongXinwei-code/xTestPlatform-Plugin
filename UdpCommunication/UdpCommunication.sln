@@ -2,11 +2,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin", "src\UdpCommunication.StepPlugin\UdpCommunication.StepPlugin.csproj", "{D6D9138B-5A83-4C85-BA81-5CC70A6A6FDD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin", "UdpCommunication.StepPlugin\UdpCommunication.StepPlugin.csproj", "{D6D9138B-5A83-4C85-BA81-5CC70A6A6FDD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin.Tests", "tests\UdpCommunication.StepPlugin.Tests\UdpCommunication.StepPlugin.Tests.csproj", "{4D8B6F99-8A2B-4B23-9071-8765EFD22450}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin.Tests", "UdpCommunication.StepPlugin.Tests\UdpCommunication.StepPlugin.Tests.csproj", "{4D8B6F99-8A2B-4B23-9071-8765EFD22450}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin.UI", "src\UdpCommunication.StepPlugin.UI\UdpCommunication.StepPlugin.UI.csproj", "{A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpCommunication.StepPlugin.UI", "UdpCommunication.StepPlugin.UI\UdpCommunication.StepPlugin.UI.csproj", "{A70A0F20-229B-4A9B-9247-A8B73A7C8B0D}"
 EndProject
 Global
     GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -7,9 +7,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$uiProjectPath = Join-Path $projectRoot 'src\UdpCommunication.StepPlugin.UI\UdpCommunication.StepPlugin.UI.csproj'
-$sourceDirectory = Join-Path $projectRoot "src\UdpCommunication.StepPlugin.UI\bin\$Configuration\net8.0-windows7.0"
+$projectRoot = [IO.Path]::GetFullPath($PSScriptRoot)
+$uiProjectPath = Join-Path $projectRoot 'UdpCommunication.StepPlugin.UI\UdpCommunication.StepPlugin.UI.csproj'
+$sourceDirectory = Join-Path $projectRoot "UdpCommunication.StepPlugin.UI\bin\$Configuration\net8.0-windows7.0"
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = Join-Path $projectRoot '..\Plugins\UdpCommunication'
 }

@@ -21,8 +21,8 @@ public sealed class UdpPluginDescriptionTests
     public void UdpEditor_UsesTheUdpIconAndFunctionalTabName()
     {
         var repositoryRoot = FindRepositoryRoot();
-        var iconPath = Path.Combine(repositoryRoot, "UdpCommunication", "src", "UdpCommunication.StepPlugin.UI", "Resources", "Icons", "udp.png");
-        var xamlPath = Path.Combine(repositoryRoot, "UdpCommunication", "src", "UdpCommunication.StepPlugin.UI", "Views", "UdpEditorView.xaml");
+        var iconPath = Path.Combine(repositoryRoot, "UdpCommunication", "UdpCommunication.StepPlugin.UI", "Resources", "Icons", "udp.png");
+        var xamlPath = Path.Combine(repositoryRoot, "UdpCommunication", "UdpCommunication.StepPlugin.UI", "Views", "UdpEditorView.xaml");
 
         Assert.True(File.Exists(iconPath));
         var xaml = File.ReadAllText(xamlPath);
