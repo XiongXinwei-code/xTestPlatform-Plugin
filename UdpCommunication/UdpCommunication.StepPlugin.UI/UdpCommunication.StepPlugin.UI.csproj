@@ -8,6 +8,7 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Resources\Icons\udp.png" />
     <ProjectReference Include="..\UdpCommunication.StepPlugin\UdpCommunication.StepPlugin.csproj" />
     <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
     <PackageReference Include="MessagePack" Version="3.1.8" />

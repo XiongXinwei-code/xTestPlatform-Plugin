@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Resources;
 using UdpCommunication.StepPlugin.Models;
 using UdpCommunication.StepPlugin.UI;
 using Xunit;
@@ -28,6 +30,21 @@ public sealed class UdpPluginDescriptionTests
         var xaml = File.ReadAllText(xamlPath);
         Assert.Contains("Header=\"UDP\"", xaml, StringComparison.Ordinal);
         Assert.Contains($"Image=\"{UdpIconPath}\"", xaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UdpEditorAssembly_EmbedsTheUdpIconResource()
+    {
+        var assembly = typeof(UdpSendEditorPlugin).Assembly;
+        using var stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.g.resources");
+        Assert.NotNull(stream);
+
+        using var reader = new ResourceReader(stream!);
+        var resourceNames = reader.Cast<DictionaryEntry>()
+            .Select(entry => (string)entry.Key)
+            .ToArray();
+
+        Assert.Contains("resources/icons/udp.png", resourceNames, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
