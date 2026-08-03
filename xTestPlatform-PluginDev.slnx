@@ -8,16 +8,12 @@
     <Project Path="CAN/CanPlugin.UI/CanPlugin.UI.csproj" />
     <Project Path="CAN/CanPlugin/CanPlugin.csproj" />
   </Folder>
-  <Folder Name="/LabVIEWCall/">
+  <Folder Name="/LabVIEW_Call/">
     <Project Path="LabVIEWCall/LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj">
       <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="Debug|x86" Project="x64" />
-      <Platform Solution="Release|x86" Project="x86" />
     </Project>
     <Project Path="LabVIEWCall/LabVIEWCallPlugin/LabVIEWCallPlugin.csproj">
       <Platform Solution="*|x64" Project="x64" />
-      <Platform Solution="Debug|x86" Project="x64" />
-      <Platform Solution="Release|x86" Project="x86" />
     </Project>
   </Folder>
     <Folder Name="/Modbus/">

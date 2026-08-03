@@ -53,3 +53,10 @@ public enum TriggerEdge
     Rising,
     Falling
 }
+
+/// <summary>AI 采样模式</summary>
+public enum AiSampleMode
+{
+    FiniteSamples,
+    ContinuousSamples
+}
