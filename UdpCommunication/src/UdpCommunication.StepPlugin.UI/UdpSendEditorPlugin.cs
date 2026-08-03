@@ -12,7 +12,7 @@ namespace UdpCommunication.StepPlugin.UI;
 public sealed class UdpSendEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "Network.UDP_Send";
-    public string IconPath => string.Empty;
+    public string IconPath => "pack://application:,,,/UdpCommunication.StepPlugin.UI;component/Resources/Icons/udp.png";
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) { var plugin = new UdpSendPlugin(); var view = new UdpEditorView(plugin.CreateSerializer(), plugin.GenerateDescription, false); view.RefreshFromStep(step); return view; }
-    public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken cancellationToken = default) { var serializer = new UdpSendPlugin().CreateSerializer(); return Task.FromResult(UdpEditorValidation.Validate(UdpEditorValidation.Deserialize(setting, serializer, false), false, context)); }
+    public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken cancellationToken = default) { var serializer = new UdpSendPlugin().CreateSerializer(); return Task.FromResult(UdpEditorValidation.ValidateSafely(setting, serializer, false, context)); }
 }

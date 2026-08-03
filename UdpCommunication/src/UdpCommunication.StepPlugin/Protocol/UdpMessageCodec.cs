@@ -40,6 +40,16 @@ public static class UdpMessageCodec
         };
     }
 
+    public static bool IsMatch(ReadOnlySpan<byte> actual, ReadOnlySpan<byte> expected, UdpReplyMatchMode mode)
+    {
+        return mode switch
+        {
+            UdpReplyMatchMode.Exact => actual.SequenceEqual(expected),
+            UdpReplyMatchMode.Contains => actual.IndexOf(expected) >= 0,
+            _ => throw new ArgumentOutOfRangeException(nameof(mode))
+        };
+    }
+
     private static byte[] EncodeHexadecimal(string value)
     {
         var normalized = string.Concat(value.Where(static character => !char.IsWhiteSpace(character)));

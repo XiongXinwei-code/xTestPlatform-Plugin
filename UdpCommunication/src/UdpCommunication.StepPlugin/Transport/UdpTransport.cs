@@ -3,24 +3,34 @@ using System.Net.Sockets;
 
 namespace UdpCommunication.StepPlugin.Transport;
 
-public sealed class UdpTransport
+public sealed class UdpTransport : IUdpTransport
 {
     public async Task SendAsync(UdpEndpointOptions endpoint, ReadOnlyMemory<byte> request, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         using var client = CreateClient(endpoint);
         await client.SendAsync(request, new IPEndPoint(IPAddress.Parse(endpoint.RemoteAddress), endpoint.RemotePort), cancellationToken);
     }
 
     public async Task<UdpTransportResult> SendAndReceiveAsync(UdpEndpointOptions endpoint, ReadOnlyMemory<byte> request, TimeSpan timeout, CancellationToken cancellationToken)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
+        cancellationToken.ThrowIfCancellationRequested();
         using var client = CreateClient(endpoint);
-        await client.SendAsync(request, new IPEndPoint(IPAddress.Parse(endpoint.RemoteAddress), endpoint.RemotePort), cancellationToken);
+        var remoteEndpoint = new IPEndPoint(IPAddress.Parse(endpoint.RemoteAddress), endpoint.RemotePort);
+        await client.SendAsync(request, remoteEndpoint, cancellationToken);
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutSource.CancelAfter(timeout);
         try
         {
-            var reply = await client.ReceiveAsync(timeoutSource.Token);
-            return new UdpTransportResult(reply.Buffer, reply.RemoteEndPoint);
+            while (true)
+            {
+                var reply = await client.ReceiveAsync(timeoutSource.Token);
+                if (reply.RemoteEndPoint.Address.Equals(remoteEndpoint.Address) && reply.RemoteEndPoint.Port == remoteEndpoint.Port)
+                {
+                    return new UdpTransportResult(reply.Buffer, reply.RemoteEndPoint);
+                }
+            }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

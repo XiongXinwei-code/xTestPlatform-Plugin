@@ -5,20 +5,23 @@
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
              syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="Module">
+        <syncfusion:TabItemExt Header="UDP"
+                              Image="pack://application:,,,/UdpCommunication.StepPlugin.UI;component/Resources/Icons/udp.png"
+                              ImageHeight="20"
+                              ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="16">
-                <TextBlock Text="目标 IP"/><TextBox Text="{Binding RemoteAddress, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Text="目标端口" Margin="0,8,0,0"/><TextBox Text="{Binding RemotePort, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Text="本地 IP" Margin="0,8,0,0"/><TextBox Text="{Binding LocalAddress, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Text="本地端口" Margin="0,8,0,0"/><TextBox Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Text="发送格式" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding PacketFormats}" SelectedItem="{Binding RequestFormat}"/>
-                <TextBlock Text="发送报文" Margin="0,8,0,0"/><TextBox Text="{Binding RequestData, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="64"/>
+                <TextBlock Text="目标 IP"/><TextBox Text="{Binding RemoteAddress, UpdateSourceTrigger=PropertyChanged}" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
+                <TextBlock Text="目标端口" Margin="0,8,0,0"/><TextBox Text="{Binding RemotePort, UpdateSourceTrigger=PropertyChanged}" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
+                <TextBlock Text="本地 IP" Margin="0,8,0,0"/><TextBox Text="{Binding LocalAddress, UpdateSourceTrigger=PropertyChanged}" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
+                <TextBlock Text="本地端口" Margin="0,8,0,0"/><TextBox Text="{Binding LocalPort, UpdateSourceTrigger=PropertyChanged}" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
+                <TextBlock Text="发送格式" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding PacketFormats}" SelectedItem="{Binding RequestFormat}" SelectionChanged="ComboBox_OnSelectionChanged"/>
+                <TextBlock Text="发送报文" Margin="0,8,0,0"/><TextBox Text="{Binding RequestData, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="64" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
                 <StackPanel Visibility="{Binding ReceiveVisibility}">
-                    <TextBlock Text="接收超时(ms)" Margin="0,8,0,0"/><TextBox Text="{Binding ReceiveTimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="回复格式" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding PacketFormats}" SelectedItem="{Binding ReplyFormat}"/>
-                    <TextBlock Text="期望回复" Margin="0,8,0,0"/><TextBox Text="{Binding ExpectedReply, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="匹配模式" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding ReplyMatchModes}" SelectedItem="{Binding MatchMode}"/>
-                    <TextBlock Text="回复变量" Margin="0,8,0,0"/><TextBox Text="{Binding ResponseVariable, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Text="接收超时(ms)" Margin="0,8,0,0"/><TextBox Text="{Binding ReceiveTimeoutMs, UpdateSourceTrigger=PropertyChanged}" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
+                    <TextBlock Text="回复格式" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding PacketFormats}" SelectedItem="{Binding ReplyFormat}" SelectionChanged="ComboBox_OnSelectionChanged"/>
+                    <TextBlock Text="期望回复" Margin="0,8,0,0"/><TextBox Text="{Binding ExpectedReply, UpdateSourceTrigger=PropertyChanged}" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
+                    <TextBlock Text="匹配模式" Margin="0,8,0,0"/><ComboBox ItemsSource="{Binding ReplyMatchModes}" SelectedItem="{Binding MatchMode}" SelectionChanged="ComboBox_OnSelectionChanged"/>
+                    <TextBlock Text="回复变量（如 UdpReply 或 Locals.UdpReply）" Margin="0,8,0,0"/><TextBox Text="{Binding ResponseVariable, UpdateSourceTrigger=PropertyChanged}" ToolTip="留空表示不保存；裸名称保存到 Step 作用域，完整路径按指定作用域写入" LostFocus="TextBox_OnLostFocus" PreviewKeyDown="TextBox_OnPreviewKeyDown"/>
                 </StackPanel>
             </StackPanel></ScrollViewer>
         </syncfusion:TabItemExt>

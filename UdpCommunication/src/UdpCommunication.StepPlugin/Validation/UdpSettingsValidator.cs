@@ -7,9 +7,18 @@ public static class UdpSettingsValidator
 {
     public static string? ValidateEndpoint(UdpEndpointOptions endpoint)
     {
-        if (!IsIpv4(endpoint.LocalAddress) || !IsIpv4(endpoint.RemoteAddress)) return "本地地址或目标地址不是有效的 IPv4 地址";
-        if (endpoint.LocalPort is < 0 or > 65535 || endpoint.RemotePort is < 1 or > 65535) return "端口号超出有效范围";
+        if (!IPAddress.TryParse(endpoint.LocalAddress, out var localAddress)
+            || !IPAddress.TryParse(endpoint.RemoteAddress, out var remoteAddress))
+        {
+            return "\u672c\u5730\u5730\u5740\u6216\u76ee\u6807\u5730\u5740\u4e0d\u662f\u6709\u6548\u7684 IP \u5730\u5740";
+        }
+
+        if (localAddress.AddressFamily != remoteAddress.AddressFamily)
+        {
+            return "\u672c\u5730\u5730\u5740\u4e0e\u76ee\u6807\u5730\u5740\u5fc5\u987b\u4f7f\u7528\u76f8\u540c\u7684 IP \u5730\u5740\u65cf";
+        }
+
+        if (endpoint.LocalPort is < 0 or > 65535 || endpoint.RemotePort is < 1 or > 65535) return "\u7aef\u53e3\u53f7\u8d85\u51fa\u6709\u6548\u8303\u56f4";
         return null;
     }
-    private static bool IsIpv4(string value) => IPAddress.TryParse(value, out var address) && address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
 }

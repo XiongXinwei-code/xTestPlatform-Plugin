@@ -11,8 +11,8 @@
     <ProjectReference Include="..\UdpCommunication.StepPlugin\UdpCommunication.StepPlugin.csproj" />
     <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
     <PackageReference Include="MessagePack" Version="3.1.8" />
-    <PackageReference Include="Syncfusion.Tools.WPF" Version="34.1.32" />
-    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="34.1.32" />
-    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="34.1.32" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
   </ItemGroup>
 </Project>

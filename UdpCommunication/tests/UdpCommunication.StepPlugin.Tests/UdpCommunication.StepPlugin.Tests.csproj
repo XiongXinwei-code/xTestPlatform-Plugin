@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\UdpCommunication.StepPlugin\UdpCommunication.StepPlugin.csproj" />
+    <ProjectReference Include="..\..\src\UdpCommunication.StepPlugin.UI\UdpCommunication.StepPlugin.UI.csproj" />
   </ItemGroup>
 </Project>

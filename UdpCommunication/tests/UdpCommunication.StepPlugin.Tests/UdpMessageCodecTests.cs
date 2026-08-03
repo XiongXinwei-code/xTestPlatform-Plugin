@@ -37,4 +37,15 @@ public sealed class UdpMessageCodecTests
     {
         Assert.Equal(expectedResult, UdpMessageCodec.IsMatch(actual, expected, mode));
     }
+
+    [Theory]
+    [InlineData(UdpReplyMatchMode.Exact)]
+    [InlineData(UdpReplyMatchMode.Contains)]
+    public void IsMatch_EquivalentHexBytes_MatchesRegardlessOfInputTextCasing(UdpReplyMatchMode mode)
+    {
+        var actual = UdpMessageCodec.Encode("AA BB CC", UdpPacketFormat.Hexadecimal);
+        var expected = UdpMessageCodec.Encode(mode == UdpReplyMatchMode.Exact ? "aa bb cc" : "bb", UdpPacketFormat.Hexadecimal);
+
+        Assert.True(UdpMessageCodec.IsMatch(actual, expected, mode));
+    }
 }
