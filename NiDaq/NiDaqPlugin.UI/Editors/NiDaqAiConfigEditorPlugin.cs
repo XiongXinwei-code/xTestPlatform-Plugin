@@ -2,10 +2,8 @@ using System.Windows;
 using NiDaq.Models;
 using NiDaq.UI.Views;
 using StepEditor.Abstractions;
-using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
-using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace NiDaq.UI;
 
@@ -22,10 +20,11 @@ public sealed class NiDaqAiConfigEditorPlugin : IStepEditorPlugin
         return view;
     }
 
-    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+		StepEditorValidationContext context, CancellationToken ct = default)
     {
         var errors = new List<StepSettingError>();
-        var s = (NiDaqAiConfigSetting)new NiDaqAiConfigPlugin().CreateSerializer().Deserialize(setting, 1);
+        var s = (NiDaqAiConfigSetting)new NiDaqAiConfigPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("E001", "任务名称不能为空"));
         if (s.Channels.Count == 0) errors.Add(StepSettingError.Error("E002", "AI 通道列表为空"));
         return errors;

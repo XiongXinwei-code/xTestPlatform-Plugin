@@ -2,10 +2,8 @@ using System.Windows;
 using CAN.Models;
 using CAN.UI.Views;
 using StepEditor.Abstractions;
-using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
-using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace CAN.UI;
 
@@ -23,15 +21,15 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
     }
 
     public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+		StepEditorValidationContext context, CancellationToken ct = default)
     {
         var errors = new List<StepSettingError>();
-        var s = (CanOpenSetting)new CanOpenPlugin().CreateSerializer().Deserialize(setting, 1);
+        var s = (CanOpenSetting)new CanOpenPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.Channel))
             errors.Add(StepSettingError.Error("CAN_001", "通道名称不能为空"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_002", "连接标识名不能为空"));
-        else if (!evaluator.ValidateExpression(s.ConnectionName, context, out var connErr))
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
             errors.Add(StepSettingError.Error("CAN_004", $"ConnectionName 表达式无效: {connErr}"));
         if (s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("CAN_003", "波特率必须大于 0"));

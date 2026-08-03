@@ -2,10 +2,8 @@ using System.Windows;
 using OpcUa.Models;
 using OpcUa.UI.Views;
 using StepEditor.Abstractions;
-using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
-using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace OpcUa.UI;
 
@@ -23,10 +21,10 @@ public sealed class OpcUaDataAcqStartEditorPlugin : IStepEditorPlugin
     }
 
     public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+		StepEditorValidationContext context, CancellationToken ct = default)
     {
         var errors = new List<StepSettingError>();
-        var s = (OpcUaDataAcqStartSetting)new OpcUaDataAcqStartPlugin().CreateSerializer().Deserialize(setting, 1);
+        var s = (OpcUaDataAcqStartSetting)new OpcUaDataAcqStartPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName))
             errors.Add(StepSettingError.Error("OPCUA_070", "采集任务名不能为空"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))

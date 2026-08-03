@@ -1,11 +1,9 @@
-﻿using System.Windows;
+using System.Windows;
 using SerialPort.Models;
 using SerialPort.UI.Views;
 using StepEditor.Abstractions;
-using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
-using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace SerialPort.UI;
 
@@ -23,15 +21,12 @@ public sealed class SerialPortReadEditorPlugin : IStepEditorPlugin
     }
 
     public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-        byte[] setting,
-        IExpressionEvaluator evaluator,
-        IExecutionContext context,
-        CancellationToken cancellationToken = default)
+		StepEditorValidationContext context, CancellationToken cancellationToken = default)
     {
         var errors = new List<StepSettingError>();
         var serializer = new SerialPortReadPlugin().CreateSerializer();
-        var s = setting is { Length: > 0 }
-            ? (SerialPortReadSetting)serializer.Deserialize(setting, 1)
+        var s = context.Setting is { Length: > 0 }
+            ? (SerialPortReadSetting)serializer.Deserialize(context.Setting, 1)
             : new SerialPortReadSetting();
 
         if (string.IsNullOrWhiteSpace(s.PortName))
@@ -45,7 +40,7 @@ public sealed class SerialPortReadEditorPlugin : IStepEditorPlugin
 
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("SP_033", "ResultVariable 未配置，必须指定读取结果存放的变量路径"));
-        else if (!context.HasVariable(s.ResultVariable))
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
             errors.Add(StepSettingError.Error("SP_034", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
 
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);

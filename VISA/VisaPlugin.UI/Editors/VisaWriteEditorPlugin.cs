@@ -2,10 +2,8 @@ using System.Windows;
 using VISA.Models;
 using VISA.UI.Views;
 using StepEditor.Abstractions;
-using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
-using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace VISA.UI;
 
@@ -23,10 +21,10 @@ public sealed class VisaWriteEditorPlugin : IStepEditorPlugin
     }
 
     public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct = default)
+		StepEditorValidationContext context, CancellationToken ct = default)
     {
         var errors = new List<StepSettingError>();
-        var s = (VisaWriteSetting)new VisaWritePlugin().CreateSerializer().Deserialize(setting, 1);
+        var s = (VisaWriteSetting)new VisaWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_020", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.Command))
