@@ -386,7 +386,28 @@ foreach (var plugin in editorPlugins)   // 扫描 *.StepPlugin.dll 中的 IStepE
 }
 ```
 
-### 4.4 实现示例（两个独立类）
+### 4.4 EditorPlugin 文件组织规范
+
+> **强制要求：每个 `IStepEditorPlugin` 实现类必须放在独立的 `.cs` 文件中。**
+
+当一个 UI 项目包含多个步骤编辑器时，**禁止**将所有 EditorPlugin 类写在同一个文件里。正确做法：
+
+```text
+[YourPlugin]Plugin.UI/
+├── Editors/                          ← 专用目录
+│   ├── [Step1]EditorPlugin.cs        ← 一个类一个文件
+│   ├── [Step2]EditorPlugin.cs
+│   └── [Step3]EditorPlugin.cs
+├── Views/
+│   ├── [Step1]EditorView.xaml(.cs)
+│   └── ...
+└── ViewModels/
+    └── ...
+```
+
+**命名约定**：`{StepName}EditorPlugin.cs`，与对应的 View/ViewModel 保持相同的 `{StepName}` 前缀。
+
+### 4.5 实现示例（两个独立类）
 
 ```csharp
 // ── 执行插件（IStepPlugin，Core 层）────────────────────────────────
@@ -1984,9 +2005,12 @@ D:\xTestPlatform
 │   │   └── Executors/[YourPlugin]Executor.cs   ← 实现 IStepExecutor
 │   └── [YourPlugin]Plugin.UI/                 ← UI 层项目
 │       ├── [YourPlugin]Plugin.UI.csproj           AssemblyName = [Name].StepPlugin.UI
-│       ├── [YourPlugin]EditorPlugin.cs         ← 实现 IStepEditorPlugin
-│       ├── Views/[YourPlugin]EditorView.xaml
-│       └── ViewModels/[YourPlugin]ViewModel.cs
+│       ├── Editors/                            ← ★ 每个 EditorPlugin 一个独立文件
+│       │   ├── [Step1]EditorPlugin.cs
+│       │   ├── [Step2]EditorPlugin.cs
+│       │   └── ...
+│       ├── Views/[Step1]EditorView.xaml(.cs)
+│       └── ViewModels/[Step1]ViewModel.cs
 │
 ├── StepEditorManager
 │   ├── StepPluginEditorRegistry.cs            ← 编辑器工厂注册表（UI 层）
