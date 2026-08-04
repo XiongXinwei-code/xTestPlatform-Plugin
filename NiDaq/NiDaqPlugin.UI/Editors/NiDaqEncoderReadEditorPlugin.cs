@@ -1,6 +1,7 @@
 using System.Windows;
 using NiDaq.Models;
 using NiDaq.UI.Views;
+using NiDaq.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;

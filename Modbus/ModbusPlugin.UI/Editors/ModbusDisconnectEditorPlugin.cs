@@ -1,6 +1,7 @@
 using System.Windows;
 using Modbus.Models;
 using Modbus.UI.Views;
+using Modbus.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -27,6 +28,7 @@ public sealed class ModbusDisconnectEditorPlugin : IStepEditorPlugin
         var s = (ModbusDisconnectSetting)new ModbusDisconnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_010", "连接标识名不能为空"));
+        ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

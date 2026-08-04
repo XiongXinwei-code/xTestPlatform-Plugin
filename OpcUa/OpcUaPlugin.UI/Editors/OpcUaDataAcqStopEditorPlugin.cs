@@ -1,6 +1,7 @@
 using System.Windows;
 using OpcUa.Models;
 using OpcUa.UI.Views;
+using OpcUa.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;

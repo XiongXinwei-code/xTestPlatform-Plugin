@@ -1,6 +1,7 @@
 using System.Windows;
 using CAN.Models;
 using CAN.UI.Views;
+using CAN.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -33,6 +34,7 @@ public sealed class CanCyclicSendStartEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Warning("CAN_W30", "报文列表为空"));
         else if (!s.Messages.Any(m => m.Enabled))
             errors.Add(StepSettingError.Warning("CAN_W31", "没有启用的报文"));
+        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

@@ -1,6 +1,6 @@
 ﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.5 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
+> **版本**：3.2.0 | **框架**：.NET 8 / WPF | **日期**：2025-08-04
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -344,15 +344,23 @@ namespace StepEditor.Abstractions {
         FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile);
 
         /// <summary>
-        /// 带 UI 上下文的校验（变量解析、表达式执行、类型匹配）。
+        /// 带 UI 上下文的校验（变量解析、表达式执行、类型匹配、生命周期检查）。
         /// 需要依赖 WPF/Evaluator 的校验逻辑放这里，默认返回空列表。
         /// </summary>
         Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-            byte[] setting,
-            IExpressionEvaluator evaluator,
-            IExecutionContext context,
+            StepEditorValidationContext context,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<StepSettingError>>([]);
+    }
+
+    /// <summary>校验上下文，包含当前步骤的完整环境信息</summary>
+    public sealed class StepEditorValidationContext {
+        public byte[] Setting { get; init; }
+        public IExpressionEvaluator Evaluator { get; init; }
+        public IExecutionContext ExecutionContext { get; init; }
+        public SequenceFile? SequenceFile { get; init; }
+        public Block? Block { get; init; }
+        public Step? CurrentStep { get; init; }
     }
 }
 ```
@@ -1269,19 +1277,22 @@ public sealed class MyPlugin : StepPluginBase<MySetting> {
 
 ```csharp
 public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-    byte[] setting,
-    IExpressionEvaluator evaluator,
-    IExecutionContext context,
-    CancellationToken ct = default) {
+    StepEditorValidationContext context, CancellationToken ct = default) {
     var errors = new List<StepSettingError>();
+    var setting = context.Setting;
+    var evaluator = context.Evaluator;
+    var execContext = context.ExecutionContext;
+
     var s = (MySetting)new MyStepPlugin().CreateSerializer().Deserialize(setting);
 
     if (string.IsNullOrWhiteSpace(s.TargetVariable))
         errors.Add(StepSettingError.Error("MY_001", "目标变量不能为空"));
 
-    // 可使用 evaluator/context 做变量存在性检查等 UI 层逻辑
-    if (!context.HasVariable(s.TargetVariable))
+    // 可使用 evaluator/execContext 做变量存在性检查等 UI 层逻辑
+    if (!execContext.HasVariable(s.TargetVariable))
         errors.Add(StepSettingError.Warning("MY_W01", $"变量 {s.TargetVariable} 未定义"));
+
+    // 可通过 context.SequenceFile / context.Block / context.CurrentStep 做生命周期/结构校验
 
     return errors;
 }
@@ -1308,7 +1319,104 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 ---
 
-## 13.3 异常处理规范（重要）
+### 13.3 生命周期校验（Lifecycle Validation）— **必须实现**
+
+> ⚠️ **凡是同一组插件中存在使用顺序依赖的，必须在依赖方的 `ValidateWithContextAsync` 中检查前置步骤是否存在。**  
+> 目标是让用户在编辑时就能发现配置问题，**不要等到运行时才报错**。
+
+**适用场景：**
+
+| 模式 | 前置步骤 | 依赖步骤（必须在前置步骤之后） |
+|------|----------|-------------------------------|
+| 连接/断开 | Open / Connect | Read、Write、Query、Close、Disconnect |
+| 配置/采集 | Config | TaskStart、Read、TaskStop |
+| 启动/停止 | Start | Stop |
+| 创建/使用 | Create / Init | 任何使用该资源的步骤 |
+
+**实现方式：**
+
+1. 在 UI 项目中创建 `Validation/XxxLifecycleValidator.cs` 静态辅助类
+2. 在每个依赖步骤的 `ValidateWithContextAsync` 末尾调用辅助方法
+
+**辅助类模板：**
+
+```csharp
+using MessagePack;
+using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.SequenceModels;
+
+namespace MyPlugin.UI.Validation;
+
+internal static class MyLifecycleValidator
+{
+    private static readonly MessagePackSerializerOptions _opts =
+        MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
+
+    public static void CheckPrecedingOpen(
+        List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(connectionName)) return;
+
+        int currentIndex = block.IndexOf(currentStep);
+        if (currentIndex <= 0) goto NotFound;
+
+        for (int i = 0; i < currentIndex; i++)
+        {
+            var step = block[i];
+            if (step.StepSetting.StepType != "IO.MyOpen") continue;
+
+            try
+            {
+                var setting = MessagePackSerializer.Deserialize<MyOpenSetting>(
+                    step.StepSetting.Setting, _opts);
+                if (setting.ConnectionName == connectionName) return; // 找到匹配 ✅
+            }
+            catch { /* 反序列化失败则跳过 */ }
+        }
+
+    NotFound:
+        errors.Add(StepSettingError.Warning("MY_LC01",
+            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 Open 步骤"));
+    }
+}
+```
+
+**在 EditorPlugin 中调用：**
+
+```csharp
+public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+    StepEditorValidationContext context, CancellationToken ct = default)
+{
+    var errors = new List<StepSettingError>();
+    var s = (MyReadSetting)new MyReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+
+    // 1. 基础字段校验
+    if (string.IsNullOrWhiteSpace(s.ConnectionName))
+        errors.Add(StepSettingError.Error("MY_010", "连接名不能为空"));
+
+    // 2. 生命周期校验 ← 在所有字段校验之后、return 之前
+    MyLifecycleValidator.CheckPrecedingOpen(
+        context.Block, context.CurrentStep, s.ConnectionName, errors);
+
+    return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+}
+```
+
+**关键规则：**
+
+| 规则 | 说明 |
+|------|------|
+| 匹配方式 | 纯字符串比较（连接名/端口名/任务名），变量表达式也按字符串匹配 |
+| 扫描范围 | 同 Block 中当前步骤之前的所有步骤（`context.Block` 是 `List<Step>`） |
+| 校验级别 | 使用 `Warning`（不阻止运行），因为可能存在动态创建连接的场景 |
+| 反序列化 | 必须 try-catch，其他步骤的 Setting 格式可能不匹配 |
+| 错误码 | 使用 `插件缩写_LC数字` 格式，如 `SP_LC01`、`CAN_LC01`、`DAQ_LC01` |
+| Open 步骤本身 | 不需要检查前置（它就是源头） |
+| Close/Disconnect | 也要检查前面是否有对应的 Open（避免关闭一个从未打开的连接） |
+
+---
+
+## 13.4 异常处理规范（重要）
 
 **插件执行器（IStepExecutor）绝不能抛出未捕获的异常中断程序。**
 
@@ -1553,9 +1661,9 @@ public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
     }
 
     public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct) {
+        StepEditorValidationContext context, CancellationToken ct = default) {
         var errors = new List<StepSettingError>();
-        var s = (DelayCheckSetting)new DelayCheckPlugin().CreateSerializer().Deserialize(setting);
+        var s = (DelayCheckSetting)new DelayCheckPlugin().CreateSerializer().Deserialize(context.Setting);
 
         if (string.IsNullOrWhiteSpace(s.TargetVariable))
             errors.Add(StepSettingError.Error("DC_001", "目标变量不能为空"));

@@ -1,6 +1,7 @@
 using System.Windows;
 using OpcUa.Models;
 using OpcUa.UI.Views;
+using OpcUa.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -31,6 +32,7 @@ public sealed class OpcUaWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_031", "节点 ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.WriteValue))
             errors.Add(StepSettingError.Error("OPCUA_032", "写入值不能为空"));
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

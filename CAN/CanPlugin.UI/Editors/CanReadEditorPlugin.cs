@@ -1,6 +1,7 @@
 using System.Windows;
 using CAN.Models;
 using CAN.UI.Views;
+using CAN.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -31,6 +32,7 @@ public sealed class CanReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_031", "超时必须大于 0"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Warning("CAN_W30", "未配置结果变量，数据将不会存储"));
+        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

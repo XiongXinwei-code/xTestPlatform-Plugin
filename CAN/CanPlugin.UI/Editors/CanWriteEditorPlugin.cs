@@ -1,6 +1,7 @@
 using System.Windows;
 using CAN.Models;
 using CAN.UI.Views;
+using CAN.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -31,6 +32,7 @@ public sealed class CanWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_021", "CAN ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.Data))
             errors.Add(StepSettingError.Warning("CAN_W20", "发送数据为空"));
+        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

@@ -1,5 +1,6 @@
 using System.Windows;
 using SerialPort.Models;
+using SerialPort.UI.Validation;
 using SerialPort.UI.Views;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -42,6 +43,8 @@ public sealed class SerialPortReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("SP_033", "ResultVariable 未配置，必须指定读取结果存放的变量路径"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
             errors.Add(StepSettingError.Error("SP_034", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+
+        SerialPortLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.PortName, errors);
 
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }

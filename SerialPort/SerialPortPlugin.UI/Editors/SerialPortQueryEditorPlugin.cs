@@ -1,5 +1,6 @@
 using System.Windows;
 using SerialPort.Models;
+using SerialPort.UI.Validation;
 using SerialPort.UI.Views;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -39,6 +40,8 @@ public sealed class SerialPortQueryEditorPlugin : IStepEditorPlugin
 			errors.Add(StepSettingError.Error("SP_042", "结果变量不能为空"));
 		else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
 			errors.Add(StepSettingError.Error("SP_043", $"变量 {s.ResultVariable} 不存在"));
+
+		SerialPortLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.PortName, errors);
 
 		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}
