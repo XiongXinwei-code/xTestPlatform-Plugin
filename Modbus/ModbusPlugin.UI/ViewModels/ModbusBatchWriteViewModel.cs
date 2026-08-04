@@ -20,7 +20,7 @@ public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 	private IStepSettingSerializer? _serializer;
 	private ModbusBatchWriteSetting? _setting;
 
-	public ObservableCollection<ModbusBatchWriteItem> Items { get; } = new();
+	public ObservableCollection<ModbusBatchWriteItem> Items { get; private set; } = new();
 
 	public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
 	public void AttachStep(Step step) { _step = step; Load(); }
@@ -34,8 +34,7 @@ public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 			_setting = _step.StepSetting.Setting is { Length: > 0 } d
 				? (ModbusBatchWriteSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
 				: (ModbusBatchWriteSetting)_serializer.CreateDefault();
-			Items.Clear();
-			foreach (var item in _setting.Items) Items.Add(item);
+			Items = _setting.Items;
 			OnPropertyChanged(string.Empty);
 		}
 		finally { _suppressSave = false; }
@@ -44,7 +43,6 @@ public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 	private void QueueSave()
 	{
 		if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-		_setting.Items = Items.ToList();
 		_saveCts?.Cancel();
 		var cts = _saveCts = new CancellationTokenSource();
 		_ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });

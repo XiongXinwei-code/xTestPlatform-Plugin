@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
@@ -5,14 +8,26 @@ namespace OpcUa.Models;
 
 /// <summary>数据采集节点项</summary>
 [MessagePackObject(true)]
-public class OpcUaDataAcqItem
+public class OpcUaDataAcqItem : INotifyPropertyChanged
 {
+    private string _nodeId = "";
+    private string _columnName = "";
+
     /// <summary>节点标识</summary>
     [ExpressionField]
-    public string NodeId { get; set; } = "";
+    public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
 
     /// <summary>列名（用于CSV表头和变量标识）</summary>
-    public string ColumnName { get; set; } = "";
+    public string ColumnName { get => _columnName; set => SetProperty(ref _columnName, value); }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
+        storage = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
+    }
 }
 
 /// <summary>数据导出格式</summary>
@@ -36,7 +51,7 @@ public class OpcUaDataAcqStartSetting
     public string ConnectionName { get; set; } = "OpcUa1";
 
     /// <summary>要采集的节点列表</summary>
-    public List<OpcUaDataAcqItem> Items { get; set; } = new();
+    public ObservableCollection<OpcUaDataAcqItem> Items { get; set; } = new();
 
     /// <summary>采样间隔（毫秒）</summary>
     public int SamplingIntervalMs { get; set; } = 100;
