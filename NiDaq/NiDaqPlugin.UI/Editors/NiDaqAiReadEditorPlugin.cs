@@ -27,7 +27,16 @@ public sealed class NiDaqAiReadEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqAiReadSetting)new NiDaqAiReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_010", "任务名称不能为空"));
-        if (string.IsNullOrWhiteSpace(s.ResultVariable)) errors.Add(StepSettingError.Error("DAQ_011", "结果变量不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_011", "结果变量不能为空"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_012", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null && val is not double[,])
+                errors.Add(StepSettingError.Error("DAQ_013", $"变量 {s.ResultVariable} 类型不匹配，期望 double[,]，实际类型 {val.GetType().Name}"));
+        }
         if (s.SaveToFile && string.IsNullOrWhiteSpace(s.OutputDirectory))
             errors.Add(StepSettingError.Warning("DAQ_W11", "启用存盘时建议指定输出目录"));
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.Block, context.CurrentStep, s.TaskName, errors);

@@ -28,7 +28,19 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 		var s = (UdsSecurityAccessSetting)new UdsSecurityAccessPlugin().CreateSerializer().Deserialize(context.Setting, 1);
 
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 涓嶈兘涓虹┖"));
+			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
+
+		if (!string.IsNullOrWhiteSpace(s.ResultVariable))
+		{
+			if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+				errors.Add(StepSettingError.Warning("UDS_S002", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+			else
+			{
+				var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+				if (val is not null && val is not bool)
+					errors.Add(StepSettingError.Warning("UDS_S003", $"变量 {s.ResultVariable} 类型不匹配，期望 bool，实际类型 {val.GetType().Name}"));
+			}
+		}
 
 		CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
 

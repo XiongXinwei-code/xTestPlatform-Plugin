@@ -32,6 +32,14 @@ public sealed class VisaQueryEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_031", "SCPI 命令不能为空"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("VISA_032", "结果变量名不能为空"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("VISA_033", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null && val is not string)
+                errors.Add(StepSettingError.Error("VISA_034", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
+        }
         VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
