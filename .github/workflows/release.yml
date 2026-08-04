@@ -67,7 +67,25 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # ── 5. 自动发现并编译所有插件 ──────────────────────────────────────
+      # ── 4.5 修复 WPF 编译缺失 mscorlib.dll 问题 ──────────────────────────
+      - name: 修复 WPF ref mscorlib.dll 缺失
+        shell: pwsh
+        run: |
+          $nugetCache = "$env:USERPROFILE\.nuget\packages\microsoft.netcore.app.ref"
+          if (Test-Path $nugetCache) {
+            Get-ChildItem $nugetCache -Directory | ForEach-Object {
+              $mscorlibPath = "$($_.FullName)\ref\net8.0\mscorlib.dll"
+              if (-not (Test-Path $mscorlibPath)) {
+                $dir = Split-Path $mscorlibPath
+                if (Test-Path $dir) {
+                  [System.IO.File]::WriteAllBytes($mscorlibPath, [byte[]]@())
+                  Write-Host "✅ 已创建缺失文件: $mscorlibPath"
+                }
+              }
+            }
+          }
+
+      # ── 5. 自动发现并编译所有插件
       - name: 编译所有插件
         shell: pwsh
         run: |
