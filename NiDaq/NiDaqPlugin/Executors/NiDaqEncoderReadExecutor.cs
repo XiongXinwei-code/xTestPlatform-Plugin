@@ -22,62 +22,43 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var counterCh = await Evaluator.EvaluateAsync<string>(setting.CounterChannel, context) ?? setting.CounterChannel;
+            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
             var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
 
-            var decodingType = setting.DecodingType switch
-            {
-                EncoderDecodingType.X1 => CIEncoderDecodingType.X1,
-                EncoderDecodingType.X2 => CIEncoderDecodingType.X2,
-                _ => CIEncoderDecodingType.X4
-            };
+            if (string.IsNullOrWhiteSpace(taskName))
+                return ErrorResult("任务名称不能为空");
 
-            using var task = new DaqTask();
-            task.CIChannels.CreateAngularEncoderChannel(
-                counterCh, "",
-                decodingType,
-                setting.ZIndexEnable, 0,
-                CIEncoderZIndexPhase.AHighBHigh,
-                setting.PulsesPerRevolution, 0,
-                CIAngularEncoderUnits.Ticks);
+            var taskObj = context.GetVariable(taskName);
+            if (taskObj is not DaqTask task)
+                return ErrorResult($"未找到任务 '{taskName}'");
 
             var reader = new CounterSingleChannelReader(task.Stream);
-            task.Start();
-            double rawPulses = reader.ReadSingleSampleDouble();
-            task.Stop();
+            task.Stream.Timeout = setting.ReadTimeoutMs > 0 ? setting.ReadTimeoutMs : -1;
+            double value = reader.ReadSingleSampleDouble();
 
-            // 转换为物理量
-            double result = rawPulses * setting.DistancePerPulse;
-
-            context.SetVariable(resultVar, result);
-
-            string unitStr = setting.Unit switch
-            {
-                EncoderUnit.Degrees => "°",
-                EncoderUnit.Millimeters => "mm",
-                _ => "pulses"
-            };
+            context.SetVariable(resultVar, value);
 
             return new ExecutionResult
             {
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Passed,
-                    Value = $"{result:F4} {unitStr}",
-                    Unit = unitStr
+                    Value = $"{value:F4}"
                 }
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"编码器读取失败：{ex.Message}" }
-                }
-            };
+            return ErrorResult($"编码器读取失败：{ex.Message}");
         }
     }
+
+    private static ExecutionResult ErrorResult(string message) => new()
+    {
+        StepResult = new StepResult
+        {
+            Status = TestStatus.Error,
+            Error = new ErrorInfo { Message = message }
+        }
+    };
 }

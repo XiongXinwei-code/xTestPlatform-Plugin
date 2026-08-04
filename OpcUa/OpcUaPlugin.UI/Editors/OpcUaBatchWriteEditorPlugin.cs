@@ -1,6 +1,7 @@
 using System.Windows;
 using OpcUa.Models;
 using OpcUa.UI.Views;
+using OpcUa.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -29,6 +30,7 @@ public sealed class OpcUaBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_050", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Warning("OPCUA_051", "节点列表为空"));
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

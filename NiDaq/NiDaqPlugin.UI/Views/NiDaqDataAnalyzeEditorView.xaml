@@ -12,6 +12,7 @@
         <syncfusion:TabItemExt Header="数据分析"
                                Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png"
                                ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -44,6 +45,7 @@
                 <TextBlock Grid.Row="7" Grid.Column="0" Text="峰值参考变量" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="7" Grid.Column="1" ScriptText="{Binding RefAtPeakVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String"/>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

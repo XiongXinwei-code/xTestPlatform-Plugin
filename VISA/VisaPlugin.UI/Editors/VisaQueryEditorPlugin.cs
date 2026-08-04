@@ -1,6 +1,7 @@
 using System.Windows;
 using VISA.Models;
 using VISA.UI.Views;
+using VISA.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -31,6 +32,7 @@ public sealed class VisaQueryEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_031", "SCPI 命令不能为空"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("VISA_032", "结果变量名不能为空"));
+        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

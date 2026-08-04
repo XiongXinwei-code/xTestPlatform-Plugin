@@ -1,6 +1,7 @@
 using System.Windows;
 using Modbus.Models;
 using Modbus.UI.Views;
+using Modbus.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -29,6 +30,7 @@ public sealed class ModbusWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_030", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.Values))
             errors.Add(StepSettingError.Error("MB_031", "写入值不能为空"));
+        ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

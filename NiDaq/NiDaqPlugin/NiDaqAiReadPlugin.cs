@@ -14,13 +14,13 @@ public sealed class NiDaqAiReadPlugin : StepPluginBase<NiDaqAiReadSetting>
 
     public override string Description =>
         "从已启动的 AI 采集任务中读取数据，计算统计值并存入变量。" +
-        "Setting 字段：TaskName(string,表达式), SamplesToRead(int), ResultVariablePrefix(string,表达式), ExportFormat(enum), OutputDirectory(string,表达式)。";
+        "Setting 字段：TaskName(string,表达式), SamplesToRead(int), ResultVariable(string,表达式), ExportFormat(enum), OutputDirectory(string,表达式)。";
 
     public override IStepExecutor CreateExecutor() => new NiDaqAiReadExecutor();
 
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);
-        return $"AI Read: {s.TaskName} → {s.ResultVariablePrefix}";
+        return $"AI Read: {s.TaskName} → {s.ResultVariable}";
     }
 }

@@ -40,12 +40,8 @@ public class NiDaqEncoderReadViewModel : INotifyPropertyChanged
         _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
     }
 
-    public string CounterChannel { get => _setting?.CounterChannel ?? ""; set { if (_setting == null || _setting.CounterChannel == value) return; _setting.CounterChannel = value; OnPropertyChanged(); QueueSave(); } }
-    public EncoderDecodingType DecodingType { get => _setting?.DecodingType ?? EncoderDecodingType.X4; set { if (_setting == null || _setting.DecodingType == value) return; _setting.DecodingType = value; OnPropertyChanged(); QueueSave(); } }
-    public int PulsesPerRevolution { get => _setting?.PulsesPerRevolution ?? 1024; set { if (_setting == null || _setting.PulsesPerRevolution == value) return; _setting.PulsesPerRevolution = value; OnPropertyChanged(); QueueSave(); } }
-    public bool ZIndexEnable { get => _setting?.ZIndexEnable ?? false; set { if (_setting == null || _setting.ZIndexEnable == value) return; _setting.ZIndexEnable = value; OnPropertyChanged(); QueueSave(); } }
-    public double DistancePerPulse { get => _setting?.DistancePerPulse ?? 0.3515625; set { if (_setting == null || _setting.DistancePerPulse == value) return; _setting.DistancePerPulse = value; OnPropertyChanged(); QueueSave(); } }
-    public EncoderUnit Unit { get => _setting?.Unit ?? EncoderUnit.Degrees; set { if (_setting == null || _setting.Unit == value) return; _setting.Unit = value; OnPropertyChanged(); QueueSave(); } }
+    public string TaskName { get => _setting?.TaskName ?? ""; set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); } }
+    public int ReadTimeoutMs { get => _setting?.ReadTimeoutMs ?? 10000; set { if (_setting == null || _setting.ReadTimeoutMs == value) return; _setting.ReadTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     public string ResultVariable { get => _setting?.ResultVariable ?? ""; set { if (_setting == null || _setting.ResultVariable == value) return; _setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;

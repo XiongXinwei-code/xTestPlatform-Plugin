@@ -1,5 +1,6 @@
 using System.Windows;
 using SerialPort.Models;
+using SerialPort.UI.Validation;
 using SerialPort.UI.Views;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -41,6 +42,8 @@ public sealed class SerialPortWriteEditorPlugin : IStepEditorPlugin
             if (hex.Length % 2 != 0 || !System.Text.RegularExpressions.Regex.IsMatch(hex, @"^[0-9A-Fa-f]+$"))
                 errors.Add(StepSettingError.Warning("SP_022", "HEX 格式数据应为偶数位十六进制字符串（如 48656C6C6F）"));
         }
+
+        SerialPortLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.PortName, errors);
 
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }

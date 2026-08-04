@@ -1,6 +1,7 @@
 using System.Windows;
 using VISA.Models;
 using VISA.UI.Views;
+using VISA.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -29,6 +30,7 @@ public sealed class VisaReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_040", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("VISA_041", "结果变量名不能为空"));
+        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

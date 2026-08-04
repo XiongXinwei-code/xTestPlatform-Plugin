@@ -1,6 +1,7 @@
 using System.Windows;
 using CAN.Models;
 using CAN.UI.Views;
+using CAN.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -29,6 +30,8 @@ public sealed class CanCyclicSendStopEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_040", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.TaskName))
             errors.Add(StepSettingError.Error("CAN_041", "任务标识名不能为空"));
+        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        CanLifecycleValidator.CheckPrecedingCyclicStart(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

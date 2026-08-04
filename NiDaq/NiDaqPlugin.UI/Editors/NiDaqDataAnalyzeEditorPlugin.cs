@@ -25,7 +25,15 @@ public sealed class NiDaqDataAnalyzeEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqDataAnalyzeSetting)new NiDaqDataAnalyzePlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.FilePath)) errors.Add(StepSettingError.Error("E001", "文件路径不能为空"));
+        if (string.IsNullOrWhiteSpace(s.FilePath)) errors.Add(StepSettingError.Error("DAQ_050", "文件路径不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ChannelName)) errors.Add(StepSettingError.Error("DAQ_051", "通道名称不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ResultVariable)) errors.Add(StepSettingError.Error("DAQ_052", "结果变量不能为空"));
+        if (s.Mode == AnalyzeMode.PeakWithRef && string.IsNullOrWhiteSpace(s.ReferenceChannel))
+            errors.Add(StepSettingError.Error("DAQ_053", "PeakWithRef 模式下参考通道不能为空"));
+        if (s.Mode == AnalyzeMode.PeakWithRef && string.IsNullOrWhiteSpace(s.RefAtPeakVariable))
+            errors.Add(StepSettingError.Error("DAQ_054", "PeakWithRef 模式下峰值参考变量不能为空"));
+        if ((s.Mode == AnalyzeMode.RangeStats || s.Mode == AnalyzeMode.Slope) && string.IsNullOrWhiteSpace(s.ReferenceChannel))
+            errors.Add(StepSettingError.Error("DAQ_055", "当前分析模式需要指定参考通道"));
         return errors;
     }
 }

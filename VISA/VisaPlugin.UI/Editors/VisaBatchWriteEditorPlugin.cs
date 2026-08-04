@@ -1,6 +1,7 @@
 using System.Windows;
 using VISA.Models;
 using VISA.UI.Views;
+using VISA.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -29,6 +30,7 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_060", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Error("VISA_061", "至少需要一条 SCPI 命令"));
+        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

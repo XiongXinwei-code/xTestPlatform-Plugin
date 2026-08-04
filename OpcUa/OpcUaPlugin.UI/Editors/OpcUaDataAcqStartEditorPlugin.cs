@@ -1,6 +1,7 @@
 using System.Windows;
 using OpcUa.Models;
 using OpcUa.UI.Views;
+using OpcUa.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
@@ -33,6 +34,7 @@ public sealed class OpcUaDataAcqStartEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Warning("OPCUA_072", "采集节点列表为空"));
         if (s.SamplingIntervalMs <= 0)
             errors.Add(StepSettingError.Error("OPCUA_073", "采样间隔必须大于 0"));
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }
