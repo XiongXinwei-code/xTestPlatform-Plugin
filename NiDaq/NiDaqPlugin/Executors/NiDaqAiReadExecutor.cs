@@ -55,6 +55,12 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
                 DaqFileWriter.AppendCsv(filePath, data, names, setting.MaxFileSizeMB, context.LogAction);
             }
 
+            // 自定义事件：将采集数据发送到界面用于调试显示
+            if (setting.EnableCustomEvent && !string.IsNullOrWhiteSpace(setting.CustomEventName))
+            {
+                context.RaiseCustomEvent(setting.CustomEventName, data);
+            }
+
             return new ExecutionResult
             {
                 StepResult = new StepResult

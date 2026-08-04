@@ -48,6 +48,8 @@ public class NiDaqAiReadViewModel : INotifyPropertyChanged
     public DaqExportFormat ExportFormat { get => _setting?.ExportFormat ?? DaqExportFormat.Csv; set { if (_setting == null || _setting.ExportFormat == value) return; _setting.ExportFormat = value; OnPropertyChanged(); QueueSave(); } }
     public string OutputDirectory { get => _setting?.OutputDirectory ?? ""; set { if (_setting == null || _setting.OutputDirectory == value) return; _setting.OutputDirectory = value; OnPropertyChanged(); QueueSave(); } }
     public int MaxFileSizeMB { get => _setting?.MaxFileSizeMB ?? 500; set { if (_setting == null || _setting.MaxFileSizeMB == value) return; _setting.MaxFileSizeMB = value; OnPropertyChanged(); QueueSave(); } }
+    public bool EnableCustomEvent { get => _setting?.EnableCustomEvent ?? false; set { if (_setting == null || _setting.EnableCustomEvent == value) return; _setting.EnableCustomEvent = value; OnPropertyChanged(); QueueSave(); } }
+    public string CustomEventName { get => _setting?.CustomEventName ?? "AiDataReady"; set { if (_setting == null || _setting.CustomEventName == value) return; _setting.CustomEventName = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

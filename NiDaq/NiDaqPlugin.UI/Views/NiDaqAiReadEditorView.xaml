@@ -55,13 +55,30 @@
                 <ComboBox Grid.Row="1" Grid.Column="1" SelectedItem="{Binding ExportFormat}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           IsEnabled="{Binding SaveToFile}"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="输出目录" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" ScriptText="{Binding OutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String"
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" ScriptText="{Binding OutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String"  Margin="0,0,0,8"
                     IsEnabled="{Binding SaveToFile}"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="文件大小上限 (MB)" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding MaxFileSizeMB, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          IsEnabled="{Binding SaveToFile}"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="自定义事件">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="启用事件" VerticalAlignment="Center"/>
+                <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding EnableCustomEvent}" Content="读取后发送自定义事件" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="事件名称" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CustomEventName, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         IsEnabled="{Binding EnableCustomEvent}"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
