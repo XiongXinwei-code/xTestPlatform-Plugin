@@ -14,9 +14,9 @@ public sealed class CanWritePlugin : StepPluginBase<CanWriteSetting>
 
     public override string Description =>
         "向已打开的 CAN 通道发送一帧报文。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名), CanId(string,表达式,CAN ID 如 0x7DF), " +
-        "FrameType(枚举,Standard/Extended), Data(string,表达式,十六进制数据如 '02 10 01'), " +
-        "UseFdFrame(bool,是否使用 FD 帧格式)。";
+        "Setting 字段：ConnectionName(string,表达式,已打开的CAN连接名), CanId(string,表达式,CAN ID如0x7DF), " +
+        "FrameType(枚举:Standard/Extended,默认Standard), Data(string,表达式,十六进制数据如'02 10 01'), " +
+        "UseFdFrame(bool,是否使用CAN FD帧,默认false)。";
 
     public override IStepExecutor CreateExecutor() => new CanWriteExecutor();
 

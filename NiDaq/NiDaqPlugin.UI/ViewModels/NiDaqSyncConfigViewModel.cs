@@ -28,8 +28,8 @@ public class NiDaqSyncConfigViewModel : INotifyPropertyChanged
             _setting = _step.StepSetting.Setting is { Length: > 0 } d
                 ? (NiDaqSyncConfigSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (NiDaqSyncConfigSetting)_serializer.CreateDefault();
-            AiChannels = new ObservableCollection<NiDaqAiChannel>(_setting.AiChannels);
-            EncoderChannels = new ObservableCollection<NiDaqSyncEncoderChannel>(_setting.EncoderChannels);
+            AiChannels = _setting.AiChannels;
+            EncoderChannels = _setting.EncoderChannels;
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -38,8 +38,6 @@ public class NiDaqSyncConfigViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _setting.AiChannels = new List<NiDaqAiChannel>(AiChannels);
-        _setting.EncoderChannels = new List<NiDaqSyncEncoderChannel>(EncoderChannels);
         _saveCts?.Cancel();
         var cts = _saveCts = new CancellationTokenSource();
         _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });

@@ -13,7 +13,10 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
 
     public override string Description =>
-        "从指定串口读取数据，支持String/Hex/Bin格式。读取结果存入ResultVariable指定的变量。Setting 字段：PortName(string,表达式,端口名), DataFormat(enum,数据格式:String/Hex/Bin), ReadTimeoutMs(int,读超时ms), ReadBytes(int,读取字节数,0为全部), Terminator(string,结束符), ResultVariable(string,表达式,结果存放变量路径)。";
+        "从指定串口读取数据，结果存入 ResultVariable 指定的变量。" +
+        "Setting 字段：PortName(string,表达式,已打开的端口名), DataFormat(枚举:String/Hex/Bin,默认String), " +
+        "ReadTimeoutMs(int,读超时ms,默认3000), ReadBytes(int,读取字节数,0=读到终止符,默认0), " +
+        "Terminator(string,结束符,默认\\n), ResultVariable(string,表达式,结果存入的变量名)。";
 
     public override IStepExecutor CreateExecutor() => new SerialPortReadExecutor();
 

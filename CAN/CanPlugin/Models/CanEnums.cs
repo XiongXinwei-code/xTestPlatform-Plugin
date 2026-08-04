@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace CAN.Models;
 
 /// <summary>CAN 协议类型</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CanProtocolType
 {
     /// <summary>经典 CAN 2.0（最大 8 字节）</summary>
@@ -12,6 +15,7 @@ public enum CanProtocolType
 }
 
 /// <summary>CAN 硬件适配器类型</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CanAdapterType
 {
     NI = 0,
@@ -21,6 +25,7 @@ public enum CanAdapterType
 }
 
 /// <summary>CAN 帧类型</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CanFrameType
 {
     /// <summary>标准帧 (11-bit ID)</summary>

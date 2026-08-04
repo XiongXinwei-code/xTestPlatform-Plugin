@@ -15,8 +15,9 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
 
     public override string Description =>
         "停止 OPC UA 后台数据采集任务，并将采集数据导出为 CSV 文件和/或统计值存入变量。" +
-        "Setting 字段：TaskName(string,表达式,要停止的采集任务名), ExportFormat(枚举,Csv/Variable/Both), " +
-        "CsvFilePath(string,表达式,CSV导出路径), SaveStatistics(bool,是否保存统计值), StatVariablePrefix(string,统计变量前缀)。";
+        "Setting 字段：TaskName(string,表达式,要停止的采集任务名), ExportFormat(枚举:Csv/Variable/Both), " +
+        "CsvFilePath(string,表达式,CSV导出路径,ExportFormat含Csv时必填), " +
+        "SaveStatistics(bool,是否保存统计值到变量,默认false), StatVariablePrefix(string,统计变量前缀,SaveStatistics=true时使用)。";
 
     public override IStepExecutor CreateExecutor() => new OpcUaDataAcqStopExecutor();
 

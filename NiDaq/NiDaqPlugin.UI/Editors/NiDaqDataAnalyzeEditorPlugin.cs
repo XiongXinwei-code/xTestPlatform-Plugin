@@ -27,7 +27,16 @@ public sealed class NiDaqDataAnalyzeEditorPlugin : IStepEditorPlugin
         var s = (NiDaqDataAnalyzeSetting)new NiDaqDataAnalyzePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.FilePath)) errors.Add(StepSettingError.Error("DAQ_050", "文件路径不能为空"));
         if (string.IsNullOrWhiteSpace(s.ChannelName)) errors.Add(StepSettingError.Error("DAQ_051", "通道名称不能为空"));
-        if (string.IsNullOrWhiteSpace(s.ResultVariable)) errors.Add(StepSettingError.Error("DAQ_052", "结果变量不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_052", "结果变量不能为空"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_056", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null && val is not double)
+                errors.Add(StepSettingError.Error("DAQ_057", $"变量 {s.ResultVariable} 类型不匹配，期望 double，实际类型 {val.GetType().Name}"));
+        }
         if (s.Mode == AnalyzeMode.PeakWithRef && string.IsNullOrWhiteSpace(s.ReferenceChannel))
             errors.Add(StepSettingError.Error("DAQ_053", "PeakWithRef 模式下参考通道不能为空"));
         if (s.Mode == AnalyzeMode.PeakWithRef && string.IsNullOrWhiteSpace(s.RefAtPeakVariable))

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
@@ -11,7 +12,7 @@ public class NiDaqAiConfigSetting
     public string TaskName { get; set; } = string.Empty;
 
     /// <summary>AI 通道列表</summary>
-    public List<NiDaqAiChannel> Channels { get; set; } = new();
+    public ObservableCollection<NiDaqAiChannel> Channels { get; set; } = new();
 
     /// <summary>采样率 (Hz)</summary>
     public double SampleRate { get; set; } = 1000;

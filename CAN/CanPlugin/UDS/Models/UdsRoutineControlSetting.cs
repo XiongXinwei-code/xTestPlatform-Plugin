@@ -1,9 +1,11 @@
 using MessagePack;
+using System.Text.Json.Serialization;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace CAN.UDS.Models;
 
 /// <summary>例程控制类型</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum RoutineControlType
 {
     Start = 0x01,

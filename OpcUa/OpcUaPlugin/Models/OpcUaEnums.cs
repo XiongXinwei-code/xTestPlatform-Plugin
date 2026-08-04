@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace OpcUa.Models;
 
 /// <summary>OPC UA 安全策略</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OpcUaSecurityPolicy
 {
     None = 0,
@@ -10,6 +13,7 @@ public enum OpcUaSecurityPolicy
 }
 
 /// <summary>认证模式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OpcUaAuthMode
 {
     Anonymous = 0,
@@ -17,6 +21,7 @@ public enum OpcUaAuthMode
 }
 
 /// <summary>OPC UA 数据类型（写入时指定）</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OpcUaDataType
 {
     Auto = 0,
@@ -33,6 +38,7 @@ public enum OpcUaDataType
 }
 
 /// <summary>订阅比较模式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OpcUaCompareMode
 {
     Equal = 0,

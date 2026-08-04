@@ -28,7 +28,7 @@ public class NiDaqAiConfigViewModel : INotifyPropertyChanged
             _setting = _step.StepSetting.Setting is { Length: > 0 } d
                 ? (NiDaqAiConfigSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (NiDaqAiConfigSetting)_serializer.CreateDefault();
-            Channels = new ObservableCollection<NiDaqAiChannel>(_setting.Channels);
+            Channels = _setting.Channels;
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -37,7 +37,6 @@ public class NiDaqAiConfigViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _setting.Channels = new List<NiDaqAiChannel>(Channels);
         _saveCts?.Cancel();
         var cts = _saveCts = new CancellationTokenSource();
         _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });

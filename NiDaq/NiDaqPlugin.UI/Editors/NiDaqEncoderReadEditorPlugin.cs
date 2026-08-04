@@ -27,7 +27,16 @@ public sealed class NiDaqEncoderReadEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqEncoderSetting)new NiDaqEncoderReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_080", "任务名称不能为空"));
-        if (string.IsNullOrWhiteSpace(s.ResultVariable)) errors.Add(StepSettingError.Error("DAQ_081", "结果变量不能为空"));
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_081", "结果变量不能为空"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_082", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null && val is not double)
+                errors.Add(StepSettingError.Error("DAQ_083", $"变量 {s.ResultVariable} 类型不匹配，期望 double，实际类型 {val.GetType().Name}"));
+        }
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.Block, context.CurrentStep, s.TaskName, errors);
         NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;

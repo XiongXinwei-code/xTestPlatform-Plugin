@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
@@ -14,7 +15,7 @@ public class ModbusBatchWriteSetting
 	public string ConnectionName { get; set; } = "Modbus1";
 
 	/// <summary>批量写入项列表</summary>
-	public List<ModbusBatchWriteItem> Items { get; set; } = new();
+	public ObservableCollection<ModbusBatchWriteItem> Items { get; set; } = new();
 
 	/// <summary>每次写入之间的间隔时间（毫秒），0 表示无间隔</summary>
 	public int IntervalMs { get; set; } = 0;

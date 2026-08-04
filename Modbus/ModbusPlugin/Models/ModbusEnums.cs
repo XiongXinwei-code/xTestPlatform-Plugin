@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace Modbus.Models;
 
 /// <summary>
 /// Modbus 传输类型（TCP 或 RTU 串口）
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ModbusTransportType
 {
 	/// <summary>TCP/IP 连接</summary>
@@ -14,6 +17,7 @@ public enum ModbusTransportType
 /// <summary>
 /// Modbus 寄存器/线圈类型
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ModbusRegisterType
 {
 	/// <summary>线圈（读写，功能码 01/05/15）</summary>
@@ -29,6 +33,7 @@ public enum ModbusRegisterType
 /// <summary>
 /// 寄存器数据解析格式（字节序与数据类型）
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ModbusDataFormat
 {
 	/// <summary>无符号 16 位整数（1 个寄存器）</summary>

@@ -16,8 +16,8 @@ public sealed class VisaWritePlugin : StepPluginBase<VisaWriteSetting>
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
 
     public override string Description =>
-        "向 VISA 仪器发送 SCPI 命令，不等待响应。" +
-        "Setting 字段：ConnectionName(string,表达式), Command(string,表达式,SCPI命令)。";
+        "向 VISA 仪器发送 SCPI 命令（只写不读），不等待响应。适用于设置类命令如 *RST、:CONF:VOLT:DC 等。" +
+        "Setting 字段：ConnectionName(string,表达式,已打开的VISA连接标识名), Command(string,表达式,SCPI命令如*RST)。";
 
     public override IStepExecutor CreateExecutor() => new VisaWriteExecutor();
 

@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
@@ -7,14 +10,26 @@ namespace VISA.Models;
 /// 批量写入的单条命令项
 /// </summary>
 [MessagePackObject(true)]
-public class VisaBatchWriteItem
+public class VisaBatchWriteItem : INotifyPropertyChanged
 {
+    private string _command = "";
+    private int _delayMs = 0;
+
     /// <summary>要发送的 SCPI 命令（支持表达式）</summary>
     [ExpressionField]
-    public string Command { get; set; } = "";
+    public string Command { get => _command; set => SetProperty(ref _command, value); }
 
     /// <summary>发送后延时（毫秒），0 表示不延时</summary>
-    public int DelayMs { get; set; } = 0;
+    public int DelayMs { get => _delayMs; set => SetProperty(ref _delayMs, value); }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
+        storage = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
+    }
 }
 
 /// <summary>
@@ -28,5 +43,5 @@ public class VisaBatchWriteSetting
     public string ConnectionName { get; set; } = "VISA1";
 
     /// <summary>命令列表</summary>
-    public List<VisaBatchWriteItem> Items { get; set; } = new();
+    public ObservableCollection<VisaBatchWriteItem> Items { get; set; } = new();
 }

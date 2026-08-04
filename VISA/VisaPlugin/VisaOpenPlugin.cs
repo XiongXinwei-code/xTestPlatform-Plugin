@@ -16,9 +16,9 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
 
     public override string Description =>
-        "打开 VISA 仪器会话，支持 GPIB、USB-TMC、TCP/LAN(SOCKET/INSTR)、串口等资源。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名), ResourceString(string,表达式,VISA资源字符串), " +
-        "OpenTimeoutMs(int,打开超时ms), IoTimeoutMs(int,IO超时ms), Terminator(string,终止符)。";
+        "打开 VISA 仪器会话，支持 GPIB、USB-TMC、TCP/LAN(SOCKET/INSTR)、串口等资源。打开后通过 ConnectionName 标识此连接，供后续 Write/Read/Query 步骤使用。" +
+        "Setting 字段：ConnectionName(string,表达式,连接标识名,默认VISA1), ResourceString(string,表达式,VISA资源字符串,如TCPIP::192.168.1.1::INSTR或GPIB0::1::INSTR), " +
+        "OpenTimeoutMs(int,打开超时ms,默认5000), IoTimeoutMs(int,IO超时ms,默认3000), Terminator(string,终止符,默认\\n)。";
 
     public override IStepExecutor CreateExecutor() => new VisaOpenExecutor();
 
