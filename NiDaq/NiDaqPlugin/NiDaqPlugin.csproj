@@ -13,7 +13,7 @@
 
   <ItemGroup>
 	<PackageReference Include="MessagePack" Version="3.1.7" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.1" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
   </ItemGroup>
 
   <!-- NI DAQmx + TDMS DLL direct reference (requires NI-DAQmx driver installed) -->

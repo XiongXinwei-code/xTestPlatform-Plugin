@@ -55,10 +55,28 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
                 DaqFileWriter.AppendCsv(filePath, data, names, setting.MaxFileSizeMB, context.LogAction);
             }
 
-            // 自定义事件：将采集数据发送到界面用于调试显示
+            // 自定义事件：将采集数据构造为 WaveformData 发送到界面
             if (setting.EnableCustomEvent && !string.IsNullOrWhiteSpace(setting.CustomEventName))
             {
-                context.RaiseCustomEvent(setting.CustomEventName, data);
+                var waveform = new WaveformData
+                {
+                    TaskID = taskName,
+                    SampleRate = task.Timing.SampleClockRate,
+                    StartTime = DateTime.Now,
+                    Channels = new List<ChannelData>(channels)
+                };
+                for (int ch = 0; ch < channels; ch++)
+                {
+                    var chData = new double[samples];
+                    for (int s = 0; s < samples; s++)
+                        chData[s] = data[ch, s];
+                    waveform.Channels.Add(new ChannelData
+                    {
+                        Channel = task.AIChannels[ch].VirtualName,
+                        Values = chData
+                    });
+                }
+                context.RaiseCustomEvent(setting.CustomEventName, waveform);
             }
 
             return new ExecutionResult
