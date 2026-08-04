@@ -26,7 +26,14 @@ public sealed class NiDaqAiReadEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqAiReadSetting)new NiDaqAiReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("E001", "任务名称不能为空"));
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_010", "任务名称不能为空"));
+        if ((s.ExportFormat == DaqExportFormat.Variable || s.ExportFormat == DaqExportFormat.CsvAndVariable || s.ExportFormat == DaqExportFormat.TdmsAndVariable)
+            && string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_011", "导出格式包含 Variable 时，结果变量前缀不能为空"));
+        if ((s.ExportFormat == DaqExportFormat.Csv || s.ExportFormat == DaqExportFormat.CsvAndVariable
+            || s.ExportFormat == DaqExportFormat.Tdms || s.ExportFormat == DaqExportFormat.TdmsAndVariable)
+            && string.IsNullOrWhiteSpace(s.OutputDirectory))
+            errors.Add(StepSettingError.Warning("DAQ_W11", "导出文件格式时建议指定输出目录"));
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.Block, context.CurrentStep, s.TaskName, errors);
         NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;

@@ -25,8 +25,8 @@ public sealed class NiDaqDoWriteEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqDoWriteSetting)new NiDaqDoWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.Channel)) errors.Add(StepSettingError.Error("E001", "物理通道不能为空"));
-        if (string.IsNullOrWhiteSpace(s.Value)) errors.Add(StepSettingError.Error("E002", "输出值不能为空"));
+        if (string.IsNullOrWhiteSpace(s.Channel)) errors.Add(StepSettingError.Error("DAQ_100", "物理通道不能为空"));
+        if (string.IsNullOrWhiteSpace(s.Value)) errors.Add(StepSettingError.Error("DAQ_101", "输出值不能为空"));
         return errors;
     }
 }

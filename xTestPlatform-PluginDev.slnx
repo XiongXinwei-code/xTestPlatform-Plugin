@@ -36,8 +36,5 @@
     <Project Path="VISA/VisaPlugin.UI/VisaPlugin.UI.csproj" />
     <Project Path="VISA/VisaPlugin/VisaPlugin.csproj" />
   </Folder>
-  <Project Path="../xTestPlatform/xTestPlatform.Core/xTestPlatform.Core.csproj">
-    <Platform Solution="*|x64" Project="x64" />
-  </Project>
 </Solution>
 

@@ -25,9 +25,11 @@ public sealed class NiDaqSyncConfigEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqSyncConfigSetting)new NiDaqSyncConfigPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("E001", "任务名称不能为空"));
-        if (s.AiChannels.Count == 0) errors.Add(StepSettingError.Error("E002", "AI 通道列表为空"));
-        if (s.EncoderChannels.Count == 0) errors.Add(StepSettingError.Error("E003", "编码器通道列表为空"));
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_020", "任务名称不能为空"));
+        if (s.AiChannels.Count == 0) errors.Add(StepSettingError.Error("DAQ_021", "AI 通道列表为空"));
+        if (s.EncoderChannels.Count == 0) errors.Add(StepSettingError.Error("DAQ_022", "编码器通道列表为空"));
+        if (s.SampleRate <= 0) errors.Add(StepSettingError.Error("DAQ_023", "采样率必须大于 0"));
+        if (s.SamplesPerChannel <= 0) errors.Add(StepSettingError.Error("DAQ_024", "每通道采样数必须大于 0"));
         return errors;
     }
 }

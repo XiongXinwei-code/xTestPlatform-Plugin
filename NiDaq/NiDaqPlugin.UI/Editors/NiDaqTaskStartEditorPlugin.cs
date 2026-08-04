@@ -26,7 +26,7 @@ public sealed class NiDaqTaskStartEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqTaskStartSetting)new NiDaqTaskStartPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("E001", "任务名称不能为空"));
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_060", "任务名称不能为空"));
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }

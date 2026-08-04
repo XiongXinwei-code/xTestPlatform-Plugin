@@ -23,7 +23,7 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
         {
             NiDriverCheck.EnsureDriver();
             var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
-            var prefix = await Evaluator.EvaluateAsync<string>(setting.ResultVariablePrefix, context) ?? setting.ResultVariablePrefix;
+            var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
@@ -33,29 +33,26 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
                 return ErrorResult($"未找到任务 '{taskName}'");
 
             var reader = new AnalogMultiChannelReader(task.Stream);
+            task.Stream.Timeout = setting.ReadTimeoutMs > 0 ? setting.ReadTimeoutMs : -1;
             int samplesToRead = setting.SamplesToRead > 0 ? setting.SamplesToRead : task.Stream.AvailableSamplesPerChannel > 0 ? (int)task.Stream.AvailableSamplesPerChannel : 100;
             double[,] data = reader.ReadMultiSample(samplesToRead);
 
             int channels = data.GetLength(0);
             int samples = data.GetLength(1);
 
-            for (int ch = 0; ch < channels; ch++)
-            {
-                var name = task.AIChannels[ch].VirtualName;
-                double sum = 0, max = double.MinValue, min = double.MaxValue;
-                for (int s = 0; s < samples; s++)
-                {
-                    double v = data[ch, s];
-                    sum += v;
-                    if (v > max) max = v;
-                    if (v < min) min = v;
-                }
-                double avg = sum / samples;
+            context.SetVariable(resultVar, data);
 
-                context.SetVariable($"{prefix}_{name}_Avg", avg);
-                context.SetVariable($"{prefix}_{name}_Max", max);
-                context.SetVariable($"{prefix}_{name}_Min", min);
-                context.SetVariable($"{prefix}_{name}_Count", samples);
+            // 存盘逻辑
+            if (setting.SaveToFile)
+            {
+                var outputDir = !string.IsNullOrWhiteSpace(setting.OutputDirectory)
+                    ? (await Evaluator.EvaluateAsync<string>(setting.OutputDirectory, context) ?? setting.OutputDirectory)
+                    : string.Empty;
+                var filePath = DaqFileWriter.BuildFilePath(outputDir, taskName + "_AI", "csv");
+                string[]? names = new string[channels];
+                for (int ch = 0; ch < channels; ch++)
+                    names[ch] = task.AIChannels[ch].VirtualName;
+                DaqFileWriter.AppendCsv(filePath, data, names, setting.MaxFileSizeMB, context.LogAction);
             }
 
             return new ExecutionResult

@@ -25,8 +25,9 @@ public sealed class NiDaqEncoderConfigEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqEncoderConfigSetting)new NiDaqEncoderConfigPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("E001", "任务名称不能为空"));
-        if (string.IsNullOrWhiteSpace(s.CounterChannel)) errors.Add(StepSettingError.Error("E002", "Counter 通道不能为空"));
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_040", "任务名称不能为空"));
+        if (string.IsNullOrWhiteSpace(s.CounterChannel)) errors.Add(StepSettingError.Error("DAQ_041", "Counter 通道不能为空"));
+        if (s.PulsesPerRevolution <= 0) errors.Add(StepSettingError.Error("DAQ_042", "每转脉冲数 (PPR) 必须大于 0"));
         return errors;
     }
 }
