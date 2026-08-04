@@ -14,7 +14,7 @@ public sealed class NiDaqEncoderReadPlugin : StepPluginBase<NiDaqEncoderSetting>
 
     public override string Description =>
         "从已配置的编码器任务中读取当前位置值，存入指定变量。" +
-        "Setting 字段：TaskName(string,表达式,要读取的编码器任务名), ReadTimeoutMs(int,读取超时ms,默认5000), ResultVariable(string,表达式,位置值存入的变量名)。";
+        "Setting 字段：TaskName(string,表达式,要读取的编码器任务名), ReadTimeoutMs(int,读取超时ms,默认5000), ResultVariable(string,表达式,结果变量名,写入类型:double 位置值)。";
 
     public override IStepExecutor CreateExecutor() => new NiDaqEncoderReadExecutor();
 

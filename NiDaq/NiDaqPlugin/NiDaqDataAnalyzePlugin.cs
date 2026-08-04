@@ -18,7 +18,7 @@ public sealed class NiDaqDataAnalyzePlugin : StepPluginBase<NiDaqDataAnalyzeSett
         "Mode(枚举:Max/Min/Average/RMS/PeakWithRef/Slope/RangeStats,默认Max), " +
         "ReferenceChannel(string,表达式,参考通道,PeakWithRef/Slope模式用), " +
         "RangeStart(double,范围起始值,RangeStats模式用), RangeEnd(double,范围结束值), " +
-        "ResultVariable(string,表达式,分析结果存入的变量名), RefAtPeakVariable(string,表达式,PeakWithRef模式下峰值对应的参考通道值存入的变量名)。";
+        "ResultVariable(string,表达式,结果变量名,写入类型:double 分析结果数值), RefAtPeakVariable(string,表达式,PeakWithRef模式下峰值对应的参考通道值存入的变量名)。";
 
     public override IStepExecutor CreateExecutor() => new NiDaqDataAnalyzeExecutor();
 

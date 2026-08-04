@@ -17,7 +17,7 @@ public sealed class UdsSecurityAccessPlugin : StepPluginBase<UdsSecurityAccessSe
         "自动完成 Request Seed → 计算 Key（通过表达式）→ Send Key 全流程。" +
         "Setting 字段：SecurityLevel(int,安全等级,奇数如1/3/5,默认1), " +
         "KeyExpression(string,表达式,Key计算表达式,变量Seed为byte[]可在表达式中使用), " +
-        "ResultVariable(string,存储解锁结果的变量名,值为bool), " +
+        "ResultVariable(string,结果变量名,写入类型:bool 解锁是否成功,可选), " +
         "ConnectionName(string,表达式,已打开的CAN连接名), TxId(string,表达式,请求CAN ID), RxId(string,表达式,响应CAN ID), ResponseTimeoutMs(int,响应超时,默认5000)。";
 
     public override IStepExecutor CreateExecutor() => new UdsSecurityAccessExecutor();

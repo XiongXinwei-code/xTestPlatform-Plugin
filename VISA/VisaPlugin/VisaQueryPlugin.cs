@@ -18,7 +18,7 @@ public sealed class VisaQueryPlugin : StepPluginBase<VisaQuerySetting>
     public override string Description =>
         "向 VISA 仪器发送查询命令并立即读取响应（Write+Read 一体操作），结果以字符串形式存入指定变量。适用于查询类命令如 *IDN?、:MEAS:VOLT:DC? 等。" +
         "Setting 字段：ConnectionName(string,表达式,已打开的VISA连接标识名), Command(string,表达式,SCPI查询命令如*IDN?), " +
-        "ResultVariable(string,表达式,结果存入的变量名), TrimResponse(bool,是否去除首尾空白,默认true)。";
+        "ResultVariable(string,表达式,结果变量名,写入类型:string 仪器响应字符串), TrimResponse(bool,是否去除首尾空白,默认true)。";
 
     public override IStepExecutor CreateExecutor() => new VisaQueryExecutor();
 
