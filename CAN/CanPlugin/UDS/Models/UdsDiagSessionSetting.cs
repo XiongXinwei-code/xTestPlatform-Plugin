@@ -1,8 +1,10 @@
 using MessagePack;
+using System.Text.Json.Serialization;
 
 namespace CAN.UDS.Models;
 
 /// <summary>UDS 诊断会话类型</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DiagSessionType
 {
     Default = 0x01,

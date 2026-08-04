@@ -31,6 +31,7 @@ public class OpcUaDataAcqItem : INotifyPropertyChanged
 }
 
 /// <summary>数据导出格式</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
 public enum DataAcqExportFormat
 {
     Csv = 0,

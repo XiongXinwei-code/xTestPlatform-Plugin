@@ -13,7 +13,11 @@ public sealed class SerialPortQueryPlugin : StepPluginBase<SerialPortQuerySettin
 	public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
 
 	public override string Description =>
-		"向指定串口发送数据并读取响应（Write+Read）。Setting 字段：PortName(string,表达式,端口名), WriteData(string,表达式,发送数据), DataFormat(enum,数据格式:String/Hex/Bin), ReadTimeoutMs(int,读取超时ms), ReadBytes(int,读取字节数0=直到终止符), Terminator(string,终止符), ResultVariable(string,结果变量路径)。";
+		"向指定串口发送数据并读取响应（Write+Read 一体操作）。" +
+		"Setting 字段：PortName(string,表达式,已打开的端口名), WriteData(string,表达式,发送数据), " +
+		"DataFormat(枚举:String/Hex/Bin,默认String), ReadTimeoutMs(int,读取超时ms,默认3000), " +
+		"ReadBytes(int,读取字节数,0=读到终止符,默认0), Terminator(string,终止符,默认\\n), " +
+		"ResultVariable(string,响应存入的变量名)。";
 
 	public override IStepExecutor CreateExecutor() => new SerialPortQueryExecutor();
 

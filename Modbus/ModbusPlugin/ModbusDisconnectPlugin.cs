@@ -16,8 +16,8 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
 	public override string Description =>
-		"关闭指定的 Modbus 连接。" +
-		"Setting 字段：ConnectionName(string,表达式,连接标识名)。";
+		"关闭指定的 Modbus 连接并释放资源。" +
+		"Setting 字段：ConnectionName(string,表达式,要关闭的Modbus连接标识名)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusDisconnectExecutor();
 

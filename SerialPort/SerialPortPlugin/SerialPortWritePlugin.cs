@@ -13,7 +13,9 @@ public sealed class SerialPortWritePlugin : StepPluginBase<SerialPortWriteSettin
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
 
     public override string Description =>
-        "向指定串口写入数据，支持String/Hex/Bin格式。Setting 字段：PortName(string,表达式,端口名), WriteData(string,表达式,写入数据), DataFormat(enum,数据格式:String/Hex/Bin)。";
+        "向指定串口写入数据。" +
+        "Setting 字段：PortName(string,表达式,已打开的端口名), WriteData(string,表达式,写入数据), " +
+        "DataFormat(枚举:String/Hex/Bin,默认String)。";
 
     public override IStepExecutor CreateExecutor() => new SerialPortWriteExecutor();
 

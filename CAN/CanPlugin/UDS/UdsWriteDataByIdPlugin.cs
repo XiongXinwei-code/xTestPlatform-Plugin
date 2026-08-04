@@ -14,8 +14,8 @@ public sealed class UdsWriteDataByIdPlugin : StepPluginBase<UdsWriteDataByIdSett
 
     public override string Description =>
         "通过 DID 向 ECU 写入数据（UDS 服务 0x2E）。" +
-        "Setting 字段：Did(string,表达式,数据标识符), Data(string,表达式,十六进制写入数据), " +
-        "ConnectionName(string,表达式,CAN连接名), TxId(string,表达式), RxId(string,表达式), ResponseTimeoutMs(int)。";
+        "Setting 字段：Did(string,表达式,数据标识符如0xF199), Data(string,表达式,十六进制写入数据如'01 02 03'), " +
+        "ConnectionName(string,表达式,已打开的CAN连接名), TxId(string,表达式,请求CAN ID), RxId(string,表达式,响应CAN ID), ResponseTimeoutMs(int,响应超时,默认5000)。";
 
     public override IStepExecutor CreateExecutor() => new UdsWriteDataByIdExecutor();
 

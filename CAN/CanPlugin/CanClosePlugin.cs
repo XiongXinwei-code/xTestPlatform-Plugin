@@ -13,8 +13,8 @@ public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
     public override string Description =>
-        "关闭已打开的 CAN 通道并释放资源。" +
-        "Setting 字段：ConnectionName(string,表达式,要关闭的连接标识名)。";
+        "关闭已打开的 CAN 通道并释放硬件资源。" +
+        "Setting 字段：ConnectionName(string,表达式,要关闭的CAN连接标识名)。";
 
     public override IStepExecutor CreateExecutor() => new CanCloseExecutor();
 

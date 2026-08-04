@@ -14,8 +14,8 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
 
     public override string Description =>
-        "断开指定的 OPC UA 连接。" +
-        "Setting 字段：ConnectionName(string,表达式,要断开的连接标识名)。";
+        "断开指定的 OPC UA 连接并释放资源。" +
+        "Setting 字段：ConnectionName(string,表达式,要断开的OPC UA连接标识名)。";
 
     public override IStepExecutor CreateExecutor() => new OpcUaDisconnectExecutor();
 
