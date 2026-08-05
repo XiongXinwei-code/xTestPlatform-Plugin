@@ -44,6 +44,8 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 			errors.Add(StepSettingError.Error("UDS_005", "响应超时必须大于 0，或为 -1 表示永不超时"));
 		if (s.SecurityLevel <= 0 || s.SecurityLevel % 2 == 0)
 			errors.Add(StepSettingError.Error("UDS_S001", "安全级别必须为正奇数（如 1、3、5）"));
+		if (string.IsNullOrWhiteSpace(s.SeedVariable))
+			errors.Add(StepSettingError.Error("UDS_S005", "SeedVariable 不能为空，KeyExpression 需通过此变量名引用 Seed"));
 		if (string.IsNullOrWhiteSpace(s.KeyExpression))
 			errors.Add(StepSettingError.Error("UDS_S004", "Key 计算表达式不能为空"));
 		else if (!context.Evaluator.ValidateExpression(s.KeyExpression, context.ExecutionContext, out var keyErr))

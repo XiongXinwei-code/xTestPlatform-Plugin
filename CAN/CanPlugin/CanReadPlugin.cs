@@ -15,7 +15,8 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
     public override string Description =>
         "从已打开的 CAN 通道接收一帧报文，可按 ID 过滤，结果存入变量。" +
         "Setting 字段：ConnectionName(string,表达式,连接标识名), FilterId(string,表达式,过滤CAN ID 如 0x7E8 为空则接收任意), " +
-        "ReadTimeoutMs(int,读取超时毫秒), ResultVariable(string,结果变量名,写入类型:string 十六进制报文数据), IdVariable(string,ID存储变量路径)。";
+        "ReadTimeoutMs(int,读取超时毫秒), ResultVariable(string,结果变量名,写入类型:string 十六进制报文数据), IdVariable(string,ID存储变量路径), " +
+        "EnableLog(bool,是否输出读取日志,默认true)。";
 
     public override IStepExecutor CreateExecutor() => new CanReadExecutor();
 
