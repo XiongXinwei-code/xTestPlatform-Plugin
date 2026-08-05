@@ -29,10 +29,16 @@ public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
         var s = (ModbusReadSetting)new ModbusReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_020", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("MB_020E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.StartAddress))
             errors.Add(StepSettingError.Error("MB_024", "起始地址不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.StartAddress, context.ExecutionContext, out var addrErr))
+            errors.Add(StepSettingError.Error("MB_024E", $"StartAddress 表达式无效: {addrErr}"));
         if (string.IsNullOrWhiteSpace(s.Quantity))
             errors.Add(StepSettingError.Error("MB_025", "读取数量不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Quantity, context.ExecutionContext, out var qtyErr))
+            errors.Add(StepSettingError.Error("MB_025E", $"Quantity 表达式无效: {qtyErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("MB_021", "结果变量名不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

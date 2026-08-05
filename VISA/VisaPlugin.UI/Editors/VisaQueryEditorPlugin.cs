@@ -29,8 +29,12 @@ public sealed class VisaQueryEditorPlugin : IStepEditorPlugin
         var s = (VisaQuerySetting)new VisaQueryPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_030", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_030E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.Command))
             errors.Add(StepSettingError.Error("VISA_031", "SCPI 命令不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Command, context.ExecutionContext, out var cmdErr))
+            errors.Add(StepSettingError.Error("VISA_031E", $"Command 表达式无效: {cmdErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("VISA_032", "结果变量名不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

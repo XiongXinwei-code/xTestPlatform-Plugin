@@ -29,7 +29,8 @@ public sealed class ModbusBatchWriteEditorPlugin : IStepEditorPlugin
         var s = (ModbusBatchWriteSetting)new ModbusBatchWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_050", "连接标识名不能为空"));
-        if (s.Items.Count == 0)
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("MB_050E", $"ConnectionName 表达式无效: {connErr}"));
             errors.Add(StepSettingError.Warning("MB_051", "批量写入列表为空"));
         if (s.IntervalMs < 0)
             errors.Add(StepSettingError.Error("MB_053", "写入间隔时间不能为负数"));

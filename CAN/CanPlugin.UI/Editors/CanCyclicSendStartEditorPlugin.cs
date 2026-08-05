@@ -40,8 +40,12 @@ public sealed class CanCyclicSendStartEditorPlugin : IStepEditorPlugin
             var m = s.Messages[i];
             if (string.IsNullOrWhiteSpace(m.CanId))
                 errors.Add(StepSettingError.Error("CAN_032", $"第 {i + 1} 行：CAN ID 不能为空"));
+            else if (!context.Evaluator.ValidateExpression(m.CanId, context.ExecutionContext, out var canIdErr))
+                errors.Add(StepSettingError.Error("CAN_032E", $"第 {i + 1} 行：CAN ID 表达式无效: {canIdErr}"));
             if (string.IsNullOrWhiteSpace(m.Data))
                 errors.Add(StepSettingError.Error("CAN_033", $"第 {i + 1} 行：数据不能为空"));
+            else if (!context.Evaluator.ValidateExpression(m.Data, context.ExecutionContext, out var dataErr))
+                errors.Add(StepSettingError.Error("CAN_033E", $"第 {i + 1} 行：Data 表达式无效: {dataErr}"));
             if (m.CycleTimeMs <= 0)
                 errors.Add(StepSettingError.Error("CAN_034", $"第 {i + 1} 行：发送周期必须大于 0"));
         }

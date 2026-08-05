@@ -29,6 +29,8 @@ public sealed class VisaReadEditorPlugin : IStepEditorPlugin
         var s = (VisaReadSetting)new VisaReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_040", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_040E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("VISA_041", "结果变量名不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

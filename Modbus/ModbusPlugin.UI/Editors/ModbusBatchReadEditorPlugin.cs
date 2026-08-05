@@ -29,7 +29,8 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
         var s = (ModbusBatchReadSetting)new ModbusBatchReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_040", "连接标识名不能为空"));
-        if (s.Items.Count == 0)
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("MB_040E", $"ConnectionName 表达式无效: {connErr}"));
             errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
         for (int i = 0; i < s.Items.Count; i++)
         {

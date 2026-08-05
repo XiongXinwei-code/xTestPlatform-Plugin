@@ -29,8 +29,12 @@ public sealed class VisaWriteEditorPlugin : IStepEditorPlugin
         var s = (VisaWriteSetting)new VisaWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_020", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_020E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.Command))
             errors.Add(StepSettingError.Error("VISA_021", "SCPI 命令不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Command, context.ExecutionContext, out var cmdErr))
+            errors.Add(StepSettingError.Error("VISA_021E", $"Command 表达式无效: {cmdErr}"));
         VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

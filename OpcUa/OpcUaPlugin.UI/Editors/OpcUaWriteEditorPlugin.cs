@@ -29,10 +29,16 @@ public sealed class OpcUaWriteEditorPlugin : IStepEditorPlugin
         var s = (OpcUaWriteSetting)new OpcUaWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("OPCUA_030", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_030E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_031", "节点 ID 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.NodeId, context.ExecutionContext, out var nodeErr))
+            errors.Add(StepSettingError.Error("OPCUA_031E", $"NodeId 表达式无效: {nodeErr}"));
         if (string.IsNullOrWhiteSpace(s.WriteValue))
             errors.Add(StepSettingError.Error("OPCUA_032", "写入值不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.WriteValue, context.ExecutionContext, out var valErr))
+            errors.Add(StepSettingError.Error("OPCUA_032E", $"WriteValue 表达式无效: {valErr}"));
         if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
             errors.Add(StepSettingError.Error("OPCUA_033", "超时必须大于 0，或为 -1 表示永不超时"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);

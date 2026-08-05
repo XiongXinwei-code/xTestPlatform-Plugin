@@ -30,6 +30,8 @@ public sealed class NiDaqEncoderConfigEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
             errors.Add(StepSettingError.Error("DAQ_040E", $"TaskName 表达式无效: {taskNameErr}"));
         if (string.IsNullOrWhiteSpace(s.CounterChannel)) errors.Add(StepSettingError.Error("DAQ_041", "Counter 通道不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.CounterChannel, context.ExecutionContext, out var chErr))
+            errors.Add(StepSettingError.Error("DAQ_041E", $"CounterChannel 表达式无效: {chErr}"));
         if (s.PulsesPerRevolution <= 0) errors.Add(StepSettingError.Error("DAQ_042", "每转脉冲数 (PPR) 必须大于 0"));
         if (s.DistancePerPulse <= 0) errors.Add(StepSettingError.Error("DAQ_043", "每脉冲距离必须大于 0"));
         return errors;

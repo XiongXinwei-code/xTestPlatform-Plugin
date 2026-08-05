@@ -33,6 +33,8 @@ public sealed class SerialPortReadEditorPlugin : IStepEditorPlugin
 
         if (string.IsNullOrWhiteSpace(s.PortName))
             errors.Add(StepSettingError.Error("SP_030", "PortName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.PortName, context.ExecutionContext, out var portErr))
+            errors.Add(StepSettingError.Error("SP_030E", $"PortName 表达式无效: {portErr}"));
 
         if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
             errors.Add(StepSettingError.Error("SP_031", "ReadTimeout 必须大于 0，或为 -1 表示永不超时"));

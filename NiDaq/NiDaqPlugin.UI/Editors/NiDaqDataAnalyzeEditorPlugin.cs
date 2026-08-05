@@ -26,7 +26,11 @@ public sealed class NiDaqDataAnalyzeEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqDataAnalyzeSetting)new NiDaqDataAnalyzePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.FilePath)) errors.Add(StepSettingError.Error("DAQ_050", "文件路径不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.FilePath, context.ExecutionContext, out var fpErr))
+            errors.Add(StepSettingError.Error("DAQ_050E", $"FilePath 表达式无效: {fpErr}"));
         if (string.IsNullOrWhiteSpace(s.ChannelName)) errors.Add(StepSettingError.Error("DAQ_051", "通道名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ChannelName, context.ExecutionContext, out var chErr))
+            errors.Add(StepSettingError.Error("DAQ_051E", $"ChannelName 表达式无效: {chErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("DAQ_052", "结果变量不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
@@ -39,10 +43,16 @@ public sealed class NiDaqDataAnalyzeEditorPlugin : IStepEditorPlugin
         }
         if (s.Mode == AnalyzeMode.PeakWithRef && string.IsNullOrWhiteSpace(s.ReferenceChannel))
             errors.Add(StepSettingError.Error("DAQ_053", "PeakWithRef 模式下参考通道不能为空"));
+        else if (s.Mode == AnalyzeMode.PeakWithRef && !string.IsNullOrWhiteSpace(s.ReferenceChannel)
+            && !context.Evaluator.ValidateExpression(s.ReferenceChannel, context.ExecutionContext, out var refErr))
+            errors.Add(StepSettingError.Error("DAQ_053E", $"ReferenceChannel 表达式无效: {refErr}"));
         if (s.Mode == AnalyzeMode.PeakWithRef && string.IsNullOrWhiteSpace(s.RefAtPeakVariable))
             errors.Add(StepSettingError.Error("DAQ_054", "PeakWithRef 模式下峰值参考变量不能为空"));
         if ((s.Mode == AnalyzeMode.RangeStats || s.Mode == AnalyzeMode.Slope) && string.IsNullOrWhiteSpace(s.ReferenceChannel))
             errors.Add(StepSettingError.Error("DAQ_055", "当前分析模式需要指定参考通道"));
+        else if ((s.Mode == AnalyzeMode.RangeStats || s.Mode == AnalyzeMode.Slope) && !string.IsNullOrWhiteSpace(s.ReferenceChannel)
+            && !context.Evaluator.ValidateExpression(s.ReferenceChannel, context.ExecutionContext, out var refErr2))
+            errors.Add(StepSettingError.Error("DAQ_055E", $"ReferenceChannel 表达式无效: {refErr2}"));
         if ((s.Mode == AnalyzeMode.RangeStats || s.Mode == AnalyzeMode.Slope) && s.RangeStart >= s.RangeEnd)
             errors.Add(StepSettingError.Error("DAQ_058", $"区间起点 ({s.RangeStart}) 必须小于区间终点 ({s.RangeEnd})"));
         return errors;

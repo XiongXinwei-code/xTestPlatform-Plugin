@@ -28,8 +28,12 @@ public sealed class VisaOpenEditorPlugin : IStepEditorPlugin
         var s = (VisaOpenSetting)new VisaOpenPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_001", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_001E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.ResourceString))
             errors.Add(StepSettingError.Error("VISA_002", "VISA 资源字符串不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ResourceString, context.ExecutionContext, out var resErr))
+            errors.Add(StepSettingError.Error("VISA_002E", $"ResourceString 表达式无效: {resErr}"));
         if (s.OpenTimeoutMs <= 0)
             errors.Add(StepSettingError.Error("VISA_003", "打开超时必须大于 0"));
         if (s.IoTimeoutMs <= 0)

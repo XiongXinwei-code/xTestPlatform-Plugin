@@ -29,6 +29,8 @@ public sealed class OpcUaBatchReadEditorPlugin : IStepEditorPlugin
         var s = (OpcUaBatchReadSetting)new OpcUaBatchReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("OPCUA_040", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_040E", $"ConnectionName 表达式无效: {connErr}"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Warning("OPCUA_041", "节点列表为空"));
         for (int i = 0; i < s.Items.Count; i++)
@@ -36,6 +38,8 @@ public sealed class OpcUaBatchReadEditorPlugin : IStepEditorPlugin
             var item = s.Items[i];
             if (string.IsNullOrWhiteSpace(item.NodeId))
                 errors.Add(StepSettingError.Error("OPCUA_042", $"第 {i + 1} 行：节点标识不能为空"));
+            else if (!context.Evaluator.ValidateExpression(item.NodeId, context.ExecutionContext, out var nodeErr))
+                errors.Add(StepSettingError.Error("OPCUA_042E", $"第 {i + 1} 行：NodeId 表达式无效: {nodeErr}"));
             if (string.IsNullOrWhiteSpace(item.ResultVariable))
                 errors.Add(StepSettingError.Error("OPCUA_043", $"第 {i + 1} 行：结果变量不能为空"));
             else if (!context.ExecutionContext.HasVariable(item.ResultVariable))

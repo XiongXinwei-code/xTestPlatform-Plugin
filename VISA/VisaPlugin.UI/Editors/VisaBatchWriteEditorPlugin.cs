@@ -29,6 +29,8 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
         var s = (VisaBatchWriteSetting)new VisaBatchWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_060", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_060E", $"ConnectionName 表达式无效: {connErr}"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Error("VISA_061", "至少需要一条 SCPI 命令"));
         for (int i = 0; i < s.Items.Count; i++)
@@ -40,6 +42,8 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
         {
             if (string.IsNullOrWhiteSpace(s.Items[i].Command))
                 errors.Add(StepSettingError.Error("VISA_062", $"第 {i + 1} 行：命令不能为空"));
+            else if (!context.Evaluator.ValidateExpression(s.Items[i].Command, context.ExecutionContext, out var cmdErr))
+                errors.Add(StepSettingError.Error("VISA_062E", $"第 {i + 1} 行：Command 表达式无效: {cmdErr}"));
         }
         VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;

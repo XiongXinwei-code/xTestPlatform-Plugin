@@ -29,8 +29,15 @@ public sealed class OpcUaSubscribeEditorPlugin : IStepEditorPlugin
         var s = (OpcUaSubscribeSetting)new OpcUaSubscribePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("OPCUA_060", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_060E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_061", "节点 ID 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.NodeId, context.ExecutionContext, out var nodeErr))
+            errors.Add(StepSettingError.Error("OPCUA_061E", $"NodeId 表达式无效: {nodeErr}"));
+        if (!string.IsNullOrWhiteSpace(s.ExpectedValue)
+            && !context.Evaluator.ValidateExpression(s.ExpectedValue, context.ExecutionContext, out var expErr))
+            errors.Add(StepSettingError.Error("OPCUA_064", $"ExpectedValue 表达式无效: {expErr}"));
         if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
             errors.Add(StepSettingError.Error("OPCUA_062", "超时必须大于 0，或为 -1 表示永不超时"));
         if (s.SamplingIntervalMs <= 0)
