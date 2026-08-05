@@ -8,6 +8,8 @@ namespace NationalInstruments.DAQmx
 {
     public class Task : IDisposable
     {
+        public Task() { }
+        public Task(string name) { }
         public AIChannelCollection AIChannels => new();
         public DIChannelCollection DIChannels => new();
         public DOChannelCollection DOChannels => new();
@@ -21,10 +23,20 @@ namespace NationalInstruments.DAQmx
         public void Dispose() { }
     }
 
-    public class TaskStream { }
+    public class TaskStream
+    {
+        public int Timeout { get; set; } = -1;
+        public long AvailableSamplesPerChannel => 0;
+    }
+
+    public class AIChannel
+    {
+        public string VirtualName => string.Empty;
+    }
 
     public class AIChannelCollection
     {
+        public AIChannel this[int index] => new();
         public void CreateVoltageChannel(string channel, string name, AITerminalConfiguration terminal, double min, double max, AIVoltageUnits units) { }
     }
 
@@ -45,6 +57,7 @@ namespace NationalInstruments.DAQmx
 
     public class TimingConfiguration
     {
+        public double SampleClockRate => 0;
         public void ConfigureSampleClock(string source, double rate, SampleClockActiveEdge edge, SampleQuantityMode mode, int samplesPerChannel = 0) { }
     }
 
@@ -103,6 +116,12 @@ namespace NationalInstruments.DAQmx
     {
         public DaqException() { }
         public DaqException(string message) : base(message) { }
+    }
+
+    public class DaqSystem
+    {
+        public static DaqSystem Local => new();
+        public string[] Devices => Array.Empty<string>();
     }
 }
 

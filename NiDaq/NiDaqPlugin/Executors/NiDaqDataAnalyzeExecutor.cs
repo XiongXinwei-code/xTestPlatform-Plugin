@@ -5,7 +5,6 @@ using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.Services.ExpressionEngine;
-using NiDaq.Helpers;
 
 namespace NiDaq.Executors;
 
