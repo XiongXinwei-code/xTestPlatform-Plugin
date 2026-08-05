@@ -20,7 +20,7 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
 
         try
         {
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var taskKey = $"OpcUaDataAcq_{taskName}";
 
             // 获取采集任务
@@ -50,7 +50,7 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
             // 导出 CSV
             if (setting.ExportFormat is DataAcqExportFormat.Csv or DataAcqExportFormat.Both)
             {
-                var csvPath = await Evaluator.EvaluateAsync<string>(setting.CsvFilePath, context) ?? setting.CsvFilePath;
+                var csvPath = await Evaluator.EvalStringAsync(setting.CsvFilePath, context);
                 OpcUaDataAcqTask.ExportToCsv(csvPath, items, records);
                 context.LogAction?.Invoke($"数据已导出到: {csvPath} ({records.Count} 条记录)");
             }

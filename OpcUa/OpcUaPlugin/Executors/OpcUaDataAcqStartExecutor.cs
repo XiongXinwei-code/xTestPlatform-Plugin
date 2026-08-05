@@ -21,8 +21,8 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
 
         try
         {
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var sessionKey = OpcUaHelper.GetSessionKey(connName);
             var taskKey = $"OpcUaDataAcq_{taskName}";
 
@@ -62,7 +62,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             var resolvedItems = new List<OpcUaDataAcqItem>();
             foreach (var item in setting.Items)
             {
-                var nodeId = await Evaluator.EvaluateAsync<string>(item.NodeId, context) ?? item.NodeId;
+                var nodeId = await Evaluator.EvalStringAsync(item.NodeId, context);
                 resolvedItems.Add(new OpcUaDataAcqItem { NodeId = nodeId, ColumnName = item.ColumnName });
             }
 
