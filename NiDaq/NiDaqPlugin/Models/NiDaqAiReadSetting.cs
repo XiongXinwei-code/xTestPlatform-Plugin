@@ -8,7 +8,7 @@ public class NiDaqAiReadSetting
 {
     /// <summary>任务名称</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"AiTask1\"";
 
     /// <summary>读取样本数（每通道），-1 为读取所有可用</summary>
     public int SamplesToRead { get; set; } = -1;

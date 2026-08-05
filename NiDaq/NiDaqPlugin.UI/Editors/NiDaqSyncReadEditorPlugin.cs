@@ -27,7 +27,10 @@ public sealed class NiDaqSyncReadEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (NiDaqSyncReadSetting)new NiDaqSyncReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_030", "任务名称不能为空"));
+        if (string.IsNullOrWhiteSpace(s.TaskName))
+            errors.Add(StepSettingError.Error("DAQ_030", "任务名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_030E", $"TaskName 表达式无效: {taskNameErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("DAQ_031", "结果变量不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
@@ -40,11 +43,14 @@ public sealed class NiDaqSyncReadEditorPlugin : IStepEditorPlugin
         }
         if (s.SaveToFile && string.IsNullOrWhiteSpace(s.OutputDirectory))
             errors.Add(StepSettingError.Warning("DAQ_W31", "启用存盘时建议指定输出目录"));
+        else if (s.SaveToFile && !string.IsNullOrWhiteSpace(s.OutputDirectory)
+            && !context.Evaluator.ValidateExpression(s.OutputDirectory, context.ExecutionContext, out var dirErr))
+            errors.Add(StepSettingError.Error("DAQ_036", $"OutputDirectory 表达式无效: {dirErr}"));
         if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
             errors.Add(StepSettingError.Error("DAQ_034", "读取超时必须大于 0，或为 -1 表示永不超时"));
         if (s.SaveToFile && s.MaxFileSizeMB <= 0)
             errors.Add(StepSettingError.Error("DAQ_035", "最大文件大小必须大于 0"));
-        NiDaqLifecycleValidator.CheckPrecedingConfig
+        NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }

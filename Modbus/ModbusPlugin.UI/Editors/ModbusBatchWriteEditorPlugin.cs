@@ -31,6 +31,8 @@ public sealed class ModbusBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_050", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Warning("MB_051", "批量写入列表为空"));
+        if (s.IntervalMs < 0)
+            errors.Add(StepSettingError.Error("MB_053", "写入间隔时间不能为负数"));
         for (int i = 0; i < s.Items.Count; i++)
         {
             var item = s.Items[i];

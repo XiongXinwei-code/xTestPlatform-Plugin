@@ -9,7 +9,7 @@ public class NiDaqAiConfigSetting
 {
     /// <summary>任务名称（用于后续 Start/Read/Stop 引用）</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"AiTask1\"";
 
     /// <summary>AI 通道列表</summary>
     public ObservableCollection<NiDaqAiChannel> Channels { get; set; } = new();

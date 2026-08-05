@@ -39,6 +39,8 @@ public sealed class OpcUaBatchWriteEditorPlugin : IStepEditorPlugin
             if (string.IsNullOrWhiteSpace(item.WriteValue))
                 errors.Add(StepSettingError.Error("OPCUA_053", $"第 {i + 1} 行：写入值不能为空"));
         }
+        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
+            errors.Add(StepSettingError.Error("OPCUA_054", "超时必须大于 0，或为 -1 表示永不超时"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

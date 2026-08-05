@@ -28,6 +28,8 @@ public sealed class NiDaqEncoderReadEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqEncoderSetting)new NiDaqEncoderReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_080", "任务名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_080E", $"TaskName 表达式无效: {taskNameErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("DAQ_081", "结果变量不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

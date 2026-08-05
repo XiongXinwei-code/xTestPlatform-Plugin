@@ -27,6 +27,8 @@ public sealed class NiDaqAiConfigEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqAiConfigSetting)new NiDaqAiConfigPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_001", "任务名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_001E", $"TaskName 表达式无效: {taskNameErr}"));
         if (s.Channels.Count == 0) errors.Add(StepSettingError.Error("DAQ_002", "AI 通道列表为空"));
         if (s.SampleRate <= 0) errors.Add(StepSettingError.Error("DAQ_003", "采样率必须大于 0"));
         if (s.SamplesPerChannel <= 0) errors.Add(StepSettingError.Error("DAQ_004", "每通道采样数必须大于 0"));

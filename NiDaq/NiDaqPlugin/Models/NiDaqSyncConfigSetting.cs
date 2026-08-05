@@ -9,7 +9,7 @@ public class NiDaqSyncConfigSetting
 {
     /// <summary>任务名称</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"SyncTask1\"";
 
     /// <summary>AI 通道列表</summary>
     public ObservableCollection<NiDaqAiChannel> AiChannels { get; set; } = new();

@@ -8,7 +8,7 @@ public class NiDaqEncoderConfigSetting
 {
     /// <summary>任务名称</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"EncoderTask1\"";
 
     /// <summary>Counter 通道，如 "Dev1/ctr0"</summary>
     [ExpressionField]
