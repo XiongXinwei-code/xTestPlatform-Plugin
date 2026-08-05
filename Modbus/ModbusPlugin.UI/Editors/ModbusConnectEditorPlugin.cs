@@ -15,6 +15,7 @@ public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new ModbusConnectEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new ModbusConnectPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

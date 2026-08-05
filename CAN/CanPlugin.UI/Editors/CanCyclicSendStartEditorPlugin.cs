@@ -16,6 +16,7 @@ public sealed class CanCyclicSendStartEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new CanCyclicSendStartEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new CanCyclicSendStartPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

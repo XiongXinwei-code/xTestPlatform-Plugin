@@ -16,6 +16,7 @@ public sealed class SerialPortQueryEditorPlugin : IStepEditorPlugin
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{
 		var view = new SerialPortQueryEditorView();
+		view.SequenceFile = sequenceFile;
 		view.ViewModel.AttachSerializer(new SerialPortQueryPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
 		return view;

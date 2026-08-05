@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.UdsReadDataByIdEditorView"
+﻿<UserControl x:Class="CAN.UI.Views.UdsReadDataByIdEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -27,19 +27,19 @@
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
-                    ExpectedResultType="System.String"
+                    ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="TX ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding TxId, Mode=TwoWay}" ExpectedResultType="System.String"
+                    ScriptText="{Binding TxId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="RX ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding RxId, Mode=TwoWay}" ExpectedResultType="System.String"
+                    ScriptText="{Binding RxId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -48,7 +48,7 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="DID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding Did, Mode=TwoWay}" ExpectedResultType="System.String"
+                    ScriptText="{Binding Did, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 

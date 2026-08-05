@@ -16,6 +16,7 @@ public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new OpcUaDataAcqStopEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new OpcUaDataAcqStopPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

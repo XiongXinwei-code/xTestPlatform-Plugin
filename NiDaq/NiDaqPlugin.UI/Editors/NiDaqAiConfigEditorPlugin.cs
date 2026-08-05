@@ -15,6 +15,7 @@ public sealed class NiDaqAiConfigEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new NiDaqAiConfigEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new NiDaqAiConfigPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

@@ -16,6 +16,7 @@ public sealed class ModbusWriteEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new ModbusWriteEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new ModbusWritePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

@@ -15,6 +15,7 @@ public sealed class VisaOpenEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new VisaOpenEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new VisaOpenPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

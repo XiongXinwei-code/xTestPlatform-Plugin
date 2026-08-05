@@ -17,6 +17,7 @@ public sealed class UdsWriteDataByIdEditorPlugin : IStepEditorPlugin
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{
 		var view = new UdsWriteDataByIdEditorView();
+		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
 		return view;
 	}

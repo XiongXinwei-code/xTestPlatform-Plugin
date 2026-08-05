@@ -17,6 +17,7 @@ public sealed class UdsClearDtcEditorPlugin : IStepEditorPlugin
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{
 		var view = new UdsClearDtcEditorView();
+		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
 		return view;
 	}

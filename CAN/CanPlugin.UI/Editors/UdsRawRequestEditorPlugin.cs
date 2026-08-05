@@ -17,6 +17,7 @@ public sealed class UdsRawRequestEditorPlugin : IStepEditorPlugin
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{
 		var view = new UdsRawRequestEditorView();
+		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
 		return view;
 	}

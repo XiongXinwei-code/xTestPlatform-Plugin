@@ -16,6 +16,7 @@ public sealed class NiDaqTaskStartEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new NiDaqTaskStartEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new NiDaqTaskStartPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

@@ -17,6 +17,7 @@ public sealed class UdsDiagSessionEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new UdsDiagSessionEditorView();
+        view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
         return view;
     }

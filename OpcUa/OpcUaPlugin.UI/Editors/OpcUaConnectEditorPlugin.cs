@@ -15,6 +15,7 @@ public sealed class OpcUaConnectEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new OpcUaConnectEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new OpcUaConnectPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

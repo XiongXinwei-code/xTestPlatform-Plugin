@@ -17,6 +17,7 @@ public sealed class UdsRoutineControlEditorPlugin : IStepEditorPlugin
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{
 		var view = new UdsRoutineControlEditorView();
+		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
 		return view;
 	}

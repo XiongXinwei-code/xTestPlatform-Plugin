@@ -16,6 +16,7 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new VisaBatchWriteEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new VisaBatchWritePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

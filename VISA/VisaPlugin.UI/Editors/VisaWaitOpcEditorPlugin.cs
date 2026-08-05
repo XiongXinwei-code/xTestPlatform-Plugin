@@ -16,6 +16,7 @@ public sealed class VisaWaitOpcEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new VisaWaitOpcEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new VisaWaitOpcPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

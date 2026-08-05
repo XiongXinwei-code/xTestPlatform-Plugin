@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using CAN.UI.ViewModels;
 using StepEditor.Abstractions;
@@ -9,8 +10,14 @@ public partial class CanCyclicSendStopEditorView : UserControl, IRefreshableEdit
 {
     public CanCyclicSendStopViewModel ViewModel { get; }
     public Action<string, Action>? ExecuteCommand { get; set; }
-    public SequenceFile? SequenceFile { get; set; }
-    public EditPosition? EditPosition { get; set; }
+    public static readonly DependencyProperty SequenceFileProperty =
+        DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(CanCyclicSendStopEditorView),
+            new PropertyMetadata(null));
+    public SequenceFile? SequenceFile { get => (SequenceFile?)GetValue(SequenceFileProperty); set => SetValue(SequenceFileProperty, value); }
+    public static readonly DependencyProperty EditPositionProperty =
+        DependencyProperty.Register(nameof(EditPosition), typeof(EditPosition), typeof(CanCyclicSendStopEditorView),
+            new PropertyMetadata(null));
+    public EditPosition? EditPosition { get => (EditPosition?)GetValue(EditPositionProperty); set => SetValue(EditPositionProperty, value); }
 
     public CanCyclicSendStopEditorView()
     {

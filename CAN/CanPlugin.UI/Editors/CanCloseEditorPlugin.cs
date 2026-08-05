@@ -16,6 +16,7 @@ public sealed class CanCloseEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new CanCloseEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new CanClosePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

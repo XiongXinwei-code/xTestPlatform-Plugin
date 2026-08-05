@@ -16,6 +16,7 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new ModbusBatchReadEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new ModbusBatchReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;

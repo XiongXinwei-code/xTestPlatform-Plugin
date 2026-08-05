@@ -16,6 +16,7 @@ public sealed class SerialPortCloseEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new SerialPortCloseEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new SerialPortClosePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
