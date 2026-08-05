@@ -21,13 +21,14 @@ public sealed class CanOpenExecutor : IStepExecutor
         try
         {
             var channel = await Evaluator.EvaluateAsync<string>(setting.Channel, context) ?? setting.Channel;
+            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
 
             // 若已存在同名连接（序列异常终止未关闭），先关闭销毁旧适配器
-            var key = CanHelper.GetAdapterKey(setting.ConnectionName);
+            var key = CanHelper.GetAdapterKey(connName);
             if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingAdapter) && existingAdapter is ICanAdapter oldAdapter)
             {
                 try { oldAdapter.Close(); oldAdapter.Dispose(); } catch { /* 忽略关闭异常 */ }
-                context.LogAction?.Invoke($"CAN 连接 {setting.ConnectionName} 检测到已有连接，已自动关闭旧连接");
+                context.LogAction?.Invoke($"CAN 连接 {connName} 检测到已有连接，已自动关闭旧连接");
             }
 
             var adapter = CanAdapterFactory.Create(setting.AdapterType);

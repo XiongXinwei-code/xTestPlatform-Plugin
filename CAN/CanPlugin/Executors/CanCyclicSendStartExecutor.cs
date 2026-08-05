@@ -21,7 +21,8 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
         try
         {
             // 获取 CAN 适配器
-            var adapterKey = CanHelper.GetAdapterKey(setting.ConnectionName);
+            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var adapterKey = CanHelper.GetAdapterKey(connName);
             if (!context.CurrentStep.RuntimeData.TryGetValue(adapterKey, out var obj) || obj is not ICanAdapter adapter)
             {
                 return new ExecutionResult
@@ -29,7 +30,7 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                     StepResult = new StepResult
                     {
                         Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {setting.ConnectionName}" }
+                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {connName}" }
                     }
                 };
             }

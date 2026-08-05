@@ -16,9 +16,10 @@ internal static class UdsExecutorHelper
     public static async Task<(UdsClient? client, string? error)> CreateClientAsync(
         UdsCommonSetting common, IExecutionContext context, CancellationToken ct)
     {
-        var key = CanHelper.GetAdapterKey(common.ConnectionName);
+        var connName = await Evaluator.EvaluateAsync<string>(common.ConnectionName, context) ?? common.ConnectionName;
+        var key = CanHelper.GetAdapterKey(connName);
         if (!context.CurrentStep!.RuntimeData.TryGetValue(key, out var obj) || obj is not ICanAdapter adapter)
-            return (null, $"CAN 连接未找到: {common.ConnectionName}");
+            return (null, $"CAN 连接未找到: {connName}");
 
         var txIdStr = await Evaluator.EvaluateAsync<string>(common.TxId, context) ?? common.TxId;
         var rxIdStr = await Evaluator.EvaluateAsync<string>(common.RxId, context) ?? common.RxId;
