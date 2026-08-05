@@ -23,7 +23,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = VisaHelper.GetSessionKey(connName);
 
             if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IMessageBasedSession session)
@@ -43,7 +43,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var command = await Evaluator.EvaluateAsync<string>(item.Command, context) ?? item.Command;
+                var command = await Evaluator.EvalStringAsync(item.Command, context);
                 if (string.IsNullOrWhiteSpace(command))
                     continue;
 

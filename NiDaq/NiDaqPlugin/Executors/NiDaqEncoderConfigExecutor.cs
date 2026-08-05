@@ -22,8 +22,8 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
-            var counterCh = await Evaluator.EvaluateAsync<string>(setting.CounterChannel, context) ?? setting.CounterChannel;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            var counterCh = await Evaluator.EvalStringAsync(setting.CounterChannel, context);
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");

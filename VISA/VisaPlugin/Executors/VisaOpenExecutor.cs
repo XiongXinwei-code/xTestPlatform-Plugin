@@ -24,8 +24,8 @@ public sealed class VisaOpenExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
-            var resource = await Evaluator.EvaluateAsync<string>(setting.ResourceString, context) ?? setting.ResourceString;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            var resource = await Evaluator.EvalStringAsync(setting.ResourceString, context);
             var key = VisaHelper.GetSessionKey(connName);
 
             // 若已存在同名会话（序列异常终止未关闭），先销毁旧会话

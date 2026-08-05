@@ -22,8 +22,8 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var channel = await Evaluator.EvaluateAsync<string>(setting.Channel, context) ?? setting.Channel;
-            var valueStr = await Evaluator.EvaluateAsync<string>(setting.Value, context) ?? setting.Value;
+            var channel = await Evaluator.EvalStringAsync(setting.Channel, context);
+            var valueStr = await Evaluator.EvalStringAsync(setting.Value, context);
 
             using var task = new DaqTask();
             task.DOChannels.CreateChannel(channel, "", ChannelLineGrouping.OneChannelForAllLines);

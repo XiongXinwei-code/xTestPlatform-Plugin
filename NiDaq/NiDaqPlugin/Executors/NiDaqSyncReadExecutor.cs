@@ -22,8 +22,8 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
-            var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            var resultVar = await Evaluator.EvalStringAsync(setting.ResultVariable, context);
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
@@ -52,7 +52,7 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
             if (setting.SaveToFile)
             {
                 var outputDir = !string.IsNullOrWhiteSpace(setting.OutputDirectory)
-                    ? (await Evaluator.EvaluateAsync<string>(setting.OutputDirectory, context) ?? setting.OutputDirectory)
+                    ? await Evaluator.EvalStringAsync(setting.OutputDirectory, context)
                     : string.Empty;
 
                 var filePath = DaqFileWriter.BuildFilePath(outputDir, taskName + "_Sync", "csv");

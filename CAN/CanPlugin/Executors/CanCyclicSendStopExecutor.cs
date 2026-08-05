@@ -18,7 +18,7 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
 
         try
         {
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var taskKey = CanCyclicSendStartExecutor.GetTaskKey(taskName);
 
             if (context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var obj) && obj is CancellationTokenSource cts)

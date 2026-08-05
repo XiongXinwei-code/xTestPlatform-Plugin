@@ -20,7 +20,7 @@ public sealed class CanReadExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = CanHelper.GetAdapterKey(connName);
             if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not ICanAdapter adapter)
             {
@@ -38,7 +38,7 @@ public sealed class CanReadExecutor : IStepExecutor
             uint? filterId = null;
             if (!string.IsNullOrWhiteSpace(setting.FilterId))
             {
-                var idStr = await Evaluator.EvaluateAsync<string>(setting.FilterId, context) ?? setting.FilterId;
+                var idStr = await Evaluator.EvalStringAsync(setting.FilterId, context);
                 filterId = ParseCanId(idStr);
             }
 

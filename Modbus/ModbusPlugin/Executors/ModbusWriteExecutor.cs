@@ -25,7 +25,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 
 		try
 		{
-			var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 			var key = ModbusHelper.GetConnectionKey(connName);
 
 			if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IModbusMaster master)
@@ -40,8 +40,8 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 				};
 			}
 
-			var startAddr = ushort.Parse(await Evaluator.EvaluateAsync<string>(setting.StartAddress, context) ?? setting.StartAddress);
-			var valuesStr = await Evaluator.EvaluateAsync<string>(setting.Values, context) ?? setting.Values;
+			var startAddr = ushort.Parse(await Evaluator.EvalStringAsync(setting.StartAddress, context));
+			var valuesStr = await Evaluator.EvalStringAsync(setting.Values, context);
 
 			if (setting.RegisterType == ModbusRegisterType.Coil)
 			{

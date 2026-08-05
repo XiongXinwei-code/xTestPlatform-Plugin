@@ -20,8 +20,8 @@ public sealed class CanOpenExecutor : IStepExecutor
 
         try
         {
-            var channel = await Evaluator.EvaluateAsync<string>(setting.Channel, context) ?? setting.Channel;
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var channel = await Evaluator.EvalStringAsync(setting.Channel, context);
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 
             // 若已存在同名连接（序列异常终止未关闭），先关闭销毁旧适配器
             var key = CanHelper.GetAdapterKey(connName);

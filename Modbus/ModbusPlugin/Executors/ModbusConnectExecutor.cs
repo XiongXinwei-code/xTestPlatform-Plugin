@@ -27,7 +27,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 
 		try
 		{
-			var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 				var key = ModbusHelper.GetConnectionKey(connName);
 
 				// 若已存在同名连接（序列异常终止未断开），先销毁旧资源
@@ -48,7 +48,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 
 			if (setting.TransportType == ModbusTransportType.TCP)
 			{
-				var ip = await Evaluator.EvaluateAsync<string>(setting.IpAddress, context) ?? setting.IpAddress;
+				var ip = await Evaluator.EvalStringAsync(setting.IpAddress, context);
 				var client = new TcpClient();
 				await client.ConnectAsync(ip, setting.TcpPort, cancellationToken);
 				client.ReceiveTimeout = setting.TimeoutMs;
@@ -58,7 +58,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 			}
 			else
 			{
-				var portName = await Evaluator.EvaluateAsync<string>(setting.PortName, context) ?? setting.PortName;
+				var portName = await Evaluator.EvalStringAsync(setting.PortName, context);
 				var port = new SerialPort(portName, setting.BaudRate, (Parity)setting.Parity, setting.DataBits, (StopBits)setting.StopBits);
 				port.ReadTimeout = setting.TimeoutMs;
 				port.WriteTimeout = setting.TimeoutMs;

@@ -22,7 +22,7 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var resultVar = setting.ResultVariable;
 
             if (string.IsNullOrWhiteSpace(taskName))
@@ -46,7 +46,7 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
             if (setting.SaveToFile)
             {
                 var outputDir = !string.IsNullOrWhiteSpace(setting.OutputDirectory)
-                    ? (await Evaluator.EvaluateAsync<string>(setting.OutputDirectory, context) ?? setting.OutputDirectory)
+                    ? await Evaluator.EvalStringAsync(setting.OutputDirectory, context)
                     : string.Empty;
                 var filePath = DaqFileWriter.BuildFilePath(outputDir, taskName + "_AI", "csv");
                 string[]? names = new string[channels];

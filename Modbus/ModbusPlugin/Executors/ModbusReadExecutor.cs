@@ -25,7 +25,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 
 		try
 		{
-			var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 			var key = ModbusHelper.GetConnectionKey(connName);
 
 			if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IModbusMaster master)
@@ -40,8 +40,8 @@ public sealed class ModbusReadExecutor : IStepExecutor
 				};
 			}
 
-			var startAddr = ushort.Parse(await Evaluator.EvaluateAsync<string>(setting.StartAddress, context) ?? setting.StartAddress);
-			var quantity = ushort.Parse(await Evaluator.EvaluateAsync<string>(setting.Quantity, context) ?? setting.Quantity);
+			var startAddr = ushort.Parse(await Evaluator.EvalStringAsync(setting.StartAddress, context));
+			var quantity = ushort.Parse(await Evaluator.EvalStringAsync(setting.Quantity, context));
 
 			object result;
 			switch (setting.RegisterType)
@@ -67,7 +67,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 					break;
 			}
 
-			var varName = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
+			var varName = await Evaluator.EvalStringAsync(setting.ResultVariable, context);
 			context.SetVariable(varName, result);
 
 			context.LogAction?.Invoke($"Modbus Read: Addr={startAddr}, Qty={quantity}, Result={result}");
