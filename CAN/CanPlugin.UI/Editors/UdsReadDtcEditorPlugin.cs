@@ -30,11 +30,17 @@ public sealed class UdsReadDtcEditorPlugin : IStepEditorPlugin
 
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
 			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
+		if (string.IsNullOrWhiteSpace(s.TxId))
+			errors.Add(StepSettingError.Error("UDS_002", "TX ID 不能为空"));
+		if (string.IsNullOrWhiteSpace(s.RxId))
+			errors.Add(StepSettingError.Error("UDS_003", "RX ID 不能为空"));
+		if (s.ResponseTimeoutMs == 0 || s.ResponseTimeoutMs < -1)
+			errors.Add(StepSettingError.Error("UDS_005", "响应超时必须大于 0，或为 -1 表示永不超时"));
 
 		if (!string.IsNullOrWhiteSpace(s.ResultVariable))
 		{
 			if (!context.ExecutionContext.HasVariable(s.ResultVariable))
-				errors.Add(StepSettingError.Warning("UDS_T002", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+				errors.Add(StepSettingError.Error("UDS_T002", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
 			else
 			{
 				var val = context.ExecutionContext.GetVariable(s.ResultVariable);

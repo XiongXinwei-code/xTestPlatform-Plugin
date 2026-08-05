@@ -67,7 +67,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 					break;
 			}
 
-			var varName = await Evaluator.EvalStringAsync(setting.ResultVariable, context);
+			var varName = setting.ResultVariable;
 			context.SetVariable(varName, result);
 
 			context.LogAction?.Invoke($"Modbus Read: Addr={startAddr}, Qty={quantity}, Result={result}");

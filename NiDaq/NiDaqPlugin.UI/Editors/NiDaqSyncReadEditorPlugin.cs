@@ -40,7 +40,11 @@ public sealed class NiDaqSyncReadEditorPlugin : IStepEditorPlugin
         }
         if (s.SaveToFile && string.IsNullOrWhiteSpace(s.OutputDirectory))
             errors.Add(StepSettingError.Warning("DAQ_W31", "启用存盘时建议指定输出目录"));
-        NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("DAQ_034", "读取超时必须大于 0，或为 -1 表示永不超时"));
+        if (s.SaveToFile && s.MaxFileSizeMB <= 0)
+            errors.Add(StepSettingError.Error("DAQ_035", "最大文件大小必须大于 0"));
+        NiDaqLifecycleValidator.CheckPrecedingConfig
         NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }

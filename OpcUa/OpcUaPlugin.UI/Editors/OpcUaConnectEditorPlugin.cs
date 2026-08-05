@@ -32,6 +32,8 @@ public sealed class OpcUaConnectEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_002", "端点 URL 不能为空"));
         if (s.AuthMode == OpcUaAuthMode.UserPassword && string.IsNullOrWhiteSpace(s.UserName))
             errors.Add(StepSettingError.Error("OPCUA_003", "用户名密码模式下用户名不能为空"));
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_004", "超时必须大于 0"));
         return errors;
     }
 }

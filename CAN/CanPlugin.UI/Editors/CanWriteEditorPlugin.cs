@@ -33,6 +33,12 @@ public sealed class CanWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_021", "CAN ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.Data))
             errors.Add(StepSettingError.Warning("CAN_W20", "发送数据为空"));
+        else if (s.Data.Length >= 2 && s.Data.StartsWith('"') && s.Data.EndsWith('"'))
+        {
+            var hex = s.Data[1..^1].Trim().Replace(" ", "");
+            if (hex.Length > 0 && (hex.Length % 2 != 0 || !System.Text.RegularExpressions.Regex.IsMatch(hex, "^[0-9A-Fa-f]+$")))
+                errors.Add(StepSettingError.Warning("CAN_W21", "发送数据应为偶数位十六进制字符串（如 02 10 01）"));
+        }
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

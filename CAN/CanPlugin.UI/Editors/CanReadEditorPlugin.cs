@@ -28,18 +28,18 @@ public sealed class CanReadEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (CanReadSetting)new CanReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
-            errors.Add(StepSettingError.Error("CAN_030", "连接标识名不能为空"));
-        if (s.ReadTimeoutMs <= 0)
-            errors.Add(StepSettingError.Error("CAN_031", "超时必须大于 0"));
+            errors.Add(StepSettingError.Error("CAN_050", "连接标识名不能为空"));
+        if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("CAN_051", "超时必须大于 0，或为 -1 表示永不超时"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
-            errors.Add(StepSettingError.Warning("CAN_W30", "未配置结果变量，数据将不会存储"));
+            errors.Add(StepSettingError.Warning("CAN_W50", "未配置结果变量，数据将不会存储"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
-            errors.Add(StepSettingError.Warning("CAN_W31", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+            errors.Add(StepSettingError.Error("CAN_W51", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
         else
         {
             var val = context.ExecutionContext.GetVariable(s.ResultVariable);
             if (val is not null && val is not string)
-                errors.Add(StepSettingError.Warning("CAN_W32", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
+                errors.Add(StepSettingError.Warning("CAN_W52", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
         }
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;

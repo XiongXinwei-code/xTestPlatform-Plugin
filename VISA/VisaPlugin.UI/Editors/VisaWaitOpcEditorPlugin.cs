@@ -29,6 +29,8 @@ public sealed class VisaWaitOpcEditorPlugin : IStepEditorPlugin
         var s = (VisaWaitOpcSetting)new VisaWaitOpcPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_050", "连接标识名不能为空"));
+        if (s.TimeoutMs < 0)
+            errors.Add(StepSettingError.Error("VISA_051", "超时不能为负数（0 表示不限时）"));
         VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

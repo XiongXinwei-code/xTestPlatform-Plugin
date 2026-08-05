@@ -33,6 +33,11 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_061", "至少需要一条 SCPI 命令"));
         for (int i = 0; i < s.Items.Count; i++)
         {
+            if (s.Items[i].DelayMs < 0)
+                errors.Add(StepSettingError.Error("VISA_063", $"第 {i + 1} 条命令：延时不能为负数"));
+        }
+        for (int i = 0; i < s.Items.Count; i++)
+        {
             if (string.IsNullOrWhiteSpace(s.Items[i].Command))
                 errors.Add(StepSettingError.Error("VISA_062", $"第 {i + 1} 行：命令不能为空"));
         }

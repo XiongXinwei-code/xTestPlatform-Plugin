@@ -29,6 +29,8 @@ public sealed class ModbusWriteEditorPlugin : IStepEditorPlugin
         var s = (ModbusWriteSetting)new ModbusWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_030", "连接标识名不能为空"));
+        if (string.IsNullOrWhiteSpace(s.StartAddress))
+            errors.Add(StepSettingError.Error("MB_032", "起始地址不能为空"));
         if (string.IsNullOrWhiteSpace(s.Values))
             errors.Add(StepSettingError.Error("MB_031", "写入值不能为空"));
         ModbusLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);

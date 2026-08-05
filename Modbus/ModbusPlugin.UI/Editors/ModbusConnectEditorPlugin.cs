@@ -30,8 +30,14 @@ public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_001", "连接标识名不能为空"));
         if (s.TransportType == ModbusTransportType.TCP && string.IsNullOrWhiteSpace(s.IpAddress))
             errors.Add(StepSettingError.Error("MB_002", "TCP 模式下 IP 地址不能为空"));
+        if (s.TransportType == ModbusTransportType.TCP && (s.TcpPort < 1 || s.TcpPort > 65535))
+            errors.Add(StepSettingError.Error("MB_004", "TCP 端口号必须在 1~65535 之间"));
         if (s.TransportType == ModbusTransportType.RTU && string.IsNullOrWhiteSpace(s.PortName))
             errors.Add(StepSettingError.Error("MB_003", "RTU 模式下串口名称不能为空"));
+        if (s.TransportType == ModbusTransportType.RTU && s.BaudRate <= 0)
+            errors.Add(StepSettingError.Error("MB_005", "RTU 模式下波特率必须大于 0"));
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("MB_006", "通信超时必须大于 0"));
         return errors;
     }
 }

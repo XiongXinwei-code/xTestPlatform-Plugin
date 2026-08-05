@@ -55,4 +55,25 @@ internal static class OpcUaLifecycleValidator
         errors.Add(StepSettingError.Warning("OPCUA_LC01",
             $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 OpcUA.Connect 步骤"));
     }
+
+    public static void CheckPrecedingDataAcqStart(
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(taskName)) return;
+
+        foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
+        {
+            if (step.StepSetting.StepType != "OpcUa.DataAcqStart") continue;
+            try
+            {
+                var setting = MessagePackSerializer.Deserialize<OpcUaDataAcqStartSetting>(
+                    step.StepSetting.Setting, _opts);
+                if (setting.TaskName == taskName) return;
+            }
+            catch { }
+        }
+
+        errors.Add(StepSettingError.Warning("OPCUA_LC02",
+            $"在此步骤之前未找到针对任务 \"{taskName}\" 的 OpcUa.DataAcqStart 步骤"));
+    }
 }

@@ -43,6 +43,8 @@ public sealed class NiDaqDataAnalyzeEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("DAQ_054", "PeakWithRef 模式下峰值参考变量不能为空"));
         if ((s.Mode == AnalyzeMode.RangeStats || s.Mode == AnalyzeMode.Slope) && string.IsNullOrWhiteSpace(s.ReferenceChannel))
             errors.Add(StepSettingError.Error("DAQ_055", "当前分析模式需要指定参考通道"));
+        if ((s.Mode == AnalyzeMode.RangeStats || s.Mode == AnalyzeMode.Slope) && s.RangeStart >= s.RangeEnd)
+            errors.Add(StepSettingError.Error("DAQ_058", $"区间起点 ({s.RangeStart}) 必须小于区间终点 ({s.RangeEnd})"));
         return errors;
     }
 }

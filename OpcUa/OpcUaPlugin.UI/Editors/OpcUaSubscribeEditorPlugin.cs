@@ -31,6 +31,10 @@ public sealed class OpcUaSubscribeEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_060", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_061", "节点 ID 不能为空"));
+        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
+            errors.Add(StepSettingError.Error("OPCUA_062", "超时必须大于 0，或为 -1 表示永不超时"));
+        if (s.SamplingIntervalMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_063", "采样间隔必须大于 0"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

@@ -33,6 +33,8 @@ public sealed class OpcUaWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_031", "节点 ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.WriteValue))
             errors.Add(StepSettingError.Error("OPCUA_032", "写入值不能为空"));
+        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
+            errors.Add(StepSettingError.Error("OPCUA_033", "超时必须大于 0，或为 -1 表示永不超时"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

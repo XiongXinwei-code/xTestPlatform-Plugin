@@ -36,6 +36,8 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
             var item = s.Items[i];
             if (string.IsNullOrWhiteSpace(item.ResultVariable))
                 errors.Add(StepSettingError.Error("MB_042", $"第 {i + 1} 行：结果变量不能为空"));
+            else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
+                errors.Add(StepSettingError.Error("MB_044", $"第 {i + 1} 行：变量 {item.ResultVariable} 不存在，请先创建该变量"));
             if (item.Quantity == 0)
                 errors.Add(StepSettingError.Error("MB_043", $"第 {i + 1} 行：读取数量必须大于 0"));
         }

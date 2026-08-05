@@ -35,6 +35,8 @@ public sealed class UdsDiagSessionEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("UDS_002", "TX ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.RxId))
             errors.Add(StepSettingError.Error("UDS_003", "RX ID 不能为空"));
+        if (s.ResponseTimeoutMs == 0 || s.ResponseTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("UDS_005", "响应超时必须大于 0，或为 -1 表示永不超时"));
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

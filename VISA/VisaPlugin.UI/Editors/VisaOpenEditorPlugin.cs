@@ -30,6 +30,10 @@ public sealed class VisaOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_001", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.ResourceString))
             errors.Add(StepSettingError.Error("VISA_002", "VISA 资源字符串不能为空"));
+        if (s.OpenTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("VISA_003", "打开超时必须大于 0"));
+        if (s.IoTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("VISA_004", "IO 超时必须大于 0"));
         return errors;
     }
 }

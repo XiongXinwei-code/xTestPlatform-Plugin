@@ -29,7 +29,13 @@ public sealed class UdsClearDtcEditorPlugin : IStepEditorPlugin
 		var s = (UdsClearDtcSetting)new UdsClearDtcPlugin().CreateSerializer().Deserialize(context.Setting, 1);
 
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
-			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 涓嶈兘涓虹┖"));
+			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
+		if (string.IsNullOrWhiteSpace(s.TxId))
+			errors.Add(StepSettingError.Error("UDS_002", "TX ID 不能为空"));
+		if (string.IsNullOrWhiteSpace(s.RxId))
+			errors.Add(StepSettingError.Error("UDS_003", "RX ID 不能为空"));
+		if (s.ResponseTimeoutMs == 0 || s.ResponseTimeoutMs < -1)
+			errors.Add(StepSettingError.Error("UDS_005", "响应超时必须大于 0，或为 -1 表示永不超时"));
 
 		CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
 

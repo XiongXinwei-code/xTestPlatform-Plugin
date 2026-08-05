@@ -38,7 +38,11 @@ public sealed class OpcUaBatchReadEditorPlugin : IStepEditorPlugin
                 errors.Add(StepSettingError.Error("OPCUA_042", $"第 {i + 1} 行：节点标识不能为空"));
             if (string.IsNullOrWhiteSpace(item.ResultVariable))
                 errors.Add(StepSettingError.Error("OPCUA_043", $"第 {i + 1} 行：结果变量不能为空"));
+            else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
+                errors.Add(StepSettingError.Error("OPCUA_044", $"第 {i + 1} 行：变量 {item.ResultVariable} 不存在，请先创建该变量"));
         }
+        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
+            errors.Add(StepSettingError.Error("OPCUA_045", "超时必须大于 0，或为 -1 表示永不超时"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

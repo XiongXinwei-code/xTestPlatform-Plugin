@@ -29,6 +29,7 @@ public sealed class NiDaqTaskStopEditorPlugin : IStepEditorPlugin
         var s = (NiDaqTaskStopSetting)new NiDaqTaskStopPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_070", "任务名称不能为空"));
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }
 }
