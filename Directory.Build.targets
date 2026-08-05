@@ -1,37 +1,35 @@
 <Project>
 
   <!--
-	修复 WPF 标记编译器（MC1000）找不到 mscorlib.dll 的问题。
+    Fix for WPF markup compiler error MC1000: cannot find mscorlib.dll.
 
-	背景：某些 microsoft.netcore.app.ref 补丁包（如 8.0.28）在 CI/runner 上解压后
-	缺失 net8.0 引用目录中的 mscorlib.dll 门面程序集。触发 GenerateTemporaryTargetAssembly
-	（生成 *_wpftmp.csproj）的 WPF 项目在标记编译时会对该文件做硬性存在检查，导致构建失败。
+    Some microsoft.netcore.app.ref patch packages (e.g. 8.0.28) are extracted
+    incompletely on certain machines / CI runners, missing the mscorlib.dll
+    facade assembly under the net8.0 ref directory. WPF projects that trigger
+    GenerateTemporaryTargetAssembly (creating *_wpftmp.csproj) do a hard file
+    existence check on it during markup compilation, causing the build to fail.
 
-	该 Target 在标记编译前，从同目录的 System.Runtime.dll 复制生成一个有效的占位程序集，
-	确保 mscorlib.dll 存在。对本机开发与 CI 均生效，且会被生成的 _wpftmp 项目继承。
+    This target copies the sibling System.Runtime.dll to mscorlib.dll before
+    markup compilation, only when it is missing. Source and destination are
+    both derived from the same item list so their counts always match (avoids MSB3094).
   -->
   <Target Name="_EnsureMscorlibReferenceAssembly"
-		  AfterTargets="ResolveReferences"
-		  BeforeTargets="MarkupCompilePass1;MarkupCompilePass2;GenerateTemporaryTargetAssembly">
+          AfterTargets="ResolveReferences"
+          BeforeTargets="MarkupCompilePass1;MarkupCompilePass2;GenerateTemporaryTargetAssembly">
 
-	<PropertyGroup>
-	  <_SystemRuntimeRefPath>@(ReferencePathWithRefAssemblies->WithMetadataValue('FileName','System.Runtime')->'%(FullPath)')</_SystemRuntimeRefPath>
-	  <_SystemRuntimeRefPath Condition="'$(_SystemRuntimeRefPath)' == ''">@(ReferencePath->WithMetadataValue('FileName','System.Runtime')->'%(FullPath)')</_SystemRuntimeRefPath>
-	</PropertyGroup>
+    <ItemGroup>
+      <_SysRuntimeForMscorlib Include="@(ReferencePathWithRefAssemblies)"
+          Condition="'%(FileName)' == 'System.Runtime' And !Exists('%(RootDir)%(Directory)mscorlib.dll')" />
+    </ItemGroup>
 
-	<PropertyGroup Condition="'$(_SystemRuntimeRefPath)' != ''">
-	  <_RefAssemblyDir>$([System.IO.Path]::GetDirectoryName('$(_SystemRuntimeRefPath)'))</_RefAssemblyDir>
-	  <_MscorlibRefPath>$(_RefAssemblyDir)\mscorlib.dll</_MscorlibRefPath>
-	</PropertyGroup>
+    <Copy Condition="'@(_SysRuntimeForMscorlib)' != ''"
+          SourceFiles="@(_SysRuntimeForMscorlib)"
+          DestinationFiles="@(_SysRuntimeForMscorlib->'%(RootDir)%(Directory)mscorlib.dll')"
+          SkipUnchangedFiles="true" />
 
-	<Copy Condition="'$(_SystemRuntimeRefPath)' != '' And !Exists('$(_MscorlibRefPath)')"
-		  SourceFiles="$(_SystemRuntimeRefPath)"
-		  DestinationFiles="$(_MscorlibRefPath)"
-		  SkipUnchangedFiles="true" />
-
-	<Message Condition="'$(_SystemRuntimeRefPath)' != '' And !Exists('$(_MscorlibRefPath)')"
-			 Importance="high"
-			 Text="[WPF 修复] 已在引用包目录补齐 mscorlib.dll: $(_MscorlibRefPath)" />
+    <Message Condition="'@(_SysRuntimeForMscorlib)' != ''"
+             Importance="high"
+             Text="[WPF Fix] Created missing mscorlib.dll: @(_SysRuntimeForMscorlib->'%(RootDir)%(Directory)mscorlib.dll')" />
 
   </Target>
 
