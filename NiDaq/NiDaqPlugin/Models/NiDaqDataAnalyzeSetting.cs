@@ -28,7 +28,6 @@ public class NiDaqDataAnalyzeSetting
     public double RangeEnd { get; set; } = 0;
 
     /// <summary>结果存入的变量名</summary>
-    [ExpressionField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>PeakWithRef 模式下，峰值对应参考值存入的变量名</summary>

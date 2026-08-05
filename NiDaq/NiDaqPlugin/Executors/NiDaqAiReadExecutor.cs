@@ -23,7 +23,7 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
         {
             NiDriverCheck.EnsureDriver();
             var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
-            var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
+            var resultVar = setting.ResultVariable;
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");

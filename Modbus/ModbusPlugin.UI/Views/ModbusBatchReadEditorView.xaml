@@ -28,7 +28,7 @@
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="1" Grid.Column="0" Text="Interval (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-					<TextBox Grid.Row="1" Grid.Column="1" Width="100" HorizontalAlignment="Left" Margin="0,0,0,8"
+					<TextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 							 Text="{Binding IntervalMs, UpdateSourceTrigger=PropertyChanged}"/>
 				</Grid>
 				<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">

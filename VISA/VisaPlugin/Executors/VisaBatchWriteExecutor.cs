@@ -62,10 +62,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
         }
         catch (OperationCanceledException)
         {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = "操作已取消" } }
-            };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
         catch (Exception ex)
         {

@@ -31,6 +31,30 @@ public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_020", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("MB_021", "结果变量名不能为空"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("MB_022", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var expectedElem = (s.RegisterType is ModbusRegisterType.Coil or ModbusRegisterType.DiscreteInput)
+                ? typeof(bool)
+                : s.DataFormat switch
+                {
+                    ModbusDataFormat.UInt16                                        => typeof(ushort),
+                    ModbusDataFormat.Int16                                         => typeof(short),
+                    ModbusDataFormat.UInt32_AB_CD or ModbusDataFormat.UInt32_CD_AB => typeof(uint),
+                    ModbusDataFormat.Int32_AB_CD  or ModbusDataFormat.Int32_CD_AB  => typeof(int),
+                    ModbusDataFormat.Float_AB_CD  or ModbusDataFormat.Float_CD_AB  => typeof(float),
+                    _                                                              => typeof(ushort)
+                };
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null)
+            {
+                var valType = val.GetType();
+                var elemType = valType.IsArray ? valType.GetElementType()! : valType;
+                if (elemType != expectedElem)
+                    errors.Add(StepSettingError.Error("MB_023", $"变量 {s.ResultVariable} 类型不匹配，期望 {expectedElem.Name}，实际类型 {valType.Name}"));
+            }
+        }
         ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

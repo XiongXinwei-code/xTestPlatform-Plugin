@@ -34,7 +34,7 @@
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
 				<TextBlock Grid.Row="1" Grid.Column="0" Text="SlaveAddress:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="1" Grid.Column="1" Width="100" HorizontalAlignment="Left" Margin="0,0,0,8"
+				<TextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						 Text="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}"/>
 
 				<TextBlock Grid.Row="2" Grid.Column="0" Text="RegisterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -72,10 +72,8 @@
 				</ComboBox>
 
 				<TextBlock Grid.Row="6" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
-					ScriptText="{Binding ResultVariable, Mode=TwoWay}" ExpectedResultType="String"
-					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+				<TextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+					Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
 			</Grid>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>

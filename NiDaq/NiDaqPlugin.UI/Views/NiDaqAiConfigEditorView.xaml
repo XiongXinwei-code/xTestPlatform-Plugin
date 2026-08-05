@@ -77,7 +77,7 @@
                 </Grid.RowDefinitions>
                 <CheckBox Grid.Row="0" Grid.Column="1" Content="启用触发" IsChecked="{Binding UseTrigger}" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="触发源" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TriggerSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TriggerSource, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="触发边沿" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Source={StaticResource TriggerEdgeValues}}" SelectedItem="{Binding TriggerEdge}" Width="200" HorizontalAlignment="Left"/>
             </Grid>

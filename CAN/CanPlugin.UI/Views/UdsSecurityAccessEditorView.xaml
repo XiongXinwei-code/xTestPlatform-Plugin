@@ -52,7 +52,7 @@
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Key Expression:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" IsMultiLine="True"
-                    ScriptText="{Binding KeyExpression, Mode=TwoWay}" ExpectedResultType="Object"
+                    ScriptText="{Binding KeyExpression, Mode=TwoWay}" 
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 

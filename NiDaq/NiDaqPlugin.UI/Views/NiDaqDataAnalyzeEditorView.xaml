@@ -50,9 +50,9 @@
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="区间结束" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding RangeEnd, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="结果变量" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" ScriptText="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" Margin="0,0,0,8"/>
+                    <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="7" Grid.Column="0" Text="峰值参考变量" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="7" Grid.Column="1" ScriptText="{Binding RefAtPeakVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"/>
+                    <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding RefAtPeakVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

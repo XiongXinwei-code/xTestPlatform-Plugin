@@ -24,7 +24,7 @@
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="物理通道" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding Channel, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" ExpectedResultType="String" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="结果变量" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" ScriptText="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" ExpectedResultType="String"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
