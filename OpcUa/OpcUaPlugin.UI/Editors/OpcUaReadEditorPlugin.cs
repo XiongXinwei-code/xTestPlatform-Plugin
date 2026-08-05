@@ -33,7 +33,7 @@ public sealed class OpcUaReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_021", "节点 ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("OPCUA_022", "结果变量名不能为空"));
-        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

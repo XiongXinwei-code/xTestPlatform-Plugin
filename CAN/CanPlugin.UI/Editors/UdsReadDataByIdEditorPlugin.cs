@@ -43,7 +43,7 @@ public sealed class UdsReadDataByIdEditorPlugin : IStepEditorPlugin
 			}
 		}
 
-		CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+		CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
 
 		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}

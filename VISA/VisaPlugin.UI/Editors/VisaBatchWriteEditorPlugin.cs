@@ -31,7 +31,12 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_060", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Error("VISA_061", "至少需要一条 SCPI 命令"));
-        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(s.Items[i].Command))
+                errors.Add(StepSettingError.Error("VISA_062", $"第 {i + 1} 行：命令不能为空"));
+        }
+        VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

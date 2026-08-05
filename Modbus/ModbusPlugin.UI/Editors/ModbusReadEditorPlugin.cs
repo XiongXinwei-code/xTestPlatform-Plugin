@@ -55,7 +55,7 @@ public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
                     errors.Add(StepSettingError.Error("MB_023", $"变量 {s.ResultVariable} 类型不匹配，期望 {expectedElem.Name}，实际类型 {valType.Name}"));
             }
         }
-        ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        ModbusLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

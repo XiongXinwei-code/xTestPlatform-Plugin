@@ -33,7 +33,7 @@ public sealed class CanWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_021", "CAN ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.Data))
             errors.Add(StepSettingError.Warning("CAN_W20", "发送数据为空"));
-        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

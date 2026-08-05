@@ -31,7 +31,15 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_040", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
-        ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            var item = s.Items[i];
+            if (string.IsNullOrWhiteSpace(item.ResultVariable))
+                errors.Add(StepSettingError.Error("MB_042", $"第 {i + 1} 行：结果变量不能为空"));
+            if (item.Quantity == 0)
+                errors.Add(StepSettingError.Error("MB_043", $"第 {i + 1} 行：读取数量必须大于 0"));
+        }
+        ModbusLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

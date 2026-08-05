@@ -31,7 +31,7 @@ public sealed class OpcUaSubscribeEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_060", "连接标识名不能为空"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_061", "节点 ID 不能为空"));
-        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

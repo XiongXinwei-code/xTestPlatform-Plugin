@@ -31,6 +31,5 @@ public class NiDaqDataAnalyzeSetting
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>PeakWithRef 模式下，峰值对应参考值存入的变量名</summary>
-    [ExpressionField]
-    public string RefAtPeakVariable { get; set; } = string.Empty;
+    public string RefAtPeakVariable { get; set; } = "";
 }

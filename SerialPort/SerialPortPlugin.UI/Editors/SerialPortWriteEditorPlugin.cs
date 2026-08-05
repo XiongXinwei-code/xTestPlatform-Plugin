@@ -44,7 +44,7 @@ public sealed class SerialPortWriteEditorPlugin : IStepEditorPlugin
                 errors.Add(StepSettingError.Warning("SP_022", "HEX 格式数据应为偶数位十六进制字符串（如 48656C6C6F）"));
         }
 
-        SerialPortLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.PortName, errors);
+        SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
 
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }

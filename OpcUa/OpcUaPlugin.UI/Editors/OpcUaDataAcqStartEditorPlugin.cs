@@ -33,9 +33,17 @@ public sealed class OpcUaDataAcqStartEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_071", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Warning("OPCUA_072", "采集节点列表为空"));
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            var item = s.Items[i];
+            if (string.IsNullOrWhiteSpace(item.NodeId))
+                errors.Add(StepSettingError.Error("OPCUA_074", $"第 {i + 1} 行：节点标识不能为空"));
+            if (string.IsNullOrWhiteSpace(item.ColumnName))
+                errors.Add(StepSettingError.Error("OPCUA_075", $"第 {i + 1} 行：列名不能为空"));
+        }
         if (s.SamplingIntervalMs <= 0)
             errors.Add(StepSettingError.Error("OPCUA_073", "采样间隔必须大于 0"));
-        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

@@ -29,7 +29,7 @@ public sealed class OpcUaDisconnectEditorPlugin : IStepEditorPlugin
         var s = (OpcUaDisconnectSetting)new OpcUaDisconnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("OPCUA_010", "连接标识名不能为空"));
-        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

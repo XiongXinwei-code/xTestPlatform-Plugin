@@ -35,7 +35,7 @@ public sealed class UdsDiagSessionEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("UDS_002", "TX ID 不能为空"));
         if (string.IsNullOrWhiteSpace(s.RxId))
             errors.Add(StepSettingError.Error("UDS_003", "RX ID 不能为空"));
-        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

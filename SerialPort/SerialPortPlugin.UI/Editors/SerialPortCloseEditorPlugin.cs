@@ -34,7 +34,7 @@ public sealed class SerialPortCloseEditorPlugin : IStepEditorPlugin
         if (string.IsNullOrWhiteSpace(s.PortName))
             errors.Add(StepSettingError.Error("SP_010", "PortName 不能为空"));
 
-        SerialPortLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.PortName, errors);
+        SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
 
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }

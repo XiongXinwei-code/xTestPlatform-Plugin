@@ -31,6 +31,16 @@ public sealed class NiDaqSyncConfigEditorPlugin : IStepEditorPlugin
         if (s.EncoderChannels.Count == 0) errors.Add(StepSettingError.Error("DAQ_022", "编码器通道列表为空"));
         if (s.SampleRate <= 0) errors.Add(StepSettingError.Error("DAQ_023", "采样率必须大于 0"));
         if (s.SamplesPerChannel <= 0) errors.Add(StepSettingError.Error("DAQ_024", "每通道采样数必须大于 0"));
+        for (int i = 0; i < s.AiChannels.Count; i++)
+        {
+            var ch = s.AiChannels[i];
+            if (string.IsNullOrWhiteSpace(ch.PhysicalChannel))
+                errors.Add(StepSettingError.Error("DAQ_025", $"AI 第 {i + 1} 行：物理通道不能为空"));
+            if (string.IsNullOrWhiteSpace(ch.ColumnName))
+                errors.Add(StepSettingError.Error("DAQ_026", $"AI 第 {i + 1} 行：列名不能为空"));
+            if (ch.MinValue >= ch.MaxValue)
+                errors.Add(StepSettingError.Error("DAQ_027", $"AI 第 {i + 1} 行：量程下限 ({ch.MinValue}) 必须小于上限 ({ch.MaxValue})"));
+        }
         return errors;
     }
 }

@@ -18,21 +18,47 @@ internal static class NiDaqLifecycleValidator
     };
 
     /// <summary>
+    /// 将所属序列的 Setup → Main → Cleanup 三个区块按执行顺序合并为平铺列表，
+    /// 返回 currentStep 之前的所有步骤，用于生命周期校验。
+    /// </summary>
+    private static IEnumerable<Step> GetPrecedingSteps(
+        SequenceFile sequenceFile, List<Step> block, Step currentStep)
+    {
+        // 找到拥有当前 block 的 Sequence
+        Sequence? ownerSeq = null;
+        foreach (var seq in sequenceFile.Sequences.Values)
+        {
+            if (seq.StepItems.Values.Any(b => ReferenceEquals(b, block)))
+            {
+                ownerSeq = seq;
+                break;
+            }
+        }
+        if (ownerSeq == null) return [];
+
+        // 按 Setup → Main → Cleanup 顺序合并所有区块
+        var allSteps = new List<Step>();
+        foreach (var blockType in new[] { BlockType.Setup, BlockType.Main, BlockType.Cleanup })
+        {
+            if (ownerSeq.StepItems.TryGetValue(blockType, out var b))
+                allSteps.AddRange(b);
+        }
+
+        int currentIndex = allSteps.IndexOf(currentStep);
+        return currentIndex > 0 ? allSteps.Take(currentIndex) : [];
+    }
+
+    /// <summary>
     /// 检查当前步骤之前是否存在匹配 TaskName 的 Config 步骤（AiConfig / SyncConfig / EncoderConfig）
     /// </summary>
     public static void CheckPrecedingConfig(
-        List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(taskName)) return;
 
-        int currentIndex = block.IndexOf(currentStep);
-        if (currentIndex <= 0) goto NotFound;
-
-        for (int i = 0; i < currentIndex; i++)
+        foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            var step = block[i];
             if (!_configStepTypes.Contains(step.StepSetting.StepType)) continue;
-
             try
             {
                 string? name = GetTaskName(step);
@@ -41,7 +67,6 @@ internal static class NiDaqLifecycleValidator
             catch { }
         }
 
-    NotFound:
         errors.Add(StepSettingError.Warning("DAQ_LC01",
             $"在此步骤之前未找到针对任务 \"{taskName}\" 的 NiDaq Config 步骤（AiConfig/SyncConfig/EncoderConfig）"));
     }
@@ -50,18 +75,13 @@ internal static class NiDaqLifecycleValidator
     /// 检查 Read 步骤之前是否有对应的 TaskStart
     /// </summary>
     public static void CheckPrecedingTaskStart(
-        List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(taskName)) return;
 
-        int currentIndex = block.IndexOf(currentStep);
-        if (currentIndex <= 0) goto NotFound;
-
-        for (int i = 0; i < currentIndex; i++)
+        foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            var step = block[i];
             if (step.StepSetting.StepType != "NiDaq.TaskStart") continue;
-
             try
             {
                 var setting = MessagePackSerializer.Deserialize<NiDaqTaskStartSetting>(
@@ -71,7 +91,6 @@ internal static class NiDaqLifecycleValidator
             catch { }
         }
 
-    NotFound:
         errors.Add(StepSettingError.Warning("DAQ_LC02",
             $"在此步骤之前未找到针对任务 \"{taskName}\" 的 NiDaq.TaskStart 步骤"));
     }

@@ -31,7 +31,7 @@ public sealed class UdsClearDtcEditorPlugin : IStepEditorPlugin
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
 			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 涓嶈兘涓虹┖"));
 
-		CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+		CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
 
 		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}

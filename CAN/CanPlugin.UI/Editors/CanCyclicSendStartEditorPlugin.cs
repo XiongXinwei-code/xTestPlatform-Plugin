@@ -35,7 +35,17 @@ public sealed class CanCyclicSendStartEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Warning("CAN_W30", "报文列表为空"));
         else if (!s.Messages.Any(m => m.Enabled))
             errors.Add(StepSettingError.Warning("CAN_W31", "没有启用的报文"));
-        CanLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        for (int i = 0; i < s.Messages.Count; i++)
+        {
+            var m = s.Messages[i];
+            if (string.IsNullOrWhiteSpace(m.CanId))
+                errors.Add(StepSettingError.Error("CAN_032", $"第 {i + 1} 行：CAN ID 不能为空"));
+            if (string.IsNullOrWhiteSpace(m.Data))
+                errors.Add(StepSettingError.Error("CAN_033", $"第 {i + 1} 行：数据不能为空"));
+            if (m.CycleTimeMs <= 0)
+                errors.Add(StepSettingError.Error("CAN_034", $"第 {i + 1} 行：发送周期必须大于 0"));
+        }
+        CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

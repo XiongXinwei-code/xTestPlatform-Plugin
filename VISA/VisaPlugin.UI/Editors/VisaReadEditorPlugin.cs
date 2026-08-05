@@ -39,7 +39,7 @@ public sealed class VisaReadEditorPlugin : IStepEditorPlugin
             if (val is not null && val is not string)
                 errors.Add(StepSettingError.Error("VISA_043", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
         }
-        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

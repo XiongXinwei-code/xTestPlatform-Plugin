@@ -42,7 +42,7 @@ public sealed class SerialPortQueryEditorPlugin : IStepEditorPlugin
 		else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
 			errors.Add(StepSettingError.Error("SP_043", $"变量 {s.ResultVariable} 不存在"));
 
-		SerialPortLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.PortName, errors);
+		SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
 
 		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}

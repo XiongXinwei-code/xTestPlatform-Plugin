@@ -31,7 +31,15 @@ public sealed class OpcUaBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_050", "连接标识名不能为空"));
         if (s.Items.Count == 0)
             errors.Add(StepSettingError.Warning("OPCUA_051", "节点列表为空"));
-        OpcUaLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            var item = s.Items[i];
+            if (string.IsNullOrWhiteSpace(item.NodeId))
+                errors.Add(StepSettingError.Error("OPCUA_052", $"第 {i + 1} 行：节点标识不能为空"));
+            if (string.IsNullOrWhiteSpace(item.WriteValue))
+                errors.Add(StepSettingError.Error("OPCUA_053", $"第 {i + 1} 行：写入值不能为空"));
+        }
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }
