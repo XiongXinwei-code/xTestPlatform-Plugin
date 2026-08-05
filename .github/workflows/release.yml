@@ -67,19 +67,34 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # ── 4.5 修复 WPF 编译缺失 mscorlib.dll 问题 ──────────────────────────
-      - name: 修复 WPF ref mscorlib.dll 缺失
+      # ── 4.5 还原并修复 WPF 编译缺失 mscorlib.dll 问题 ────────────────────
+      - name: 还原并修复 WPF ref mscorlib.dll 缺失
         shell: pwsh
         run: |
+          # 先还原所有插件项目，确保 ref 包目录已生成
+          $projects = Get-ChildItem -Recurse -Filter "*.csproj"
+          foreach ($proj in $projects) {
+              Write-Host "🔄 还原: $($proj.Name)"
+              dotnet restore $proj.FullName
+          }
+
+          # 遍历 NuGet 缓存中所有 microsoft.netcore.app.ref 版本，补齐缺失的 mscorlib.dll
           $nugetCache = "$env:USERPROFILE\.nuget\packages\microsoft.netcore.app.ref"
           if (Test-Path $nugetCache) {
             Get-ChildItem $nugetCache -Directory | ForEach-Object {
-              $mscorlibPath = "$($_.FullName)\ref\net8.0\mscorlib.dll"
-              if (-not (Test-Path $mscorlibPath)) {
-                $dir = Split-Path $mscorlibPath
-                if (Test-Path $dir) {
-                  [System.IO.File]::WriteAllBytes($mscorlibPath, [byte[]]@())
-                  Write-Host "✅ 已创建缺失文件: $mscorlibPath"
+              $refDir = "$($_.FullName)\ref\net8.0"
+              if (Test-Path $refDir) {
+                $mscorlibPath = "$refDir\mscorlib.dll"
+                if (-not (Test-Path $mscorlibPath)) {
+                  # 从同目录下已存在的 System.Runtime.dll 复制作为有效占位程序集
+                  $source = Get-ChildItem $refDir -Filter "System.Runtime.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+                  if ($source) {
+                    Copy-Item $source.FullName $mscorlibPath -Force
+                    Write-Host "✅ 已复制生成缺失文件: $mscorlibPath"
+                  } else {
+                    [System.IO.File]::WriteAllBytes($mscorlibPath, [byte[]]@())
+                    Write-Host "⚠️ 未找到 System.Runtime.dll，已创建空占位: $mscorlibPath"
+                  }
                 }
               }
             }
