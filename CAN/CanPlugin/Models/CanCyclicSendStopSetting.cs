@@ -8,9 +8,9 @@ public class CanCyclicSendStopSetting
 {
     /// <summary>连接标识名</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "CAN1";
+    public string ConnectionName { get; set; } = "\"CAN1\"";
 
     /// <summary>要停止的任务标识名</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = "CyclicTask1";
+    public string TaskName { get; set; } = "\"CyclicTask1\"";
 }

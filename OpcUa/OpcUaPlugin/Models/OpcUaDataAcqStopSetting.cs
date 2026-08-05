@@ -9,14 +9,14 @@ public class OpcUaDataAcqStopSetting
 {
     /// <summary>要停止的采集任务名称</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = "DataAcq1";
+    public string TaskName { get; set; } = "\"DataAcq1\"";
 
     /// <summary>导出格式</summary>
     public DataAcqExportFormat ExportFormat { get; set; } = DataAcqExportFormat.Csv;
 
     /// <summary>CSV 导出文件路径（支持表达式）</summary>
     [ExpressionField]
-    public string CsvFilePath { get; set; } = "C:\\TestData\\acq_data.csv";
+    public string CsvFilePath { get; set; } = "\"C:\\\\TestData\\\\acq_data.csv\"";
 
     /// <summary>是否将采集数据的统计值（均值/最大/最小）存入变量</summary>
     public bool SaveStatistics { get; set; } = true;

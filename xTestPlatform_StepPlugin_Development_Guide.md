@@ -116,6 +116,7 @@
 - [ ] `Description` 完整：功能说明 + 所有 Setting 字段(类型/默认值) + 枚举可选值 + 集合元素 JSON 示例（§2.1）
 - [ ] 所有插件枚举类型已标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`，确保 AI 可用字符串名称传枚举值（§2.1.1）
 - [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
+- [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
 - [ ] Executor 不抛出未捕获异常：内部 try/catch，取消返回 `Aborted`、异常返回 `Error`（§13.4）
@@ -1492,6 +1493,37 @@ public class MySetting {
 **作用**：引擎在序列启动前自动扫描所有标记了 `[ExpressionField]` 的属性，并行预编译表达式，消除首次执行的编译延迟。
 
 > ⚠️ 仅标记会在运行时通过 Roslyn 求值的 string 属性。字面量配置、文件路径、显示名称等**不应标记**。
+
+#### `[ExpressionField]` 字符串属性的默认值规范
+
+标记了 `[ExpressionField]` 的 `string` 属性，其默认值必须是**合法的表达式字符串**，而不是裸字符串：
+
+- **字符串类型**：默认值须加引号包裹，使其成为字符串字面量表达式，例如 `"\"CAN1\""` 而非 `"CAN1"`。
+- **数字类型**（以字符串存储）：默认值可直接写数字字符串，无需额外引号，例如 `"0"`、`"1"`、`"0x7DF"`。
+- **空值**：使用 `string.Empty` 或 `""` 均可，引擎会将空字符串视为空表达式跳过求值。
+
+```csharp
+[MessagePackObject(true)]
+public class MySetting {
+    // ✅ 字符串字面量表达式 —— 默认值加引号
+    [ExpressionField]
+    public string ConnectionName { get; set; } = "\"MyDevice\"";
+
+    // ✅ 数字字面量表达式 —— 默认值无需引号
+    [ExpressionField]
+    public string StartAddress { get; set; } = "0";
+
+    // ✅ 空表达式 —— string.Empty 或 "" 均可
+    [ExpressionField]
+    public string Filter { get; set; } = string.Empty;
+
+    // ❌ 错误：裸字符串作为默认值，运行时会被当作变量名而非字符串字面量
+    [ExpressionField]
+    public string BadField { get; set; } = "CAN1";  // 运行时会尝试解析变量 CAN1
+}
+```
+
+> 💡 **判断依据**：若默认值在表达式引擎中应被解析为字符串，则必须在 C# 字符串外层再加一层转义引号（`"\"值\""`）。
 
 ### 12.3 设置版本管理
 

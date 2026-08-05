@@ -11,7 +11,7 @@ public class VisaReadSetting
 {
     /// <summary>使用的连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 
     /// <summary>存储读取结果的变量名</summary>
     public string ResultVariable { get; set; } = "VisaResult";

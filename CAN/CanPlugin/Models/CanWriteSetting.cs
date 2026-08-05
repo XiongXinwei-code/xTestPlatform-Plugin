@@ -9,7 +9,7 @@ public class CanWriteSetting
 {
     /// <summary>连接标识名</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "CAN1";
+    public string ConnectionName { get; set; } = "\"CAN1\"";
 
     /// <summary>CAN ID（支持表达式，如 0x7DF）</summary>
     [ExpressionField]
@@ -20,7 +20,7 @@ public class CanWriteSetting
 
     /// <summary>发送数据（十六进制字符串，如 "02 10 01 00 00 00 00 00"）</summary>
     [ExpressionField]
-    public string Data { get; set; } = "";
+    public string Data { get; set; } = "\"\"";
 
     /// <summary>是否使用 CAN FD 帧格式发送</summary>
     public bool UseFdFrame { get; set; } = false;

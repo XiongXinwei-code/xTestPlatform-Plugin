@@ -45,11 +45,11 @@ public class OpcUaDataAcqStartSetting
 {
     /// <summary>采集任务名称，用于在 Stop 步骤中引用</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = "DataAcq1";
+    public string TaskName { get; set; } = "\"DataAcq1\"";
 
     /// <summary>OPC UA 连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "OpcUa1";
+    public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要采集的节点列表</summary>
     public ObservableCollection<OpcUaDataAcqItem> Items { get; set; } = new();

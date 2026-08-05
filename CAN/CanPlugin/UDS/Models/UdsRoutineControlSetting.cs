@@ -21,11 +21,11 @@ public class UdsRoutineControlSetting : UdsCommonSetting
 
     /// <summary>Routine ID</summary>
     [ExpressionField]
-    public string RoutineId { get; set; } = "0x0203";
+    public string RoutineId { get; set; } = "\"0x0203\"";
 
     /// <summary>Routine 输入参数（十六进制，可为空）</summary>
     [ExpressionField]
-    public string OptionRecord { get; set; } = "";
+    public string OptionRecord { get; set; } = "\"\"";
 
     /// <summary>结果变量</summary>
     public string ResultVariable { get; set; } = "";
