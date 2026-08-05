@@ -67,51 +67,7 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      # ── 4.5 还原并修复 WPF 编译缺失 mscorlib.dll 问题 ────────────────────
-      - name: 还原并修复 WPF ref mscorlib.dll 缺失
-        shell: pwsh
-        run: |
-          $nugetCache = "$env:USERPROFILE\.nuget\packages\microsoft.netcore.app.ref"
-
-          # 1) 删除可能解压不完整/损坏的 ref 包，强制 NuGet 重新完整还原
-          if (Test-Path $nugetCache) {
-            Get-ChildItem $nugetCache -Directory | ForEach-Object {
-              $refDir = "$($_.FullName)\ref\net8.0"
-              if ((Test-Path $refDir) -and -not (Test-Path "$refDir\mscorlib.dll")) {
-                Write-Host "🗑️ 检测到不完整的 ref 包，删除以重新还原: $($_.FullName)"
-                Remove-Item $_.FullName -Recurse -Force
-              }
-            }
-          }
-
-          # 2) 还原所有插件项目，确保 ref 包目录已完整生成
-          $projects = Get-ChildItem -Recurse -Filter "*.csproj"
-          foreach ($proj in $projects) {
-              Write-Host "🔄 还原: $($proj.Name)"
-              dotnet restore $proj.FullName --force
-          }
-
-          # 3) 若重新还原后 mscorlib.dll 仍缺失，则用同目录 System.Runtime.dll 复制补齐
-          if (Test-Path $nugetCache) {
-            Get-ChildItem $nugetCache -Directory | ForEach-Object {
-              $refDir = "$($_.FullName)\ref\net8.0"
-              if (Test-Path $refDir) {
-                $mscorlibPath = "$refDir\mscorlib.dll"
-                if (-not (Test-Path $mscorlibPath)) {
-                  $source = Get-ChildItem $refDir -Filter "System.Runtime.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
-                  if ($source) {
-                    Copy-Item $source.FullName $mscorlibPath -Force
-                    Write-Host "✅ 已复制生成缺失文件: $mscorlibPath"
-                  } else {
-                    [System.IO.File]::WriteAllBytes($mscorlibPath, [byte[]]@())
-                    Write-Host "⚠️ 未找到 System.Runtime.dll，已创建空占位: $mscorlibPath"
-                  }
-                }
-              }
-            }
-          }
-
-      # ── 5. 自动发现并编译所有插件
+      # ── 5. 自动发现并编译所有插件 ──────────────────────────────────────
       - name: 编译所有插件
         shell: pwsh
         run: |
