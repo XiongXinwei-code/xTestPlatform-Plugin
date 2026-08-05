@@ -11,5 +11,5 @@ public class ModbusDisconnectSetting
 {
 	/// <summary>要断开的连接名称</summary>
 	[ExpressionField]
-	public string ConnectionName { get; set; } = "Modbus1";
+	public string ConnectionName { get; set; } = "\"Modbus1\"";
 }

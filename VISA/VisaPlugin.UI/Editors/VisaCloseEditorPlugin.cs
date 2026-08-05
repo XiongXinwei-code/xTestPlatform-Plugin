@@ -16,6 +16,7 @@ public sealed class VisaCloseEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new VisaCloseEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new VisaClosePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -28,7 +29,9 @@ public sealed class VisaCloseEditorPlugin : IStepEditorPlugin
         var s = (VisaCloseSetting)new VisaClosePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_010", "连接标识名不能为空"));
-        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_010E", $"ConnectionName 表达式无效: {connErr}"));
+        VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

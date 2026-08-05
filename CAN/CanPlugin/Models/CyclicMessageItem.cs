@@ -9,9 +9,9 @@ namespace CAN.Models;
 [MessagePackObject(true)]
 public class CyclicMessageItem : INotifyPropertyChanged
 {
-    private string _canId = "0x7FF";
+    private string _canId = "\"0x7FF\"";
     private CanFrameType _frameType = CanFrameType.Standard;
-    private string _data = "FF FF FF FF FF FF FF FF";
+    private string _data = "\"FF FF FF FF FF FF FF FF\"";
     private int _cycleTimeMs = 100;
     private bool _enabled = true;
 

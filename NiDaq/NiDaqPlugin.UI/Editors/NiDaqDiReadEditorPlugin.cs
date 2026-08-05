@@ -26,6 +26,8 @@ public sealed class NiDaqDiReadEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqDiReadSetting)new NiDaqDiReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.Channel)) errors.Add(StepSettingError.Error("DAQ_090", "物理通道不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Channel, context.ExecutionContext, out var chErr))
+            errors.Add(StepSettingError.Error("DAQ_090E", $"Channel 表达式无效: {chErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("DAQ_091", "结果变量不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

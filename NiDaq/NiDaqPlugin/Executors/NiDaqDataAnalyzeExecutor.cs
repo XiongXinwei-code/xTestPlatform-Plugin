@@ -21,11 +21,11 @@ public sealed class NiDaqDataAnalyzeExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var filePath = await Evaluator.EvaluateAsync<string>(setting.FilePath, context) ?? setting.FilePath;
-            var channelName = await Evaluator.EvaluateAsync<string>(setting.ChannelName, context) ?? setting.ChannelName;
-            var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
-            var refChannel = await Evaluator.EvaluateAsync<string>(setting.ReferenceChannel, context) ?? setting.ReferenceChannel;
-            var refAtPeakVar = await Evaluator.EvaluateAsync<string>(setting.RefAtPeakVariable, context) ?? setting.RefAtPeakVariable;
+            var filePath = await Evaluator.EvalStringAsync(setting.FilePath, context);
+            var channelName = await Evaluator.EvalStringAsync(setting.ChannelName, context);
+            var resultVar = setting.ResultVariable;
+            var refChannel = await Evaluator.EvalStringAsync(setting.ReferenceChannel, context);
+            var refAtPeakVar = setting.RefAtPeakVariable;
 
             if (!File.Exists(filePath))
             {

@@ -8,5 +8,5 @@ public class NiDaqTaskStopSetting
 {
     /// <summary>要停止的任务名称</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"AiTask1\"";
 }

@@ -16,6 +16,7 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new ModbusBatchReadEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new ModbusBatchReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -28,9 +29,20 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
         var s = (ModbusBatchReadSetting)new ModbusBatchReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_040", "连接标识名不能为空"));
-        if (s.Items.Count == 0)
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("MB_040E", $"ConnectionName 表达式无效: {connErr}"));
             errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
-        ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            var item = s.Items[i];
+            if (string.IsNullOrWhiteSpace(item.ResultVariable))
+                errors.Add(StepSettingError.Error("MB_042", $"第 {i + 1} 行：结果变量不能为空"));
+            else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
+                errors.Add(StepSettingError.Error("MB_044", $"第 {i + 1} 行：变量 {item.ResultVariable} 不存在，请先创建该变量"));
+            if (item.Quantity == 0)
+                errors.Add(StepSettingError.Error("MB_043", $"第 {i + 1} 行：读取数量必须大于 0"));
+        }
+        ModbusLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

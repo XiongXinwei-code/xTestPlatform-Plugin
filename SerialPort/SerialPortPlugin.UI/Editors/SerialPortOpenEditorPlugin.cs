@@ -15,6 +15,7 @@ public sealed class SerialPortOpenEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new SerialPortOpenEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new SerialPortOpenPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -31,6 +32,8 @@ public sealed class SerialPortOpenEditorPlugin : IStepEditorPlugin
 
         if (string.IsNullOrWhiteSpace(s.PortName))
             errors.Add(StepSettingError.Error("SP_001", "PortName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.PortName, context.ExecutionContext, out var portErr))
+            errors.Add(StepSettingError.Error("SP_001E", $"PortName 表达式无效: {portErr}"));
 
         if (s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("SP_002", "BaudRate 必须大于 0"));

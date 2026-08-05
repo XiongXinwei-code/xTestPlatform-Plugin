@@ -22,7 +22,7 @@ public sealed class SerialPortOpenExecutor : IStepExecutor
             var serializer = new SerialPortOpenPlugin().CreateSerializer();
             var s = (SerialPortOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-            var portName = await Evaluator.EvaluateAsync<string>(s.PortName, context) ?? string.Empty;
+            var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 
             if (string.IsNullOrWhiteSpace(portName))
                 return new ExecutionResult
@@ -48,6 +48,15 @@ public sealed class SerialPortOpenExecutor : IStepExecutor
             port.Open();
 
             var key = SerialPortHelper.GetPortKey(portName);
+
+            // 若已存在同名串口（序列异常终止未关闭），先关闭销毁
+            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existing) && existing is SysSerialPort oldPort)
+            {
+                try { if (oldPort.IsOpen) oldPort.Close(); } catch { /* 忽略关闭异常 */ }
+                try { oldPort.Dispose(); } catch { /* 忽略销毁异常 */ }
+                context.LogAction?.Invoke($"串口 {portName} 检测到已有连接，已自动关闭旧连接");
+            }
+
             context.CurrentStep.RuntimeData[key] = port;
 
             context.LogAction?.Invoke($"串口 {portName} 已打开 (波特率: {s.BaudRate})");

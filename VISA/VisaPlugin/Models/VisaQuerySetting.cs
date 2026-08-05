@@ -11,14 +11,13 @@ public class VisaQuerySetting
 {
     /// <summary>使用的连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 
     /// <summary>要发送的 SCPI 命令（支持表达式）</summary>
     [ExpressionField]
-    public string Command { get; set; } = "*IDN?";
+    public string Command { get; set; } = "\"*IDN?\"";
 
-    /// <summary>存储查询结果的变量名（支持表达式）</summary>
-    [ExpressionField]
+    /// <summary>存储查询结果的变量名</summary>
     public string ResultVariable { get; set; } = "VisaResult";
 
     /// <summary>是否自动去除响应中的首尾空白和终止符</summary>

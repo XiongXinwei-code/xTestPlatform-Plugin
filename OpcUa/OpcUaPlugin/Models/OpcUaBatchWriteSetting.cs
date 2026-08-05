@@ -41,7 +41,7 @@ public class OpcUaBatchWriteSetting
 {
     /// <summary>连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "OpcUa1";
+    public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要写入的节点列表</summary>
     public ObservableCollection<OpcUaBatchWriteItem> Items { get; set; } = new();

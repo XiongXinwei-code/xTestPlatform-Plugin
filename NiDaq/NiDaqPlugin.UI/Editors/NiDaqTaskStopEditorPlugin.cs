@@ -16,6 +16,7 @@ public sealed class NiDaqTaskStopEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new NiDaqTaskStopEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new NiDaqTaskStopPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -27,7 +28,10 @@ public sealed class NiDaqTaskStopEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (NiDaqTaskStopSetting)new NiDaqTaskStopPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_070", "任务名称不能为空"));
-        NiDaqLifecycleValidator.CheckPrecedingConfig(context.Block, context.CurrentStep, s.TaskName, errors);
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_070E", $"TaskName 表达式无效: {taskNameErr}"));
+        NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }
 }

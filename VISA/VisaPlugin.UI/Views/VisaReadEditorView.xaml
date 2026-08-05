@@ -28,10 +28,8 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="结果变量:" VerticalAlignment="Center" Margin="0,6"/>
-                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,6"
-                    ScriptText="{Binding ResultVariable, Mode=TwoWay}"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,6"
+                    Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="去除空白:" VerticalAlignment="Center" Margin="0,6"/>
                 <CheckBox Grid.Row="2" Grid.Column="1" Margin="0,6" IsChecked="{Binding TrimResponse}" />
             </Grid>

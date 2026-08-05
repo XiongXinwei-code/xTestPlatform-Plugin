@@ -15,6 +15,7 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new CanOpenEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new CanOpenPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -33,6 +34,10 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_004", $"ConnectionName 表达式无效: {connErr}"));
         if (s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("CAN_003", "波特率必须大于 0"));
+        if (s.Protocol != CanProtocolType.Classic && s.DataBitRate <= 0)
+            errors.Add(StepSettingError.Error("CAN_005", "CAN FD/XL 模式下数据段波特率必须大于 0"));
+        else if (s.Protocol != CanProtocolType.Classic && s.DataBitRate < s.BaudRate)
+            errors.Add(StepSettingError.Warning("CAN_W01", "数据段波特率通常应大于等于仲裁段波特率"));
         return errors;
     }
 }

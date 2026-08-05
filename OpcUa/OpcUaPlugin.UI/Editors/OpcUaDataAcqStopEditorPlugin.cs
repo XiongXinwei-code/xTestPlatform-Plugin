@@ -16,6 +16,7 @@ public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new OpcUaDataAcqStopEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new OpcUaDataAcqStopPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -31,6 +32,7 @@ public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
         if ((s.ExportFormat == DataAcqExportFormat.Csv || s.ExportFormat == DataAcqExportFormat.Both)
             && string.IsNullOrWhiteSpace(s.CsvFilePath))
             errors.Add(StepSettingError.Error("OPCUA_081", "CSV 导出路径不能为空"));
+        OpcUaLifecycleValidator.CheckPrecedingDataAcqStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }
 }

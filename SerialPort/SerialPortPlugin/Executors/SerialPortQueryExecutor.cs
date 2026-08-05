@@ -20,7 +20,7 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 			var serializer = new SerialPortQueryPlugin().CreateSerializer();
 			var s = (SerialPortQuerySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-			var portName = await Evaluator.EvaluateAsync<string>(s.PortName, context) ?? string.Empty;
+			var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 
 			if (string.IsNullOrWhiteSpace(portName))
 				return new ExecutionResult
@@ -45,7 +45,7 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 				};
 
 			// Write
-			var writeData = await Evaluator.EvaluateAsync<string>(s.WriteData, context) ?? string.Empty;
+			var writeData = await Evaluator.EvalStringAsync(s.WriteData, context);
 			var writeBytes = SerialPortHelper.ConvertToBytes(writeData, s.DataFormat);
 			await port.BaseStream.WriteAsync(writeBytes, 0, writeBytes.Length, cancellationToken);
 

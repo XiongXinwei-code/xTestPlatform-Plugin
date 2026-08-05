@@ -21,7 +21,7 @@ public sealed class OpcUaDisconnectExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
             if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is Session session)

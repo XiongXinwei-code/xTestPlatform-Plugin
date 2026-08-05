@@ -1,4 +1,4 @@
-<UserControl x:Class="NiDaq.UI.Views.NiDaqSyncReadEditorView"
+﻿<UserControl x:Class="NiDaq.UI.Views.NiDaqSyncReadEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
@@ -33,7 +33,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" Margin="0,0,0,8"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="读取样本数" VerticalAlignment="Center"/>
@@ -41,9 +41,7 @@
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="读取超时 (ms)" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ReadTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="结果变量" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" ScriptText="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String" Margin="0,0,0,8"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
         <syncfusion:TabItemExt Header="数据存盘">
@@ -64,7 +62,7 @@
                 <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Source={StaticResource DaqExportFormatValues}}" SelectedItem="{Binding ExportFormat}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           IsEnabled="{Binding SaveToFile}"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="输出目录" VerticalAlignment="Center"/>
-                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" ScriptText="{Binding OutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="System.String"
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" ScriptText="{Binding OutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
                     IsEnabled="{Binding SaveToFile}"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>

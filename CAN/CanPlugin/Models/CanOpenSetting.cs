@@ -12,7 +12,7 @@ public class CanOpenSetting
 
     /// <summary>CAN 通道名称（如 CAN1、PCAN_USBBUS1）</summary>
     [ExpressionField]
-    public string Channel { get; set; } = "CAN1";
+    public string Channel { get; set; } = "\"CAN1\"";
 
     /// <summary>仲裁段波特率</summary>
     public int BaudRate { get; set; } = 500_000;
@@ -25,5 +25,5 @@ public class CanOpenSetting
 
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "CAN1";
+    public string ConnectionName { get; set; } = "\"CAN1\"";
 }

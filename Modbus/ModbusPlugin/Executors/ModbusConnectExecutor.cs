@@ -27,16 +27,28 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 
 		try
 		{
-			var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
-			var key = ModbusHelper.GetConnectionKey(connName);
+			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+				var key = ModbusHelper.GetConnectionKey(connName);
 
-			IModbusMaster master;
+				// 若已存在同名连接（序列异常终止未断开），先销毁旧资源
+				if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingMaster) && existingMaster is IModbusMaster oldMaster)
+				{
+					try { oldMaster.Dispose(); } catch { /* 忽略销毁异常 */ }
+				}
+				if (context.CurrentStep.RuntimeData.TryGetValue(key + "_transport", out var existingTransport) && existingTransport is IDisposable oldTransport)
+				{
+					try { oldTransport.Dispose(); } catch { /* 忽略销毁异常 */ }
+				}
+				if (existingMaster != null || existingTransport != null)
+					context.LogAction?.Invoke($"Modbus 连接 {connName} 检测到已有连接，已自动销毁旧连接");
+
+				IModbusMaster master;
 			object transport;
 			var factory = new ModbusFactory();
 
 			if (setting.TransportType == ModbusTransportType.TCP)
 			{
-				var ip = await Evaluator.EvaluateAsync<string>(setting.IpAddress, context) ?? setting.IpAddress;
+				var ip = await Evaluator.EvalStringAsync(setting.IpAddress, context);
 				var client = new TcpClient();
 				await client.ConnectAsync(ip, setting.TcpPort, cancellationToken);
 				client.ReceiveTimeout = setting.TimeoutMs;
@@ -46,7 +58,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 			}
 			else
 			{
-				var portName = await Evaluator.EvaluateAsync<string>(setting.PortName, context) ?? setting.PortName;
+				var portName = await Evaluator.EvalStringAsync(setting.PortName, context);
 				var port = new SerialPort(portName, setting.BaudRate, (Parity)setting.Parity, setting.DataBits, (StopBits)setting.StopBits);
 				port.ReadTimeout = setting.TimeoutMs;
 				port.WriteTimeout = setting.TimeoutMs;

@@ -14,7 +14,7 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
 
     public override string Description =>
         "读取 NI DAQ 数字输入通道的状态值。" +
-        "Setting 字段：Channel(string,表达式,物理通道如Dev1/port0/line0:7), ResultVariable(string,表达式,结果变量名,写入类型:uint 端口状态值)。";
+        "Setting 字段：Channel(string,表达式,物理通道如Dev1/port0/line0:7), ResultVariable(string,结果变量名,写入类型:uint 端口状态值)。";
 
     public override IStepExecutor CreateExecutor() => new NiDaqDiReadExecutor();
 

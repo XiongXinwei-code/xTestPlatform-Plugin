@@ -21,7 +21,7 @@ public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 		"RegisterType(枚举:Coil/DiscreteInput/HoldingRegister/InputRegister), " +
 		"StartAddress(string,表达式,起始地址), Quantity(string,表达式,读取数量), " +
 		"DataFormat(枚举:UInt16/Int16/UInt32_AB_CD/Int32_AB_CD/Float_AB_CD/UInt32_CD_AB/Int32_CD_AB/Float_CD_AB), " +
-		"ResultVariable(string,表达式,结果存入的变量名)。";
+		"ResultVariable(string,结果存入的变量名)。";
 
 	public override IStepExecutor CreateExecutor() => new ModbusReadExecutor();
 

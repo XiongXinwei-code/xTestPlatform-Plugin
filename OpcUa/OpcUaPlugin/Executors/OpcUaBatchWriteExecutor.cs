@@ -22,7 +22,7 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
             if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not Session session)
@@ -49,8 +49,8 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
             var writeValues = new WriteValueCollection();
             foreach (var item in setting.Items)
             {
-                var nodeIdStr = await Evaluator.EvaluateAsync<string>(item.NodeId, context) ?? item.NodeId;
-                var writeValueStr = await Evaluator.EvaluateAsync<string>(item.WriteValue, context) ?? item.WriteValue;
+                var nodeIdStr = await Evaluator.EvalStringAsync(item.NodeId, context);
+                var writeValueStr = await Evaluator.EvalStringAsync(item.WriteValue, context);
                 var nodeId = OpcUaHelper.ParseNodeId(nodeIdStr);
 
                 object writeValue;

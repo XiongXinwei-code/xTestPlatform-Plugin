@@ -40,7 +40,7 @@ public class VisaBatchWriteSetting
 {
     /// <summary>使用的连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 
     /// <summary>命令列表</summary>
     public ObservableCollection<VisaBatchWriteItem> Items { get; set; } = new();

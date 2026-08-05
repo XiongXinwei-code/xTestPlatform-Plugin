@@ -17,8 +17,8 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
         "用于模拟整车网络环境（如车速、转速等信号）。" +
         "Setting 字段：ConnectionName(string,表达式,已打开的CAN连接名), TaskName(string,表达式,任务标识名,Stop时用此名称停止), " +
         "EnableLog(bool,是否输出发送日志,默认false), Messages(集合,周期报文列表,每个元素结构见下方JSON示例)。" +
-        "Messages 元素JSON示例: {\"CanId\":\"0x185\",\"FrameType\":\"Standard\",\"Data\":\"FF FF FF FF FF FF FF FF\",\"CycleTimeMs\":100,\"Enabled\":true} " +
-        "FrameType可选值: Standard, Extended。";
+        "Messages 元素JSON示例: {\"CanId\":\"\\\"0x185\\\"\",\"FrameType\":\"Standard\",\"Data\":\"\\\"FF FF FF FF FF FF FF FF\\\"\",\"CycleTimeMs\":100,\"Enabled\":true} " +
+        "FrameType可选值: Standard, Extended。CanId和Data为表达式字段，字面量值需用引号包裹如\"\\\"0x185\\\"\"。";
 
     public override IStepExecutor CreateExecutor() => new CanCyclicSendStartExecutor();
 

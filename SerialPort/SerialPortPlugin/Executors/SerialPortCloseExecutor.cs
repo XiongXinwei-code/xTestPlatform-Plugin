@@ -20,7 +20,7 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
             var serializer = new SerialPortClosePlugin().CreateSerializer();
             var s = (SerialPortCloseSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-            var portName = await Evaluator.EvaluateAsync<string>(s.PortName, context) ?? string.Empty;
+            var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 
             if (string.IsNullOrWhiteSpace(portName))
                 return new ExecutionResult

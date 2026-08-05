@@ -1,6 +1,6 @@
 ﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.2.0 | **框架**：.NET 8 / WPF | **日期**：2025-08-04
+> **版本**：3.2.1 | **框架**：.NET 8 / WPF | **日期**：2025-08-05
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -116,6 +116,7 @@
 - [ ] `Description` 完整：功能说明 + 所有 Setting 字段(类型/默认值) + 枚举可选值 + 集合元素 JSON 示例（§2.1）
 - [ ] 所有插件枚举类型已标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`，确保 AI 可用字符串名称传枚举值（§2.1.1）
 - [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
+- [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
 - [ ] Executor 不抛出未捕获异常：内部 try/catch，取消返回 `Aborted`、异常返回 `Error`（§13.4）
@@ -132,6 +133,7 @@
 - [ ] `TabItemExt` 设置 `Image`、`ImageHeight`、`ImageWidth` 显示图标（§11.2）
 - [ ] View 实现 `IRefreshableEditor`（§11.1）
 - [ ] 表达式字段使用 `ExpressionTextBox` 控件而非普通 TextBox（§11.6）
+- [ ] View 中 `SequenceFile` 和 `EditPosition` 声明为 `DependencyProperty`（而非普通 CLR 属性），且 `CreateEditor` 中已将 `sequenceFile` 参数赋值给 `view.SequenceFile`（§11.4、§4.5）
 - [ ] ViewModel 采用防抖保存（§11.5）
 
 **资源与部署**
@@ -644,6 +646,7 @@ public sealed class MyStepEditorPlugin : IStepEditorPlugin {
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
         var view = new MyEditorView();
+        view.SequenceFile = sequenceFile;   // ⚠️ 必须赋值！ExpressionTextBox 依赖此属性提供变量补全
         view.ViewModel.AttachSerializer(new MyStepPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -1201,7 +1204,7 @@ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 <!-- ✅ 表达式字段必须使用 ExpressionTextBox -->
 <expr:ExpressionTextBox
     ScriptText="{Binding TargetExpression, Mode=TwoWay}"
-    ExpectedResultType="System.Double"
+    ExpectedResultType="Double"
     IsMultiLine="True"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
@@ -1218,7 +1221,7 @@ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 > <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center"/>
 > <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1"
 >     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
->     ExpectedResultType="System.String"
+ExpectedResultType="String"
 >     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 >     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 > ```
@@ -1228,20 +1231,53 @@ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 | 依赖属性                 | 类型              | 必须  | 默认值     | 说明                           |
 | -------------------- | --------------- |:---:|:-------:| ---------------------------- |
 | `ScriptText`         | `string`        | ✅   | `""`    | 双向绑定到 ViewModel 的表达式字符串属性    |
-| `ExpectedResultType` | `string`        | ✅   | —       | 期望返回类型的完整名称，控件据此进行**类型校验**   |
+| `ExpectedResultType` | `string`        | ✅   | —       | 期望返回类型的名称，控件据此进行**类型校验**（大小写不敏感） |
 | `SequenceFile`       | `SequenceFile?` | ✅   | `null`  | 用于变量自动补全和智能提示                |
 | `EditPosition`       | `EditPosition?` | ✅   | `null`  | 用于定位当前编辑上下文（确定可见的变量作用域）      |
 | `IsMultiLine`        | `bool`          | ⬜   | `false` | 设置为 `True` 时启用多行编辑模式，适合较长表达式 |
 
-**`ExpectedResultType` 常用值：**
+**`ExpectedResultType` 可填写的值（与 `VariableDataType` 枚举对应，大小写不敏感）：**
 
-| 类型    | 值                |
-| ----- | ---------------- |
-| 字符串   | `System.String`  |
-| 双精度浮点 | `System.Double`  |
-| 整数    | `System.Int32`   |
-| 布尔值   | `System.Boolean` |
-| 任意对象  | `System.Object`  |
+| 填写值 | 对应 .NET 类型 |
+| --- | --- |
+| `SByte` | `sbyte` |
+| `Byte` | `byte` |
+| `Short` | `short` |
+| `UShort` | `ushort` |
+| `Int` | `int` |
+| `UInt` | `uint` |
+| `Long` | `long` |
+| `ULong` | `ulong` |
+| `Float` | `float` |
+| `Double` | `double` |
+| `Bool` | `bool` |
+| `String` | `string` |
+| `Dynamic` | `dynamic` |
+| `Object` | `object` |
+| `Enum` | 枚举（底层整型） |
+| `Struct` | struct / IDictionary |
+| `List` | `List<T>` |
+| `Dictionary` | `Dictionary` |
+| `ListBool` / `ListInt` / `ListLong` / `ListFloat` / `ListDouble` / `ListString` / `ListDynamic` / `ListByte` | 具体 List 类型 |
+| `Matrix` / `MatrixBool` / `MatrixInt` / `MatrixLong` / `MatrixFloat` / `MatrixDouble` / `MatrixString` | 二维矩阵类型 |
+| `Expression` | 表达式 |
+| `Reference` | 引用 |
+
+**支持的别名（自动转换，填写别名与填写枚举名等效）：**
+
+| 填写值 | 实际映射 |
+| --- | --- |
+| `Boolean` | `Bool` |
+| `Integer` | `Int` |
+| `Single` | `Float` |
+| `Int8` | `SByte` |
+| `UInt8` | `Byte` |
+| `Int16` | `Short` |
+| `UInt16` | `UShort` |
+| `Int32` | `Int` |
+| `UInt32` | `UInt` |
+| `Int64` | `Long` |
+| `UInt64` | `ULong` |
 
 > ⚠️ `ExpectedResultType` 是**编辑时类型校验**（ExpressionTextBox 内部独立校验），  
 > 与 `[ExpressionField]` 的**运行时预编译**是独立的两套机制，两者都应正确配置。
@@ -1277,7 +1313,7 @@ public string ThresholdExpression {
 <TextBlock Text="阈值表达式:" Margin="0,12,0,4"/>
 <expr:ExpressionTextBox
     ScriptText="{Binding ThresholdExpression, Mode=TwoWay}"
-    ExpectedResultType="System.Double"
+    ExpectedResultType="Double"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -1303,17 +1339,36 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 }
 ```
 
-> ❌ **常见错误**：忘记绑定 `SequenceFile` 和 `EditPosition`，导致表达式编辑器无法提供变量补全和类型校验。
+> ❌ **常见错误 1**：忘记绑定 `SequenceFile` 和 `EditPosition`，导致表达式编辑器无法提供变量补全和类型校验。
+
+> ❌ **常见错误 2**：`SequenceFile` 和 `EditPosition` 声明为普通 CLR 属性（`{ get; set; }`）而非 DependencyProperty。  
+> WPF 绑定引擎无法监听普通 CLR 属性的变更，`ExpressionTextBox` 将始终读到 `null`，导致变量补全失效。  
+> **必须**将这两个属性声明为 `DependencyProperty`（参见 §11.4 View 标准结构示例），并在 `CreateEditor` 中将 `sequenceFile` 参数赋值给 `view.SequenceFile`。
 
 **View 中如何获取这些依赖属性的值：**
 
-框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的公开属性中（见 §10.2），  
+框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的 DependencyProperty 中（见 §10.2），  
 XAML 中通过 `RelativeSource` 绑定即可传递给 `ExpressionTextBox`：
 
 ```csharp
-// View.xaml.cs 中声明（框架自动注入）
-public SequenceFile?  SequenceFile  { get; set; }
-public EditPosition?  EditPosition  { get; set; }
+// View.xaml.cs 中声明（必须为 DependencyProperty，框架自动注入）
+public static readonly DependencyProperty SequenceFileProperty =
+    DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(MyEditorView),
+        new PropertyMetadata(null));
+public SequenceFile? SequenceFile
+{
+    get => (SequenceFile?)GetValue(SequenceFileProperty);
+    set => SetValue(SequenceFileProperty, value);
+}
+
+public static readonly DependencyProperty EditPositionProperty =
+    DependencyProperty.Register(nameof(EditPosition), typeof(EditPosition), typeof(MyEditorView),
+        new PropertyMetadata(null));
+public EditPosition? EditPosition
+{
+    get => (EditPosition?)GetValue(EditPositionProperty);
+    set => SetValue(EditPositionProperty, value);
+}
 ```
 
 > 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExpressionTextBox` 控件。  
@@ -1438,6 +1493,37 @@ public class MySetting {
 **作用**：引擎在序列启动前自动扫描所有标记了 `[ExpressionField]` 的属性，并行预编译表达式，消除首次执行的编译延迟。
 
 > ⚠️ 仅标记会在运行时通过 Roslyn 求值的 string 属性。字面量配置、文件路径、显示名称等**不应标记**。
+
+#### `[ExpressionField]` 字符串属性的默认值规范
+
+标记了 `[ExpressionField]` 的 `string` 属性，其默认值必须是**合法的表达式字符串**，而不是裸字符串：
+
+- **字符串类型**：默认值须加引号包裹，使其成为字符串字面量表达式，例如 `"\"CAN1\""` 而非 `"CAN1"`。
+- **数字类型**（以字符串存储）：默认值可直接写数字字符串，无需额外引号，例如 `"0"`、`"1"`、`"0x7DF"`。
+- **空值**：使用 `string.Empty` 或 `""` 均可，引擎会将空字符串视为空表达式跳过求值。
+
+```csharp
+[MessagePackObject(true)]
+public class MySetting {
+    // ✅ 字符串字面量表达式 —— 默认值加引号
+    [ExpressionField]
+    public string ConnectionName { get; set; } = "\"MyDevice\"";
+
+    // ✅ 数字字面量表达式 —— 默认值无需引号
+    [ExpressionField]
+    public string StartAddress { get; set; } = "0";
+
+    // ✅ 空表达式 —— string.Empty 或 "" 均可
+    [ExpressionField]
+    public string Filter { get; set; } = string.Empty;
+
+    // ❌ 错误：裸字符串作为默认值，运行时会被当作变量名而非字符串字面量
+    [ExpressionField]
+    public string BadField { get; set; } = "CAN1";  // 运行时会尝试解析变量 CAN1
+}
+```
+
+> 💡 **判断依据**：若默认值在表达式引擎中应被解析为字符串，则必须在 C# 字符串外层再加一层转义引号（`"\"值\""`）。
 
 ### 12.3 设置版本管理
 

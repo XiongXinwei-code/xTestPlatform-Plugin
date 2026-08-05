@@ -16,6 +16,7 @@ public sealed class ModbusDisconnectEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new ModbusDisconnectEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new ModbusDisconnectPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -28,7 +29,7 @@ public sealed class ModbusDisconnectEditorPlugin : IStepEditorPlugin
         var s = (ModbusDisconnectSetting)new ModbusDisconnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_010", "连接标识名不能为空"));
-        ModbusLifecycleValidator.CheckPrecedingConnect(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        ModbusLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

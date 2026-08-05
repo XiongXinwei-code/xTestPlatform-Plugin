@@ -21,7 +21,7 @@ public sealed class NiDaqTaskStopExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");

@@ -12,7 +12,7 @@ public class ModbusBatchWriteSetting
 {
 	/// <summary>使用的连接名称</summary>
 	[ExpressionField]
-	public string ConnectionName { get; set; } = "Modbus1";
+	public string ConnectionName { get; set; } = "\"Modbus1\"";
 
 	/// <summary>批量写入项列表</summary>
 	public ObservableCollection<ModbusBatchWriteItem> Items { get; set; } = new();

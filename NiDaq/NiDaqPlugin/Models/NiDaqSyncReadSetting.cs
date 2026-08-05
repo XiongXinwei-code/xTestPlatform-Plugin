@@ -8,7 +8,7 @@ public class NiDaqSyncReadSetting
 {
     /// <summary>任务名称</summary>
     [ExpressionField]
-    public string TaskName { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"SyncTask1\"";
 
     /// <summary>读取样本数（每通道），-1 为读取所有可用</summary>
     public int SamplesToRead { get; set; } = -1;
@@ -17,7 +17,6 @@ public class NiDaqSyncReadSetting
     public int ReadTimeoutMs { get; set; } = 10000;
 
     /// <summary>结果变量名</summary>
-    [ExpressionField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>导出格式</summary>

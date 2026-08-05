@@ -22,13 +22,21 @@ public sealed class NiDaqAiConfigExecutor : IStepExecutor
         try
         {
             NiDriverCheck.EnsureDriver();
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
             if (setting.Channels.Count == 0)
                 return ErrorResult("AI 通道列表为空");
+
+            // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
+            var existingTask = context.GetVariable(taskName);
+            if (existingTask is DaqTask oldTask)
+            {
+                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
+                context.LogAction?.Invoke($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
+            }
 
             var task = new DaqTask(taskName);
 

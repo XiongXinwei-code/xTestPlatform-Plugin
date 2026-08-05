@@ -16,6 +16,7 @@ public sealed class VisaReadEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new VisaReadEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new VisaReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -28,6 +29,8 @@ public sealed class VisaReadEditorPlugin : IStepEditorPlugin
         var s = (VisaReadSetting)new VisaReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("VISA_040", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_040E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("VISA_041", "结果变量名不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
@@ -38,7 +41,7 @@ public sealed class VisaReadEditorPlugin : IStepEditorPlugin
             if (val is not null && val is not string)
                 errors.Add(StepSettingError.Error("VISA_043", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
         }
-        VisaLifecycleValidator.CheckPrecedingOpen(context.Block, context.CurrentStep, s.ConnectionName, errors);
+        VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
 }

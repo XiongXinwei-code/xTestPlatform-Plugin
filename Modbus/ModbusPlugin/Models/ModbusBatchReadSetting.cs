@@ -12,7 +12,7 @@ public class ModbusBatchReadSetting
 {
 	/// <summary>使用的连接名称</summary>
 	[ExpressionField]
-	public string ConnectionName { get; set; } = "Modbus1";
+	public string ConnectionName { get; set; } = "\"Modbus1\"";
 
 	/// <summary>批量读取项列表</summary>
 	public ObservableCollection<ModbusBatchItem> Items { get; set; } = new();

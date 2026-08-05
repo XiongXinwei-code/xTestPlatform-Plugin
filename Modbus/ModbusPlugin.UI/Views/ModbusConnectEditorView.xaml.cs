@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using Modbus.UI.ViewModels;
 using StepEditor.Abstractions;
@@ -16,10 +17,16 @@ public partial class ModbusConnectEditorView : UserControl, IRefreshableEditor
 	public Action<string, Action>? ExecuteCommand { get; set; }
 
 	/// <summary>框架注入的序列文件，用于 ExpressionTextBox 变量补全</summary>
-	public SequenceFile? SequenceFile { get; set; }
+	public static readonly DependencyProperty SequenceFileProperty =
+	    DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(ModbusConnectEditorView),
+	        new PropertyMetadata(null));
+	public SequenceFile? SequenceFile { get => (SequenceFile?)GetValue(SequenceFileProperty); set => SetValue(SequenceFileProperty, value); }
 
 	/// <summary>框架注入的编辑位置，用于 ExpressionTextBox 作用域判断</summary>
-	public EditPosition? EditPosition { get; set; }
+	public static readonly DependencyProperty EditPositionProperty =
+	    DependencyProperty.Register(nameof(EditPosition), typeof(EditPosition), typeof(ModbusConnectEditorView),
+	        new PropertyMetadata(null));
+	public EditPosition? EditPosition { get => (EditPosition?)GetValue(EditPositionProperty); set => SetValue(EditPositionProperty, value); }
 
 	public ModbusConnectEditorView()
 	{
