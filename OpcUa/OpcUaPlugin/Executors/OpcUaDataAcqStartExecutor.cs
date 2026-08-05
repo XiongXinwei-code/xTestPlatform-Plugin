@@ -26,6 +26,13 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             var sessionKey = OpcUaHelper.GetSessionKey(connName);
             var taskKey = $"OpcUaDataAcq_{taskName}";
 
+            // 若已存在同名采集任务（序列异常终止未停止），先销毁旧任务
+            if (context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var existingTask) && existingTask is OpcUaDataAcqTask oldTask)
+            {
+                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
+                context.LogAction?.Invoke($"OPC UA 采集任务 {taskName} 检测到已有任务，已自动销毁旧任务");
+            }
+
             // 获取 OPC UA 会话
             if (!context.CurrentStep.RuntimeData.TryGetValue(sessionKey, out var obj) || obj is not Session session)
             {

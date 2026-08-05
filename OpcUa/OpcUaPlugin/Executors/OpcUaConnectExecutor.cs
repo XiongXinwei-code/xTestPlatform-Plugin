@@ -27,6 +27,13 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
             var endpointUrl = await Evaluator.EvaluateAsync<string>(setting.EndpointUrl, context) ?? setting.EndpointUrl;
             var key = OpcUaHelper.GetSessionKey(connName);
 
+            // 若已存在同名会话（序列异常终止未断开），先关闭旧会话
+            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingSession) && existingSession is Session oldSession)
+            {
+                try { oldSession.Close(); oldSession.Dispose(); } catch { /* 忽略关闭异常 */ }
+                context.LogAction?.Invoke($"OPC UA 连接 {connName} 检测到已有会话，已自动关闭旧会话");
+            }
+
             // 创建应用程序配置
             var appConfig = new ApplicationConfiguration
             {

@@ -30,6 +30,14 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(counterCh))
                 return ErrorResult("Counter 通道不能为空");
 
+            // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
+            var existingTask = context.GetVariable(taskName);
+            if (existingTask is DaqTask oldTask)
+            {
+                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
+                context.LogAction?.Invoke($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
+            }
+
             var decodingType = setting.DecodingType switch
             {
                 EncoderDecodingType.X1 => CIEncoderDecodingType.X1,
