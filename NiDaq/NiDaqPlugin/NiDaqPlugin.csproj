@@ -19,7 +19,12 @@
 
   <!-- NI DAQmx + TDMS DLL direct reference (requires NI-DAQmx driver installed) -->
   <!-- Use 64-bit runtime assemblies from Assemblies (64-bit)\Current, NOT the 32-bit reference assemblies -->
-  <ItemGroup Condition="Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll')">
+  <!-- Set /p:NiDaqStub=true to force stub mode even when the driver is installed (for CI parity testing) -->
+  <PropertyGroup>
+    <NiDaqStub Condition="'$(NiDaqStub)' == '' and !Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll')">true</NiDaqStub>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(NiDaqStub)' != 'true'">
 	<Reference Include="NationalInstruments.DAQmx">
 	  <HintPath>C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll</HintPath>
 	  <Private>true</Private>
@@ -35,7 +40,7 @@
   </ItemGroup>
 
   <!-- Stub mode when NI driver not installed -->
-  <PropertyGroup Condition="!Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll')">
+  <PropertyGroup Condition="'$(NiDaqStub)' == 'true'">
 	<DefineConstants>$(DefineConstants);NIDAQ_STUB</DefineConstants>
   </PropertyGroup>
 
