@@ -29,6 +29,8 @@ public sealed class CanCloseEditorPlugin : IStepEditorPlugin
         var s = (CanCloseSetting)new CanClosePlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_010", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("CAN_010E", $"ConnectionName 表达式无效: {connErr}"));
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

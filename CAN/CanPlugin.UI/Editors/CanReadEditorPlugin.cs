@@ -29,6 +29,8 @@ public sealed class CanReadEditorPlugin : IStepEditorPlugin
         var s = (CanReadSetting)new CanReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_050", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("CAN_050E", $"ConnectionName 表达式无效: {connErr}"));
         if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
             errors.Add(StepSettingError.Error("CAN_051", "超时必须大于 0，或为 -1 表示永不超时"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))

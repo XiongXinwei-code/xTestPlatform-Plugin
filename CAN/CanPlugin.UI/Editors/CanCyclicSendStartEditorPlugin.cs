@@ -29,8 +29,12 @@ public sealed class CanCyclicSendStartEditorPlugin : IStepEditorPlugin
         var s = (CanCyclicSendStartSetting)new CanCyclicSendStartPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_030", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("CAN_030E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.TaskName))
             errors.Add(StepSettingError.Error("CAN_031", "任务标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskErr))
+            errors.Add(StepSettingError.Error("CAN_031E", $"TaskName 表达式无效: {taskErr}"));
         if (s.Messages.Count == 0)
             errors.Add(StepSettingError.Warning("CAN_W30", "报文列表为空"));
         else if (!s.Messages.Any(m => m.Enabled))

@@ -30,16 +30,24 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
 			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+			errors.Add(StepSettingError.Error("UDS_001E", $"ConnectionName 表达式无效: {connErr}"));
 		if (string.IsNullOrWhiteSpace(s.TxId))
 			errors.Add(StepSettingError.Error("UDS_002", "TX ID 不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.TxId, context.ExecutionContext, out var txErr))
+			errors.Add(StepSettingError.Error("UDS_002E", $"TxId 表达式无效: {txErr}"));
 		if (string.IsNullOrWhiteSpace(s.RxId))
 			errors.Add(StepSettingError.Error("UDS_003", "RX ID 不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.RxId, context.ExecutionContext, out var rxErr))
+			errors.Add(StepSettingError.Error("UDS_003E", $"RxId 表达式无效: {rxErr}"));
 		if (s.ResponseTimeoutMs == 0 || s.ResponseTimeoutMs < -1)
 			errors.Add(StepSettingError.Error("UDS_005", "响应超时必须大于 0，或为 -1 表示永不超时"));
 		if (s.SecurityLevel <= 0 || s.SecurityLevel % 2 == 0)
 			errors.Add(StepSettingError.Error("UDS_S001", "安全级别必须为正奇数（如 1、3、5）"));
 		if (string.IsNullOrWhiteSpace(s.KeyExpression))
 			errors.Add(StepSettingError.Error("UDS_S004", "Key 计算表达式不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.KeyExpression, context.ExecutionContext, out var keyErr))
+			errors.Add(StepSettingError.Error("UDS_S004E", $"KeyExpression 表达式无效: {keyErr}"));
 
 		if (!string.IsNullOrWhiteSpace(s.ResultVariable))
 		{
