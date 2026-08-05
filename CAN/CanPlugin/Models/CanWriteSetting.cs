@@ -13,7 +13,7 @@ public class CanWriteSetting
 
     /// <summary>CAN ID（支持表达式，如 0x7DF）</summary>
     [ExpressionField]
-    public string CanId { get; set; } = "0x7DF";
+    public string CanId { get; set; } = "\"0x7DF\"";
 
     /// <summary>帧类型</summary>
     public CanFrameType FrameType { get; set; } = CanFrameType.Standard;
