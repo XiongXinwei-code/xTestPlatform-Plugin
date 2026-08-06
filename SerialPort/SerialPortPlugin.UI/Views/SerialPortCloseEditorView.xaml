@@ -17,7 +17,7 @@
                 <TextBlock Text="PortName:" Margin="0,0,0,4"/>
                 <expr:ExpressionTextBox
                     ScriptText="{Binding PortName, Mode=TwoWay}"
-                    ExpectedResultType="System.String"
+                    ExpectedResultType="String"
                     IsMultiLine="False"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />

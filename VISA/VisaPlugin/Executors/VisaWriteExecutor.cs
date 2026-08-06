@@ -24,8 +24,8 @@ public sealed class VisaWriteExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
-            var command = await Evaluator.EvaluateAsync<string>(setting.Command, context) ?? setting.Command;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            var command = await Evaluator.EvalStringAsync(setting.Command, context);
             var key = VisaHelper.GetSessionKey(connName);
 
             if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IMessageBasedSession session)

@@ -14,7 +14,7 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var data = channel.ReadData<double>(offset, len);
+            var data = channel.GetData<double>(offset, len);
             foreach (var v in data) if (v > max) max = v;
         }
         return max;
@@ -27,7 +27,7 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var data = channel.ReadData<double>(offset, len);
+            var data = channel.GetData<double>(offset, len);
             foreach (var v in data) if (v < min) min = v;
         }
         return min;
@@ -40,7 +40,7 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var data = channel.ReadData<double>(offset, len);
+            var data = channel.GetData<double>(offset, len);
             foreach (var v in data) { sum += v; count++; }
         }
         return count > 0 ? sum / count : 0;
@@ -53,7 +53,7 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var data = channel.ReadData<double>(offset, len);
+            var data = channel.GetData<double>(offset, len);
             foreach (var v in data) { sumSq += v * v; count++; }
         }
         return count > 0 ? Math.Sqrt(sumSq / count) : 0;
@@ -68,8 +68,8 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var mainData = mainChannel.ReadData<double>(offset, len);
-            var refData = refChannel.ReadData<double>(offset, len);
+            var mainData = mainChannel.GetData<double>(offset, len);
+            var refData = refChannel.GetData<double>(offset, len);
             for (int i = 0; i < mainData.Length; i++)
             {
                 if (mainData[i] > peak)
@@ -91,8 +91,8 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var xData = xChannel.ReadData<double>(offset, len);
-            var yData = yChannel.ReadData<double>(offset, len);
+            var xData = xChannel.GetData<double>(offset, len);
+            var yData = yChannel.GetData<double>(offset, len);
             for (int i = 0; i < xData.Length; i++)
             {
                 sx += xData[i]; sy += yData[i];
@@ -115,8 +115,8 @@ public static class TdmsAnalyzer
         for (long offset = 0; offset < total; offset += ChunkSize)
         {
             int len = (int)Math.Min(ChunkSize, total - offset);
-            var mainData = mainChannel.ReadData<double>(offset, len);
-            var refData = refChannel.ReadData<double>(offset, len);
+            var mainData = mainChannel.GetData<double>(offset, len);
+            var refData = refChannel.GetData<double>(offset, len);
             for (int i = 0; i < mainData.Length; i++)
             {
                 if (refData[i] >= rangeStart && refData[i] <= rangeEnd)

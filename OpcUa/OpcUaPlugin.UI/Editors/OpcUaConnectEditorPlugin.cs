@@ -1,0 +1,43 @@
+using System.Windows;
+using OpcUa.Models;
+using OpcUa.UI.Views;
+using StepEditor.Abstractions;
+using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.SequenceModels;
+
+namespace OpcUa.UI;
+
+public sealed class OpcUaConnectEditorPlugin : IStepEditorPlugin
+{
+    public string StepTypeId => "OpcUa.Connect";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+
+    public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
+    {
+        var view = new OpcUaConnectEditorView();
+        view.SequenceFile = sequenceFile;
+        view.ViewModel.AttachSerializer(new OpcUaConnectPlugin().CreateSerializer());
+        view.ViewModel.AttachStep(step);
+        return view;
+    }
+
+    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+		StepEditorValidationContext context, CancellationToken ct = default)
+    {
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaConnectSetting)new OpcUaConnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("OPCUA_001", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_001E", $"ConnectionName 表达式无效: {connErr}"));
+        if (string.IsNullOrWhiteSpace(s.EndpointUrl))
+            errors.Add(StepSettingError.Error("OPCUA_002", "端点 URL 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.EndpointUrl, context.ExecutionContext, out var urlErr))
+            errors.Add(StepSettingError.Error("OPCUA_002E", $"EndpointUrl 表达式无效: {urlErr}"));
+        if (s.AuthMode == OpcUaAuthMode.UserPassword && string.IsNullOrWhiteSpace(s.UserName))
+            errors.Add(StepSettingError.Error("OPCUA_003", "用户名密码模式下用户名不能为空"));
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_004", "超时必须大于 0"));
+        return errors;
+    }
+}

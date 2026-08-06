@@ -22,7 +22,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
 
         try
         {
-            var connName = await Evaluator.EvaluateAsync<string>(setting.ConnectionName, context) ?? setting.ConnectionName;
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
             if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not Session session)
@@ -49,7 +49,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
             var nodesToRead = new ReadValueIdCollection();
             foreach (var item in setting.Items)
             {
-                var nodeIdStr = await Evaluator.EvaluateAsync<string>(item.NodeId, context) ?? item.NodeId;
+                var nodeIdStr = await Evaluator.EvalStringAsync(item.NodeId, context);
                 nodesToRead.Add(new ReadValueId
                 {
                     NodeId = OpcUaHelper.ParseNodeId(nodeIdStr),

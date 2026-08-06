@@ -11,7 +11,7 @@ public class ModbusReadSetting
 {
 	/// <summary>使用的连接名称</summary>
 	[ExpressionField]
-	public string ConnectionName { get; set; } = "Modbus1";
+	public string ConnectionName { get; set; } = "\"Modbus1\"";
 
 	/// <summary>从站地址（1~247）</summary>
 	public byte SlaveAddress { get; set; } = 1;
@@ -30,7 +30,6 @@ public class ModbusReadSetting
 	/// <summary>数据解析格式</summary>
 	public ModbusDataFormat DataFormat { get; set; } = ModbusDataFormat.UInt16;
 
-	/// <summary>存储读取结果的变量名（支持表达式）</summary>
-	[ExpressionField]
-	public string ResultVariable { get; set; } = "ModbusResult";
+	/// <summary>存储读取结果的变量名</summary>
+	public string ResultVariable { get; set; } = "";
 }

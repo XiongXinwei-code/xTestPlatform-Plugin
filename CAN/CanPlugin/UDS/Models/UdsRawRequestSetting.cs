@@ -8,7 +8,7 @@ public class UdsRawRequestSetting : UdsCommonSetting
 {
     /// <summary>原始请求数据（十六进制字符串，如 "10 03"）</summary>
     [ExpressionField]
-    public string RequestData { get; set; } = "";
+    public string RequestData { get; set; } = "\"\"";
 
     /// <summary>是否等待响应</summary>
     public bool WaitResponse { get; set; } = true;

@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
@@ -5,14 +8,26 @@ namespace OpcUa.Models;
 
 /// <summary>批量读取的单个节点项</summary>
 [MessagePackObject(true)]
-public class OpcUaBatchReadItem
+public class OpcUaBatchReadItem : INotifyPropertyChanged
 {
+    private string _nodeId = "";
+    private string _resultVariable = "";
+
     /// <summary>节点标识</summary>
     [ExpressionField]
-    public string NodeId { get; set; } = "";
+    public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
 
     /// <summary>结果存入的变量名</summary>
-    public string ResultVariable { get; set; } = "";
+    public string ResultVariable { get => _resultVariable; set => SetProperty(ref _resultVariable, value); }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(storage, value)) return false;
+        storage = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
+    }
 }
 
 /// <summary>OPC UA 批量读取步骤的设置参数</summary>
@@ -21,10 +36,10 @@ public class OpcUaBatchReadSetting
 {
     /// <summary>连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "OpcUa1";
+    public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要读取的节点列表</summary>
-    public List<OpcUaBatchReadItem> Items { get; set; } = new();
+    public ObservableCollection<OpcUaBatchReadItem> Items { get; set; } = new();
 
     /// <summary>超时时间（毫秒）</summary>
     public int TimeoutMs { get; set; } = 5000;

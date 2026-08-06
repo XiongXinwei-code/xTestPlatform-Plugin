@@ -9,15 +9,15 @@ public class OpcUaSubscribeSetting
 {
     /// <summary>连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "OpcUa1";
+    public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要订阅的节点标识</summary>
     [ExpressionField]
-    public string NodeId { get; set; } = "ns=2;s=TestComplete";
+    public string NodeId { get; set; } = "\"ns=2;s=TestComplete\"";
 
     /// <summary>期望值（达到此值时订阅完成）</summary>
     [ExpressionField]
-    public string ExpectedValue { get; set; } = "true";
+    public string ExpectedValue { get; set; } = "\"true\"";
 
     /// <summary>比较模式</summary>
     public OpcUaCompareMode CompareMode { get; set; } = OpcUaCompareMode.Equal;

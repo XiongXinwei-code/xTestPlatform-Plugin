@@ -13,7 +13,8 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
 
     public override string Description =>
-        "关闭指定串口并释放资源。Setting 字段：PortName(string,表达式,端口名如COM1)。";
+        "关闭指定串口并释放资源。" +
+        "Setting 字段：PortName(string,表达式,要关闭的端口名如COM1)。";
 
     public override IStepExecutor CreateExecutor() => new SerialPortCloseExecutor();
 

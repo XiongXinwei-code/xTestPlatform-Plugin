@@ -7,15 +7,41 @@
 	<AssemblyName>NiDaq.StepPlugin</AssemblyName>
 	<RootNamespace>NiDaq</RootNamespace>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<EnableDynamicLoading>true</EnableDynamicLoading>
 	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\NiDaq\</OutputPath>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
 	<PackageReference Include="MessagePack" Version="3.1.7" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
-	<PackageReference Include="NationalInstruments.DAQmx" Version="24.8.0" />
-	<PackageReference Include="NationalInstruments.Tdms" Version="24.8.0" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
   </ItemGroup>
+
+  <!-- NI DAQmx + TDMS DLL direct reference (requires NI-DAQmx driver installed) -->
+  <!-- Use 64-bit runtime assemblies from Assemblies (64-bit)\Current, NOT the 32-bit reference assemblies -->
+  <!-- Set /p:NiDaqStub=true to force stub mode even when the driver is installed (for CI parity testing) -->
+  <PropertyGroup>
+    <NiDaqStub Condition="'$(NiDaqStub)' == '' and !Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll')">true</NiDaqStub>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(NiDaqStub)' != 'true'">
+	<Reference Include="NationalInstruments.DAQmx">
+	  <HintPath>C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll</HintPath>
+	  <Private>true</Private>
+	</Reference>
+	<Reference Include="NationalInstruments.Common">
+	  <HintPath>C:\Program Files (x86)\National Instruments\Measurement Studio\DotNET\v4.0\AnyCPU\NationalInstruments.Common 19.1.40\NationalInstruments.Common.dll</HintPath>
+	  <Private>true</Private>
+	</Reference>
+	<Reference Include="NationalInstruments.Tdms">
+	  <HintPath>C:\Program Files\National Instruments\Shared\Skyline\TDMReader\NationalInstruments.Tdms.dll</HintPath>
+	  <Private>true</Private>
+	</Reference>
+  </ItemGroup>
+
+  <!-- Stub mode when NI driver not installed -->
+  <PropertyGroup Condition="'$(NiDaqStub)' == 'true'">
+	<DefineConstants>$(DefineConstants);NIDAQ_STUB</DefineConstants>
+  </PropertyGroup>
 
 </Project>

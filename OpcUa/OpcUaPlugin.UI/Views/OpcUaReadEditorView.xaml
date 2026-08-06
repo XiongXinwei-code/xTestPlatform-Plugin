@@ -1,4 +1,4 @@
-<UserControl x:Class="OpcUa.UI.Views.OpcUaReadEditorView"
+﻿<UserControl x:Class="OpcUa.UI.Views.OpcUaReadEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -26,13 +26,13 @@
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="System.String"
+                    ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Node ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding NodeId, Mode=TwoWay}" ExpectedResultType="System.String"
+                    ScriptText="{Binding NodeId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 

@@ -21,7 +21,8 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
         try
         {
             // 获取 CAN 适配器
-            var adapterKey = CanHelper.GetAdapterKey(setting.ConnectionName);
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            var adapterKey = CanHelper.GetAdapterKey(connName);
             if (!context.CurrentStep.RuntimeData.TryGetValue(adapterKey, out var obj) || obj is not ICanAdapter adapter)
             {
                 return new ExecutionResult
@@ -29,12 +30,12 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                     StepResult = new StepResult
                     {
                         Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {setting.ConnectionName}" }
+                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {connName}" }
                     }
                 };
             }
 
-            var taskName = await Evaluator.EvaluateAsync<string>(setting.TaskName, context) ?? setting.TaskName;
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var taskKey = GetTaskKey(taskName);
 
             // 如果已有同名任务，先停止
@@ -72,8 +73,8 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                         while (await timer.WaitForNextTickAsync(cts.Token))
                         {
                             // 每次发送前解析表达式，获取最新值
-                            var canIdStr = await Evaluator.EvaluateAsync<string>(msg.CanId, context) ?? msg.CanId;
-                            var dataStr = await Evaluator.EvaluateAsync<string>(msg.Data, context) ?? msg.Data;
+                            var canIdStr = await Evaluator.EvalStringAsync(msg.CanId, context);
+                            var dataStr = await Evaluator.EvalStringAsync(msg.Data, context);
 
                             uint canId = CanHelper.ParseCanId(canIdStr);
                             byte[] data = CanHelper.ParseHexData(dataStr);

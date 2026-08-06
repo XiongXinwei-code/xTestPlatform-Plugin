@@ -20,7 +20,8 @@ public sealed class CanReadExecutor : IStepExecutor
 
         try
         {
-            var key = CanHelper.GetAdapterKey(setting.ConnectionName);
+            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            var key = CanHelper.GetAdapterKey(connName);
             if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not ICanAdapter adapter)
             {
                 return new ExecutionResult
@@ -28,7 +29,7 @@ public sealed class CanReadExecutor : IStepExecutor
                     StepResult = new StepResult
                     {
                         Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {setting.ConnectionName}" }
+                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {connName}" }
                     }
                 };
             }
@@ -37,7 +38,7 @@ public sealed class CanReadExecutor : IStepExecutor
             uint? filterId = null;
             if (!string.IsNullOrWhiteSpace(setting.FilterId))
             {
-                var idStr = await Evaluator.EvaluateAsync<string>(setting.FilterId, context) ?? setting.FilterId;
+                var idStr = await Evaluator.EvalStringAsync(setting.FilterId, context);
                 filterId = ParseCanId(idStr);
             }
 

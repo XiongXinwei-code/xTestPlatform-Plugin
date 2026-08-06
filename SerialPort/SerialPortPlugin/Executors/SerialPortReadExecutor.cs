@@ -20,7 +20,7 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             var serializer = new SerialPortReadPlugin().CreateSerializer();
             var s = (SerialPortReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-            var portName = await Evaluator.EvaluateAsync<string>(s.PortName, context) ?? string.Empty;
+            var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 
             if (string.IsNullOrWhiteSpace(portName))
                 return new ExecutionResult

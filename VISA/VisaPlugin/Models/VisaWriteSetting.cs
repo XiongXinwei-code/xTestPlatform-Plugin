@@ -11,9 +11,9 @@ public class VisaWriteSetting
 {
     /// <summary>使用的连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 
     /// <summary>要发送的 SCPI 命令（支持表达式）</summary>
     [ExpressionField]
-    public string Command { get; set; } = "*IDN?";
+    public string Command { get; set; } = "\"*IDN?\"";
 }

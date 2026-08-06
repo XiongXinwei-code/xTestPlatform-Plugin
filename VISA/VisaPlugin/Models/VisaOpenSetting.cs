@@ -11,11 +11,11 @@ public class VisaOpenSetting
 {
     /// <summary>连接名称，用于在后续步骤中引用此会话</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 
     /// <summary>VISA 资源字符串，如 TCPIP::192.168.1.1::INSTR、GPIB0::1::INSTR</summary>
     [ExpressionField]
-    public string ResourceString { get; set; } = "TCPIP::192.168.1.1::5025::SOCKET";
+    public string ResourceString { get; set; } = "\"TCPIP::192.168.1.1::5025::SOCKET\"";
 
     /// <summary>打开超时时间（毫秒）</summary>
     public int OpenTimeoutMs { get; set; } = 5000;

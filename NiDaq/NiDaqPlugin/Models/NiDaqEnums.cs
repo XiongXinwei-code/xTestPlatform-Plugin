@@ -1,6 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace NiDaq.Models;
 
 /// <summary>AI 终端配置</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AiTerminalConfig
 {
     Differential,
@@ -10,6 +13,7 @@ public enum AiTerminalConfig
 }
 
 /// <summary>编码器解码类型</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum EncoderDecodingType
 {
     X1,
@@ -18,6 +22,7 @@ public enum EncoderDecodingType
 }
 
 /// <summary>编码器输出单位</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum EncoderUnit
 {
     Pulses,
@@ -26,6 +31,7 @@ public enum EncoderUnit
 }
 
 /// <summary>导出格式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DaqExportFormat
 {
     Csv,
@@ -36,6 +42,7 @@ public enum DaqExportFormat
 }
 
 /// <summary>数据分析模式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AnalyzeMode
 {
     Max,
@@ -48,8 +55,17 @@ public enum AnalyzeMode
 }
 
 /// <summary>触发边沿</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum TriggerEdge
 {
     Rising,
     Falling
+}
+
+/// <summary>AI 采样模式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AiSampleMode
+{
+    FiniteSamples,
+    ContinuousSamples
 }

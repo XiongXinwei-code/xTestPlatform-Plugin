@@ -11,5 +11,5 @@ public class VisaCloseSetting
 {
     /// <summary>要关闭的连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 }

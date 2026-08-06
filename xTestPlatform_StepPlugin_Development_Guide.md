@@ -1,32 +1,145 @@
 ﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.1.5 | **框架**：.NET 8 / WPF | **日期**：2025-07-31  
+> **版本**：3.2.1 | **框架**：.NET 8 / WPF | **日期**：2025-08-05
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
 
 ## 目录
 
+0. [开发交付检查清单](#开发交付检查清单)
 1. [架构概览](#1-架构概览)
 2. [核心契约层](#2-核心契约层)
+   - 2.1 [IStepPlugin — 插件主契约](#21-istepplugin--插件主契约)
+   - 2.2 [IStepExecutor — 执行器契约](#22-istepexecutor--执行器契约)
+   - 2.3 [IStepSettingSerializer — 序列化器契约](#23-istepsettingserializer--序列化器契约)
+   - 2.4 [ExecutionResult — 执行结果](#24-executionresult--执行结果)
+   - 2.5 [ErrorInfo — 错误信息结构](#25-errorinfo--错误信息结构)
+   - 2.6 [StepSettingError — 校验错误](#26-stepsettingerror--校验错误)
 3. [基类 StepPluginBase](#3-基类-steppluginbase)
 4. [IStepEditorPlugin — 编辑器插件接口](#4-istepeditorplugin--编辑器插件接口)
+   - 4.1 [何时实现 IStepEditorPlugin](#41-何时实现-istepeditorplugin)
+   - 4.2 [CreateEditor 参数说明](#42-createeditor-参数说明)
+   - 4.3 [框架自动注册流程](#43-框架自动注册流程)
+   - 4.4 [EditorPlugin 文件组织规范](#44-editorplugin-文件组织规范)
+   - 4.5 [实现示例（两个独立类）](#45-实现示例两个独立类)
 5. [数据模型参考](#5-数据模型参考)
+   - 5.1 [Step 结构树](#51-step-结构树)
+   - 5.2 [Variables — 变量定义](#52-variables--变量定义)
 6. [执行上下文与变量作用域](#6-执行上下文与变量作用域)
+   - 6.1 [IExecutionContext](#61-iexecutioncontext)
+   - 6.2 [变量查找优先级](#62-变量查找优先级)
+   - 6.3 [IVariableScope](#63-ivariablescope)
+   - 6.4 [使用示例](#64-使用示例)
+   - 6.5 [表达式求值 API（IExpressionEvaluator）](#65-表达式求值-apiiexpressionevaluator)
 7. [两大注册表](#7-两大注册表)
+   - 7.1 [职责对比](#71-职责对比)
+   - 7.2 [StepPluginRegistry API](#72-steppluginregistry-api)
+   - 7.3 [StepPluginEditorRegistry API](#73-steppplugineditorregistry-api)
 8. [StepPluginLoader — 外部插件加载](#8-steppluginloader--外部插件加载)
+   - 8.1 [工作原理](#81-工作原理)
+   - 8.2 [DLL 命名规范](#82-dll-命名规范)
+   - 8.3 [部署步骤](#83-部署步骤)
+   - 8.4 [依赖项部署注意事项](#84-依赖项部署注意事项)
+   - 8.5 [加载日志](#85-加载日志)
 9. [EditPosition — 编辑位置对象](#9-editposition--编辑位置对象)
 10. [编辑器生命周期](#10-编辑器生命周期)
+    - 10.1 [完整加载流程](#101-完整加载流程)
+    - 10.2 [反射注入属性（外部插件可选接收）](#102-反射注入属性外部插件可选接收)
 11. [UI 编辑器开发规范](#11-ui-编辑器开发规范)
+    - 11.1 [IRefreshableEditor 接口](#111-irefreshableeditor-接口)
+    - 11.2 [编辑器 XAML 必须包含 TabControlExt](#112-编辑器-xaml-必须包含-tabcontrolext)
+    - 11.3 [标准 XAML 模板](#113-标准-xaml-模板)
+    - 11.4 [View 标准结构](#114-view-标准结构)
+    - 11.5 [ViewModel 防抖保存模式](#115-viewmodel-防抖保存模式)
+    - 11.6 [表达式编辑控件（ExpressionTextBox）](#116-表达式编辑控件expressiontextbox)
 12. [序列化规范](#12-序列化规范)
+    - 12.1 [集合属性与子项设计规范](#121-集合属性与子项设计规范)
+    - 12.2 [`[ExpressionField]` 特性（表达式预编译）](#122-expressionfield-特性表达式预编译)
+    - 12.3 [设置版本管理](#123-设置版本管理)
 13. [设置校验规范](#13-设置校验规范)
+    - 13.1 [UI 上下文校验（IStepEditorPlugin）](#131-ui-上下文校验istepeditorplugin)
+    - 13.2 [执行器内部校验（IStepExecutor）](#132-执行器内部校验istepexecutor)
+    - 13.3 [生命周期校验（Lifecycle Validation）](#133-生命周期校验lifecycle-validation)
+    - 13.4 [异常处理规范](#134-异常处理规范)
+    - 13.5 [调试日志输出](#135-调试日志输出)
 14. [完整示例](#14-完整示例)
+    - 14.1 [项目结构](#141-项目结构)
+    - 14.2 [csproj](#142-csproj)
+    - 14.3 [Setting 模型](#143-setting-模型)
+    - 14.4 [执行插件](#144-执行插件)
+    - 14.5 [执行器](#145-执行器)
+    - 14.6 [编辑器插件](#146-编辑器插件)
+    - 14.7 [编辑器 XAML](#147-编辑器-xaml)
 15. [工具箱集成](#15-工具箱集成)
 16. [RuntimeContext 与引擎启动时序](#16-runtimecontext-与引擎启动时序)
+    - 16.1 [启动时序](#161-启动时序)
 17. [自定义事件（Custom Event）](#17-自定义事件custom-event)
+    - 17.1 [架构概览](#171-架构概览)
+    - 17.2 [IExecutionContext API](#172-iexecutioncontext-api)
+    - 17.3 [事件参数](#173-事件参数)
+    - 17.4 [在插件 Executor 中使用](#174-在插件-executor-中使用)
+    - 17.5 [生产界面订阅](#175-生产界面订阅)
+    - 17.6 [内置 Event_Raise 步骤](#176-内置-event_raise-步骤)
 18. [插件设计原则](#18-插件设计原则)
+    - 18.1 [单一职责原则](#181-单一职责原则)
+    - 18.2 [命名规范](#182-命名规范)
+    - 18.3 [设计检查清单](#183-设计检查清单)
+    - 18.4 [为什么要求功能单一](#184-为什么要求功能单一)
 19. [常见问题 FAQ](#19-常见问题-faq)
-20. [附录：目录结构参考](#20-附录目录结构参考)
+20. [命名空间引用参考（using 指南）](#20-命名空间引用参考using-指南)
+    - 20.1 [执行层 — Plugin 主类（继承 StepPluginBase）](#201-执行层--plugin-主类继承-steppluginbase)
+    - 20.2 [执行层 — Setting 模型类](#202-执行层--setting-模型类)
+    - 20.3 [执行层 — Executor（执行器）](#203-执行层--executor执行器)
+    - 20.4 [UI 层 — EditorPlugin（编辑器插件入口）](#204-ui-层--editorplugin编辑器插件入口)
+    - 20.5 [UI 层 — View（编辑器视图 .xaml.cs）](#205-ui-层--view编辑器视图-xamlcs)
+    - 20.6 [UI 层 — ViewModel](#206-ui-层--viewmodel)
+    - 20.7 [速查表](#207-速查表)
+
+---
+
+## 开发交付检查清单
+
+> 开发或修改插件完成后，逐项核对下列所有条目。括号内为对应章节。
+
+**项目与构建**
+- [ ] 两个独立项目：执行层 + UI 层（§1、§14.1）
+- [ ] DLL 命名：执行层 AssemblyName = `[Name].StepPlugin`，UI 层 = `[Name].StepPlugin.UI`（§8.2）
+- [ ] 执行层 csproj 设置 `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>`（§8.4）
+- [ ] 引用 NuGet：`xTestPlatform.StepEditor.SDK`、`MessagePack`（表达式 UI 另需 ExpressionTextBox 相关包，§11.6）
+- [ ] `.cs` 文件保存为 UTF-8 无 BOM
+
+**执行层（IStepPlugin / Executor / Setting）**
+- [ ] Setting 类标记 `[MessagePackObject(true)]`（§12）
+- [ ] `StepTypeId` 格式为 `分类.步骤名` 且全局唯一（§2.1）
+- [ ] `DisplayName`、`Category`、`IconPath`、`Description` 均已填写（§2.1）
+- [ ] `Description` 完整：功能说明 + 所有 Setting 字段(类型/默认值) + 枚举可选值 + 集合元素 JSON 示例（§2.1）
+- [ ] 所有插件枚举类型已标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`，确保 AI 可用字符串名称传枚举值（§2.1.1）
+- [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
+- [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
+- [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
+- [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
+- [ ] Executor 不抛出未捕获异常：内部 try/catch，取消返回 `Aborted`、异常返回 `Error`（§13.4）
+
+**校验（三处均需）**
+- [ ] UI 层：`IStepEditorPlugin.ValidateWithContextAsync` 已 override（§13.1）
+- [ ] 执行器内部校验（§13.2）
+- [ ] 生命周期 / 前置步骤校验（§13.3）
+- [ ] 校验错误信息使用中文
+
+**UI 层（编辑器）**
+- [ ] 实现 `IStepEditorPlugin`，每个编辑器放在独立 `.cs` 文件（§4.4）
+- [ ] 编辑器 XAML 包含 `TabControlExt`，只放业务 Tab（Properties 由框架自动注入）（§11.2）
+- [ ] `TabItemExt` 设置 `Image`、`ImageHeight`、`ImageWidth` 显示图标（§11.2）
+- [ ] View 实现 `IRefreshableEditor`（§11.1）
+- [ ] 表达式字段使用 `ExpressionTextBox` 控件而非普通 TextBox（§11.6）
+- [ ] View 中 `SequenceFile` 和 `EditPosition` 声明为 `DependencyProperty`（而非普通 CLR 属性），且 `CreateEditor` 中已将 `sequenceFile` 参数赋值给 `view.SequenceFile`（§11.4、§4.5）
+- [ ] ViewModel 采用防抖保存（§11.5）
+
+**资源与部署**
+- [ ] 提供图标（无正式图标也放占位图，`IconPath` 不留空）（§2.1）
+- [ ] 部署时 DLL 及私有依赖（`MessagePack.dll` 等）复制到 `Plugins` 目录（§8.3、§8.4）
+- [ ] 日志消息、Description、校验错误使用中文
 
 ---
 
@@ -81,7 +194,7 @@ public interface IStepPlugin {
     string  Category    { get; }   // 工具箱分组，相同值聚合在一起
     string? IconPath    { get; }   // WPF Pack URI（nullable，无图标可返回 null）
 
-    /// <summary>插件功能的简短描述，供 AI 助手和 UI 工具提示理解用途</summary>
+    /// <summary>插件功能的详细描述，AI 助手依赖此字段选择步骤和生成参数，须包含功能说明、所有Setting字段及其类型/默认值、枚举可选值、集合元素JSON示例</summary>
     string Description => string.Empty;
 
     /// <summary>该步骤类型是否支持包含子步骤（树形结构中可作为父节点）</summary>
@@ -101,7 +214,7 @@ public interface IStepPlugin {
 | `DisplayName`           | ✅   | 工具箱显示名称                              |
 | `Category`              | ✅   | 工具箱分组名                               |
 | `IconPath`              | ✅   | Pack URI（nullable，无图标可返回 null 或空字符串） |
-| `Description`           | ✅   | 插件功能描述，**必须**准确反映实际行为，供 AI 助手正确使用插件  |
+| `Description`           | ✅   | 插件功能描述，**必须**详细准确（见下方 §2.1.1 Description 规范）  |
 | `CanHaveChildren`       | ⭕   | 是否支持子步骤，默认 `false`                   |
 | `CreateSerializer()`    | ✅   | 基类已自动实现，无需手写                         |
 | `CreateExecutor()`      | ✅   | 每次调用返回新实例                            |
@@ -129,18 +242,106 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 > ⚠️ **每个插件都应提供图标**。即使暂时没有设计好的图标，也应放一个占位图片（如通用齿轮图标），不要留 `string.Empty`。没有图标的插件在工具箱和步骤列表中会显示空白，影响用户体验。
 
-> ⚠️ **v3.0 变更**：`ValidateSettingAsync()` 已从 `IStepPlugin` 中移除。  
-> 纯 Core 层不依赖 WPF/Expression 的静态校验可在 `CreateExecutor()` 的 `ExecuteAsync` 中完成；  
-> 需要 UI 上下文的校验请实现 `IStepEditorPlugin.ValidateWithContextAsync()`（见第 4 节）。
+#### Description 插件描述规范
 
-> ⚠️ **v3.1 变更**：  
-> 
-> - `GetDefaultStepVariables()` 已从 `IStepPlugin` 中**移除**，步骤变量改由框架管理。  
-> - 新增 `Description` 属性，供 AI 助手理解插件用途。  
-> - 新增 `CanHaveChildren` 属性，标记是否支持子步骤。  
-> - `IconPath` 改为 `string?`（nullable）。  
-> - `IStepSettingSerializer` 新增版本管理（`SettingVersion` + `Deserialize(data, dataVersion)`）。  
-> - 新增 `[ExpressionField]` 特性，用于标记会通过 Roslyn 求值的表达式属性。
+`Description` 是 AI 编程助手选择和配置步骤的**唯一依据**。序列编辑器中的 AI 助手会读取每个插件的 `Description` 来理解插件功能、选择合适的步骤类型、并自动生成正确的 Setting 参数。**如果 Description 不准确或不完整，AI 将无法正确使用该插件。**
+
+**必须包含的内容：**
+
+1. **功能说明**（1-2句）：准确描述插件做什么、适用场景、执行行为
+2. **Setting 字段列表**：列出所有 Setting 字段，每个字段包含：
+   - 字段名
+   - 类型（string/int/bool/double/enum）
+   - 是否为表达式字段
+   - 功能说明
+   - 默认值（如有）
+3. **枚举可选值**：所有枚举字段必须列出全部可选值
+4. **集合元素 JSON 示例**：如果 Setting 包含集合（`ObservableCollection<T>`），必须给出元素的 JSON 结构示例，让 AI 知道如何构造集合元素
+
+**Description 格式模板：**
+
+```csharp
+public override string Description =>
+    "【功能说明】。" +
+    "Setting 字段：Field1(类型,表达式,说明,默认值xxx), Field2(枚举:Value1/Value2/Value3,默认值Value1), " +
+    "Items(集合,说明,每个元素结构见下方JSON示例)。" +
+    "Items 元素JSON示例: {\"Field1\":\"value1\",\"Field2\":123,\"Field3\":\"EnumValue\"} " +
+    "Field3可选值: Value1, Value2, Value3。";
+```
+
+**优秀示例（含集合的批量插件）：**
+
+```csharp
+public override string Description =>
+    "批量读取多个 Modbus 地址段，每个项可指定不同从站、寄存器类型和数据格式，每个项的读取结果分别存入对应变量。" +
+    "Setting 字段：ConnectionName(string,表达式,已建立的Modbus连接名), " +
+    "Items(集合,读取项列表,每个元素结构见下方JSON示例), IntervalMs(int,每项读取间隔ms,默认0)。" +
+    "Items 元素JSON示例: {\"SlaveAddress\":1,\"RegisterType\":\"HoldingRegister\",\"StartAddress\":0,\"Quantity\":2,\"DataFormat\":\"Float_AB_CD\",\"ResultVariable\":\"temperature\"} " +
+    "RegisterType可选值: Coil, DiscreteInput, HoldingRegister, InputRegister。" +
+    "DataFormat可选值: UInt16, Int16, UInt32_AB_CD, Int32_AB_CD, Float_AB_CD, UInt32_CD_AB, Int32_CD_AB, Float_CD_AB。";
+```
+
+**优秀示例（简单插件）：**
+
+```csharp
+public override string Description =>
+    "向 VISA 仪器发送查询命令并立即读取响应（Write+Read 一体操作），结果以字符串形式存入指定变量。适用于查询类命令如 *IDN?、:MEAS:VOLT:DC? 等。" +
+    "Setting 字段：ConnectionName(string,表达式,已打开的VISA连接标识名), Command(string,表达式,SCPI查询命令如*IDN?), " +
+    "ResultVariable(string,表达式,结果存入的变量名), TrimResponse(bool,是否去除首尾空白,默认true)。";
+```
+
+**常见错误（❌ 不要这样写）：**
+
+```csharp
+// ❌ 太简略，AI 无法知道 Setting 有哪些字段
+public override string Description => "读取 Modbus 数据。";
+
+// ❌ 枚举没列可选值，AI 无法知道该填什么
+public override string Description => "Setting 字段：DataFormat(枚举,数据格式)。";
+
+// ❌ 集合字段没有 JSON 示例，AI 无法知道元素结构
+public override string Description => "Setting 字段：Items(列表,每项含NodeId和ResultVariable)。";
+
+// ❌ 在描述中暴露 C# 类型名（如 List<T>），应使用"集合"
+public override string Description => "Messages(List<CyclicMessageItem>,报文列表)。";
+```
+
+> 📝 **检查要点**：每次新建或修改插件时，必须检查 `Description` 是否满足以上规范。不完整的 Description 会导致 AI 编程助手无法正确配置步骤参数。
+
+#### 枚举类型 JSON 序列化规范
+
+AI 助手在设置步骤参数时，会把枚举字段值以**字符串名称**（如 `"Differential"`）的形式传入 JSON。如果枚举未配置字符串序列化，JSON 反序列化时会抛出 `The JSON value could not be converted to XXX` 错误，导致步骤创建失败。
+
+**所有插件枚举类型必须标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`：**
+
+```csharp
+using System.Text.Json.Serialization;
+
+// ✅ 正确：标注后 "Differential" 可以正确解析
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum AiTerminalConfig
+{
+    Differential,
+    RSE,
+    NRSE,
+    Pseudodifferential
+}
+
+// ❌ 错误：未标注时 AI 传 "Differential" 会报 JSON 转换错误
+public enum AiTerminalConfig { ... }
+```
+
+`Description` 中的枚举 JSON 示例统一使用**字符串名称**，不使用整数：
+
+```csharp
+// ✅ 正确
+"\"Terminal\":\"Differential\""
+
+// ❌ 错误（AI 看不懂整数代表什么）
+"\"Terminal\":0"
+```
+
+> ⚠️ 这条规范也适用于 Setting 类中嵌套对象（如集合元素）里的枚举字段。只要枚举出现在 Setting 的 JSON 序列化路径上，就必须加此特性。
 
 ### 2.2 IStepExecutor — 执行器契约
 
@@ -299,7 +500,8 @@ public abstract string        Category    { get; }
 public abstract string        IconPath { get; }
 public abstract IStepExecutor CreateExecutor();
 
-// 插件功能描述（供 AI 助手理解用途），必须详细准确反映实际行为，最好有settings字段说明和示例
+// 插件功能描述（⚠️ 详见 §2.1.1 Description 规范）
+// AI 助手依赖此字段选择步骤和生成参数，必须包含：功能说明、所有Setting字段、枚举可选值、集合元素JSON示例
 public virtual string Description => string.Empty;
 ```
 
@@ -344,22 +546,28 @@ namespace StepEditor.Abstractions {
         FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile);
 
         /// <summary>
-        /// 带 UI 上下文的校验（变量解析、表达式执行、类型匹配）。
+        /// 带 UI 上下文的校验（变量解析、表达式执行、类型匹配、生命周期检查）。
         /// 需要依赖 WPF/Evaluator 的校验逻辑放这里，默认返回空列表。
         /// </summary>
         Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-            byte[] setting,
-            IExpressionEvaluator evaluator,
-            IExecutionContext context,
+            StepEditorValidationContext context,
             CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<StepSettingError>>([]);
+    }
+
+    /// <summary>校验上下文，包含当前步骤的完整环境信息</summary>
+    public sealed class StepEditorValidationContext {
+        public byte[] Setting { get; init; }
+        public IExpressionEvaluator Evaluator { get; init; }
+        public IExecutionContext ExecutionContext { get; init; }
+        public SequenceFile? SequenceFile { get; init; }
+        public Block? Block { get; init; }
+        public Step? CurrentStep { get; init; }
     }
 }
 ```
 
-> ⚠️ **v3.0 重大变更**：`IStepEditorPlugin` 与 `IStepPlugin` **现在是完全独立的两个接口**，  
-> 编辑器插件 **不需要**继承 `StepPluginBase<T>`。  
-> 一个插件 DLL 中通常包含两个独立的类：执行插件（`IStepPlugin`）和编辑器插件（`IStepEditorPlugin`）。
+> `IStepEditorPlugin` 与 `IStepPlugin` 是**完全独立的两个接口**，编辑器插件**不需要**继承 `StepPluginBase<T>`。一个插件 DLL 中通常包含两个独立的类：执行插件（`IStepPlugin`）和编辑器插件（`IStepEditorPlugin`）。
 
 ### 4.1 何时实现 IStepEditorPlugin
 
@@ -386,7 +594,28 @@ foreach (var plugin in editorPlugins)   // 扫描 *.StepPlugin.dll 中的 IStepE
 }
 ```
 
-### 4.4 实现示例（两个独立类）
+### 4.4 EditorPlugin 文件组织规范
+
+> **强制要求：每个 `IStepEditorPlugin` 实现类必须放在独立的 `.cs` 文件中。**
+
+当一个 UI 项目包含多个步骤编辑器时，**禁止**将所有 EditorPlugin 类写在同一个文件里。正确做法：
+
+```text
+[YourPlugin]Plugin.UI/
+├── Editors/                          ← 专用目录
+│   ├── [Step1]EditorPlugin.cs        ← 一个类一个文件
+│   ├── [Step2]EditorPlugin.cs
+│   └── [Step3]EditorPlugin.cs
+├── Views/
+│   ├── [Step1]EditorView.xaml(.cs)
+│   └── ...
+└── ViewModels/
+    └── ...
+```
+
+**命名约定**：`{StepName}EditorPlugin.cs`，与对应的 View/ViewModel 保持相同的 `{StepName}` 前缀。
+
+### 4.5 实现示例（两个独立类）
 
 ```csharp
 // ── 执行插件（IStepPlugin，Core 层）────────────────────────────────
@@ -397,7 +626,10 @@ public sealed class MyStepPlugin : StepPluginBase<MySetting> {
     public override string IconPath    => "pack://application:,,,/MyPlugin.StepPlugin.UI;component/Resources/Icons/myplugin.png";
 
     public override string Description =>
-        "检查指定变量的值是否满足条件。Setting 字段：TargetVariable(string,目标变量路径)。";
+        "检查指定变量的当前值是否满足预设条件，不满足则步骤判定为失败。" +
+        "Setting 字段：TargetVariable(string,表达式,目标变量路径如Locals.温度), " +
+        "Operator(枚举:Equal/NotEqual/GreaterThan/LessThan,比较运算符,默认Equal), " +
+        "ExpectedValue(string,表达式,期望值)。";
 
     public override IStepExecutor CreateExecutor() => new MyExecutor();
 
@@ -414,6 +646,7 @@ public sealed class MyStepEditorPlugin : IStepEditorPlugin {
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile) {
         var view = new MyEditorView();
+        view.SequenceFile = sequenceFile;   // ⚠️ 必须赋值！ExpressionTextBox 依赖此属性提供变量补全
         view.ViewModel.AttachSerializer(new MyStepPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -673,7 +906,7 @@ UserControl? view = registry.Create("Check.MyStep", step);
 程序**启动时调用一次**，扫描 `<AppDir>/Plugins/` 目录，  
 加载所有符合命名规范的 DLL，通过反射实例化 `IStepPlugin` / `IStepEditorPlugin` 的公开类型。
 
-### 8.2 DLL 命名规范（强制）
+### 8.2 DLL 命名规范
 
 > ⚠️ **执行层文件名必须以 `.StepPlugin.dll` 结尾，UI 层必须以 `.StepPlugin.UI.dll` 结尾，否则不会被扫描！**
 
@@ -702,7 +935,7 @@ UserControl? view = registry.Create("Check.MyStep", step);
         └── [其他私有依赖 DLL]
 ```
 
-### 8.4 依赖项部署注意事项（重要）
+### 8.4 依赖项部署注意事项
 
 在 .NET 8 中，`Assembly.LoadFrom` **不会**自动将插件目录加入 CLR 探测路径。  
 框架已内置 `RegisterAssemblyResolver()` 解决此问题：
@@ -802,7 +1035,7 @@ public interface IRefreshableEditor {
 
 > ✅ **所有外部插件编辑器必须实现此接口**，避免频繁重建控件。
 
-### 11.2 ⚠️ 编辑器 XAML 必须包含 TabControlExt（强制要求）
+### 11.2 编辑器 XAML 必须包含 TabControlExt
 
 `StepEditorManagerView` 在每次编辑器加载时，会自动向编辑器内的 `TabControlExt` 追加  
 **Properties** 标签页（`StepPropertiesEditorView`）。若编辑器不包含 `TabControlExt`，  
@@ -971,7 +1204,7 @@ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 <!-- ✅ 表达式字段必须使用 ExpressionTextBox -->
 <expr:ExpressionTextBox
     ScriptText="{Binding TargetExpression, Mode=TwoWay}"
-    ExpectedResultType="System.Double"
+    ExpectedResultType="Double"
     IsMultiLine="True"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
@@ -988,7 +1221,7 @@ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 > <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center"/>
 > <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1"
 >     ScriptText="{Binding ConnectionName, Mode=TwoWay}"
->     ExpectedResultType="System.String"
+ExpectedResultType="String"
 >     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 >     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 > ```
@@ -998,20 +1231,53 @@ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
 | 依赖属性                 | 类型              | 必须  | 默认值     | 说明                           |
 | -------------------- | --------------- |:---:|:-------:| ---------------------------- |
 | `ScriptText`         | `string`        | ✅   | `""`    | 双向绑定到 ViewModel 的表达式字符串属性    |
-| `ExpectedResultType` | `string`        | ✅   | —       | 期望返回类型的完整名称，控件据此进行**类型校验**   |
+| `ExpectedResultType` | `string`        | ✅   | —       | 期望返回类型的名称，控件据此进行**类型校验**（大小写不敏感） |
 | `SequenceFile`       | `SequenceFile?` | ✅   | `null`  | 用于变量自动补全和智能提示                |
 | `EditPosition`       | `EditPosition?` | ✅   | `null`  | 用于定位当前编辑上下文（确定可见的变量作用域）      |
 | `IsMultiLine`        | `bool`          | ⬜   | `false` | 设置为 `True` 时启用多行编辑模式，适合较长表达式 |
 
-**`ExpectedResultType` 常用值：**
+**`ExpectedResultType` 可填写的值（与 `VariableDataType` 枚举对应，大小写不敏感）：**
 
-| 类型    | 值                |
-| ----- | ---------------- |
-| 字符串   | `System.String`  |
-| 双精度浮点 | `System.Double`  |
-| 整数    | `System.Int32`   |
-| 布尔值   | `System.Boolean` |
-| 任意对象  | `System.Object`  |
+| 填写值 | 对应 .NET 类型 |
+| --- | --- |
+| `SByte` | `sbyte` |
+| `Byte` | `byte` |
+| `Short` | `short` |
+| `UShort` | `ushort` |
+| `Int` | `int` |
+| `UInt` | `uint` |
+| `Long` | `long` |
+| `ULong` | `ulong` |
+| `Float` | `float` |
+| `Double` | `double` |
+| `Bool` | `bool` |
+| `String` | `string` |
+| `Dynamic` | `dynamic` |
+| `Object` | `object` |
+| `Enum` | 枚举（底层整型） |
+| `Struct` | struct / IDictionary |
+| `List` | `List<T>` |
+| `Dictionary` | `Dictionary` |
+| `ListBool` / `ListInt` / `ListLong` / `ListFloat` / `ListDouble` / `ListString` / `ListDynamic` / `ListByte` | 具体 List 类型 |
+| `Matrix` / `MatrixBool` / `MatrixInt` / `MatrixLong` / `MatrixFloat` / `MatrixDouble` / `MatrixString` | 二维矩阵类型 |
+| `Expression` | 表达式 |
+| `Reference` | 引用 |
+
+**支持的别名（自动转换，填写别名与填写枚举名等效）：**
+
+| 填写值 | 实际映射 |
+| --- | --- |
+| `Boolean` | `Bool` |
+| `Integer` | `Int` |
+| `Single` | `Float` |
+| `Int8` | `SByte` |
+| `UInt8` | `Byte` |
+| `Int16` | `Short` |
+| `UInt16` | `UShort` |
+| `Int32` | `Int` |
+| `UInt32` | `UInt` |
+| `Int64` | `Long` |
+| `UInt64` | `ULong` |
 
 > ⚠️ `ExpectedResultType` 是**编辑时类型校验**（ExpressionTextBox 内部独立校验），  
 > 与 `[ExpressionField]` 的**运行时预编译**是独立的两套机制，两者都应正确配置。
@@ -1047,7 +1313,7 @@ public string ThresholdExpression {
 <TextBlock Text="阈值表达式:" Margin="0,12,0,4"/>
 <expr:ExpressionTextBox
     ScriptText="{Binding ThresholdExpression, Mode=TwoWay}"
-    ExpectedResultType="System.Double"
+    ExpectedResultType="Double"
     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -1073,17 +1339,36 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 }
 ```
 
-> ❌ **常见错误**：忘记绑定 `SequenceFile` 和 `EditPosition`，导致表达式编辑器无法提供变量补全和类型校验。
+> ❌ **常见错误 1**：忘记绑定 `SequenceFile` 和 `EditPosition`，导致表达式编辑器无法提供变量补全和类型校验。
+
+> ❌ **常见错误 2**：`SequenceFile` 和 `EditPosition` 声明为普通 CLR 属性（`{ get; set; }`）而非 DependencyProperty。  
+> WPF 绑定引擎无法监听普通 CLR 属性的变更，`ExpressionTextBox` 将始终读到 `null`，导致变量补全失效。  
+> **必须**将这两个属性声明为 `DependencyProperty`（参见 §11.4 View 标准结构示例），并在 `CreateEditor` 中将 `sequenceFile` 参数赋值给 `view.SequenceFile`。
 
 **View 中如何获取这些依赖属性的值：**
 
-框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的公开属性中（见 §10.2），  
+框架通过反射自动注入 `SequenceFile` 和 `EditPosition` 到编辑器 View 的 DependencyProperty 中（见 §10.2），  
 XAML 中通过 `RelativeSource` 绑定即可传递给 `ExpressionTextBox`：
 
 ```csharp
-// View.xaml.cs 中声明（框架自动注入）
-public SequenceFile?  SequenceFile  { get; set; }
-public EditPosition?  EditPosition  { get; set; }
+// View.xaml.cs 中声明（必须为 DependencyProperty，框架自动注入）
+public static readonly DependencyProperty SequenceFileProperty =
+    DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(MyEditorView),
+        new PropertyMetadata(null));
+public SequenceFile? SequenceFile
+{
+    get => (SequenceFile?)GetValue(SequenceFileProperty);
+    set => SetValue(SequenceFileProperty, value);
+}
+
+public static readonly DependencyProperty EditPositionProperty =
+    DependencyProperty.Register(nameof(EditPosition), typeof(EditPosition), typeof(MyEditorView),
+        new PropertyMetadata(null));
+public EditPosition? EditPosition
+{
+    get => (EditPosition?)GetValue(EditPositionProperty);
+    set => SetValue(EditPositionProperty, value);
+}
 ```
 
 > 💡 **对应关系**：Setting 中标记了 `[ExpressionField]` 的属性 → 编辑器中使用 `ExpressionTextBox` 控件。  
@@ -1128,7 +1413,7 @@ public class NestedConfig {
 | 循环引用对象图                   | MessagePack 不支持 |
 | 已发布字段的改名/删除               | 只允许**新增**字段     |
 
-### 12.0.1 集合属性与子项设计规范
+### 12.1 集合属性与子项设计规范
 
 当 Setting 中包含**复杂对象的列表**（如报文列表、参数映射列表）时，**必须**遵循以下规范：
 
@@ -1189,7 +1474,7 @@ public class MySetting
 
 > ⚠️ **不要**为子项额外创建 ViewModel 包装类。子项自身实现 `INotifyPropertyChanged` 后可直接绑定到 DataGrid，ViewModel 层只需订阅 `PropertyChanged` 触发保存即可。
 
-### 12.1 `[ExpressionField]` 特性（表达式预编译）
+### 12.2 `[ExpressionField]` 特性（表达式预编译）
 
 如果 Setting 类中包含会在运行时通过 Roslyn 求值的 `string` 属性，**必须**添加 `[ExpressionField]` 特性：
 
@@ -1209,7 +1494,38 @@ public class MySetting {
 
 > ⚠️ 仅标记会在运行时通过 Roslyn 求值的 string 属性。字面量配置、文件路径、显示名称等**不应标记**。
 
-### 12.2 设置版本管理
+#### `[ExpressionField]` 字符串属性的默认值规范
+
+标记了 `[ExpressionField]` 的 `string` 属性，其默认值必须是**合法的表达式字符串**，而不是裸字符串：
+
+- **字符串类型**：默认值须加引号包裹，使其成为字符串字面量表达式，例如 `"\"CAN1\""` 而非 `"CAN1"`。
+- **数字类型**（以字符串存储）：默认值可直接写数字字符串，无需额外引号，例如 `"0"`、`"1"`、`"0x7DF"`。
+- **空值**：使用 `string.Empty` 或 `""` 均可，引擎会将空字符串视为空表达式跳过求值。
+
+```csharp
+[MessagePackObject(true)]
+public class MySetting {
+    // ✅ 字符串字面量表达式 —— 默认值加引号
+    [ExpressionField]
+    public string ConnectionName { get; set; } = "\"MyDevice\"";
+
+    // ✅ 数字字面量表达式 —— 默认值无需引号
+    [ExpressionField]
+    public string StartAddress { get; set; } = "0";
+
+    // ✅ 空表达式 —— string.Empty 或 "" 均可
+    [ExpressionField]
+    public string Filter { get; set; } = string.Empty;
+
+    // ❌ 错误：裸字符串作为默认值，运行时会被当作变量名而非字符串字面量
+    [ExpressionField]
+    public string BadField { get; set; } = "CAN1";  // 运行时会尝试解析变量 CAN1
+}
+```
+
+> 💡 **判断依据**：若默认值在表达式引擎中应被解析为字符串，则必须在 C# 字符串外层再加一层转义引号（`"\"值\""`）。
+
+### 12.3 设置版本管理
 
 当 Setting 结构需要升级（新增/修改字段）时，使用版本管理确保旧数据兼容：
 
@@ -1241,26 +1557,29 @@ public sealed class MyPlugin : StepPluginBase<MySetting> {
 
 校验分两层：
 
-### 13.1 UI 上下文校验（IStepEditorPlugin）— **必须实现**
+### 13.1 UI 上下文校验（IStepEditorPlugin）
 
 `ValidateWithContextAsync` 虽然接口有默认空实现，但**所有外部插件必须 override 并提供实际校验逻辑**。  
 框架在序列文件校验时会自动调用此方法，错误定位信息（文件名/序列名/行号）由框架统一填充，插件只需返回错误列表。
 
 ```csharp
 public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-    byte[] setting,
-    IExpressionEvaluator evaluator,
-    IExecutionContext context,
-    CancellationToken ct = default) {
+    StepEditorValidationContext context, CancellationToken ct = default) {
     var errors = new List<StepSettingError>();
+    var setting = context.Setting;
+    var evaluator = context.Evaluator;
+    var execContext = context.ExecutionContext;
+
     var s = (MySetting)new MyStepPlugin().CreateSerializer().Deserialize(setting);
 
     if (string.IsNullOrWhiteSpace(s.TargetVariable))
         errors.Add(StepSettingError.Error("MY_001", "目标变量不能为空"));
 
-    // 可使用 evaluator/context 做变量存在性检查等 UI 层逻辑
-    if (!context.HasVariable(s.TargetVariable))
+    // 可使用 evaluator/execContext 做变量存在性检查等 UI 层逻辑
+    if (!execContext.HasVariable(s.TargetVariable))
         errors.Add(StepSettingError.Warning("MY_W01", $"变量 {s.TargetVariable} 未定义"));
+
+    // 可通过 context.SequenceFile / context.Block / context.CurrentStep 做生命周期/结构校验
 
     return errors;
 }
@@ -1287,7 +1606,104 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 ---
 
-## 13.3 异常处理规范（重要）
+### 13.3 生命周期校验（Lifecycle Validation）
+
+> ⚠️ **凡是同一组插件中存在使用顺序依赖的，必须在依赖方的 `ValidateWithContextAsync` 中检查前置步骤是否存在。**  
+> 目标是让用户在编辑时就能发现配置问题，**不要等到运行时才报错**。
+
+**适用场景：**
+
+| 模式 | 前置步骤 | 依赖步骤（必须在前置步骤之后） |
+|------|----------|-------------------------------|
+| 连接/断开 | Open / Connect | Read、Write、Query、Close、Disconnect |
+| 配置/采集 | Config | TaskStart、Read、TaskStop |
+| 启动/停止 | Start | Stop |
+| 创建/使用 | Create / Init | 任何使用该资源的步骤 |
+
+**实现方式：**
+
+1. 在 UI 项目中创建 `Validation/XxxLifecycleValidator.cs` 静态辅助类
+2. 在每个依赖步骤的 `ValidateWithContextAsync` 末尾调用辅助方法
+
+**辅助类模板：**
+
+```csharp
+using MessagePack;
+using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.SequenceModels;
+
+namespace MyPlugin.UI.Validation;
+
+internal static class MyLifecycleValidator
+{
+    private static readonly MessagePackSerializerOptions _opts =
+        MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
+
+    public static void CheckPrecedingOpen(
+        List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(connectionName)) return;
+
+        int currentIndex = block.IndexOf(currentStep);
+        if (currentIndex <= 0) goto NotFound;
+
+        for (int i = 0; i < currentIndex; i++)
+        {
+            var step = block[i];
+            if (step.StepSetting.StepType != "IO.MyOpen") continue;
+
+            try
+            {
+                var setting = MessagePackSerializer.Deserialize<MyOpenSetting>(
+                    step.StepSetting.Setting, _opts);
+                if (setting.ConnectionName == connectionName) return; // 找到匹配 ✅
+            }
+            catch { /* 反序列化失败则跳过 */ }
+        }
+
+    NotFound:
+        errors.Add(StepSettingError.Warning("MY_LC01",
+            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 Open 步骤"));
+    }
+}
+```
+
+**在 EditorPlugin 中调用：**
+
+```csharp
+public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+    StepEditorValidationContext context, CancellationToken ct = default)
+{
+    var errors = new List<StepSettingError>();
+    var s = (MyReadSetting)new MyReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+
+    // 1. 基础字段校验
+    if (string.IsNullOrWhiteSpace(s.ConnectionName))
+        errors.Add(StepSettingError.Error("MY_010", "连接名不能为空"));
+
+    // 2. 生命周期校验 ← 在所有字段校验之后、return 之前
+    MyLifecycleValidator.CheckPrecedingOpen(
+        context.Block, context.CurrentStep, s.ConnectionName, errors);
+
+    return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+}
+```
+
+**关键规则：**
+
+| 规则 | 说明 |
+|------|------|
+| 匹配方式 | 纯字符串比较（连接名/端口名/任务名），变量表达式也按字符串匹配 |
+| 扫描范围 | 同 Block 中当前步骤之前的所有步骤（`context.Block` 是 `List<Step>`） |
+| 校验级别 | 使用 `Warning`（不阻止运行），因为可能存在动态创建连接的场景 |
+| 反序列化 | 必须 try-catch，其他步骤的 Setting 格式可能不匹配 |
+| 错误码 | 使用 `插件缩写_LC数字` 格式，如 `SP_LC01`、`CAN_LC01`、`DAQ_LC01` |
+| Open 步骤本身 | 不需要检查前置（它就是源头） |
+| Close/Disconnect | 也要检查前面是否有对应的 Open（避免关闭一个从未打开的连接） |
+
+---
+
+### 13.4 异常处理规范
 
 **插件执行器（IStepExecutor）绝不能抛出未捕获的异常中断程序。**
 
@@ -1328,7 +1744,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 > ⚠️ 即使框架有兜底 try/catch，插件内部处理异常可以提供更精确的错误信息和上下文。
 
-### 13.4 调试日志输出
+### 13.5 调试日志输出
 
 插件开发完成后，在测试平台调试时可通过 `IExecutionContext.LogAction` 输出日志到平台的调试界面（LogMonitor）：
 
@@ -1516,6 +1932,33 @@ public sealed class DelayCheckExecutor : IStepExecutor {
 }
 ```
 
+> 上例的 `Task.Delay(s.DelayMs, ct)` 已正确传递 `CancellationToken`。涉及其他 I/O（网络、串口、文件等）时同样必须传递，并用 try/catch 处理取消与异常：
+
+```csharp
+try {
+    using var client = new HttpClient();
+    var resp = await client.GetAsync(url, ct);            // 传递 ct
+    var body = await resp.Content.ReadAsStringAsync(ct);  // 传递 ct
+    // ... 业务逻辑 ...
+    return new ExecutionResult {
+        StepResult = new StepResult { Status = TestStatus.Passed }
+    };
+}
+catch (OperationCanceledException) {
+    return new ExecutionResult {
+        StepResult = new StepResult { Status = TestStatus.Aborted }
+    };
+}
+catch (Exception ex) {
+    return new ExecutionResult {
+        StepResult = new StepResult {
+            Status = TestStatus.Error,
+            Error  = new ErrorInfo { Message = ex.Message }
+        }
+    };
+}
+```
+
 ### 14.6 编辑器插件
 
 ```csharp
@@ -1532,9 +1975,9 @@ public sealed class DelayCheckEditorPlugin : IStepEditorPlugin {
     }
 
     public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-        byte[] setting, IExpressionEvaluator evaluator, IExecutionContext context, CancellationToken ct) {
+        StepEditorValidationContext context, CancellationToken ct = default) {
         var errors = new List<StepSettingError>();
-        var s = (DelayCheckSetting)new DelayCheckPlugin().CreateSerializer().Deserialize(setting);
+        var s = (DelayCheckSetting)new DelayCheckPlugin().CreateSerializer().Deserialize(context.Setting);
 
         if (string.IsNullOrWhiteSpace(s.TargetVariable))
             errors.Add(StepSettingError.Error("DC_001", "目标变量不能为空"));
@@ -1730,7 +2173,7 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 ## 18. 插件设计原则
 
-### 18.1 单一职责原则（强制）
+### 18.1 单一职责原则
 
 **每个插件完成一个明确的测试动作或流程控制，禁止通过模式/类型参数在一个插件内实现多种不同行为。**
 
@@ -1750,14 +2193,13 @@ sequenceRunner.CustomEventRaised += (sender, e) =>
 
 ### 18.3 设计检查清单
 
-开发新插件前，请对照以下清单：
+本清单只关注**设计阶段**的决策（是否拆分、如何命名、字段结构规划）。实现与交付阶段的完整核对请见文档开头的[开发交付检查清单](#开发交付检查清单)。
 
 - [ ] 该插件是否只做一件事？能否用一句话描述其功能？
 - [ ] Setting 中是否有「模式切换」字段（如 `Mode`、`Action`、`OperationType`）？如果有，应拆分为多个插件。
-- [ ] `Description` 是否准确反映程序实际行为？（AI 助手依赖此字段理解插件用途）
-- [ ] 如果 Setting 包含复杂集合类型，`Description` 中是否有 JSON 示例说明？
 - [ ] 每个插件是否对应独立的 StepType、Setting、Plugin、Editor 和 Executor？
-- [ ] 如果实现了 `IStepEditorPlugin`，是否实现了 `ValidateWithContextAsync` 校验逻辑？（**推荐**，见 §13.1）
+- [ ] `StepTypeId` 是否规划为 `分类.步骤名` 且全局唯一？
+- [ ] `Description` 中是否规划使用"集合"而非 C# 类型名（如 `List<T>`）？
 
 ### 18.4 为什么要求功能单一
 
@@ -1829,16 +2271,7 @@ return new ExecutionResult {
 
 ---
 
-**Q6：v3.0 中 `ValidateSettingAsync()` 去哪了？**
-
-已从 `IStepPlugin` 中移除。  
-
-- 运行时校验：在 `ExecuteAsync()` 开头检查，返回 `TestStatus.Error`  
-- UI 层校验：实现 `IStepEditorPlugin.ValidateWithContextAsync()`
-
----
-
-**Q7：执行器中如何安全响应取消请求？**
+**Q6：执行器中如何安全响应取消请求？**
 
 ```csharp
 try {
@@ -1854,14 +2287,14 @@ try {
 
 ---
 
-**Q8：为什么我的编辑器没有 Properties 标签页？**
+**Q7：为什么我的编辑器没有 Properties 标签页？**
 
 编辑器的 XAML 中没有 `syncfusion:TabControlExt`，框架找不到注入点。  
 按 **11.2 节**规范将内容放入 `TabControlExt` 的 Module 标签页中。
 
 ---
 
-**Q9：插件在 LabVIEW 调用时报 `FileNotFoundException: MessagePack`？**
+**Q8：插件在 LabVIEW 调用时报 `FileNotFoundException: MessagePack`？**
 
 确保：  
 ① 插件 csproj 设置了 `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>`；  
@@ -1870,7 +2303,7 @@ try {
 
 ---
 
-**Q10：Setting 字段改名后旧数据还能读取吗？**
+**Q9：Setting 字段改名后旧数据还能读取吗？**
 
 不能，`ContractlessStandardResolver` 以字段名为 Key，改名等同于删除旧字段。  
 **原则：只新增字段（设合理默认值），绝不改名或删除已发布字段。**
@@ -1984,9 +2417,12 @@ D:\xTestPlatform
 │   │   └── Executors/[YourPlugin]Executor.cs   ← 实现 IStepExecutor
 │   └── [YourPlugin]Plugin.UI/                 ← UI 层项目
 │       ├── [YourPlugin]Plugin.UI.csproj           AssemblyName = [Name].StepPlugin.UI
-│       ├── [YourPlugin]EditorPlugin.cs         ← 实现 IStepEditorPlugin
-│       ├── Views/[YourPlugin]EditorView.xaml
-│       └── ViewModels/[YourPlugin]ViewModel.cs
+│       ├── Editors/                            ← ★ 每个 EditorPlugin 一个独立文件
+│       │   ├── [Step1]EditorPlugin.cs
+│       │   ├── [Step2]EditorPlugin.cs
+│       │   └── ...
+│       ├── Views/[Step1]EditorView.xaml(.cs)
+│       └── ViewModels/[Step1]ViewModel.cs
 │
 ├── StepEditorManager
 │   ├── StepPluginEditorRegistry.cs            ← 编辑器工厂注册表（UI 层）

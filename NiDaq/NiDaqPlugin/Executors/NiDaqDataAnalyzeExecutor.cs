@@ -20,11 +20,12 @@ public sealed class NiDaqDataAnalyzeExecutor : IStepExecutor
 
         try
         {
-            var filePath = await Evaluator.EvaluateAsync<string>(setting.FilePath, context) ?? setting.FilePath;
-            var channelName = await Evaluator.EvaluateAsync<string>(setting.ChannelName, context) ?? setting.ChannelName;
-            var resultVar = await Evaluator.EvaluateAsync<string>(setting.ResultVariable, context) ?? setting.ResultVariable;
-            var refChannel = await Evaluator.EvaluateAsync<string>(setting.ReferenceChannel, context) ?? setting.ReferenceChannel;
-            var refAtPeakVar = await Evaluator.EvaluateAsync<string>(setting.RefAtPeakVariable, context) ?? setting.RefAtPeakVariable;
+            NiDriverCheck.EnsureDriver();
+            var filePath = await Evaluator.EvalStringAsync(setting.FilePath, context);
+            var channelName = await Evaluator.EvalStringAsync(setting.ChannelName, context);
+            var resultVar = setting.ResultVariable;
+            var refChannel = await Evaluator.EvalStringAsync(setting.ReferenceChannel, context);
+            var refAtPeakVar = setting.RefAtPeakVariable;
 
             if (!File.Exists(filePath))
             {
@@ -39,16 +40,17 @@ public sealed class NiDaqDataAnalyzeExecutor : IStepExecutor
             }
 
             using var tdmsFile = new TdmsFile(filePath, TdmsFileAccess.Read);
-            var groups = tdmsFile.GetGroups();
+            tdmsFile.Open();
+            var groups = tdmsFile.GetChannelGroups();
             TdmsChannel? mainCh = null;
             TdmsChannel? refCh = null;
 
-            foreach (var group in groups)
+            foreach (TdmsChannelGroup group in groups)
             {
                 var channels = group.GetChannels();
-                mainCh ??= channels.FirstOrDefault(c => c.Name == channelName);
+                mainCh ??= channels.Cast<TdmsChannel>().FirstOrDefault(c => c.Name == channelName);
                 if (!string.IsNullOrEmpty(refChannel))
-                    refCh ??= channels.FirstOrDefault(c => c.Name == refChannel);
+                    refCh ??= channels.Cast<TdmsChannel>().FirstOrDefault(c => c.Name == refChannel);
             }
 
             if (mainCh == null)

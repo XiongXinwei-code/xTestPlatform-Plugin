@@ -1,30 +1,19 @@
 using MessagePack;
+using xTestPlatform.Core.Models.StepSettings;
 
 namespace NiDaq.Models;
 
+/// <summary>编码器读取设置（硬件参数由 EncoderConfig 配置）</summary>
 [MessagePackObject(true)]
 public class NiDaqEncoderSetting
 {
-    /// <summary>Counter 通道，如 "Dev1/ctr0"</summary>
+    /// <summary>任务名称（与 EncoderConfig 中创建的任务对应）</summary>
     [ExpressionField]
-    public string CounterChannel { get; set; } = string.Empty;
+    public string TaskName { get; set; } = "\"EncoderTask1\"";
 
-    /// <summary>解码类型</summary>
-    public EncoderDecodingType DecodingType { get; set; } = EncoderDecodingType.X4;
-
-    /// <summary>每转脉冲数 (PPR)</summary>
-    public int PulsesPerRevolution { get; set; } = 1024;
-
-    /// <summary>是否启用 Z 索引复位</summary>
-    public bool ZIndexEnable { get; set; } = false;
-
-    /// <summary>每脉冲对应的距离或角度</summary>
-    public double DistancePerPulse { get; set; } = 0.3515625;
-
-    /// <summary>输出单位</summary>
-    public EncoderUnit Unit { get; set; } = EncoderUnit.Degrees;
+    /// <summary>读取超时 (ms)，-1 为无限等待</summary>
+    public int ReadTimeoutMs { get; set; } = 10000;
 
     /// <summary>结果存入的变量名</summary>
-    [ExpressionField]
     public string ResultVariable { get; set; } = string.Empty;
 }

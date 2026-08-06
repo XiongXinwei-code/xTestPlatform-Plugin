@@ -45,8 +45,9 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
             if (setting.EnableLog)
                 context.LogAction?.Invoke($"UDS SecurityAccess: Seed=[{UdsExecutorHelper.ToHex(seed)}]");
 
-            // 将 Seed 存入变量供表达式使用
-            context.SetVariable("Step.Seed", seed);
+            // 将 Seed 存入用户配置的变量名供表达式使用
+            if (!string.IsNullOrWhiteSpace(setting.SeedVariable))
+                context.SetVariable(setting.SeedVariable, seed);
 
             // Step 2: 通过表达式计算 Key
             byte[] key;

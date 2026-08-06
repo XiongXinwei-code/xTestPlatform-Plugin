@@ -11,7 +11,7 @@ public class VisaWaitOpcSetting
 {
     /// <summary>使用的连接名称</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "VISA1";
+    public string ConnectionName { get; set; } = "\"VISA1\"";
 
     /// <summary>等待超时时间（毫秒），0 表示使用会话默认 I/O 超时</summary>
     public int TimeoutMs { get; set; } = 0;

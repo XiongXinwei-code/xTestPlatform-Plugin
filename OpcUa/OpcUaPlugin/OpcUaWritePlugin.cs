@@ -15,9 +15,9 @@ public sealed class OpcUaWritePlugin : StepPluginBase<OpcUaWriteSetting>
 
     public override string Description =>
         "向 OPC UA 服务器中单个节点写入指定值。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名), NodeId(string,表达式,节点标识), " +
-        "WriteValue(string,表达式,要写入的值), DataType(枚举,Auto/Boolean/Int16/UInt16/Int32/UInt32/Int64/UInt64/Float/Double/String), " +
-        "TimeoutMs(int,超时)。";
+        "Setting 字段：ConnectionName(string,表达式,已建立的OPC UA连接名), NodeId(string,表达式,节点标识如ns=2;s=SetPoint), " +
+        "WriteValue(string,表达式,要写入的值), DataType(枚举:Auto/Boolean/Int16/UInt16/Int32/UInt32/Int64/UInt64/Float/Double/String,默认Auto), " +
+        "TimeoutMs(int,超时ms,默认5000)。";
 
     public override IStepExecutor CreateExecutor() => new OpcUaWriteExecutor();
 

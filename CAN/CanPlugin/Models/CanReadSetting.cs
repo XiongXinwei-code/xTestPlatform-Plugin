@@ -9,11 +9,11 @@ public class CanReadSetting
 {
     /// <summary>连接标识名</summary>
     [ExpressionField]
-    public string ConnectionName { get; set; } = "CAN1";
+    public string ConnectionName { get; set; } = "\"CAN1\"";
 
     /// <summary>过滤 CAN ID（为空则接收任意 ID），支持表达式</summary>
     [ExpressionField]
-    public string FilterId { get; set; } = "";
+    public string FilterId { get; set; } = "\"\"";
 
     /// <summary>读取超时（毫秒）</summary>
     public int ReadTimeoutMs { get; set; } = 1000;
