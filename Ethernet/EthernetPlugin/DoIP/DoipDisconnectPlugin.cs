@@ -12,10 +12,26 @@ public sealed class DoipDisconnectPlugin : StepPluginBase<DoipDisconnectSetting>
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
 
-    public override string Description =>
-        "关闭并释放指定 SessionName 对应的 DoIP 会话。" +
-        "Setting 字段：SessionName(string,表达式,会话标识名,默认\"DOIP1\"), " +
-        "EnableLog(bool,是否输出日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        关闭并释放指定 SessionName 对应的 DoIP 会话。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | SessionName | 表达式(string) | 是 | "DOIP1" | 要关闭的会话标识名 |
+        | EnableLog | bool | 否 | true | 是否输出日志 |
+
+        ## 行为
+
+        - 关闭后该会话名不可再被其他 DoIP 步骤使用
+
+        ## 相关插件
+
+        - `DoIP_Connect`：建立 DoIP 会话
+        """;
 
     public override IStepExecutor CreateExecutor() => new DoipDisconnectExecutor();
 

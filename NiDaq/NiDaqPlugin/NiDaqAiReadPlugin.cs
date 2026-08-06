@@ -12,15 +12,35 @@ public sealed class NiDaqAiReadPlugin : StepPluginBase<NiDaqAiReadSetting>
     public override string Category => "DataAcquisition";
     public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
 
-    public override string Description =>
-        "从已启动的 AI 采集任务中读取数据，可导出为文件并/或将统计值存入变量。" +
-        "Setting 字段：TaskName(string,表达式,要读取的任务名), SamplesToRead(int,读取样本数,-1=读取所有可用,默认-1), " +
-        "ReadTimeoutMs(int,读取超时ms,-1=无限等待,默认10000), " +
-        "ResultVariable(string,结果变量名,写入类型:double[,] 二维数组,每行为一个通道的采样序列), " +
-        "ExportFormat(枚举:Csv/Tdms/Variable/CsvAndVariable/TdmsAndVariable,默认Csv), " +
-        "SaveToFile(bool,是否将采集数据保存到文件,默认false), OutputDirectory(string,表达式,输出文件目录,空=默认数据目录), " +
-        "MaxFileSizeMB(int,单文件大小上限MB,超过后自动轮转,默认500), " +
-        "EnableCustomEvent(bool,是否启用自定义事件发送采集数据,默认false), CustomEventName(string,自定义事件名称,默认AiDataReady)。";
+    public override string Description => """
+        ## 功能
+
+        从已启动的 AI 采集任务中读取数据，可导出为文件并/或将结果存入变量。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | TaskName | 表达式(string) | 是 | — | 要读取的任务名 |
+        | SamplesToRead | int | 否 | -1 | 读取样本数，-1=读取所有可用 |
+        | ReadTimeoutMs | int | 否 | 10000 | 读取超时 ms，-1=无限等待 |
+        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 double[,]（每行为一个通道的采样序列） |
+        | ExportFormat | 枚举 | 否 | Csv | 可选值：Csv, Tdms, Variable, CsvAndVariable, TdmsAndVariable |
+        | SaveToFile | bool | 否 | false | 是否将采集数据保存到文件 |
+        | OutputDirectory | 表达式(string) | 否 | 空 | 输出文件目录，空=默认数据目录 |
+        | MaxFileSizeMB | int | 否 | 500 | 单文件大小上限 MB，超过后自动轮转 |
+        | EnableCustomEvent | bool | 否 | false | 是否启用自定义事件发送采集数据 |
+        | CustomEventName | string | 否 | AiDataReady | 自定义事件名称 |
+
+        ## 行为
+
+        - 需先通过 NiDaq_Task_Start 启动任务
+
+        ## 相关插件
+
+        - `NiDaq_AI_Config`：配置 AI 任务
+        - `NiDaq_Task_Start` / `NiDaq_Task_Stop`：启停任务
+        """;
 
     public override IStepExecutor CreateExecutor() => new NiDaqAiReadExecutor();
 

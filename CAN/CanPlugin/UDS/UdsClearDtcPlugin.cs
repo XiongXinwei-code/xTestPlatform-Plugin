@@ -12,10 +12,29 @@ public sealed class UdsClearDtcPlugin : StepPluginBase<UdsClearDtcSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "清除 ECU 故障码（UDS 服务 0x14）。" +
-        "Setting 字段：DtcGroup(string,表达式,DTC组,0xFFFFFF=全部清除,默认0xFFFFFF), " +
-        "ConnectionName(string,表达式,已打开的CAN连接名), TxId(string,表达式,请求CAN ID), RxId(string,表达式,响应CAN ID), ResponseTimeoutMs(int,响应超时,默认5000)。";
+    public override string Description => """
+        ## 功能
+
+        清除 ECU 故障码（UDS 服务 0x14）。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | DtcGroup | 表达式(string) | 否 | 0xFFFFFF | DTC 组，0xFFFFFF 表示全部清除 |
+        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | 表达式(string) | 是 | — | 请求 CAN ID |
+        | RxId | 表达式(string) | 是 | — | 响应 CAN ID |
+        | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
+
+        ## 行为
+
+        - ECU 返回负响应或超时时步骤报错
+
+        ## 相关插件
+
+        - `UDS_ReadDTC`：读取故障码
+        """;
 
     public override IStepExecutor CreateExecutor() => new UdsClearDtcExecutor();
 

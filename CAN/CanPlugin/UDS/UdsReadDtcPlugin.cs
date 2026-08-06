@@ -12,11 +12,31 @@ public sealed class UdsReadDtcPlugin : StepPluginBase<UdsReadDtcSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "读取 ECU 故障码（UDS 服务 0x19）。结果以十六进制字符串存入变量。" +
-        "Setting 字段：SubFunction(byte,子功能如0x02=报告DTC及状态,默认0x02), StatusMask(byte,DTC状态掩码,默认0xFF), " +
-        "ResultVariable(string,结果变量名,写入类型:string 十六进制DTC数据,可选), " +
-        "ConnectionName(string,表达式,已打开的CAN连接名), TxId(string,表达式,请求CAN ID), RxId(string,表达式,响应CAN ID), ResponseTimeoutMs(int,响应超时,默认5000)。";
+    public override string Description => """
+        ## 功能
+
+        读取 ECU 故障码（UDS 服务 0x19），结果以十六进制字符串存入变量。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | SubFunction | byte | 否 | 0x02 | 子功能，如 0x02=报告 DTC 及状态 |
+        | StatusMask | byte | 否 | 0xFF | DTC 状态掩码 |
+        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string（十六进制 DTC 数据） |
+        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | 表达式(string) | 是 | — | 请求 CAN ID |
+        | RxId | 表达式(string) | 是 | — | 响应 CAN ID |
+        | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
+
+        ## 行为
+
+        - ECU 返回负响应或超时时步骤报错
+
+        ## 相关插件
+
+        - `UDS_ClearDTC`：清除故障码
+        """;
 
     public override IStepExecutor CreateExecutor() => new UdsReadDtcExecutor();
 

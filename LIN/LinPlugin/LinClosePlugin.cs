@@ -12,9 +12,25 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
 
-    public override string Description =>
-        "关闭 LIN 通道，释放硬件资源。" +
-        "Setting 字段：ConnectionName(string,表达式,要关闭的连接标识名,默认\"LIN1\")。";
+    public override string Description => """
+        ## 功能
+
+        关闭 LIN 通道，释放硬件资源。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | "LIN1" | 要关闭的连接标识名 |
+
+        ## 行为
+
+        - 关闭后该连接名不可再被其他 LIN 步骤使用
+
+        ## 相关插件
+
+        - `LIN_Open`：打开 LIN 通道
+        """;
 
     public override IStepExecutor CreateExecutor() => new LinCloseExecutor();
 

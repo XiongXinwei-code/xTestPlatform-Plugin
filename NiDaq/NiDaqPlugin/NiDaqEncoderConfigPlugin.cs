@@ -12,12 +12,32 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
     public override string Category => "DataAcquisition";
     public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
 
-    public override string Description =>
-        "配置 NI DAQ 编码器采集任务（Counter通道、解码类型、脉冲数、单位），创建任务对象供后续 Start/Read 使用。" +
-        "Setting 字段：TaskName(string,表达式,任务名称), CounterChannel(string,表达式,Counter通道如Dev1/ctr0), " +
-        "DecodingType(枚举:X1/X2/X4,默认X4), PulsesPerRevolution(int,每转脉冲数PPR,默认1024), " +
-        "ZIndexEnable(bool,是否启用Z索引复位,默认false), DistancePerPulse(double,每脉冲对应的距离/角度,默认0.3515625), " +
-        "Unit(枚举:Pulses/Degrees/Millimeters,默认Degrees)。";
+    public override string Description => """
+        ## 功能
+
+        配置 NI DAQ 编码器采集任务（Counter 通道、解码类型、脉冲数、单位），创建任务对象供后续 Start/Read 使用。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | TaskName | 表达式(string) | 是 | — | 任务名称 |
+        | CounterChannel | 表达式(string) | 是 | — | Counter 通道，如 Dev1/ctr0 |
+        | DecodingType | 枚举 | 否 | X4 | 可选值：X1, X2, X4 |
+        | PulsesPerRevolution | int | 否 | 1024 | 每转脉冲数 PPR |
+        | ZIndexEnable | bool | 否 | false | 是否启用 Z 索引复位 |
+        | DistancePerPulse | double | 否 | 0.3515625 | 每脉冲对应的距离/角度 |
+        | Unit | 枚举 | 否 | Degrees | 可选值：Pulses, Degrees, Millimeters |
+
+        ## 行为
+
+        - 仅创建任务，不启动采集
+
+        ## 相关插件
+
+        - `NiDaq_Task_Start`：启动任务
+        - `NiDaq_Encoder_Read`：读取编码器位置
+        """;
 
     public override IStepExecutor CreateExecutor() => new NiDaqEncoderConfigExecutor();
 

@@ -12,15 +12,33 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
 
-    public override string Description =>
-        "建立 DoIP（ISO 13400）TCP 连接并执行路由激活，以 SessionName 注册会话供后续步骤使用。" +
-        "Setting 字段：SessionName(string,表达式,会话标识名,默认\"DOIP1\"), " +
-        "RemoteHost(string,表达式,DoIP实体IP,默认\"192.168.1.10\"), " +
-        "RemotePort(string,表达式,TCP端口,默认\"13400\"), " +
-        "SourceAddress(string,表达式,诊断仪逻辑地址,默认\"0x0E00\"), " +
-        "ActivationType(枚举,激活类型:Default/WwhObd/CentralSecurity,默认Default), " +
-        "TimeoutMs(int,超时毫秒,默认3000), " +
-        "EnableLog(bool,是否输出日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        建立 DoIP（ISO 13400）TCP 连接并执行路由激活，以 SessionName 注册会话供后续步骤使用。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | SessionName | 表达式(string) | 是 | "DOIP1" | 会话标识名 |
+        | RemoteHost | 表达式(string) | 是 | "192.168.1.10" | DoIP 实体 IP |
+        | RemotePort | 表达式(string) | 是 | "13400" | TCP 端口 |
+        | SourceAddress | 表达式(string) | 是 | "0x0E00" | 诊断仪逻辑地址 |
+        | ActivationType | 枚举 | 否 | Default | 可选值：Default, WwhObd, CentralSecurity |
+        | TimeoutMs | int | 否 | 3000 | 超时毫秒数 |
+        | EnableLog | bool | 否 | true | 是否输出日志 |
+
+        ## 行为
+
+        - 连接或路由激活失败时步骤报错
+
+        ## 相关插件
+
+        - `DoIP_DiagRequest`：发送 UDS 诊断请求
+        - `DoIP_Disconnect`：关闭 DoIP 会话
+        - `DoIP_VehicleDiscovery`：发现车辆 DoIP 实体
+        """;
 
     public override IStepExecutor CreateExecutor() => new DoipConnectExecutor();
 

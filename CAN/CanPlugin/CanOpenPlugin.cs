@@ -12,11 +12,32 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD、CAN XL 协议。" +
-        "Setting 字段：AdapterType(枚举,硬件类型:NI/PEAK/Vector/ZLG), Channel(string,表达式,通道名称), " +
-        "BaudRate(int,仲裁段波特率), Protocol(枚举,协议类型:Classic/FD/XL), " +
-        "DataBitRate(int,数据段波特率), ConnectionName(string,表达式,连接标识名)。";
+    public override string Description => """
+        ## 功能
+
+        打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD、CAN XL 协议。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | AdapterType | 枚举 | 是 | — | 硬件类型，可选值：NI, PEAK, Vector, ZLG |
+        | Channel | 表达式(string) | 是 | — | 通道名称 |
+        | BaudRate | int | 是 | — | 仲裁段波特率 |
+        | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD, XL |
+        | DataBitRate | int | FD/XL 时 | — | 数据段波特率 |
+        | ConnectionName | 表达式(string) | 是 | — | 连接标识名，序列内唯一 |
+
+        ## 行为
+
+        - 硬件不存在、通道被占用或同名连接已存在时步骤报错
+
+        ## 相关插件
+
+        - `CAN_Write` / `CAN_Read`：在此连接上收发报文
+        - `CAN_Cyclic_SendStart` / `CAN_Cyclic_SendStop`：周期发送
+        - `CAN_Close`：关闭本插件打开的通道
+        """;
 
     public override IStepExecutor CreateExecutor() => new CanOpenExecutor();
 

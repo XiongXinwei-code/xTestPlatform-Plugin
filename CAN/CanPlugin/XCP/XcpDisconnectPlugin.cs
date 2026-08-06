@@ -12,13 +12,29 @@ public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "断开 XCP on CAN 连接，向从站发送 DISCONNECT 命令。" +
-        "Setting 字段：ConnectionName(string,表达式,已打开的CAN连接名,默认\"CAN1\"), " +
-        "TxId(string,表达式,XCP请求CAN ID,默认\"0x7E1\"), " +
-        "RxId(string,表达式,XCP响应CAN ID,默认\"0x7E9\"), " +
-        "TimeoutMs(int,响应超时毫秒,默认1000), " +
-        "EnableLog(bool,是否输出日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        断开 XCP on CAN 连接，向从站发送 DISCONNECT 命令。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
+        | TxId | 表达式(string) | 是 | "0x7E1" | XCP 请求 CAN ID |
+        | RxId | 表达式(string) | 是 | "0x7E9" | XCP 响应 CAN ID |
+        | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
+        | EnableLog | bool | 否 | true | 是否输出日志 |
+
+        ## 行为
+
+        - 断开后 XCP 会话结束，CAN 通道仍保持打开
+
+        ## 相关插件
+
+        - `XCP_Connect`：建立 XCP 连接
+        """;
 
     public override IStepExecutor CreateExecutor() => new XcpDisconnectExecutor();
 

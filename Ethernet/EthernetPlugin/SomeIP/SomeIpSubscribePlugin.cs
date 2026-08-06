@@ -12,14 +12,31 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
 
-    public override string Description =>
-        "在本地 UDP 端口监听 SOME/IP 事件通知（Notification），按 ServiceId/EventId 过滤，超时未收到则判定为 Error。" +
-        "Setting 字段：LocalPort(string,表达式,本地监听UDP端口,默认\"30502\"), " +
-        "ServiceId(string,表达式,服务ID过滤,默认\"0x1234\"), " +
-        "EventId(string,表达式,事件ID过滤,默认\"0x8001\"), " +
-        "TimeoutMs(int,等待通知超时毫秒,默认5000), " +
-        "ResultVariable(string,存储通知负载的变量路径,可选), " +
-        "EnableLog(bool,是否输出日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        在本地 UDP 端口监听 SOME/IP 事件通知（Notification），按 ServiceId/EventId 过滤。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | LocalPort | 表达式(string) | 是 | "30502" | 本地监听 UDP 端口 |
+        | ServiceId | 表达式(string) | 是 | "0x1234" | 服务 ID 过滤 |
+        | EventId | 表达式(string) | 是 | "0x8001" | 事件 ID 过滤 |
+        | TimeoutMs | int | 否 | 5000 | 等待通知超时毫秒数 |
+        | ResultVariable | string | 否 | 空 | 存储通知负载的变量路径 |
+        | EnableLog | bool | 否 | true | 是否输出日志 |
+
+        ## 行为
+
+        - 超时未收到匹配通知时步骤判定为 Error
+
+        ## 相关插件
+
+        - `SomeIp_SdDiscover`：发现服务及其 Endpoint
+        - `SomeIp_Request`：RPC 请求
+        """;
 
     public override IStepExecutor CreateExecutor() => new SomeIpSubscribeExecutor();
 

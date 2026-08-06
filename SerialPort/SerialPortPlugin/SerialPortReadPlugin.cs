@@ -12,11 +12,33 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
 
-    public override string Description =>
-        "从指定串口读取数据，结果存入 ResultVariable 指定的变量。" +
-        "Setting 字段：PortName(string,表达式,已打开的端口名), DataFormat(枚举:String/Hex/Bin,默认String), " +
-        "ReadTimeoutMs(int,读超时ms,默认3000), ReadBytes(int,读取字节数,0=读到终止符,默认0), " +
-        "Terminator(string,结束符,默认\\n), ResultVariable(string,表达式,结果存入的变量名)。";
+    public override string Description => """
+        ## 功能
+
+        从已打开的串口读取数据，结果存入 ResultVariable 指定的变量。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | PortName | 表达式(string) | 是 | — | 已打开的端口名 |
+        | DataFormat | 枚举 | 否 | String | 可选值：String, Hex, Bin |
+        | ReadTimeoutMs | int | 否 | 3000 | 读超时毫秒数 |
+        | ReadBytes | int | 否 | 0 | 读取字节数，0 表示读到终止符 |
+        | Terminator | string | 否 | \n | 终止符，ReadBytes=0 时生效 |
+        | ResultVariable | 表达式(string) | 是 | — | 结果存入的变量名 |
+
+        ## 行为
+
+        - ReadBytes>0 时读取固定字节数，否则读到 Terminator 为止
+        - 读取超时或端口未打开时步骤报错
+
+        ## 相关插件
+
+        - `SerialPort_Open`：打开串口
+        - `SerialPort_Write`：写入数据
+        - `SerialPort_Query`：写入+读取一体操作
+        """;
 
     public override IStepExecutor CreateExecutor() => new SerialPortReadExecutor();
 

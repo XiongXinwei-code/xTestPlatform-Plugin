@@ -12,14 +12,31 @@ public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
 
-    public override string Description =>
-        "打开 LIN 通道并建立连接，支持 LIN 1.x 和 LIN 2.x 协议，可配置为主节点或从节点模式。" +
-        "Setting 字段：AdapterType(枚举,硬件类型:NI/PEAK/Vector/IXXAT,默认NI), " +
-        "Channel(string,表达式,通道名称如LIN1,默认\"LIN1\"), " +
-        "BaudRate(int,波特率,默认19200), " +
-        "LinVersion(枚举,协议版本:LIN_1x/LIN_2x,默认LIN_2x), " +
-        "IsMaster(bool,是否主节点,默认true), " +
-        "ConnectionName(string,表达式,运行时连接标识名,默认\"LIN1\")。";
+    public override string Description => """
+        ## 功能
+
+        打开 LIN 通道并建立连接，支持 LIN 1.x 和 LIN 2.x 协议，可配置为主节点或从节点模式。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | AdapterType | 枚举 | 否 | NI | 可选值：NI, PEAK, Vector, IXXAT |
+        | Channel | 表达式(string) | 是 | "LIN1" | 硬件通道名称 |
+        | BaudRate | int | 否 | 19200 | 波特率 |
+        | LinVersion | 枚举 | 否 | LIN_2x | 可选值：LIN_1x, LIN_2x |
+        | IsMaster | bool | 否 | true | 是否主节点 |
+        | ConnectionName | 表达式(string) | 是 | "LIN1" | 运行时连接标识名，供后续步骤引用 |
+
+        ## 行为
+
+        - 打开后通过 ConnectionName 标识连接，供 Read/Write/Cyclic 步骤使用
+
+        ## 相关插件
+
+        - `LIN_Close`：关闭 LIN 通道
+        - `LIN_Read` / `LIN_Write`：收发 LIN 帧
+        """;
 
     public override IStepExecutor CreateExecutor() => new LinOpenExecutor();
 

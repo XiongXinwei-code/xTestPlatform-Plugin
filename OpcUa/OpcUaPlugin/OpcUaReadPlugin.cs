@@ -13,10 +13,29 @@ public sealed class OpcUaReadPlugin : StepPluginBase<OpcUaReadSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
 
-    public override string Description =>
-        "读取 OPC UA 服务器中单个节点的值，并将结果存入指定变量。" +
-        "Setting 字段：ConnectionName(string,表达式,已建立的OPC UA连接名), NodeId(string,表达式,节点标识如ns=2;s=Temperature), " +
-        "ResultVariable(string,结果存入的变量名), TimeoutMs(int,超时ms,默认5000)。";
+    public override string Description => """
+        ## 功能
+
+        读取 OPC UA 服务器中单个节点的值，并将结果存入指定变量。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | — | 已建立的 OPC UA 连接名 |
+        | NodeId | 表达式(string) | 是 | — | 节点标识，如 ns=2;s=Temperature |
+        | ResultVariable | string | 是 | — | 结果存入的变量名 |
+        | TimeoutMs | int | 否 | 5000 | 超时毫秒数 |
+
+        ## 行为
+
+        - 连接不存在、节点无效或读取超时时步骤报错
+
+        ## 相关插件
+
+        - `OpcUa_Connect`：建立连接
+        - `OpcUa_BatchRead`：批量读取多个节点
+        """;
 
     public override IStepExecutor CreateExecutor() => new OpcUaReadExecutor();
 

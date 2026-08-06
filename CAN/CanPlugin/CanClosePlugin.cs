@@ -12,9 +12,25 @@ public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "关闭已打开的 CAN 通道并释放硬件资源。" +
-        "Setting 字段：ConnectionName(string,表达式,要关闭的CAN连接标识名)。";
+    public override string Description => """
+        ## 功能
+
+        关闭已打开的 CAN 通道并释放硬件资源。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | — | 要关闭的 CAN 连接标识名 |
+
+        ## 行为
+
+        - 连接不存在时步骤报错
+
+        ## 相关插件
+
+        - `CAN_Open`：打开 CAN 通道
+        """;
 
     public override IStepExecutor CreateExecutor() => new CanCloseExecutor();
 

@@ -15,11 +15,36 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
-	public override string Description =>
-		"建立 Modbus 连接，支持 TCP 和 RTU(串口) 两种传输方式。连接成功后通过 ConnectionName 标识连接，供后续 Read/Write 步骤使用。" +
-		"Setting 字段：ConnectionName(string,表达式,连接标识名,默认Modbus1), TransportType(枚举:TCP/RTU), " +
-		"IpAddress(string,表达式,TCP地址,默认127.0.0.1), TcpPort(int,TCP端口,默认502), " +
-		"PortName(string,表达式,串口名如COM1), BaudRate(int,波特率,默认9600), DataBits(int,默认8), StopBits(int,默认1), Parity(int,默认0=None), TimeoutMs(int,超时,默认3000)。";
+	public override string Description => """
+		## 功能
+
+		建立 Modbus 连接，支持 TCP 和 RTU（串口）两种传输方式，连接成功后通过 ConnectionName 标识连接。
+
+		## 参数
+
+		| 参数 | 类型 | 必填 | 默认值 | 说明 |
+		|------|------|------|--------|------|
+		| ConnectionName | 表达式(string) | 是 | Modbus1 | 连接标识名，序列内唯一 |
+		| TransportType | 枚举 | 是 | TCP | 可选值：TCP, RTU |
+		| IpAddress | 表达式(string) | TCP 时 | 127.0.0.1 | TCP 服务器地址 |
+		| TcpPort | int | 否 | 502 | TCP 端口 |
+		| PortName | 表达式(string) | RTU 时 | — | 串口名，如 COM1 |
+		| BaudRate | int | 否 | 9600 | 波特率（RTU） |
+		| DataBits | int | 否 | 8 | 数据位（RTU） |
+		| StopBits | int | 否 | 1 | 停止位（RTU） |
+		| Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even（RTU） |
+		| TimeoutMs | int | 否 | 3000 | 通信超时毫秒数 |
+
+		## 行为
+
+		- TransportType=TCP 时使用 IpAddress/TcpPort，RTU 时使用串口参数
+		- 连接失败或同名连接已存在时步骤报错
+
+		## 相关插件
+
+		- `Modbus_Read` / `Modbus_Write` / `Modbus_BatchRead` / `Modbus_BatchWrite`：在此连接上读写数据
+		- `Modbus_Disconnect`：关闭本插件建立的连接
+		""";
 
 	public override IStepExecutor CreateExecutor() => new ModbusConnectExecutor();
 

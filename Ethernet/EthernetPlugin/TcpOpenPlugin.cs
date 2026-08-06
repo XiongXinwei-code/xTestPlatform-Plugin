@@ -12,13 +12,30 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
 
-    public override string Description =>
-        "建立 TCP 客户端连接并以 ConnectionName 注册，供后续 TcpSend/TcpReceive/TcpClose 步骤使用。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名,默认\"TCP1\"), " +
-        "RemoteHost(string,表达式,远端IP地址,默认\"192.168.1.1\"), " +
-        "RemotePort(string,表达式,远端端口号,默认\"13400\"), " +
-        "ConnectTimeoutMs(int,连接超时毫秒,默认3000), " +
-        "EnableLog(bool,是否输出日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        建立 TCP 客户端连接并以 ConnectionName 注册，供后续 TcpSend/TcpReceive/TcpClose 步骤使用。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | "TCP1" | 连接标识名 |
+        | RemoteHost | 表达式(string) | 是 | "192.168.1.1" | 远端 IP 地址 |
+        | RemotePort | 表达式(string) | 是 | "13400" | 远端端口号 |
+        | ConnectTimeoutMs | int | 否 | 3000 | 连接超时毫秒数 |
+        | EnableLog | bool | 否 | true | 是否输出日志 |
+
+        ## 行为
+
+        - 连接失败或超时时步骤报错
+
+        ## 相关插件
+
+        - `Ethernet_TcpSend` / `Ethernet_TcpReceive`：收发数据
+        - `Ethernet_TcpClose`：关闭连接
+        """;
 
     public override IStepExecutor CreateExecutor() => new TcpOpenExecutor();
 
