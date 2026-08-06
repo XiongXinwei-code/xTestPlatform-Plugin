@@ -12,15 +12,32 @@ public sealed class LinWriteReadPlugin : StepPluginBase<LinWriteReadSetting>
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
 
-    public override string Description =>
-        "向 LIN 总线发送帧后等待从机响应，适用于主节点请求-从机应答通信模式。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名,默认\"LIN1\"), " +
-        "FrameId(string,表达式,帧ID 0-63,默认0), " +
-        "Data(string,表达式,发送数据十六进制字符串,默认\"\"), " +
-        "ChecksumType(枚举,校验类型:Classic/Enhanced,默认Enhanced), " +
-        "ResponseTimeoutMs(int,等待响应超时毫秒,默认500), " +
-        "ResultVariable(string,存储响应数据的变量路径), " +
-        "EnableLog(bool,是否输出日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        向 LIN 总线发送帧后等待从机响应，适用于主节点请求-从机应答通信模式。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | "LIN1" | 已打开的连接标识名 |
+        | FrameId | 表达式(string) | 是 | 0 | 帧 ID 0-63 |
+        | Data | 表达式(string) | 否 | 空 | 发送数据十六进制字符串 |
+        | ChecksumType | 枚举 | 否 | Enhanced | 可选值：Classic, Enhanced |
+        | ResponseTimeoutMs | int | 否 | 500 | 等待响应超时毫秒数 |
+        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
+        | EnableLog | bool | 否 | true | 是否输出日志 |
+
+        ## 行为
+
+        - 超时未收到从机响应时步骤报错
+
+        ## 相关插件
+
+        - `LIN_Open`：打开 LIN 通道
+        - `LIN_Write` / `LIN_Read`：单独收发 LIN 帧
+        """;
 
     public override IStepExecutor CreateExecutor() => new LinWriteReadExecutor();
 
