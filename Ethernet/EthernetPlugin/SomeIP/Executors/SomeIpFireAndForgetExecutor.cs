@@ -38,13 +38,22 @@ public sealed class SomeIpFireAndForgetExecutor : IStepExecutor
                 Payload          = SomeIpHelper.ParsePayload(payloadStr),
             };
 
-            using var udp = new UdpClient();
-            udp.Connect(host, port);
-            await udp.SendAsync(message.Encode(), cancellationToken);
+            if (setting.Transport == SomeIpTransport.Tcp)
+            {
+                using var tcp = new TcpClient();
+                await tcp.ConnectAsync(host, port, cancellationToken);
+                await tcp.GetStream().WriteAsync(message.Encode(), cancellationToken);
+            }
+            else
+            {
+                using var udp = new UdpClient();
+                udp.Connect(host, port);
+                await udp.SendAsync(message.Encode(), cancellationToken);
+            }
 
             if (setting.EnableLog)
                 context.LogAction?.Invoke(
-                    $"SOME/IP FireAndForget 已发送: {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
+                    $"SOME/IP FireAndForget 已发送({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
         }

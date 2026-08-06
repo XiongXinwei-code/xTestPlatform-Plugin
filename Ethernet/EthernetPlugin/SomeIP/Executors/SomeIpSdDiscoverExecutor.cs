@@ -130,7 +130,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
         return msg.Encode();
     }
 
-    /// <summary>解析 SD 报文中的 OfferService Entry。</summary>
+    /// <summary>解析 SD 报文中的 OfferService Entry，并解析引用的 IPv4 Endpoint 选项。</summary>
     private static List<string> ParseOffers(byte[] data, ushort findServiceId, IPEndPoint from)
     {
         var offers = new List<string>();
@@ -140,11 +140,19 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
         if (p.Length < 8) return offers;
 
         var entriesLength = (int)BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(4));
-        var offset = 8;
-        var end = Math.Min(offset + entriesLength, p.Length);
-        while (offset + 16 <= end)
+        var entriesStart = 8;
+        var entriesEnd = Math.Min(entriesStart + entriesLength, p.Length);
+
+        // 解析 Options 区（位于 Entries 之后：OptionsLength(4) + Options）
+        var options = ParseOptions(p, entriesEnd);
+
+        var offset = entriesStart;
+        while (offset + 16 <= entriesEnd)
         {
             var type = p[offset];
+            var index1 = p[offset + 1];
+            var optCounts = p[offset + 3];
+            var num1 = (optCounts >> 4) & 0x0F;
             var serviceId = BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(offset + 4));
             var instanceId = BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(offset + 6));
             var major = p[offset + 8];
@@ -154,10 +162,54 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             if (type == 0x01 && ttl > 0 &&
                 (findServiceId == 0xFFFF || serviceId == findServiceId))
             {
-                offers.Add($"Service=0x{serviceId:X4} Instance=0x{instanceId:X4} Ver={major} @ {from.Address}");
+                // 通过 Index1/Num1 关联该 Entry 引用的 Endpoint 选项
+                var endpoints = new List<string>();
+                for (int i = index1; i < index1 + num1 && i < options.Count; i++)
+                    if (options[i] != null) endpoints.Add(options[i]!);
+
+                var endpointInfo = endpoints.Count > 0
+                    ? string.Join(",", endpoints)
+                    : $"{from.Address}(SD来源)";
+                offers.Add($"Service=0x{serviceId:X4} Instance=0x{instanceId:X4} Ver={major} @ {endpointInfo}");
             }
             offset += 16;
         }
         return offers;
+    }
+
+    /// <summary>解析 SD Options 区，返回按索引排列的选项描述（仅支持 IPv4 Endpoint 0x04，其他选项占位 null）。</summary>
+    private static List<string?> ParseOptions(byte[] p, int entriesEnd)
+    {
+        var options = new List<string?>();
+        if (entriesEnd + 4 > p.Length) return options;
+
+        var optionsLength = (int)BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(entriesEnd));
+        var offset = entriesEnd + 4;
+        var end = Math.Min(offset + optionsLength, p.Length);
+
+        while (offset + 3 <= end)
+        {
+            // Option: Length(2, 不含 Length 和 Type 字段) + Type(1) + 内容
+            var optLen = BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(offset));
+            var optType = p[offset + 2];
+            var contentStart = offset + 3;
+            var optTotal = 3 + optLen;
+            if (offset + optTotal > end) break;
+
+            // IPv4 Endpoint Option: Reserved(1) + IPv4(4) + Reserved(1) + Protocol(1) + Port(2)
+            if (optType == 0x04 && optLen >= 9)
+            {
+                var ip = new IPAddress(p.AsSpan(contentStart + 1, 4).ToArray());
+                var proto = p[contentStart + 6] switch { 0x06 => "TCP", 0x11 => "UDP", var b => $"0x{b:X2}" };
+                var port = BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(contentStart + 7));
+                options.Add($"{ip}:{port}/{proto}");
+            }
+            else
+            {
+                options.Add(null); // 不支持的选项类型，占位保持索引对齐
+            }
+            offset += optTotal;
+        }
+        return options;
     }
 }

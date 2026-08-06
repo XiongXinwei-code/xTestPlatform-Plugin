@@ -41,33 +41,13 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
 
             if (setting.EnableLog)
                 context.LogAction?.Invoke(
-                    $"SOME/IP 请求: {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
+                    $"SOME/IP 请求({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
 
-            using var udp = new UdpClient();
-            udp.Connect(host, port);
-            await udp.SendAsync(message.Encode(), cancellationToken);
-
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(setting.TimeoutMs);
-
-            SomeIpMessage? response = null;
-            while (response == null)
-            {
-                UdpReceiveResult recv;
-                try
-                {
-                    recv = await udp.ReceiveAsync(timeoutCts.Token);
-                }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                {
-                    throw new TimeoutException($"等待 SOME/IP 响应超时({setting.TimeoutMs}ms)");
-                }
-                var msg = SomeIpMessage.TryDecode(recv.Buffer);
-                if (msg != null && msg.ServiceId == message.ServiceId && msg.MethodId == message.MethodId
-                    && msg.SessionId == message.SessionId
-                    && msg.MessageType is SomeIpMessageType.Response or SomeIpMessageType.Error)
-                    response = msg;
-            }
+            SomeIpMessage response;
+            if (setting.Transport == SomeIpTransport.Tcp)
+                response = await RequestOverTcpAsync(host, port, message, setting.TimeoutMs, cancellationToken);
+            else
+                response = await RequestOverUdpAsync(host, port, message, setting.TimeoutMs, cancellationToken);
 
             var responseHex = SomeIpHelper.ToHex(response.Payload);
             if (setting.EnableLog)
@@ -107,6 +87,92 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
                     Error = new ErrorInfo { Message = $"SOME/IP 请求失败: {ex.Message}" }
                 }
             };
+        }
+    }
+
+    private static bool IsMatch(SomeIpMessage? msg, SomeIpMessage request)
+        => msg != null && msg.ServiceId == request.ServiceId && msg.MethodId == request.MethodId
+           && msg.SessionId == request.SessionId
+           && msg.MessageType is SomeIpMessageType.Response or SomeIpMessageType.Error;
+
+    private static async Task<SomeIpMessage> RequestOverUdpAsync(
+        string host, int port, SomeIpMessage message, int timeoutMs, CancellationToken cancellationToken)
+    {
+        using var udp = new UdpClient();
+        udp.Connect(host, port);
+        await udp.SendAsync(message.Encode(), cancellationToken);
+
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(timeoutMs);
+
+        while (true)
+        {
+            UdpReceiveResult recv;
+            try
+            {
+                recv = await udp.ReceiveAsync(timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"等待 SOME/IP 响应超时({timeoutMs}ms)");
+            }
+            var msg = SomeIpMessage.TryDecode(recv.Buffer);
+            if (IsMatch(msg, message)) return msg!;
+        }
+    }
+
+    private static async Task<SomeIpMessage> RequestOverTcpAsync(
+        string host, int port, SomeIpMessage message, int timeoutMs, CancellationToken cancellationToken)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(timeoutMs);
+
+        using var tcp = new TcpClient();
+        try
+        {
+            await tcp.ConnectAsync(host, port, timeoutCts.Token);
+            var stream = tcp.GetStream();
+            await stream.WriteAsync(message.Encode(), timeoutCts.Token);
+
+            while (true)
+            {
+                var msg = await ReceiveTcpMessageAsync(stream, timeoutCts.Token);
+                if (IsMatch(msg, message)) return msg;
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException($"TCP 连接或等待 SOME/IP 响应超时({timeoutMs}ms)");
+        }
+    }
+
+    /// <summary>从 TCP 流按 SOME/IP 报文头 Length 字段拆包读取一条完整报文。</summary>
+    internal static async Task<SomeIpMessage> ReceiveTcpMessageAsync(NetworkStream stream, CancellationToken ct)
+    {
+        var header = new byte[SomeIpMessage.HeaderLength];
+        await ReadExactAsync(stream, header, ct);
+        var length = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(header.AsSpan(4));
+        if (length < 8 || length > 16 * 1024 * 1024)
+            throw new InvalidDataException($"SOME/IP TCP 报文长度非法: {length}");
+
+        var payloadLen = (int)length - 8;
+        var full = new byte[SomeIpMessage.HeaderLength + payloadLen];
+        header.CopyTo(full, 0);
+        if (payloadLen > 0)
+            await ReadExactAsync(stream, full.AsMemory(SomeIpMessage.HeaderLength), ct);
+
+        return SomeIpMessage.TryDecode(full)
+               ?? throw new InvalidDataException("SOME/IP TCP 报文解析失败");
+    }
+
+    private static async Task ReadExactAsync(NetworkStream stream, Memory<byte> buffer, CancellationToken ct)
+    {
+        var read = 0;
+        while (read < buffer.Length)
+        {
+            var n = await stream.ReadAsync(buffer[read..], ct);
+            if (n == 0) throw new IOException("TCP 连接已被对端关闭");
+            read += n;
         }
     }
 }

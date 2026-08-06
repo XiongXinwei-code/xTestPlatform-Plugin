@@ -17,3 +17,13 @@ public enum SomeIpMessageType : byte
     /// <summary>错误响应</summary>
     Error = 0x81,
 }
+
+/// <summary>SOME/IP 传输方式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SomeIpTransport
+{
+    /// <summary>UDP（默认）</summary>
+    Udp,
+    /// <summary>TCP</summary>
+    Tcp,
+}

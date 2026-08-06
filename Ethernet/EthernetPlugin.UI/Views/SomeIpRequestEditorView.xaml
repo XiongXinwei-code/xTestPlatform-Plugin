@@ -28,6 +28,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="RemoteHost:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -42,46 +43,53 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="ServiceId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Transport:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                          SelectedIndex="{Binding TransportIndex}">
+                    <ComboBoxItem Content="Udp"/>
+                    <ComboBoxItem Content="Tcp"/>
+                </ComboBox>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="ServiceId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding ServiceId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="MethodId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="MethodId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding MethodId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="ClientId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="ClientId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding ClientId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="InterfaceVersion:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="InterfaceVersion:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding InterfaceVersion, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="Payload:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="Payload:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="7" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding Payload, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="TimeoutMs:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <syncfusion:IntegerTextBox Grid.Row="7" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="TimeoutMs:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                                            MinValue="1" Value="{Binding TimeoutMs, Mode=TwoWay}"/>
 
-                <TextBlock Grid.Row="8" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="8" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="9" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="9" Grid.Column="1" Margin="0,0,0,8"
                          Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="9" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <CheckBox Grid.Row="9" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="10" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox Grid.Row="10" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

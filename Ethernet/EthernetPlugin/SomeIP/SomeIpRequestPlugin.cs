@@ -13,9 +13,10 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
 
     public override string Description =>
-        "通过 UDP 发送 SOME/IP RPC 请求并等待响应，ReturnCode 非 0x00 或错误响应时判定为 Failed。" +
+        "发送 SOME/IP RPC 请求并等待响应（支持 UDP/TCP），ReturnCode 非 0x00 或错误响应时判定为 Failed。" +
         "Setting 字段：RemoteHost(string,表达式,服务端IP,默认\"192.168.1.20\"), " +
-        "RemotePort(string,表达式,服务端UDP端口,默认\"30501\"), " +
+        "RemotePort(string,表达式,服务端端口,默认\"30501\"), " +
+        "Transport(枚举,传输方式 Udp/Tcp,默认Udp), " +
         "ServiceId(string,表达式,服务ID,默认\"0x1234\"), " +
         "MethodId(string,表达式,方法ID,默认\"0x0001\"), " +
         "ClientId(string,表达式,客户端ID,默认\"0x0001\"), " +

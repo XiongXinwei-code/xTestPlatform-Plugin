@@ -4,6 +4,13 @@ namespace Ethernet.UI.ViewModels;
 
 public class SomeIpRequestViewModel : EthernetViewModelBase<SomeIpRequestSetting>
 {
+    private static readonly SomeIpTransport[] Transports = [SomeIpTransport.Udp, SomeIpTransport.Tcp];
+
+    public int TransportIndex
+    {
+        get => Setting == null ? 0 : Array.IndexOf(Transports, Setting.Transport);
+        set { if (Setting == null || value < 0 || value >= Transports.Length) return; Setting.Transport = Transports[value]; OnPropertyChanged(); QueueSave(); }
+    }
     public string RemoteHost
     {
         get => Setting?.RemoteHost ?? "\"192.168.1.20\"";
