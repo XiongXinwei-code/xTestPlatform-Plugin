@@ -8,7 +8,7 @@ namespace LIN;
 public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSetting>
 {
     public override string StepTypeId   => "IO.LinCyclicSendStop";
-    public override string DisplayName  => "LIN_CyclicSendStop";
+    public override string DisplayName  => "LIN_Cyclic_SendStop";
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
 
