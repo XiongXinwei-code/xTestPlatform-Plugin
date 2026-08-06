@@ -16,6 +16,10 @@
       <Platform Solution="*|x64" Project="x64" />
     </Project>
   </Folder>
+  <Folder Name="/LIN/">
+    <Project Path="LIN/LinPlugin.UI/LinPlugin.UI.csproj" />
+    <Project Path="LIN/LinPlugin/LinPlugin.csproj" />
+  </Folder>
     <Folder Name="/Modbus/">
       <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
       <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
