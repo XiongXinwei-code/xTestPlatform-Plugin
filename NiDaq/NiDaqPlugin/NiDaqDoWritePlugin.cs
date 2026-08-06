@@ -12,9 +12,26 @@ public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
     public override string Category => "DataAcquisition";
     public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
 
-    public override string Description =>
-        "设置 NI DAQ 数字输出通道的状态值。" +
-        "Setting 字段：Channel(string,表达式,物理通道如Dev1/port0/line0), Value(string,表达式,输出值true/false或byte)。";
+    public override string Description => """
+        ## 功能
+
+        设置 NI DAQ 数字输出通道的状态值。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | Channel | 表达式(string) | 是 | — | 物理通道，如 Dev1/port0/line0 |
+        | Value | 表达式(string) | 是 | — | 输出值，true/false 或 byte |
+
+        ## 行为
+
+        - 单次写入，无需预先配置任务
+
+        ## 相关插件
+
+        - `NiDaq_DI_Read`：读取数字输入
+        """;
 
     public override IStepExecutor CreateExecutor() => new NiDaqDoWriteExecutor();
 

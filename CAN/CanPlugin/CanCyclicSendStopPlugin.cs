@@ -12,9 +12,26 @@ public sealed class CanCyclicSendStopPlugin : StepPluginBase<CanCyclicSendStopSe
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "停止指定的 CAN 周期发送任务。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名), TaskName(string,表达式,要停止的任务标识名)。";
+    public override string Description => """
+        ## 功能
+
+        停止指定的 CAN 周期发送任务。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | — | CAN 连接标识名 |
+        | TaskName | 表达式(string) | 是 | — | 要停止的任务标识名 |
+
+        ## 行为
+
+        - 任务不存在时步骤报错
+
+        ## 相关插件
+
+        - `CAN_Cyclic_SendStart`：启动周期发送任务
+        """;
 
     public override IStepExecutor CreateExecutor() => new CanCyclicSendStopExecutor();
 

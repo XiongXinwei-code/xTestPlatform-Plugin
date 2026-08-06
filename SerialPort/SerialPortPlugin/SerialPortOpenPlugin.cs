@@ -12,12 +12,33 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
 
-    public override string Description =>
-        "打开指定串口并配置通信参数。打开后通过 PortName 标识连接，供后续 Write/Read/Query 使用。" +
-        "Setting 字段：PortName(string,表达式,端口名如COM1), BaudRate(int,波特率,默认9600), " +
-        "DataBits(int,数据位5-8,默认8), StopBits(int,停止位0=None/1=One/2=Two,默认1), " +
-        "Parity(int,校验0=None/1=Odd/2=Even,默认0), " +
-        "ReadTimeoutMs(int,读超时ms,默认3000), WriteTimeoutMs(int,写超时ms,默认3000)。";
+    public override string Description => """
+        ## 功能
+
+        打开指定串口并配置通信参数，打开后通过 PortName 标识连接，供后续读写步骤使用。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | PortName | 表达式(string) | 是 | — | 端口名，如 COM1 |
+        | BaudRate | int | 否 | 9600 | 波特率 |
+        | DataBits | int | 否 | 8 | 数据位，取值 5-8 |
+        | StopBits | int | 否 | 1 | 停止位：0=None, 1=One, 2=Two |
+        | Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even |
+        | ReadTimeoutMs | int | 否 | 3000 | 读超时毫秒数 |
+        | WriteTimeoutMs | int | 否 | 3000 | 写超时毫秒数 |
+
+        ## 行为
+
+        - 端口不存在或已被占用时步骤报错
+        - 同一 PortName 重复打开会报错，需先用 SerialPort_Close 关闭
+
+        ## 相关插件
+
+        - `SerialPort_Write` / `SerialPort_Read` / `SerialPort_Query`：在已打开的端口上收发数据
+        - `SerialPort_Close`：关闭本插件打开的端口
+        """;
 
     public override IStepExecutor CreateExecutor() => new SerialPortOpenExecutor();
 

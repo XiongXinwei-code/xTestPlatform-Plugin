@@ -41,19 +41,6 @@ public enum DaqExportFormat
     TdmsAndVariable
 }
 
-/// <summary>数据分析模式</summary>
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum AnalyzeMode
-{
-    Max,
-    Min,
-    Average,
-    RMS,
-    PeakWithRef,
-    Slope,
-    RangeStats
-}
-
 /// <summary>触发边沿</summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum TriggerEdge

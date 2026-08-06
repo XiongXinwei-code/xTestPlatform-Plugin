@@ -15,9 +15,25 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
 
-	public override string Description =>
-		"关闭指定的 Modbus 连接并释放资源。" +
-		"Setting 字段：ConnectionName(string,表达式,要关闭的Modbus连接标识名)。";
+	public override string Description => """
+		## 功能
+
+		关闭指定的 Modbus 连接并释放资源。
+
+		## 参数
+
+		| 参数 | 类型 | 必填 | 默认值 | 说明 |
+		|------|------|------|--------|------|
+		| ConnectionName | 表达式(string) | 是 | — | 要关闭的 Modbus 连接标识名 |
+
+		## 行为
+
+		- 连接不存在时步骤报错
+
+		## 相关插件
+
+		- `Modbus_Connect`：建立连接
+		""";
 
 	public override IStepExecutor CreateExecutor() => new ModbusDisconnectExecutor();
 
