@@ -12,11 +12,31 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
 
-    public override string Description =>
-        "从已打开的 CAN 通道接收一帧报文，可按 ID 过滤，结果存入变量。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名), FilterId(string,表达式,过滤CAN ID 如 0x7E8 为空则接收任意), " +
-        "ReadTimeoutMs(int,读取超时毫秒), ResultVariable(string,结果变量名,写入类型:string 十六进制报文数据), IdVariable(string,ID存储变量路径), " +
-        "EnableLog(bool,是否输出读取日志,默认true)。";
+    public override string Description => """
+        ## 功能
+
+        从已打开的 CAN 通道接收一帧报文，可按 ID 过滤，结果存入变量。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
+        | FilterId | 表达式(string) | 否 | 空 | 过滤 CAN ID，如 0x7E8，为空则接收任意帧 |
+        | ReadTimeoutMs | int | 否 | — | 读取超时毫秒数 |
+        | ResultVariable | string | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据） |
+        | IdVariable | string | 否 | 空 | 接收帧 CAN ID 存入的变量名 |
+        | EnableLog | bool | 否 | true | 是否输出读取日志 |
+
+        ## 行为
+
+        - 超时未收到匹配报文时步骤报错
+
+        ## 相关插件
+
+        - `CAN_Open`：打开 CAN 通道
+        - `CAN_Write`：发送报文
+        """;
 
     public override IStepExecutor CreateExecutor() => new CanReadExecutor();
 

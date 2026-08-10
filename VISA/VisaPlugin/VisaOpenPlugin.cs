@@ -15,10 +15,31 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
 
-    public override string Description =>
-        "打开 VISA 仪器会话，支持 GPIB、USB-TMC、TCP/LAN(SOCKET/INSTR)、串口等资源。打开后通过 ConnectionName 标识此连接，供后续 Write/Read/Query 步骤使用。" +
-        "Setting 字段：ConnectionName(string,表达式,连接标识名,默认VISA1), ResourceString(string,表达式,VISA资源字符串,如TCPIP::192.168.1.1::INSTR或GPIB0::1::INSTR), " +
-        "OpenTimeoutMs(int,打开超时ms,默认5000), IoTimeoutMs(int,IO超时ms,默认3000), Terminator(string,终止符,默认\\n)。";
+    public override string Description => """
+        ## 功能
+
+        打开 VISA 仪器会话，支持 GPIB、USB-TMC、TCP/LAN(SOCKET/INSTR)、串口等资源，打开后通过 ConnectionName 标识此连接。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | 表达式(string) | 是 | VISA1 | 连接标识名，序列内唯一 |
+        | ResourceString | 表达式(string) | 是 | — | VISA 资源字符串，如 TCPIP::192.168.1.1::INSTR、GPIB0::1::INSTR |
+        | OpenTimeoutMs | int | 否 | 5000 | 打开超时毫秒数 |
+        | IoTimeoutMs | int | 否 | 3000 | IO 超时毫秒数 |
+        | Terminator | string | 否 | \n | 终止符 |
+
+        ## 行为
+
+        - 资源不存在或打开超时时步骤报错
+        - 同名 ConnectionName 重复打开会报错，需先用 VISA_Close 关闭
+
+        ## 相关插件
+
+        - `VISA_Write` / `VISA_Read` / `VISA_Query` / `VISA_BatchWrite` / `VISA_WaitOPC`：在此连接上操作
+        - `VISA_Close`：关闭本插件打开的会话
+        """;
 
     public override IStepExecutor CreateExecutor() => new VisaOpenExecutor();
 

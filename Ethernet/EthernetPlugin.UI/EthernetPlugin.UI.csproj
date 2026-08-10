@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<Nullable>enable</Nullable>
+	<UseWPF>true</UseWPF>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>Ethernet.StepPlugin.UI</AssemblyName>
+	<RootNamespace>Ethernet.UI</RootNamespace>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\Ethernet\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<Resource Include="Resources\Icons\ethernet.png">
+	  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+	</Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\EthernetPlugin\EthernetPlugin.csproj" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
+	<PackageReference Include="MessagePack" Version="3.1.7" />
+	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+	<PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
+	<PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+  </ItemGroup>
+
+</Project>

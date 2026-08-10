@@ -113,7 +113,7 @@
 - [ ] Setting 类标记 `[MessagePackObject(true)]`（§12）
 - [ ] `StepTypeId` 格式为 `分类.步骤名` 且全局唯一（§2.1）
 - [ ] `DisplayName`、`Category`、`IconPath`、`Description` 均已填写（§2.1）
-- [ ] `Description` 完整：功能说明 + 所有 Setting 字段(类型/默认值) + 枚举可选值 + 集合元素 JSON 示例（§2.1）
+- [ ] `Description` 使用 Markdown 五章节标准结构：`## 功能` → `## 参数` → `## 行为` → `## 示例` → `## 相关插件`，前两节必填（§2.1.1）
 - [ ] 所有插件枚举类型已标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`，确保 AI 可用字符串名称传枚举值（§2.1.1）
 - [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
 - [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
@@ -246,48 +246,83 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 `Description` 是 AI 编程助手选择和配置步骤的**唯一依据**。序列编辑器中的 AI 助手会读取每个插件的 `Description` 来理解插件功能、选择合适的步骤类型、并自动生成正确的 Setting 参数。**如果 Description 不准确或不完整，AI 将无法正确使用该插件。**
 
-**必须包含的内容：**
+**标准结构（Markdown 格式，五个固定章节，顺序固定）：**
 
-1. **功能说明**（1-2句）：准确描述插件做什么、适用场景、执行行为
-2. **Setting 字段列表**：列出所有 Setting 字段，每个字段包含：
-   - 字段名
-   - 类型（string/int/bool/double/enum）
-   - 是否为表达式字段
-   - 功能说明
-   - 默认值（如有）
-3. **枚举可选值**：所有枚举字段必须列出全部可选值
-4. **集合元素 JSON 示例**：如果 Setting 包含集合（`ObservableCollection<T>`），必须给出元素的 JSON 结构示例，让 AI 知道如何构造集合元素
+`Description` 必须使用 Markdown 编写，按 `## 功能` → `## 参数` → `## 行为` → `## 示例` → `## 相关插件` 五个章节组织。**前两节必填**，后三节按需（简单插件可以只有功能+行为）。**不放一级标题**——Description 从 `##` 开始，因为弹窗标题栏已显示插件名，避免重复。
 
-**Description 格式模板：**
+```markdown
+## 功能
 
-```csharp
-public override string Description =>
-    "【功能说明】。" +
-    "Setting 字段：Field1(类型,表达式,说明,默认值xxx), Field2(枚举:Value1/Value2/Value3,默认值Value1), " +
-    "Items(集合,说明,每个元素结构见下方JSON示例)。" +
-    "Items 元素JSON示例: {\"Field1\":\"value1\",\"Field2\":123,\"Field3\":\"EnumValue\"} " +
-    "Field3可选值: Value1, Value2, Value3。";
+一到两句话，准确描述插件做什么（对应实际执行行为，不夸大）。
+
+## 参数
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| ConnectionName | 表达式(string) | 是 | — | 已建立的连接名 |
+| TimeoutMs | int | 否 | 0 | 超时毫秒数，0 表示不限制 |
+| DataFormat | 枚举 | 否 | UInt16 | 可选值：UInt16, Int16, Float_AB_CD |
+| Items | 集合 | 是 | — | 读取项列表，元素结构见示例 |
+
+## 行为
+
+- 执行时的关键规则，用列表逐条写
+- 错误条件：什么情况下步骤报错
+- 容器类插件说明子步骤如何被调度
+
+## 示例
+
+```json
+{
+  "ConnectionName": "\"modbus1\"",
+  "Items": [
+    { "SlaveAddress": 1, "RegisterType": "HoldingRegister", "StartAddress": 0 }
+  ],
+  "TimeoutMs": 0
+}
 ```
 
-**优秀示例（含集合的批量插件）：**
+## 相关插件
 
-```csharp
-public override string Description =>
-    "批量读取多个 Modbus 地址段，每个项可指定不同从站、寄存器类型和数据格式，每个项的读取结果分别存入对应变量。" +
-    "Setting 字段：ConnectionName(string,表达式,已建立的Modbus连接名), " +
-    "Items(集合,读取项列表,每个元素结构见下方JSON示例), IntervalMs(int,每项读取间隔ms,默认0)。" +
-    "Items 元素JSON示例: {\"SlaveAddress\":1,\"RegisterType\":\"HoldingRegister\",\"StartAddress\":0,\"Quantity\":2,\"DataFormat\":\"Float_AB_CD\",\"ResultVariable\":\"temperature\"} " +
-    "RegisterType可选值: Coil, DiscreteInput, HoldingRegister, InputRegister。" +
-    "DataFormat可选值: UInt16, Int16, UInt32_AB_CD, Int32_AB_CD, Float_AB_CD, UInt32_CD_AB, Int32_CD_AB, Float_CD_AB。";
+- `Modbus_Connect`：建立本插件使用的连接
+- `Modbus_BatchRead`：批量读取多个地址段
 ```
 
-**优秀示例（简单插件）：**
+**设计要点：**
+
+1. **五个固定章节，顺序固定**：`功能` → `参数` → `行为` → `示例` → `相关插件`。前两节必填，后三节按需。
+2. **参数用表格**：类型列区分 `string / int / bool / 表达式(bool) / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成"表达式(xxx)"，AI 就知道要生成表达式而不是字面量。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
+3. **示例用 ```json 代码块**：渲染成等宽代码块，AI 也能直接照抄结构。含集合的 Setting 必须给示例。
+4. **相关插件**：对成组使用的插件族（连接/断开、启动/停止、配置/读取）特别有价值，帮助 AI 和用户理解组合用法。
+5. **代码实现用 C# 原始字符串字面量**（`"""..."""`）书写多行 Markdown，避免转义。
+
+**代码写法示例：**
 
 ```csharp
-public override string Description =>
-    "向 VISA 仪器发送查询命令并立即读取响应（Write+Read 一体操作），结果以字符串形式存入指定变量。适用于查询类命令如 *IDN?、:MEAS:VOLT:DC? 等。" +
-    "Setting 字段：ConnectionName(string,表达式,已打开的VISA连接标识名), Command(string,表达式,SCPI查询命令如*IDN?), " +
-    "ResultVariable(string,表达式,结果存入的变量名), TrimResponse(bool,是否去除首尾空白,默认true)。";
+public override string Description => """
+    ## 功能
+
+    向 VISA 仪器发送查询命令并立即读取响应（Write+Read 一体操作），结果以字符串形式存入指定变量。
+
+    ## 参数
+
+    | 参数 | 类型 | 必填 | 默认值 | 说明 |
+    |------|------|------|--------|------|
+    | ConnectionName | 表达式(string) | 是 | — | 已打开的 VISA 连接标识名 |
+    | Command | 表达式(string) | 是 | — | SCPI 查询命令，如 *IDN? |
+    | ResultVariable | 表达式(string) | 是 | — | 结果存入的变量名 |
+    | TrimResponse | bool | 否 | true | 是否去除响应首尾空白 |
+
+    ## 行为
+
+    - 先写入命令，再立即读取一次响应
+    - 连接不存在或读取超时则步骤报错
+
+    ## 相关插件
+
+    - `VISA_Open`：打开本插件使用的连接
+    - `VISA_Write` / `VISA_Read`：单独的写入/读取操作
+    """;
 ```
 
 **常见错误（❌ 不要这样写）：**
@@ -296,7 +331,7 @@ public override string Description =>
 // ❌ 太简略，AI 无法知道 Setting 有哪些字段
 public override string Description => "读取 Modbus 数据。";
 
-// ❌ 枚举没列可选值，AI 无法知道该填什么
+// ❌ 未用 Markdown 五章节结构，仍用旧的拼接字符串格式
 public override string Description => "Setting 字段：DataFormat(枚举,数据格式)。";
 
 // ❌ 集合字段没有 JSON 示例，AI 无法知道元素结构
@@ -306,7 +341,7 @@ public override string Description => "Setting 字段：Items(列表,每项含No
 public override string Description => "Messages(List<CyclicMessageItem>,报文列表)。";
 ```
 
-> 📝 **检查要点**：每次新建或修改插件时，必须检查 `Description` 是否满足以上规范。不完整的 Description 会导致 AI 编程助手无法正确配置步骤参数。
+> 📝 **检查要点**：每次新建或修改插件时，必须检查 `Description` 是否满足以上五章节 Markdown 规范。不完整的 Description 会导致 AI 编程助手无法正确配置步骤参数。
 
 #### 枚举类型 JSON 序列化规范
 
