@@ -1,15 +1,23 @@
-namespace UdpCommunication.StepPlugin.Transport;
+﻿using System.Net;
 
-public interface IUdpTransport
+namespace UdpCommunication.Transport;
+
+public interface IUdpTransport : IDisposable
 {
+    IPEndPoint LocalEndPoint { get; }
+
     Task SendAsync(
-        UdpEndpointOptions endpoint,
         ReadOnlyMemory<byte> request,
+        IPEndPoint remoteEndpoint,
+        CancellationToken cancellationToken);
+
+    Task<UdpTransportResult> ReceiveAsync(
+        TimeSpan timeout,
         CancellationToken cancellationToken);
 
     Task<UdpTransportResult> SendAndReceiveAsync(
-        UdpEndpointOptions endpoint,
         ReadOnlyMemory<byte> request,
+        IPEndPoint remoteEndpoint,
         TimeSpan timeout,
         CancellationToken cancellationToken);
 }

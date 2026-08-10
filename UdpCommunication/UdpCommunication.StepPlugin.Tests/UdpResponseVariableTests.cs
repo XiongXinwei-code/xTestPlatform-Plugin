@@ -1,8 +1,8 @@
-using UdpCommunication.StepPlugin.Validation;
+﻿using UdpCommunication.Validation;
 using xTestPlatform.Core.SequenceModels;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
 public sealed class UdpResponseVariableTests
 {
@@ -24,7 +24,7 @@ public sealed class UdpResponseVariableTests
 
         var error = UdpResponseVariable.Validate("Unknown.UdpReply", context);
 
-        Assert.Contains("作用域", error, StringComparison.Ordinal);
+        Assert.Contains("无效", error, StringComparison.Ordinal);
     }
 
     [Fact]

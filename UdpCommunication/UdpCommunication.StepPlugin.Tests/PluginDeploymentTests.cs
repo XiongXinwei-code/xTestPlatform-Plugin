@@ -1,8 +1,8 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
 public sealed class PluginDeploymentTests
 {
@@ -11,7 +11,7 @@ public sealed class PluginDeploymentTests
     {
         var repositoryRoot = FindRepositoryRoot();
         var script = Path.Combine(repositoryRoot, "UdpCommunication", "Publish-Plugin.ps1");
-        Assert.True(File.Exists(script), "缺少插件部署脚本");
+        Assert.True(File.Exists(script), "Publish script not found");
 
         var outputDirectory = Path.Combine(Path.GetTempPath(), $"udp-plugin-{Guid.NewGuid():N}");
         try
@@ -57,6 +57,6 @@ public sealed class PluginDeploymentTests
             }
         }
 
-        throw new DirectoryNotFoundException("未找到项目根目录");
+        throw new DirectoryNotFoundException("Could not find repository root");
     }
 }

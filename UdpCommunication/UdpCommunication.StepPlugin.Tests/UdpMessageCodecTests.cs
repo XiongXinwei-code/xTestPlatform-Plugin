@@ -1,7 +1,7 @@
-using UdpCommunication.StepPlugin.Protocol;
+﻿using UdpCommunication.Protocol;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
 public sealed class UdpMessageCodecTests
 {

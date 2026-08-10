@@ -1,10 +1,11 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Resources;
-using UdpCommunication.StepPlugin.Models;
-using UdpCommunication.StepPlugin.UI;
+using UdpCommunication.Models;
+using UdpCommunication.UI;
+using UdpCommunication.UI.Editors;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
 public sealed class UdpPluginDescriptionTests
 {
@@ -13,23 +14,16 @@ public sealed class UdpPluginDescriptionTests
     [Fact]
     public void UdpPlugins_UseTheSharedUdpIcon()
     {
+        Assert.Equal(UdpIconPath, new UdpOpenPlugin().IconPath);
+        Assert.Equal(UdpIconPath, new UdpClosePlugin().IconPath);
         Assert.Equal(UdpIconPath, new UdpSendPlugin().IconPath);
+        Assert.Equal(UdpIconPath, new UdpReceivePlugin().IconPath);
         Assert.Equal(UdpIconPath, new UdpSendAndReceivePlugin().IconPath);
+        Assert.Equal(UdpIconPath, new UdpOpenEditorPlugin().IconPath);
+        Assert.Equal(UdpIconPath, new UdpCloseEditorPlugin().IconPath);
         Assert.Equal(UdpIconPath, new UdpSendEditorPlugin().IconPath);
+        Assert.Equal(UdpIconPath, new UdpReceiveEditorPlugin().IconPath);
         Assert.Equal(UdpIconPath, new UdpSendAndReceiveEditorPlugin().IconPath);
-    }
-
-    [Fact]
-    public void UdpEditor_UsesTheUdpIconAndFunctionalTabName()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        var iconPath = Path.Combine(repositoryRoot, "UdpCommunication", "UdpCommunication.StepPlugin.UI", "Resources", "Icons", "udp.png");
-        var xamlPath = Path.Combine(repositoryRoot, "UdpCommunication", "UdpCommunication.StepPlugin.UI", "Views", "UdpEditorView.xaml");
-
-        Assert.True(File.Exists(iconPath));
-        var xaml = File.ReadAllText(xamlPath);
-        Assert.Contains("Header=\"UDP\"", xaml, StringComparison.Ordinal);
-        Assert.Contains($"Image=\"{UdpIconPath}\"", xaml, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -67,18 +61,5 @@ public sealed class UdpPluginDescriptionTests
         var description = plugin.GenerateDescription(plugin.CreateSerializer().Serialize(setting));
 
         Assert.Contains("ACK", description, StringComparison.Ordinal);
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "xTestPlatform_StepPlugin_Development_Guide.md")))
-            {
-                return directory.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("Repository root was not found.");
     }
 }

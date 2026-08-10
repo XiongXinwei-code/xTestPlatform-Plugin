@@ -1,8 +1,8 @@
-using UdpCommunication.StepPlugin.Transport;
-using UdpCommunication.StepPlugin.Validation;
+﻿using UdpCommunication.Transport;
+using UdpCommunication.Validation;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
 public sealed class UdpSettingsValidatorTests
 {
@@ -11,18 +11,20 @@ public sealed class UdpSettingsValidatorTests
     {
         var error = UdpSettingsValidator.ValidateEndpoint(new UdpEndpointOptions("bad-ip", 0, "127.0.0.1", 9000));
 
-        Assert.Equal("\u672c\u5730\u5730\u5740\u6216\u76ee\u6807\u5730\u5740\u4e0d\u662f\u6709\u6548\u7684 IP \u5730\u5740", error);
+        Assert.Equal("本地地址或目标地址不是有效的 IP 地址", error);
     }
 
     [Theory]
     [InlineData("127.0.0.1", "::1", false)]
     [InlineData("::1", "::1", true)]
     public void ValidateEndpoint_LiteralAddresses_RequiresSameAddressFamily(
-        string localAddress, string remoteAddress, bool valid)
+        string localAddress, string remoteAddress, bool addressFamilyValid)
     {
+        // LocalPort 固定为 5001（1~65535 范围内）：新策略禁止 LocalPort=0 走入核心校验逻辑。
+        // 该测试仅验证 AddressFamily 匹配规则，因此端口需要改为有效值。
         var error = UdpSettingsValidator.ValidateEndpoint(
-            new UdpEndpointOptions(localAddress, 0, remoteAddress, 9000));
+            new UdpEndpointOptions(localAddress, 5001, remoteAddress, 9000));
 
-        Assert.Equal(valid, error is null);
+        Assert.Equal(addressFamilyValid, error is null);
     }
 }

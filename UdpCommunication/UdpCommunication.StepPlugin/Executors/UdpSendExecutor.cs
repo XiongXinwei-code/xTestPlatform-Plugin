@@ -1,78 +1,103 @@
-using System.Diagnostics;
-using UdpCommunication.StepPlugin.Display;
-using UdpCommunication.StepPlugin.Models;
-using UdpCommunication.StepPlugin.Protocol;
-using UdpCommunication.StepPlugin.Transport;
-using UdpCommunication.StepPlugin.Validation;
+﻿using System.Net;
+using UdpCommunication.Helpers;
+using UdpCommunication.Models;
+using UdpCommunication.Protocol;
+using UdpCommunication.Transport;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.Services.ExpressionEngine;
 
-namespace UdpCommunication.StepPlugin.Executors;
+namespace UdpCommunication.Executors;
 
 public sealed class UdpSendExecutor : IStepExecutor
 {
-    private readonly IStepSettingSerializer _serializer;
-    private readonly IUdpTransport _transport;
-
-    public UdpSendExecutor(IStepSettingSerializer serializer, IUdpTransport? transport = null)
-    {
-        _serializer = serializer;
-        _transport = transport ?? new UdpTransport();
-    }
+    private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            var step = context.CurrentStep?.Step ?? throw new InvalidOperationException("未找到当前步骤配置");
-            var setting = step.StepSetting.Setting is { Length: > 0 } data
-                ? (UdpSendSetting)_serializer.Deserialize(data, step.StepSetting.SettingVersion)
-                : (UdpSendSetting)_serializer.CreateDefault();
-            var endpoint = new UdpEndpointOptions(setting.LocalAddress, setting.LocalPort, setting.RemoteAddress, setting.RemotePort);
-            var error = UdpSettingsValidator.ValidateEndpoint(endpoint);
-            if (error is not null)
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdpSendPlugin().CreateSerializer();
+            var s = (UdpSendSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
+            if (!TryResolveTransport(context, s.OpenStepAddress, out var transport, out var errorMessage))
             {
-                return ConfigurationError(context, error);
+                context.LogAction?.Invoke($"UDP 错误：{errorMessage}");
+                return new ExecutionResult
+                {
+                    StepResult = new StepResult
+                    {
+                        Status = TestStatus.Error,
+                        Error = new ErrorInfo { Message = errorMessage }
+                    }
+                };
             }
 
-            var payload = UdpMessageCodec.Encode(setting.RequestData, setting.RequestFormat);
-            Log(
-                context,
-                $"UDP 发送开始：{endpoint.LocalAddress}:{endpoint.LocalPort} → " +
-                $"{endpoint.RemoteAddress}:{endpoint.RemotePort}，格式 {setting.RequestFormat}，" +
-                $"{payload.Length} 字节，内容 {UdpDescriptionFormatter.Preview(setting.RequestData)}");
-            await _transport.SendAsync(endpoint, payload, cancellationToken);
-            Log(context, $"UDP 发送完成：已发送 {payload.Length} 字节");
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = setting.RequestData } };
+            var remoteAddress = await Evaluator.EvalStringAsync(s.RemoteAddress, context);
+            var requestData = await Evaluator.EvalStringAsync(s.RequestData, context);
+
+            var remoteEndpoint = new IPEndPoint(IPAddress.Parse(remoteAddress), s.RemotePort);
+            var payload = UdpMessageCodec.Encode(requestData, s.RequestFormat);
+
+            context.LogAction?.Invoke(
+                $"UDP 发送：{transport!.LocalEndPoint} → {remoteEndpoint}，" +
+                $"格式 {s.RequestFormat}，{payload.Length} 字节，" +
+                $"内容 {UdpExecutionLog.Preview(requestData)}");
+
+            await transport.SendAsync(payload, remoteEndpoint, cancellationToken);
+
+            context.LogAction?.Invoke($"UDP 发送完成：已发送 {payload.Length} 字节");
+
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Passed,
+                    Value = requestData
+                }
+            };
         }
         catch (OperationCanceledException)
         {
-            Log(context, "UDP 发送已取消");
+            context.LogAction?.Invoke("UDP 发送已取消");
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
         catch (Exception ex)
         {
-            Log(context, $"UDP 发送失败：{ex.Message}");
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = ex.Message } } };
+            context.LogAction?.Invoke($"UDP 发送失败：{ex.Message}");
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
     }
 
-    private static ExecutionResult ConfigurationError(IExecutionContext context, string message)
+    private static bool TryResolveTransport(
+        IExecutionContext context, string openStepAddress,
+        out IUdpTransport? transport, out string errorMessage)
     {
-        Log(context, $"UDP 配置错误：{message}");
-        return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = message } } };
-    }
+        transport = null;
+        if (string.IsNullOrWhiteSpace(openStepAddress))
+        {
+            errorMessage = "未指定 OpenStepAddress（请先创建一个 UDP_Open 步骤并在此处选择）";
+            return false;
+        }
 
-    private static void Log(IExecutionContext context, string message)
-    {
-        try
+        var key = UdpHelper.GetConnectionKey(openStepAddress);
+        if (!context.CurrentStep!.RuntimeData.TryGetValue(key, out var obj) || obj is not IUdpTransport t)
         {
-            context.LogAction?.Invoke(message);
+            errorMessage = $"连接 {key} 未打开，请先执行引用的 UDP_Open 步骤";
+            return false;
         }
-        catch (Exception ex)
-        {
-            Trace.TraceError($"UDP 平台日志输出失败：{ex.Message}");
-        }
+
+        transport = t;
+        errorMessage = string.Empty;
+        return true;
     }
 }

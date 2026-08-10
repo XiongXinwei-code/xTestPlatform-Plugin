@@ -1,19 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>UdpCommunication.StepPlugin.UI</AssemblyName>
+    <RootNamespace>UdpCommunication.UI</RootNamespace>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <OutputPath>..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\UdpCommunication\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
+
   <ItemGroup>
-    <Resource Include="Resources\Icons\udp.png" />
+    <Resource Include="Resources\Icons\udp.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\UdpCommunication.StepPlugin\UdpCommunication.StepPlugin.csproj" />
-    <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
-    <PackageReference Include="MessagePack" Version="3.1.8" />
-    <PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
+    <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
+    <PackageReference Include="MessagePack" Version="3.1.7" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
     <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
     <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
   </ItemGroup>
+
 </Project>

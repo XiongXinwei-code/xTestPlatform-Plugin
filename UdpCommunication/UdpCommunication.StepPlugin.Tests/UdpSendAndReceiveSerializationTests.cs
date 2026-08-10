@@ -1,8 +1,8 @@
-using UdpCommunication.StepPlugin.Models;
-using UdpCommunication.StepPlugin.Protocol;
+﻿using UdpCommunication.Models;
+using UdpCommunication.Protocol;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
 public sealed class UdpSendAndReceiveSerializationTests
 {
@@ -11,8 +11,8 @@ public sealed class UdpSendAndReceiveSerializationTests
     {
         var original = new UdpSendAndReceiveSetting
         {
+            OpenStepAddress = "step-1",
             RemoteAddress = "192.168.1.10", RemotePort = 6000,
-            LocalAddress = "127.0.0.1", LocalPort = 6001,
             RequestData = "01 02", RequestFormat = UdpPacketFormat.Hexadecimal,
             ReceiveTimeoutMs = 4567, ReplyFormat = UdpPacketFormat.Hexadecimal,
             ExpectedReply = "AA", MatchMode = UdpReplyMatchMode.Contains,
@@ -21,6 +21,7 @@ public sealed class UdpSendAndReceiveSerializationTests
         var serializer = new UdpSendAndReceivePlugin().CreateSerializer();
         var restored = (UdpSendAndReceiveSetting)serializer.Deserialize(serializer.Serialize(original), 1);
 
+        Assert.Equal(original.OpenStepAddress, restored.OpenStepAddress);
         Assert.Equal(original.RemoteAddress, restored.RemoteAddress);
         Assert.Equal(original.RemotePort, restored.RemotePort);
         Assert.Equal(original.RequestData, restored.RequestData);

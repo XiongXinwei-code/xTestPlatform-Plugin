@@ -1,7 +1,7 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 
-namespace UdpCommunication.StepPlugin.Protocol;
+namespace UdpCommunication.Protocol;
 
 public static class UdpMessageCodec
 {
@@ -55,7 +55,7 @@ public static class UdpMessageCodec
         var normalized = string.Concat(value.Where(static character => !char.IsWhiteSpace(character)));
         if (normalized.Length % 2 != 0)
         {
-            throw new FormatException("十六进制报文格式无效");
+            throw new FormatException("鍗佸叚杩涘埗鎶ユ枃鏍煎紡鏃犳晥");
         }
 
         var result = new byte[normalized.Length / 2];
@@ -71,7 +71,7 @@ public static class UdpMessageCodec
         }
         catch (FormatException)
         {
-            throw new FormatException("十六进制报文格式无效");
+            throw new FormatException("鍗佸叚杩涘埗鎶ユ枃鏍煎紡鏃犳晥");
         }
 
         return result;

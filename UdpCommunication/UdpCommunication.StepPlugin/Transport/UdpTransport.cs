@@ -1,43 +1,77 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 
-namespace UdpCommunication.StepPlugin.Transport;
+namespace UdpCommunication.Transport;
 
 public sealed class UdpTransport : IUdpTransport
 {
-    public async Task SendAsync(UdpEndpointOptions endpoint, ReadOnlyMemory<byte> request, CancellationToken cancellationToken)
+    private readonly UdpClient _client;
+    private bool _disposed;
+
+    public IPEndPoint LocalEndPoint => (IPEndPoint)_client.Client.LocalEndPoint!;
+
+    public UdpTransport(string localAddress, int localPort)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        using var client = CreateClient(endpoint);
-        await client.SendAsync(request, new IPEndPoint(IPAddress.Parse(endpoint.RemoteAddress), endpoint.RemotePort), cancellationToken);
+        var localIp = IPAddress.Parse(localAddress);
+        _client = new UdpClient(new IPEndPoint(localIp, localPort));
     }
 
-    public async Task<UdpTransportResult> SendAndReceiveAsync(UdpEndpointOptions endpoint, ReadOnlyMemory<byte> request, TimeSpan timeout, CancellationToken cancellationToken)
+    public async Task SendAsync(
+        ReadOnlyMemory<byte> request,
+        IPEndPoint remoteEndpoint,
+        CancellationToken cancellationToken)
     {
+        ThrowIfDisposed();
+        cancellationToken.ThrowIfCancellationRequested();
+        await _client.SendAsync(request, remoteEndpoint, cancellationToken);
+    }
+
+    public async Task<UdpTransportResult> ReceiveAsync(
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
         cancellationToken.ThrowIfCancellationRequested();
-        using var client = CreateClient(endpoint);
-        var remoteEndpoint = new IPEndPoint(IPAddress.Parse(endpoint.RemoteAddress), endpoint.RemotePort);
-        await client.SendAsync(request, remoteEndpoint, cancellationToken);
+
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutSource.CancelAfter(timeout);
+
         try
         {
-            while (true)
-            {
-                var reply = await client.ReceiveAsync(timeoutSource.Token);
-                if (reply.RemoteEndPoint.Address.Equals(remoteEndpoint.Address) && reply.RemoteEndPoint.Port == remoteEndpoint.Port)
-                {
-                    return new UdpTransportResult(reply.Buffer, reply.RemoteEndPoint);
-                }
-            }
+            var reply = await _client.ReceiveAsync(timeoutSource.Token);
+            return new UdpTransportResult(reply.Buffer, reply.RemoteEndPoint);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new TimeoutException("接收 UDP 回复超时");
+            throw new TimeoutException("鎺ユ敹 UDP 鍥炲瓒呮椂");
         }
     }
 
-    private static UdpClient CreateClient(UdpEndpointOptions endpoint) =>
-        new(new IPEndPoint(IPAddress.Parse(endpoint.LocalAddress), endpoint.LocalPort));
+    public async Task<UdpTransportResult> SendAndReceiveAsync(
+        ReadOnlyMemory<byte> request,
+        IPEndPoint remoteEndpoint,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        ThrowIfDisposed();
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await _client.SendAsync(request, remoteEndpoint, cancellationToken);
+        return await ReceiveAsync(timeout, cancellationToken);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(UdpTransport));
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _client.Dispose();
+    }
 }

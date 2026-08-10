@@ -1,7 +1,8 @@
+﻿using UdpCommunication.Transport;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.SequenceModels;
 
-namespace UdpCommunication.StepPlugin.Validation;
+namespace UdpCommunication.Validation;
 
 public static class UdpResponseVariable
 {
@@ -37,7 +38,7 @@ public static class UdpResponseVariable
 
         if (!TrySplitPath(path, out var scopeName, out var variableName))
         {
-            return "回复变量必须使用“作用域.变量名”格式";
+            return "回复变量必须使用 \"作用域.变量名\" 格式";
         }
 
         if (scopeName == StepScope)
@@ -48,23 +49,23 @@ public static class UdpResponseVariable
         var scope = GetScope(scopeName, context);
         if (scope is null)
         {
-            return $"回复变量作用域“{scopeName}”无效";
+            return $"回复变量作用域 \"{scopeName}\" 无效";
         }
 
         if (!context.HasVariable(path))
         {
-            return $"回复变量“{path}”未定义";
+            return $"回复变量 \"{path}\" 未定义";
         }
 
         var definition = scope.GetVariableDefinition(variableName);
         if (definition is null)
         {
-            return $"无法读取回复变量“{path}”的定义";
+            return $"无法读取回复变量 \"{path}\" 的定义";
         }
 
         if (definition.AccessMode == VariableAccessMode.ReadOnly)
         {
-            return $"回复变量“{path}”是只读变量";
+            return $"回复变量 \"{path}\" 是只读的";
         }
 
         if (definition.DataType is not (
@@ -72,7 +73,7 @@ public static class UdpResponseVariable
             VariableDataType.Dynamic or
             VariableDataType.Object))
         {
-            return $"回复变量“{path}”类型必须为 String、Dynamic 或 Object";
+            return $"回复变量 \"{path}\" 的类型必须是 String、Dynamic 或 Object";
         }
 
         return null;

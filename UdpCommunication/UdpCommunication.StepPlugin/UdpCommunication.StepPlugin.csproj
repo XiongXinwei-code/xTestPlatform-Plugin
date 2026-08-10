@@ -1,14 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
-    <UseWPF>true</UseWPF>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>UdpCommunication.StepPlugin</AssemblyName>
+    <RootNamespace>UdpCommunication</RootNamespace>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <OutputPath>..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\UdpCommunication\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
-    <PackageReference Include="MessagePack" Version="3.1.8" />
+    <InternalsVisibleTo Include="UdpCommunication.StepPlugin.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="3.1.7" />
+    <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
+  </ItemGroup>
+
 </Project>

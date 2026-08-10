@@ -1,123 +1,176 @@
-using System.Diagnostics;
-using UdpCommunication.StepPlugin.Display;
-using UdpCommunication.StepPlugin.Models;
-using UdpCommunication.StepPlugin.Protocol;
-using UdpCommunication.StepPlugin.Transport;
-using UdpCommunication.StepPlugin.Validation;
+﻿using System.Net;
+using UdpCommunication.Helpers;
+using UdpCommunication.Models;
+using UdpCommunication.Protocol;
+using UdpCommunication.Transport;
+using UdpCommunication.Validation;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
+using xTestPlatform.Core.Services.ExpressionEngine;
 
-namespace UdpCommunication.StepPlugin.Executors;
+namespace UdpCommunication.Executors;
 
 public sealed class UdpSendAndReceiveExecutor : IStepExecutor
 {
-    private readonly IStepSettingSerializer _serializer;
-    private readonly IUdpTransport _transport;
-
-    public UdpSendAndReceiveExecutor(IStepSettingSerializer serializer, IUdpTransport? transport = null)
-    {
-        _serializer = serializer;
-        _transport = transport ?? new UdpTransport();
-    }
+    private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            var step = context.CurrentStep?.Step ?? throw new InvalidOperationException("未找到当前步骤配置");
-            var setting = step.StepSetting.Setting is { Length: > 0 } data
-                ? (UdpSendAndReceiveSetting)_serializer.Deserialize(data, step.StepSetting.SettingVersion)
-                : (UdpSendAndReceiveSetting)_serializer.CreateDefault();
-            var endpoint = new UdpEndpointOptions(setting.LocalAddress, setting.LocalPort, setting.RemoteAddress, setting.RemotePort);
-            var validation = UdpSettingsValidator.ValidateEndpoint(endpoint);
-            if (validation is not null || setting.ReceiveTimeoutMs <= 0)
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdpSendAndReceivePlugin().CreateSerializer();
+            var s = (UdpSendAndReceiveSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
+            if (!TryResolveTransport(context, s.OpenStepAddress, out var transport, out var errorMessage))
             {
-                return ConfigurationError(context, validation ?? "接收超时必须大于 0");
+                context.LogAction?.Invoke($"UDP 错误：{errorMessage}");
+                return new ExecutionResult
+                {
+                    StepResult = new StepResult
+                    {
+                        Status = TestStatus.Error,
+                        Error = new ErrorInfo { Message = errorMessage }
+                    }
+                };
             }
 
-            var responseVariableError = UdpResponseVariable.Validate(setting.ResponseVariable, context);
+            var remoteAddress = await Evaluator.EvalStringAsync(s.RemoteAddress, context);
+            var requestData = await Evaluator.EvalStringAsync(s.RequestData, context);
+            var expectedReply = await Evaluator.EvalStringAsync(s.ExpectedReply, context);
+
+            if (s.ReceiveTimeoutMs <= 0)
+            {
+                context.LogAction?.Invoke("UDP 配置错误：接收超时必须大于 0");
+                return new ExecutionResult
+                {
+                    StepResult = new StepResult
+                    {
+                        Status = TestStatus.Error,
+                        Error = new ErrorInfo { Message = "接收超时必须大于 0" }
+                    }
+                };
+            }
+
+            var responseVariableError = UdpResponseVariable.Validate(s.ResponseVariable, context);
             if (responseVariableError is not null)
             {
-                return ConfigurationError(context, responseVariableError);
+                context.LogAction?.Invoke($"UDP 配置错误：{responseVariableError}");
+                return new ExecutionResult
+                {
+                    StepResult = new StepResult
+                    {
+                        Status = TestStatus.Error,
+                        Error = new ErrorInfo { Message = responseVariableError }
+                    }
+                };
             }
 
-            var payload = UdpMessageCodec.Encode(setting.RequestData, setting.RequestFormat);
-            Log(
-                context,
-                $"UDP 发送开始：{endpoint.LocalAddress}:{endpoint.LocalPort} → " +
-                $"{endpoint.RemoteAddress}:{endpoint.RemotePort}，格式 {setting.RequestFormat}，" +
-                $"{payload.Length} 字节，内容 {UdpDescriptionFormatter.Preview(setting.RequestData)}");
-            Log(context, $"UDP 等待回复：超时 {setting.ReceiveTimeoutMs} ms");
-            var reply = await _transport.SendAndReceiveAsync(
-                endpoint,
-                payload,
-                TimeSpan.FromMilliseconds(setting.ReceiveTimeoutMs),
-                cancellationToken);
-            var actual = UdpMessageCodec.Decode(reply.Payload, setting.ReplyFormat);
-            Log(
-                context,
-                $"UDP 收到回复：来源 {reply.RemoteEndPoint}，格式 {setting.ReplyFormat}，" +
-                $"{reply.Payload.Length} 字节，内容 {UdpDescriptionFormatter.Preview(actual)}");
+            var remoteEndpoint = new IPEndPoint(IPAddress.Parse(remoteAddress), s.RemotePort);
+            var payload = UdpMessageCodec.Encode(requestData, s.RequestFormat);
 
-            var responseVariable = UdpResponseVariable.NormalizePath(setting.ResponseVariable);
+            context.LogAction?.Invoke(
+                $"UDP 发送：{transport!.LocalEndPoint} → {remoteEndpoint}，" +
+                $"格式 {s.RequestFormat}，{payload.Length} 字节，" +
+                $"内容 {UdpExecutionLog.Preview(requestData)}");
+
+            context.LogAction?.Invoke($"UDP 等待回复：超时 {s.ReceiveTimeoutMs} ms");
+
+            var reply = await transport.SendAndReceiveAsync(
+                payload,
+                remoteEndpoint,
+                TimeSpan.FromMilliseconds(s.ReceiveTimeoutMs),
+                cancellationToken);
+
+            var actual = UdpMessageCodec.Decode(reply.Payload, s.ReplyFormat);
+
+            context.LogAction?.Invoke(
+                $"UDP 收到回复：来源 {reply.RemoteEndPoint}，" +
+                $"格式 {s.ReplyFormat}，{reply.Payload.Length} 字节，" +
+                $"内容 {UdpExecutionLog.Preview(actual)}");
+
+            var responseVariable = UdpResponseVariable.NormalizePath(s.ResponseVariable);
             if (responseVariable is not null)
             {
                 context.SetVariable(responseVariable, actual);
-                Log(context, $"UDP 写入回复变量 {responseVariable}：{UdpDescriptionFormatter.Preview(actual)}");
+                context.LogAction?.Invoke($"UDP 写入回复变量 {responseVariable}：{UdpExecutionLog.Preview(actual)}");
             }
 
-            var matched = string.IsNullOrEmpty(setting.ExpectedReply)
-                || UdpMessageCodec.IsMatch(reply.Payload, UdpMessageCodec.Encode(setting.ExpectedReply, setting.ReplyFormat), setting.MatchMode);
-            if (string.IsNullOrEmpty(setting.ExpectedReply))
-            {
-                Log(context, "UDP 未配置期望回复：收到任意回复即通过");
-            }
-            else
-            {
-                Log(
-                    context,
-                    $"UDP 回复匹配{(matched ? "通过" : "失败")}：模式 {setting.MatchMode}，" +
-                    $"期望 {UdpDescriptionFormatter.Preview(setting.ExpectedReply)}，" +
-                    $"实际 {UdpDescriptionFormatter.Preview(actual)}");
-            }
+            var matched = string.IsNullOrEmpty(expectedReply)
+                || UdpMessageCodec.IsMatch(
+                    reply.Payload,
+                    UdpMessageCodec.Encode(expectedReply, s.ReplyFormat),
+                    s.MatchMode);
 
-            return new ExecutionResult { StepResult = new StepResult { Status = matched ? TestStatus.Passed : TestStatus.Failed, Value = actual, UpperBound = setting.ExpectedReply, Condition = setting.MatchMode == UdpReplyMatchMode.Exact ? "完全相等" : "包含指定字段" } };
+            context.LogAction?.Invoke(
+                $"UDP 回复匹配{(matched ? "通过" : "失败")}：" +
+                $"模式 {s.MatchMode}，" +
+                $"期望 {UdpExecutionLog.Preview(expectedReply)}，" +
+                $"实际 {UdpExecutionLog.Preview(actual)}");
+
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = matched ? TestStatus.Passed : TestStatus.Failed,
+                    Value = actual,
+                    UpperBound = expectedReply,
+                    Condition = s.MatchMode == UdpReplyMatchMode.Exact ? "完全相等" : "包含指定字段"
+                }
+            };
         }
         catch (TimeoutException ex)
         {
-            Log(context, $"UDP 接收超时：{ex.Message}");
-            return Fail(ex.Message);
+            context.LogAction?.Invoke($"UDP 接收超时：{ex.Message}");
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Failed,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
         catch (OperationCanceledException)
         {
-            Log(context, "UDP 收发已取消");
+            context.LogAction?.Invoke("UDP 收发已取消");
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
         catch (Exception ex)
         {
-            Log(context, $"UDP 收发失败：{ex.Message}");
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = ex.Message } } };
+            context.LogAction?.Invoke($"UDP 收发失败：{ex.Message}");
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
     }
 
-    private static ExecutionResult Fail(string message) => new() { StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = message } } };
-
-    private static ExecutionResult ConfigurationError(IExecutionContext context, string message)
+    private static bool TryResolveTransport(
+        IExecutionContext context, string openStepAddress,
+        out IUdpTransport? transport, out string errorMessage)
     {
-        Log(context, $"UDP 配置错误：{message}");
-        return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = message } } };
-    }
+        transport = null;
+        if (string.IsNullOrWhiteSpace(openStepAddress))
+        {
+            errorMessage = "未指定 OpenStepAddress（请先创建一个 UDP_Open 步骤并在此处选择）";
+            return false;
+        }
 
-    private static void Log(IExecutionContext context, string message)
-    {
-        try
+        var key = UdpHelper.GetConnectionKey(openStepAddress);
+        if (!context.CurrentStep!.RuntimeData.TryGetValue(key, out var obj) || obj is not IUdpTransport t)
         {
-            context.LogAction?.Invoke(message);
+            errorMessage = $"连接 {key} 未打开，请先执行引用的 UDP_Open 步骤";
+            return false;
         }
-        catch (Exception ex)
-        {
-            Trace.TraceError($"UDP 平台日志输出失败：{ex.Message}");
-        }
+
+        transport = t;
+        errorMessage = string.Empty;
+        return true;
     }
 }

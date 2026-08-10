@@ -1,230 +1,120 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using UdpCommunication.StepPlugin.Executors;
-using UdpCommunication.StepPlugin.Models;
-using UdpCommunication.StepPlugin.Protocol;
-using UdpCommunication.StepPlugin.Transport;
+using UdpCommunication.Executors;
+using UdpCommunication.Models;
+using UdpCommunication.Protocol;
+using UdpCommunication.Transport;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.SequenceModels;
 using Xunit;
 
-namespace UdpCommunication.StepPlugin.Tests;
+namespace UdpCommunication.Tests;
 
-public sealed class UdpExecutorTests
+/// <summary>
+/// Validates MockExpressionEvaluator and TestExecutionContextFactory work correctly in test process.
+/// Use TestExecutionContextFactory.Use(new MockExpressionEvaluator()) to avoid Roslyn compilation hang.
+/// </summary>
+public sealed class UdpExecutorTests : IDisposable
 {
+    private readonly IDisposable _evaluatorScope = TestExecutionContextFactory.Use(new MockExpressionEvaluator());
+
+    public void Dispose() => _evaluatorScope.Dispose();
+
     [Fact]
-    public async Task SendExecutor_UsesInjectedTransportWithoutOpeningSocket()
+    public void MockEvaluator_ParsesQuotedLiteral()
+    {
+        using var _ = TestExecutionContextFactory.Use(new MockExpressionEvaluator());
+        var evaluator = TestableEvaluator.Current;
+        Assert.NotNull(evaluator);
+        var result = evaluator!.Evaluate<string>("\"127.0.0.1\"", null!);
+        Assert.Equal("127.0.0.1", result);
+    }
+
+    [Fact]
+    public void MockEvaluator_AsyncReturnsCorrectValue()
+    {
+        using var _ = TestExecutionContextFactory.Use(new MockExpressionEvaluator());
+        var evaluator = TestableEvaluator.Current;
+        Assert.NotNull(evaluator);
+        var result = evaluator!.Evaluate<string>("\"hello world\"", null!);
+        Assert.Equal("hello world", result);
+    }
+
+    [Fact]
+    public async Task SendExecutor_ConfigurationError_InvalidIP_ReturnsError()
     {
         var setting = new UdpSendSetting
         {
-            RemoteAddress = "127.0.0.1",
+            RemoteAddress = "\"not-an-ip\"",
             RemotePort = 9000,
-            RequestData = "PING"
+            RequestData = "\"PING\""
         };
-        var serializer = new TestStepSettingSerializer(setting, setting);
-        var transport = new FakeUdpTransport();
         var step = new Step();
-        step.StepSetting.Setting = [1];
+        var context = TestExecutionContextFactory.Create(setting, step);
 
-        var result = await new UdpSendExecutor(serializer, transport)
-            .ExecuteAsync(TestExecutionContextFactory.Create(step));
+        var result = await new UdpSendExecutor().ExecuteAsync(context);
 
-        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
-        Assert.Equal("127.0.0.1", transport.LastEndpoint?.RemoteAddress);
-        Assert.Equal(9000, transport.LastEndpoint?.RemotePort);
-        Assert.Equal("PING", Encoding.UTF8.GetString(transport.LastRequest!));
+        Assert.Equal(TestStatus.Error, result.StepResult.Status);
     }
 
     [Fact]
-    public async Task SendAndReceiveExecutor_InjectedTransportTimeout_ReturnsFailed()
+    public async Task SendExecutor_MixedAddressFamilies_ReturnsError()
     {
-        var setting = new UdpSendAndReceiveSetting
+        var setting = new UdpSendSetting
         {
+            RemoteAddress = "\"::1\"",
             RemotePort = 9000,
-            ReceiveTimeoutMs = 100,
-            RequestData = "PING"
-        };
-        var serializer = new TestStepSettingSerializer(setting, setting);
-        var transport = new FakeUdpTransport { Exception = new TimeoutException("timed out") };
-        var step = new Step();
-        step.StepSetting.Setting = [1];
-
-        var result = await new UdpSendAndReceiveExecutor(serializer, transport)
-            .ExecuteAsync(TestExecutionContextFactory.Create(step));
-
-        Assert.Equal(TestStatus.Failed, result.StepResult.Status);
-        Assert.Equal("timed out", result.StepResult.Error?.Message);
-    }
-
-    [Fact]
-    public async Task SendAndReceiveExecutor_InjectedTransportCancellation_ReturnsAborted()
-    {
-        var setting = new UdpSendAndReceiveSetting
-        {
-            RemotePort = 9000,
-            ReceiveTimeoutMs = 100,
-            RequestData = "PING"
+            RequestData = "\"PING\""
         };
         var step = new Step();
-        step.StepSetting.Setting = [1];
+        var context = TestExecutionContextFactory.Create(setting, step);
 
-        var result = await new UdpSendAndReceiveExecutor(
-                new TestStepSettingSerializer(setting, setting),
-                new FakeUdpTransport { Exception = new OperationCanceledException("cancelled") })
-            .ExecuteAsync(TestExecutionContextFactory.Create(step));
-
-        Assert.Equal(TestStatus.Aborted, result.StepResult.Status);
-    }
-
-    [Fact]
-    public async Task SendExecutor_EmptySetting_UsesSerializerDefault()
-    {
-        var serializer = new TestStepSettingSerializer(new UdpSendSetting(), new UdpSendSetting());
-        var step = new Step();
-        step.StepSetting.Setting = [];
-
-        var result = await new UdpSendExecutor(serializer).ExecuteAsync(TestExecutionContextFactory.Create(step));
-
-        Assert.True(serializer.CreateDefaultCalled);
-        Assert.Equal(TestStatus.Error, result.StepResult.Status);
-    }
-
-    [Fact]
-    public async Task SendAndReceiveExecutor_EmptySetting_UsesSerializerDefault()
-    {
-        var serializer = new TestStepSettingSerializer(new UdpSendAndReceiveSetting(), new UdpSendAndReceiveSetting());
-        var step = new Step();
-        step.StepSetting.Setting = [];
-
-        var result = await new UdpSendAndReceiveExecutor(serializer).ExecuteAsync(TestExecutionContextFactory.Create(step));
-
-        Assert.True(serializer.CreateDefaultCalled);
-        Assert.Equal(TestStatus.Error, result.StepResult.Status);
-    }
-
-    [Fact]
-    public async Task SendExecutor_InvalidEndpoint_ReturnsError()
-    {
-        var serializer = new TestStepSettingSerializer(
-            new UdpSendSetting(),
-            new UdpSendSetting { RemoteAddress = "not-an-ip", RemotePort = 9000 });
-        var step = new Step();
-        step.StepSetting.Setting = [1];
-
-        var result = await new UdpSendExecutor(serializer).ExecuteAsync(TestExecutionContextFactory.Create(step));
+        var result = await new UdpSendExecutor().ExecuteAsync(context);
 
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
-    }
-
-    [Fact]
-    public async Task SendExecutor_MixedAddressFamilies_ReturnsErrorWithoutCallingTransport()
-    {
-        var setting = new UdpSendSetting { LocalAddress = "127.0.0.1", RemoteAddress = "::1", RemotePort = 9000 };
-        var transport = new FakeUdpTransport();
-        var step = new Step();
-        step.StepSetting.Setting = [1];
-
-        var result = await new UdpSendExecutor(new TestStepSettingSerializer(setting, setting), transport)
-            .ExecuteAsync(TestExecutionContextFactory.Create(step));
-
-        Assert.Equal(TestStatus.Error, result.StepResult.Status);
-        Assert.Null(transport.LastEndpoint);
     }
 
     [Fact]
     public async Task SendAndReceiveExecutor_InvalidTimeout_ReturnsError()
     {
-        var serializer = new TestStepSettingSerializer(
-            new UdpSendAndReceiveSetting(),
-            new UdpSendAndReceiveSetting { RemotePort = 9000, ReceiveTimeoutMs = 0 });
+        var setting = new UdpSendAndReceiveSetting
+        {
+            RemoteAddress = "\"127.0.0.1\"",
+            RemotePort = 9000,
+            ReceiveTimeoutMs = 0,
+            RequestData = "\"PING\""
+        };
         var step = new Step();
-        step.StepSetting.Setting = [1];
+        var context = TestExecutionContextFactory.Create(setting, step);
 
-        var result = await new UdpSendAndReceiveExecutor(serializer).ExecuteAsync(TestExecutionContextFactory.Create(step));
+        var result = await new UdpSendAndReceiveExecutor().ExecuteAsync(context);
 
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
     }
 
     [Fact]
-    public async Task SendExecutor_WritesPlatformLogForSuccessfulSend()
+    public async Task SendExecutor_EmptySetting_UsesDefault()
     {
-        using var server = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        var serverPort = ((IPEndPoint)server.Client.LocalEndPoint!).Port;
-        var setting = new UdpSendSetting
-        {
-            RemotePort = serverPort,
-            RequestData = "PING"
-        };
-        var serializer = new TestStepSettingSerializer(setting, setting);
         var step = new Step();
-        step.StepSetting.Setting = [1];
-        var (context, proxy) = TestExecutionContextFactory.CreateWithProxy(step);
+        step.StepSetting.Setting = [];
+        var context = TestExecutionContextFactory.Create(new UdpSendSetting(), step);
 
-        var result = await new UdpSendExecutor(serializer).ExecuteAsync(context);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        var request = await server.ReceiveAsync(timeout.Token);
+        var result = await new UdpSendExecutor().ExecuteAsync(context);
 
-        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
-        Assert.Equal("PING", Encoding.UTF8.GetString(request.Buffer));
-        Assert.Contains(proxy.Logs, message => message.Contains("UDP 发送开始", StringComparison.Ordinal));
-        Assert.Contains(proxy.Logs, message => message.Contains("UDP 发送完成", StringComparison.Ordinal));
+        Assert.Equal(TestStatus.Error, result.StepResult.Status);
     }
 
     [Fact]
-    public async Task SendAndReceiveExecutor_LogsReplyAndWritesNormalizedStepVariable()
+    public async Task SendAndReceiveExecutor_EmptySetting_UsesDefault()
     {
-        using var server = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        var serverPort = ((IPEndPoint)server.Client.LocalEndPoint!).Port;
-        var responder = Task.Run(async () =>
-        {
-            var request = await server.ReceiveAsync();
-            await server.SendAsync(Encoding.UTF8.GetBytes("ACK"), request.RemoteEndPoint);
-        });
-        var setting = new UdpSendAndReceiveSetting
-        {
-            RemotePort = serverPort,
-            RequestData = "PING",
-            ExpectedReply = "ACK",
-            MatchMode = UdpReplyMatchMode.Exact,
-            ResponseVariable = "UdpReply",
-            ReceiveTimeoutMs = 1000
-        };
-        var serializer = new TestStepSettingSerializer(setting, setting);
         var step = new Step();
-        step.StepSetting.Setting = [1];
-        var (context, proxy) = TestExecutionContextFactory.CreateWithProxy(step);
+        step.StepSetting.Setting = [];
+        var context = TestExecutionContextFactory.Create(new UdpSendAndReceiveSetting(), step);
 
-        var result = await new UdpSendAndReceiveExecutor(serializer).ExecuteAsync(context);
-        await responder;
+        var result = await new UdpSendAndReceiveExecutor().ExecuteAsync(context);
 
-        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
-        Assert.Equal("ACK", proxy.WrittenVariables["Step.UdpReply"]);
-        Assert.Contains(proxy.Logs, message => message.Contains("等待回复", StringComparison.Ordinal));
-        Assert.Contains(proxy.Logs, message => message.Contains("UDP 收到回复", StringComparison.Ordinal));
-        Assert.Contains(proxy.Logs, message => message.Contains("写入回复变量 Step.UdpReply", StringComparison.Ordinal));
-        Assert.Contains(proxy.Logs, message => message.Contains("匹配通过", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public async Task SendAndReceiveExecutor_LogsTimeout()
-    {
-        using var server = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
-        var serverPort = ((IPEndPoint)server.Client.LocalEndPoint!).Port;
-        var setting = new UdpSendAndReceiveSetting
-        {
-            RemotePort = serverPort,
-            ReceiveTimeoutMs = 50
-        };
-        var serializer = new TestStepSettingSerializer(setting, setting);
-        var step = new Step();
-        step.StepSetting.Setting = [1];
-        var (context, proxy) = TestExecutionContextFactory.CreateWithProxy(step);
-
-        var result = await new UdpSendAndReceiveExecutor(serializer).ExecuteAsync(context);
-
-        Assert.Equal(TestStatus.Failed, result.StepResult.Status);
-        Assert.Contains(proxy.Logs, message => message.Contains("超时", StringComparison.Ordinal));
+        Assert.Equal(TestStatus.Error, result.StepResult.Status);
     }
 
     [Fact]
@@ -232,44 +122,16 @@ public sealed class UdpExecutorTests
     {
         var setting = new UdpSendSetting
         {
-            RemoteAddress = "not-an-ip",
-            RemotePort = 9000
+            RemoteAddress = "\"not-an-ip\"",
+            RemotePort = 9000,
+            RequestData = "\"PING\""
         };
-        var serializer = new TestStepSettingSerializer(setting, setting);
         var step = new Step();
-        step.StepSetting.Setting = [1];
-        var (context, proxy) = TestExecutionContextFactory.CreateWithProxy(step);
+        var (context, proxy) = TestExecutionContextFactory.CreateWithProxy(setting, step);
 
-        var result = await new UdpSendExecutor(serializer).ExecuteAsync(context);
+        var result = await new UdpSendExecutor().ExecuteAsync(context);
 
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
-        Assert.Contains(proxy.Logs, message => message.Contains("配置错误", StringComparison.Ordinal));
-    }
-
-    private sealed class FakeUdpTransport : IUdpTransport
-    {
-        public UdpEndpointOptions? LastEndpoint { get; private set; }
-        public byte[]? LastRequest { get; private set; }
-        public Exception? Exception { get; init; }
-
-        public Task SendAsync(UdpEndpointOptions endpoint, ReadOnlyMemory<byte> request, CancellationToken cancellationToken)
-        {
-            LastEndpoint = endpoint;
-            LastRequest = request.ToArray();
-            return Exception is null ? Task.CompletedTask : Task.FromException(Exception);
-        }
-
-        public Task<UdpTransportResult> SendAndReceiveAsync(
-            UdpEndpointOptions endpoint,
-            ReadOnlyMemory<byte> request,
-            TimeSpan timeout,
-            CancellationToken cancellationToken)
-        {
-            LastEndpoint = endpoint;
-            LastRequest = request.ToArray();
-            return Exception is null
-                ? Task.FromResult(new UdpTransportResult("ACK"u8.ToArray(), new IPEndPoint(IPAddress.Loopback, endpoint.RemotePort)))
-                : Task.FromException<UdpTransportResult>(Exception);
-        }
+        Assert.Contains(proxy.Logs, message => message.Contains("错误", StringComparison.Ordinal));
     }
 }

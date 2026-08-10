@@ -1,5 +1,5 @@
-using System.Net;
+﻿using System.Net;
 
-namespace UdpCommunication.StepPlugin.Transport;
+namespace UdpCommunication.Transport;
 
 public sealed record UdpTransportResult(byte[] Payload, IPEndPoint RemoteEndPoint);
