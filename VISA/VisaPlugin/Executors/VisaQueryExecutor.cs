@@ -27,9 +27,7 @@ public sealed class VisaQueryExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var command = await Evaluator.EvalStringAsync(setting.Command, context);
             var varName = setting.ResultVariable;
-            var key = VisaHelper.GetSessionKey(connName);
-
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IMessageBasedSession session)
+            if (!VisaHelper.TryGetSession(connName, out var session) || session is null)
             {
                 return new ExecutionResult
                 {

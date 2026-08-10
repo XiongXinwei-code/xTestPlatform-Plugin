@@ -22,7 +22,7 @@ $content = @'
 
   <ItemGroup>
 	<ProjectReference Include="..\VisaPlugin\VisaPlugin.csproj" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
 	<PackageReference Include="MessagePack" Version="3.1.7" />
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 	<PackageReference Include="AvalonEdit" Version="6.3.0.90" />

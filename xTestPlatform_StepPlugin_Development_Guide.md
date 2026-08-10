@@ -1,4 +1,4 @@
-﻿# xTestPlatform 步骤插件开发手册
+# xTestPlatform 步骤插件开发手册
 
 > **版本**：3.2.1 | **框架**：.NET 8 / WPF | **日期**：2025-08-05
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
@@ -1850,7 +1850,7 @@ DelayCheck/
 
     <ItemGroup>
         <!-- ✅ 通过 NuGet SDK 包获取 Core + Abstractions，禁止依赖主程序集 -->
-        <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+        <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
         <PackageReference Include="MessagePack" Version="3.1.7" />
     </ItemGroup>
 </Project>
@@ -1873,7 +1873,7 @@ DelayCheck/
     <ItemGroup>
         <!-- 引用执行层项目 -->
         <ProjectReference Include="..\DelayCheckPlugin\DelayCheckPlugin.csproj" />
-        <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+        <PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
         <PackageReference Include="MessagePack" Version="3.1.7" />
         <!-- UI 层可选依赖 -->
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

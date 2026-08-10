@@ -34,7 +34,7 @@ foreach ($d in $dirs) {
 
   <ItemGroup>
 	<PackageReference Include="MessagePack" Version="3.1.7" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
 	<PackageReference Include="NModbus" Version="3.0.81" />
 	<PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>

@@ -26,10 +26,8 @@ public sealed class VisaOpenExecutor : IStepExecutor
         {
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var resource = await Evaluator.EvalStringAsync(setting.ResourceString, context);
-            var key = VisaHelper.GetSessionKey(connName);
-
             // 若已存在同名会话（序列异常终止未关闭），先销毁旧会话
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingSession) && existingSession is IMessageBasedSession oldSession)
+            if (VisaHelper.TryRemoveSession(connName, out var oldSession) && oldSession is not null)
             {
                 try { oldSession.Dispose(); } catch { /* 忽略销毁异常 */ }
                 context.LogAction?.Invoke($"VISA 会话 {connName} 检测到已有连接，已自动销毁旧会话");
@@ -37,7 +35,7 @@ public sealed class VisaOpenExecutor : IStepExecutor
 
             var session = VisaHelper.OpenSession(resource, setting.OpenTimeoutMs, setting.IoTimeoutMs, setting.Terminator);
 
-            context.CurrentStep.RuntimeData[key] = session;
+            VisaHelper.StoreSession(connName, session);
 
             context.LogAction?.Invoke($"VISA 会话已打开: {connName} ({resource})");
 

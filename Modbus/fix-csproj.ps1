@@ -30,7 +30,7 @@ $csproj = '<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
 	<ProjectReference Include="..\ModbusPlugin\ModbusPlugin.csproj" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.0.14" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.2" />
 	<PackageReference Include="MessagePack" Version="3.1.7" />
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
