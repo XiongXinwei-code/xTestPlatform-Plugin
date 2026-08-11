@@ -736,6 +736,7 @@ public class Variables {
     public string             Unit          { get; set; }
     public bool               IsExpression  { get; set; }
     public string             Expression    { get; set; }
+    public List<string>?      EnumValues    { get; set; }  // Enum 成员名列表（顺序即索引，仅 DataType=Enum 时使用）
     public string             Group         { get; set; }
 }
 ```
@@ -744,10 +745,19 @@ public class Variables {
 
 | 分类  | 类型                                                                |
 | --- | ----------------------------------------------------------------- |
-| 整数  | `Int8` `UInt8` `Int16` `UInt16` `Int32` `UInt32` `Int64` `UInt64` |
-| 浮点  | `Single` `Double`                                                 |
-| 基础  | `Boolean` `String`                                                |
-| 特殊  | `Variant` `Cluster` `Array` `Expression` `Reference` `Object`     |
+| 整数  | `SByte` `Byte` `Short` `UShort` `Int` `UInt` `Long` `ULong` |
+| 浮点  | `Float` `Double`                                                 |
+| 基础  | `Bool` `String`                                                |
+| 特殊  | `Dynamic` `Object` `Enum`（运行时值为 `EnumValue`，支持成员名/索引双重语义）     |
+| 复合  | `Struct` `List` `Dictionary`                                     |
+| List 具体类型 | `ListBool` `ListInt` `ListLong` `ListFloat` `ListDouble` `ListString` `ListDynamic` `ListByte` |
+| Matrix（二维数组） | `Matrix` `MatrixBool` `MatrixInt` `MatrixLong` `MatrixFloat` `MatrixDouble` `MatrixString` |
+| 波形  | `Waveform`（运行时值为 `WaveformData`，无静态默认值，由插件/表达式写入） |
+| 保留  | `Reference`                     |
+
+> **Waveform 类型说明**：插件采集到数据后，直接通过 `context.SetVariable("Locals.Wave", new WaveformData { ... })` 写入波形变量即可，用户可在变量监控面板的波形查看器中查看（支持快照/滚动/叠加模式）。
+> `WaveformData { TaskID, SampleRate, X0, XUnit, YUnit, Channels }`，通道 `ChannelData { Channel, Values(double[]), YUnit, Scale, Offset }`，实际值 = 原始值 × Scale + Offset。
+> 旧版通过 `RaiseEvent("waveform", ...)` 推送到独立波形监控面板的方式已废弃。
 
 ---
 
@@ -1289,13 +1299,13 @@ ExpectedResultType="String"
 | `String` | `string` |
 | `Dynamic` | `dynamic` |
 | `Object` | `object` |
-| `Enum` | 枚举（底层整型） |
+| `Enum` | `EnumValue`（支持成员名字符串和索引 int 比较） |
 | `Struct` | struct / IDictionary |
 | `List` | `List<T>` |
 | `Dictionary` | `Dictionary` |
 | `ListBool` / `ListInt` / `ListLong` / `ListFloat` / `ListDouble` / `ListString` / `ListDynamic` / `ListByte` | 具体 List 类型 |
 | `Matrix` / `MatrixBool` / `MatrixInt` / `MatrixLong` / `MatrixFloat` / `MatrixDouble` / `MatrixString` | 二维矩阵类型 |
-| `Expression` | 表达式 |
+| `Waveform` | `WaveformData`（波形） |
 | `Reference` | 引用 |
 
 **支持的别名（自动转换，填写别名与填写枚举名等效）：**

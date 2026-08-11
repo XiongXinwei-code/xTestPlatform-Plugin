@@ -16,26 +16,23 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
     public override string Description => """
         ## 功能
 
-        停止 OPC UA 后台数据采集任务，并将采集数据导出为 CSV 文件和/或统计值存入变量。
+        停止 OPC UA 后台数据采集任务并释放资源。未被消费的缓冲数据将被丢弃，如需读取请在 Stop 前执行 OpcUa_DataAcq_Read。
 
         ## 参数
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | TaskName | 表达式(string) | 是 | — | 要停止的采集任务名 |
-        | ExportFormat | 枚举 | 是 | Csv | 可选值：Csv, Variable, Both |
-        | CsvFilePath | 表达式(string) | 含 Csv 时 | — | CSV 导出路径 |
-        | SaveStatistics | bool | 否 | false | 是否保存统计值（最大/最小/均值等）到变量 |
-        | StatVariablePrefix | string | 否 | 空 | 统计变量前缀，SaveStatistics=true 时使用 |
 
         ## 行为
 
-        - 停止后台采集并按 ExportFormat 导出数据
-        - 任务不存在或导出失败时步骤报错
+        - 停止后台采集任务并释放资源
+        - 任务不存在时步骤报错
 
         ## 相关插件
 
         - `OpcUa_DataAcq_Start`：启动采集任务
+        - `OpcUa_DataAcq_Read`：从 FIFO 缓冲读取（消费）采集数据
         """;
 
     public override IStepExecutor CreateExecutor() => new OpcUaDataAcqStopExecutor();
@@ -43,6 +40,6 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);
-        return $"DataAcq Stop: {s.TaskName} → {s.ExportFormat}";
+        return $"DataAcq Stop: {s.TaskName}";
     }
 }

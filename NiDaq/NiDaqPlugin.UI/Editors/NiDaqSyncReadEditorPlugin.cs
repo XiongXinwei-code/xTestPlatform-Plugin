@@ -36,11 +36,7 @@ public sealed class NiDaqSyncReadEditorPlugin : IStepEditorPlugin
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
             errors.Add(StepSettingError.Error("DAQ_032", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
         else
-        {
-            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
-            if (val is not null && val is not double[,])
-                errors.Add(StepSettingError.Error("DAQ_033", $"变量 {s.ResultVariable} 类型不匹配，期望 double[,]，实际类型 {val.GetType().Name}"));
-        }
+            NiDaqVariableValidator.CheckWaveformVariable(context.ExecutionContext, s.ResultVariable, "DAQ_033", errors);
         if (s.SaveToFile && string.IsNullOrWhiteSpace(s.OutputDirectory))
             errors.Add(StepSettingError.Warning("DAQ_W31", "启用存盘时建议指定输出目录"));
         else if (s.SaveToFile && !string.IsNullOrWhiteSpace(s.OutputDirectory)

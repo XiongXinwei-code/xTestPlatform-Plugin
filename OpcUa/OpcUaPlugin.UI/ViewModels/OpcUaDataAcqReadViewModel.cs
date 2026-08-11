@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using OpcUa.Models;
@@ -7,16 +6,14 @@ using xTestPlatform.Core.SequenceModels;
 
 namespace OpcUa.UI.ViewModels;
 
-public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
+public class OpcUaDataAcqReadViewModel : INotifyPropertyChanged
 {
     private const int SaveDebounceMs = 200;
     private CancellationTokenSource? _saveCts;
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
-    private OpcUaDataAcqStartSetting? _setting;
-
-    public ObservableCollection<OpcUaDataAcqItem> Items { get; private set; } = new();
+    private OpcUaDataAcqReadSetting? _setting;
 
     public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
     public void AttachStep(Step step) { _step = step; Load(); }
@@ -28,9 +25,8 @@ public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
         try
         {
             _setting = _step.StepSetting.Setting is { Length: > 0 } d
-                ? (OpcUaDataAcqStartSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
-                : (OpcUaDataAcqStartSetting)_serializer.CreateDefault();
-            Items = _setting.Items;
+                ? (OpcUaDataAcqReadSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
+                : (OpcUaDataAcqReadSetting)_serializer.CreateDefault();
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -45,14 +41,10 @@ public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
     }
 
     public string TaskName { get => _setting?.TaskName ?? ""; set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); } }
-    public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
-    public int SamplingIntervalMs { get => _setting?.SamplingIntervalMs ?? 100; set { if (_setting == null || _setting.SamplingIntervalMs == value) return; _setting.SamplingIntervalMs = value; OnPropertyChanged(); QueueSave(); } }
-    public int MaxDurationMs { get => _setting?.MaxDurationMs ?? 0; set { if (_setting == null || _setting.MaxDurationMs == value) return; _setting.MaxDurationMs = value; OnPropertyChanged(); QueueSave(); } }
-    public int BufferSize { get => _setting?.BufferSize ?? 10000; set { if (_setting == null || _setting.BufferSize == value) return; _setting.BufferSize = value; OnPropertyChanged(); QueueSave(); } }
-
-    public void AddItem() { Items.Add(new OpcUaDataAcqItem()); QueueSave(); }
-    public void RemoveItem(OpcUaDataAcqItem item) { Items.Remove(item); QueueSave(); }
-    public void NotifyItemChanged() => QueueSave();
+    public int SamplesToRead { get => _setting?.SamplesToRead ?? -1; set { if (_setting == null || _setting.SamplesToRead == value) return; _setting.SamplesToRead = value; OnPropertyChanged(); QueueSave(); } }
+    public string ResultVariable { get => _setting?.ResultVariable ?? ""; set { if (_setting == null || _setting.ResultVariable == value) return; _setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }
+    public bool SaveToFile { get => _setting?.SaveToFile ?? false; set { if (_setting == null || _setting.SaveToFile == value) return; _setting.SaveToFile = value; OnPropertyChanged(); QueueSave(); } }
+    public string CsvFilePath { get => _setting?.CsvFilePath ?? ""; set { if (_setting == null || _setting.CsvFilePath == value) return; _setting.CsvFilePath = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

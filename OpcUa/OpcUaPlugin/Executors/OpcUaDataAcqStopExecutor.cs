@@ -36,44 +36,17 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
                 };
             }
 
-            // 获取节点配置
-            var items = context.CurrentStep.RuntimeData.TryGetValue(taskKey + "_items", out var itemsObj)
-                ? (List<OpcUaDataAcqItem>)itemsObj
-                : new List<OpcUaDataAcqItem>();
-
-            // 停止采集
+            // 停止采集并释放资源（未消费的缓冲数据丢弃）
             var records = await acqTask.StopAsync();
             acqTask.Dispose();
             context.CurrentStep.RuntimeData.Remove(taskKey);
             context.CurrentStep.RuntimeData.Remove(taskKey + "_items");
 
-            // 导出 CSV
-            if (setting.ExportFormat is DataAcqExportFormat.Csv or DataAcqExportFormat.Both)
-            {
-                var csvPath = await Evaluator.EvalStringAsync(setting.CsvFilePath, context);
-                OpcUaDataAcqTask.ExportToCsv(csvPath, items, records);
-                context.LogAction?.Invoke($"数据已导出到: {csvPath} ({records.Count} 条记录)");
-            }
-
-            // 保存统计值到变量
-            if (setting.SaveStatistics && (setting.ExportFormat is DataAcqExportFormat.Variable or DataAcqExportFormat.Both))
-            {
-                for (int i = 0; i < items.Count; i++)
-                {
-                    var colName = string.IsNullOrWhiteSpace(items[i].ColumnName) ? $"Col{i}" : items[i].ColumnName;
-                    var stats = OpcUaDataAcqTask.CalculateStatistics(i, records);
-                    context.SetVariable($"{setting.StatVariablePrefix}{colName}_Avg", stats.Average);
-                    context.SetVariable($"{setting.StatVariablePrefix}{colName}_Max", stats.Max);
-                    context.SetVariable($"{setting.StatVariablePrefix}{colName}_Min", stats.Min);
-                    context.SetVariable($"{setting.StatVariablePrefix}{colName}_Count", stats.Count);
-                }
-            }
-
-            context.LogAction?.Invoke($"OPC UA 数据采集已停止: {taskName} (共 {records.Count} 条记录)");
+            context.LogAction?.Invoke($"OPC UA 数据采集已停止: {taskName} (丢弃未消费数据 {records.Count} 条)");
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"采集完成: {records.Count} 条记录" }
+                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"采集已停止: {taskName}" }
             };
         }
         catch (OperationCanceledException)

@@ -16,7 +16,8 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
     public override string Description => """
         ## 功能
 
-        启动 OPC UA 后台数据采集任务，按指定采样间隔定时读取多个节点并缓存数据，直到执行 DataAcq_Stop 停止并导出。
+        启动 OPC UA 后台数据采集任务，按指定采样间隔定时读取多个节点并写入有界 FIFO 缓冲（仿硬件采集卡模式），
+        由 DataAcq_Read 消费读取，DataAcq_Stop 停止。缓冲满时溢出停止采集，Read 步骤将报错。
 
         ## 参数
 
@@ -27,6 +28,7 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
         | Items | 集合 | 是 | — | 采集节点列表，元素结构见示例 |
         | SamplingIntervalMs | int | 否 | 100 | 采样间隔毫秒数 |
         | MaxDurationMs | int | 否 | 0 | 最大采集时长，0 表示无限 |
+        | BufferSize | int | 否 | 10000 | FIFO 缓冲区容量（条数），满时溢出停止采集 |
 
         ## 行为
 
@@ -50,7 +52,8 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
         ## 相关插件
 
         - `OpcUa_Connect`：建立连接
-        - `OpcUa_DataAcq_Stop`：停止采集并导出数据
+        - `OpcUa_DataAcq_Read`：从 FIFO 缓冲读取（消费）采集数据
+        - `OpcUa_DataAcq_Stop`：停止采集任务
         """;
 
     public override IStepExecutor CreateExecutor() => new OpcUaDataAcqStartExecutor();

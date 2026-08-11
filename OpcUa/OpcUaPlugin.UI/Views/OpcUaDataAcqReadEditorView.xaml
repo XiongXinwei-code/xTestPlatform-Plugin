@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="OpcUa.UI.Views.OpcUaDataAcqStopEditorView"
+<UserControl x:Class="OpcUa.UI.Views.OpcUaDataAcqReadEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -9,7 +9,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="OpcUa DataAcq Stop"
+        <syncfusion:TabItemExt Header="OpcUa DataAcq Read"
                                Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
@@ -19,11 +19,34 @@
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Task Name:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Samples To Read:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         Text="{Binding SamplesToRead, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+                          Content="将数据追加保存到 CSV 文件"
+                          IsChecked="{Binding SaveToFile}"/>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="CSV File Path:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+                    IsEnabled="{Binding SaveToFile}"
+                    ScriptText="{Binding CsvFilePath, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
             </Grid>

@@ -24,13 +24,11 @@ public sealed class NiDaqSyncReadPlugin : StepPluginBase<NiDaqSyncReadSetting>
         | TaskName | 表达式(string) | 是 | — | 要读取的同步任务名 |
         | SamplesToRead | int | 否 | -1 | 读取样本数，-1=读取所有可用 |
         | ReadTimeoutMs | int | 否 | 10000 | 读取超时 ms |
-        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 double[,]（每行为一个 AI 通道的采样序列） |
+        | ResultVariable | string | 否 | 空 | 结果变量名，必须为波形类型（Waveform），写入 WaveformData（AI 通道 + Encoder 通道） |
         | ExportFormat | 枚举 | 否 | Csv | 可选值：Csv, Tdms, Variable, CsvAndVariable, TdmsAndVariable |
         | SaveToFile | bool | 否 | false | 是否将采集数据保存到文件 |
         | OutputDirectory | 表达式(string) | 否 | 空 | 输出文件目录 |
         | MaxFileSizeMB | int | 否 | 500 | 单文件大小上限 MB |
-        | EnableCustomEvent | bool | 否 | false | 是否启用自定义事件发送采集数据 |
-        | CustomEventName | string | 否 | SyncDataReady | 自定义事件名称 |
 
         ## 行为
 
