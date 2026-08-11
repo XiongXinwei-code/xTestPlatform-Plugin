@@ -1,6 +1,6 @@
 ﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.2.1 | **框架**：.NET 8 / WPF | **日期**：2025-08-05
+> **版本**：3.3.0 | **框架**：.NET 8 / WPF | **日期**：2026-02-27
 > **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
 
 ---
@@ -782,11 +782,17 @@ public interface IExecutionContext {
     IVariableScope Parameters     { get; }
     IVariableScope RunState       { get; }
 
+    /// <summary>运行期共享资源注册表，父子序列共享，运行结束自动释放 Run 档资源</summary>
+    IResourceRegistry Resources => NullResourceRegistry.Instance;
+
     /// <summary>引擎是否已发出中止命令，插件可在耗时循环中轮询</summary>
     bool IsAbortRequested => false;
 
     /// <summary>日志输出委托，供表达式脚本中调用 Log("消息")</summary>
     Action<string>? LogAction => null;
+
+    /// <summary>触发自定义事件，通知生产界面或其他订阅者（详见 §17）</summary>
+    void RaiseCustomEvent(string eventName, object? payload = null) { }
 }
 
 public class StepExecutionInfo {
@@ -794,9 +800,66 @@ public class StepExecutionInfo {
     public string StepName    { get; set; }
     public Step   Step        { get; set; }
     public int    LoopIndex   { get; set; }
-    public Dictionary<string, object> RuntimeData { get; set; }
 }
 ```
+
+> ⚠️ **变更说明**：`StepExecutionInfo.RuntimeData` 已删除。插件间需要共享的运行期对象（如设备连接、会话句柄）请改用 `ctx.Resources`（见 §6.1.1）。
+
+#### 6.1.1 IResourceRegistry — 运行期共享资源注册表
+
+文件：`xTestPlatform.Core/Engine/IResourceRegistry.cs`
+
+用于在多个步骤 / 父子序列之间共享运行期资源（如串口连接、CAN 通道、TCP 会话）。线程安全，父子序列共享同一实例；引擎会在合适时机自动释放实现了 `IDisposable` 的资源。
+
+```csharp
+/// <summary>资源生命周期</summary>
+public enum ResourceLifetime {
+    Run,     // 一次运行结束时释放
+    Engine   // 引擎停止时释放（默认，适用于跨运行的持久资源）
+}
+
+public interface IResourceRegistry {
+    /// <summary>注册资源；同名旧资源若实现 IDisposable 会先被释放</summary>
+    void Set(string key, object resource, ResourceLifetime lifetime = ResourceLifetime.Engine);
+
+    /// <summary>仅当键不存在时注册资源，已存在时返回 false（不覆盖、不释放旧资源）</summary>
+    bool TryAdd(string key, object resource, ResourceLifetime lifetime = ResourceLifetime.Engine);
+
+    /// <summary>取出已注册资源，不存在时用工厂创建并注册（并发冲突时多余实例自动释放）</summary>
+    T GetOrAdd<T>(string key, Func<T> factory, ResourceLifetime lifetime = ResourceLifetime.Engine) where T : class;
+
+    /// <summary>按类型取出资源，不存在或类型不符返回 false</summary>
+    bool TryGet<T>(string key, out T resource) where T : class;
+
+    /// <summary>判断资源是否存在</summary>
+    bool Contains(string key);
+
+    /// <summary>移除资源，dispose=true 时自动释放</summary>
+    bool Remove(string key, bool dispose = true);
+}
+```
+
+**使用示例（Executor 中共享设备连接）：**
+
+```csharp
+// 打开步骤：注册连接（Run 生命周期 = 本次运行结束自动释放）
+var port = new SerialPortConnection(portName, baudRate);
+port.Open();
+ctx.Resources.Set($"SerialPort.{portName}", port, ResourceLifetime.Run);
+
+// 读写步骤：取出已注册的连接
+if (!ctx.Resources.TryGet<SerialPortConnection>($"SerialPort.{portName}", out var conn))
+    return Error("串口未打开，请先执行 SerialPort_Open 步骤");
+
+// 惰性创建：不存在则创建并注册
+var session = ctx.Resources.GetOrAdd("Device.Session",
+    () => new DeviceSession(address), ResourceLifetime.Run);
+
+// 关闭步骤：移除并释放
+ctx.Resources.Remove($"SerialPort.{portName}");  // dispose 默认 true
+```
+
+> 说明：`IExecutionContext.Resources` 有默认实现 `NullResourceRegistry.Instance`（空实现），mock 或非引擎场景下调用不会抛异常。
 
 ### 6.2 变量查找优先级
 

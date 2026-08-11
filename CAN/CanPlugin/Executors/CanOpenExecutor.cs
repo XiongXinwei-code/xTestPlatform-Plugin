@@ -23,13 +23,7 @@ public sealed class CanOpenExecutor : IStepExecutor
             var channel = await Evaluator.EvalStringAsync(setting.Channel, context);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 
-            // 若已存在同名连接（序列异常终止未关闭），先关闭销毁旧适配器
             var key = CanHelper.GetAdapterKey(connName);
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingAdapter) && existingAdapter is ICanAdapter oldAdapter)
-            {
-                try { oldAdapter.Close(); oldAdapter.Dispose(); } catch { /* 忽略关闭异常 */ }
-                context.LogAction?.Invoke($"CAN 连接 {connName} 检测到已有连接，已自动关闭旧连接");
-            }
 
             var adapter = CanAdapterFactory.Create(setting.AdapterType);
             adapter.Open(new CanAdapterConfig
@@ -40,8 +34,8 @@ public sealed class CanOpenExecutor : IStepExecutor
                 DataBitRate = setting.DataBitRate
             });
 
-            // 存储到 RuntimeData
-            context.CurrentStep.RuntimeData[key] = adapter;
+            // Set 会自动销毁同名旧适配器（如上次运行异常终止未关闭）
+            context.Resources.Set(key, adapter);
 
             context.LogAction?.Invoke($"CAN 通道已打开: {channel} ({setting.AdapterType}, {setting.Protocol}, {setting.BaudRate} bps)");
 

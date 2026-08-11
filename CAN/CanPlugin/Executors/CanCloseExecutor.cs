@@ -23,11 +23,10 @@ public sealed class CanCloseExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = CanHelper.GetAdapterKey(connName);
 
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is ICanAdapter adapter)
+            if (context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             {
                 adapter.Close();
-                adapter.Dispose();
-                context.CurrentStep.RuntimeData.Remove(key);
+                context.Resources.Remove(key);
                 context.LogAction?.Invoke($"CAN 通道已关闭: {connName}");
             }
             else

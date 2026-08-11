@@ -27,13 +27,6 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
             var endpointUrl = await Evaluator.EvalStringAsync(setting.EndpointUrl, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            // 若已存在同名会话（序列异常终止未断开），先关闭旧会话
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingSession) && existingSession is Session oldSession)
-            {
-                try { oldSession.Close(); oldSession.Dispose(); } catch { /* 忽略关闭异常 */ }
-                context.LogAction?.Invoke($"OPC UA 连接 {connName} 检测到已有会话，已自动关闭旧会话");
-            }
-
             // 创建应用程序配置
             var appConfig = new ApplicationConfiguration
             {
@@ -85,7 +78,8 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
                 null,
                 cancellationToken);
 
-            context.CurrentStep.RuntimeData[key] = session;
+            // Set 会自动销毁同名旧会话（如上次运行异常终止未断开）
+            context.Resources.Set(key, session);
 
             context.LogAction?.Invoke($"OPC UA 连接已建立: {connName} ({endpointUrl})");
 

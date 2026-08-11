@@ -28,7 +28,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IModbusMaster master)
+			if (!context.Resources.TryGet<IModbusMaster>(key, out var master))
 			{
 				return new ExecutionResult
 				{

@@ -26,7 +26,7 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            if (!context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var obj) || obj is not OpcUaDataAcqTask acqTask)
+            if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var acqTask))
                 return ErrorResult($"采集任务 {taskName} 不存在或未启动，请先执行 OpcUa_DataAcq_Start");
 
             // 缓冲溢出报错（仿硬件 FIFO 溢出）

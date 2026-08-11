@@ -34,12 +34,11 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
 
             var key = SerialPortHelper.GetPortKey(portName);
 
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is SysSerialPort port)
+            if (context.Resources.TryGet<SysSerialPort>(key, out var port))
             {
                 if (port.IsOpen)
                     port.Close();
-                port.Dispose();
-                context.CurrentStep.RuntimeData.Remove(key);
+                context.Resources.Remove(key);
                 context.LogAction?.Invoke($"串口 {portName} 已关闭");
             }
             else

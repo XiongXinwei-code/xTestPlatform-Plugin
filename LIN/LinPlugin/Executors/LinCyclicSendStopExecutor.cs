@@ -22,11 +22,10 @@ public sealed class LinCyclicSendStopExecutor : IStepExecutor
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var taskKey  = LinCyclicSendStartExecutor.GetTaskKey(taskName);
 
-            if (context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var obj) && obj is CancellationTokenSource cts)
+            if (context.Resources.TryGet<CancellationTokenSource>(taskKey, out var cts))
             {
                 await cts.CancelAsync();
-                cts.Dispose();
-                context.CurrentStep.RuntimeData.Remove(taskKey);
+                context.Resources.Remove(taskKey);
                 context.LogAction?.Invoke($"LIN 周期发送已停止: TaskName={taskName}");
 
                 return new ExecutionResult

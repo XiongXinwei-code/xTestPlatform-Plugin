@@ -24,7 +24,7 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
             var taskKey = $"OpcUaDataAcq_{taskName}";
 
             // 获取采集任务
-            if (!context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var obj) || obj is not OpcUaDataAcqTask acqTask)
+            if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var acqTask))
             {
                 return new ExecutionResult
                 {
@@ -38,9 +38,8 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
 
             // 停止采集并释放资源（未消费的缓冲数据丢弃）
             var records = await acqTask.StopAsync();
-            acqTask.Dispose();
-            context.CurrentStep.RuntimeData.Remove(taskKey);
-            context.CurrentStep.RuntimeData.Remove(taskKey + "_items");
+            context.Resources.Remove(taskKey);
+            context.Resources.Remove(taskKey + "_items");
 
             context.LogAction?.Invoke($"OPC UA 数据采集已停止: {taskName} (丢弃未消费数据 {records.Count} 条)");
 

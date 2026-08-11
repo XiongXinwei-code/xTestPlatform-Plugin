@@ -27,7 +27,7 @@ public sealed class XcpConnectExecutor : IStepExecutor
                     $"CAL={response.SupportsCalibration}, DAQ={response.SupportsDaq}, PGM={response.SupportsProgramming}");
 
             if (!string.IsNullOrWhiteSpace(setting.ResourceVariable))
-                context.CurrentStep.RuntimeData[setting.ResourceVariable] = response.ResourceMask;
+                context.Resources.Set(setting.ResourceVariable, response.ResourceMask);
 
             return new ExecutionResult
             {

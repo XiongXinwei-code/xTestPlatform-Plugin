@@ -26,15 +26,8 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             var sessionKey = OpcUaHelper.GetSessionKey(connName);
             var taskKey = $"OpcUaDataAcq_{taskName}";
 
-            // 若已存在同名采集任务（序列异常终止未停止），先销毁旧任务
-            if (context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var existingTask) && existingTask is OpcUaDataAcqTask oldTask)
-            {
-                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
-                context.LogAction?.Invoke($"OPC UA 采集任务 {taskName} 检测到已有任务，已自动销毁旧任务");
-            }
-
             // 获取 OPC UA 会话
-            if (!context.CurrentStep.RuntimeData.TryGetValue(sessionKey, out var obj) || obj is not Session session)
+            if (!context.Resources.TryGet<Session>(sessionKey, out var session))
             {
                 return new ExecutionResult
                 {
@@ -68,9 +61,10 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
 
             // 启动后台采集任务（有界 FIFO 缓冲）
             var acqTask = new OpcUaDataAcqTask(taskName, session, resolvedItems, setting.SamplingIntervalMs, setting.MaxDurationMs, setting.BufferSize);
-            context.CurrentStep.RuntimeData[taskKey] = acqTask;
+            // Set 会自动销毁同名旧任务（如上次运行异常终止未停止）
+            context.Resources.Set(taskKey, acqTask);
             // 同时保存 items 配置供 Stop 步骤使用
-            context.CurrentStep.RuntimeData[taskKey + "_items"] = resolvedItems;
+            context.Resources.Set(taskKey + "_items", resolvedItems);
 
             context.LogAction?.Invoke($"OPC UA 数据采集已启动: {taskName} ({resolvedItems.Count} 节点, {setting.SamplingIntervalMs}ms 间隔)");
 

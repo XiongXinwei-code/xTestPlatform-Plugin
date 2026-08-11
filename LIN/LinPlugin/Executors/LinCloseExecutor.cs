@@ -23,11 +23,10 @@ public sealed class LinCloseExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = LinHelper.GetAdapterKey(connName);
 
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is ILinAdapter adapter)
+            if (context.Resources.TryGet<ILinAdapter>(key, out var adapter))
             {
                 adapter.Close();
-                adapter.Dispose();
-                context.CurrentStep.RuntimeData.Remove(key);
+                context.Resources.Remove(key);
                 context.LogAction?.Invoke($"LIN 通道已关闭: {connName}");
             }
             else

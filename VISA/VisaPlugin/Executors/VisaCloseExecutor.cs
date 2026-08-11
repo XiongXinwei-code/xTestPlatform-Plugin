@@ -27,12 +27,9 @@ public sealed class VisaCloseExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is IMessageBasedSession session)
-            {
-                session.Dispose();
-                context.CurrentStep.RuntimeData.Remove(key);
-            }
-            context.CurrentStep.RuntimeData.Remove(VisaHelper.GetTerminatorKey(connName));
+            // Remove 会自动 Dispose 会话
+            context.Resources.Remove(key);
+            context.Resources.Remove(VisaHelper.GetTerminatorKey(connName));
 
             context.LogAction?.Invoke($"VISA 会话已关闭: {connName}");
             return new ExecutionResult

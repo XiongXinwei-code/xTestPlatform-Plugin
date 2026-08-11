@@ -22,7 +22,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
         {
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var adapterKey = LinHelper.GetAdapterKey(connName);
-            if (!context.CurrentStep.RuntimeData.TryGetValue(adapterKey, out var obj) || obj is not ILinAdapter adapter)
+            if (!context.Resources.TryGet<ILinAdapter>(adapterKey, out var adapter))
             {
                 return new ExecutionResult
                 {
@@ -38,11 +38,10 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
             var taskKey  = GetTaskKey(taskName);
 
             // 如果已有同名任务，先停止
-            if (context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var existing) && existing is CancellationTokenSource existingCts)
+            if (context.Resources.TryGet<CancellationTokenSource>(taskKey, out var existingCts))
             {
                 await existingCts.CancelAsync();
-                existingCts.Dispose();
-                context.CurrentStep.RuntimeData.Remove(taskKey);
+                context.Resources.Remove(taskKey);
             }
 
             var enabledFrames = setting.Frames.Where(f => f.Enabled).ToList();
@@ -59,7 +58,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
             }
 
             var cts = new CancellationTokenSource();
-            context.CurrentStep.RuntimeData[taskKey] = cts;
+            context.Resources.Set(taskKey, cts);
 
             // 为每个帧启动独立的发送任务
             foreach (var frameItem in enabledFrames)

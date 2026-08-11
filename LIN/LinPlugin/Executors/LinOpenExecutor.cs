@@ -23,13 +23,7 @@ public sealed class LinOpenExecutor : IStepExecutor
             var channel  = await Evaluator.EvalStringAsync(setting.Channel, context);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 
-            // 若已存在同名连接（序列异常终止未关闭），先关闭旧适配器
             var key = LinHelper.GetAdapterKey(connName);
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existing) && existing is ILinAdapter oldAdapter)
-            {
-                try { oldAdapter.Close(); oldAdapter.Dispose(); } catch { /* 忽略关闭异常 */ }
-                context.LogAction?.Invoke($"LIN 连接 {connName} 检测到已有连接，已自动关闭旧连接");
-            }
 
             var adapter = LinAdapterFactory.Create(setting.AdapterType);
             adapter.Open(new LinAdapterConfig
@@ -40,7 +34,8 @@ public sealed class LinOpenExecutor : IStepExecutor
                 IsMaster   = setting.IsMaster
             });
 
-            context.CurrentStep.RuntimeData[key] = adapter;
+            // Set 会自动销毁同名旧适配器（如上次运行异常终止未关闭）
+            context.Resources.Set(key, adapter);
             context.LogAction?.Invoke($"LIN 通道已打开: {channel} ({setting.AdapterType}, LIN {setting.LinVersion}, {setting.BaudRate} bps, {(setting.IsMaster ? "主节点" : "从节点")})");
 
             return new ExecutionResult

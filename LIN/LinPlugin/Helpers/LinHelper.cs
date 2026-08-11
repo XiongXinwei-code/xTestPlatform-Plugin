@@ -1,6 +1,6 @@
 namespace LIN.Helpers;
 
-/// <summary>LIN 连接管理辅助类，通过 RuntimeData 存取适配器实例</summary>
+/// <summary>LIN 连接管理辅助类，通过资源注册表存取适配器实例</summary>
 public static class LinHelper
 {
     private const string KeyPrefix = "LIN_Adapter_";

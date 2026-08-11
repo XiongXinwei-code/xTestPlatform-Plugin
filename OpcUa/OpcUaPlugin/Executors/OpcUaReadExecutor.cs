@@ -26,7 +26,7 @@ public sealed class OpcUaReadExecutor : IStepExecutor
             var nodeIdStr = await Evaluator.EvalStringAsync(setting.NodeId, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not Session session)
+            if (!context.Resources.TryGet<Session>(key, out var session))
             {
                 return new ExecutionResult
                 {

@@ -26,7 +26,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IMessageBasedSession session)
+            if (!context.Resources.TryGet<IMessageBasedSession>(key, out var session))
             {
                 return new ExecutionResult
                 {
@@ -80,5 +80,5 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
 
     /// <summary>获取打开会话时保存的终止符，未找到时默认换行符</summary>
     private static string GetTerminator(IExecutionContext context, string connName) =>
-        context.CurrentStep!.RuntimeData.TryGetValue(VisaHelper.GetTerminatorKey(connName), out var t) && t is string term ? term : "\n";
+        context.Resources.TryGet<string>(VisaHelper.GetTerminatorKey(connName), out var term) ? term : "\n";
 }

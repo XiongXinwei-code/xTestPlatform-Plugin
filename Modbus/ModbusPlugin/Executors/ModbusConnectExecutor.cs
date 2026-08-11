@@ -28,21 +28,9 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 		try
 		{
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
-				var key = ModbusHelper.GetConnectionKey(connName);
+			var key = ModbusHelper.GetConnectionKey(connName);
 
-				// 若已存在同名连接（序列异常终止未断开），先销毁旧资源
-				if (context.CurrentStep.RuntimeData.TryGetValue(key, out var existingMaster) && existingMaster is IModbusMaster oldMaster)
-				{
-					try { oldMaster.Dispose(); } catch { /* 忽略销毁异常 */ }
-				}
-				if (context.CurrentStep.RuntimeData.TryGetValue(key + "_transport", out var existingTransport) && existingTransport is IDisposable oldTransport)
-				{
-					try { oldTransport.Dispose(); } catch { /* 忽略销毁异常 */ }
-				}
-				if (existingMaster != null || existingTransport != null)
-					context.LogAction?.Invoke($"Modbus 连接 {connName} 检测到已有连接，已自动销毁旧连接");
-
-				IModbusMaster master;
+			IModbusMaster master;
 			object transport;
 			var factory = new ModbusFactory();
 
@@ -70,8 +58,9 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 			master.Transport.ReadTimeout = setting.TimeoutMs;
 			master.Transport.WriteTimeout = setting.TimeoutMs;
 
-			context.CurrentStep.RuntimeData[key] = master;
-			context.CurrentStep.RuntimeData[key + "_transport"] = transport;
+			// Set 会自动销毁同名旧连接（如上次运行异常终止未断开）
+			context.Resources.Set(key + "_transport", transport);
+			context.Resources.Set(key, master);
 
 			context.LogAction?.Invoke($"Modbus 连接已建立: {connName} ({setting.TransportType})");
 
