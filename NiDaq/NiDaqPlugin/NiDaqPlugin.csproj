@@ -17,8 +17,8 @@
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.4" />
   </ItemGroup>
 
-  <!-- NI DAQmx + TDMS DLL ���ã����Բֿ��� libs Ŀ¼��64 λ����ʱ���򼯣���CI �뱾�����ɱ�����ʵ�汾 -->
-  <!-- ����ʱ����Ŀ�������װ NI-DAQmx �������������ɼ����� -->
+  <!-- NI DAQmx + TDMS DLL references from repo-local libs folder (64-bit runtime assemblies), buildable on CI and dev machines -->
+  <!-- NOTE: target machine still requires NI-DAQmx driver installed at runtime -->
   <ItemGroup>
 	<Reference Include="NationalInstruments.DAQmx">
 	  <HintPath>..\libs\NationalInstruments.DAQmx.dll</HintPath>
@@ -32,9 +32,6 @@
 	  <HintPath>..\libs\NationalInstruments.Tdms.dll</HintPath>
 	  <Private>true</Private>
 	</Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Stubs\" />
   </ItemGroup>
 
 </Project>
