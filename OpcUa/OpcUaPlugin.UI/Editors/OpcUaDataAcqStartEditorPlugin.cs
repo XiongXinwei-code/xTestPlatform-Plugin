@@ -43,6 +43,8 @@ public sealed class OpcUaDataAcqStartEditorPlugin : IStepEditorPlugin
         }
         if (s.SamplingIntervalMs <= 0)
             errors.Add(StepSettingError.Error("OPCUA_073", "采样间隔必须大于 0"));
+        if (s.BufferSize <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_076", "FIFO 缓冲区容量必须大于 0"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

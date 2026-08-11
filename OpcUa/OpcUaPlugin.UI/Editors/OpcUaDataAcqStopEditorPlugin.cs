@@ -29,9 +29,6 @@ public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
         var s = (OpcUaDataAcqStopSetting)new OpcUaDataAcqStopPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName))
             errors.Add(StepSettingError.Error("OPCUA_080", "采集任务名不能为空"));
-        if ((s.ExportFormat == DataAcqExportFormat.Csv || s.ExportFormat == DataAcqExportFormat.Both)
-            && string.IsNullOrWhiteSpace(s.CsvFilePath))
-            errors.Add(StepSettingError.Error("OPCUA_081", "CSV 导出路径不能为空"));
         OpcUaLifecycleValidator.CheckPrecedingDataAcqStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;
     }

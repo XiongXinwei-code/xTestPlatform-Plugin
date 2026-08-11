@@ -41,10 +41,6 @@ public class OpcUaDataAcqStopViewModel : INotifyPropertyChanged
     }
 
     public string TaskName { get => _setting?.TaskName ?? ""; set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); } }
-    public int ExportFormat { get => (int)(_setting?.ExportFormat ?? DataAcqExportFormat.Csv); set { if (_setting == null) return; _setting.ExportFormat = (DataAcqExportFormat)value; OnPropertyChanged(); QueueSave(); } }
-    public string CsvFilePath { get => _setting?.CsvFilePath ?? ""; set { if (_setting == null || _setting.CsvFilePath == value) return; _setting.CsvFilePath = value; OnPropertyChanged(); QueueSave(); } }
-    public bool SaveStatistics { get => _setting?.SaveStatistics ?? true; set { if (_setting == null || _setting.SaveStatistics == value) return; _setting.SaveStatistics = value; OnPropertyChanged(); QueueSave(); } }
-    public string StatVariablePrefix { get => _setting?.StatVariablePrefix ?? ""; set { if (_setting == null || _setting.StatVariablePrefix == value) return; _setting.StatVariablePrefix = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

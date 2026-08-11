@@ -59,4 +59,7 @@ public class OpcUaDataAcqStartSetting
 
     /// <summary>最大采集时长（毫秒），0 表示无限制（需手动 Stop）</summary>
     public int MaxDurationMs { get; set; } = 0;
+
+    /// <summary>FIFO 缓冲区容量（条数），缓冲满时采集溢出停止，需及时执行 DataAcq_Read 消费数据</summary>
+    public int BufferSize { get; set; } = 10000;
 }

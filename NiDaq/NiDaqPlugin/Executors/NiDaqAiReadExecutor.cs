@@ -40,7 +40,28 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
             int channels = data.GetLength(0);
             int samples = data.GetLength(1);
 
-            context.SetVariable(resultVar, data);
+            // 构造波形数据（ResultVariable 为波形类型 Waveform）
+            var waveform = new WaveformData
+            {
+                TaskID = taskName,
+                SampleRate = task.Timing.SampleClockRate,
+                StartTime = DateTime.Now,
+                Channels = new List<ChannelData>(channels)
+            };
+            for (int ch = 0; ch < channels; ch++)
+            {
+                var chData = new double[samples];
+                for (int s = 0; s < samples; s++)
+                    chData[s] = data[ch, s];
+                waveform.Channels.Add(new ChannelData
+                {
+                    Channel = task.AIChannels[ch].VirtualName,
+                    Values = chData
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(resultVar))
+                context.SetVariable(resultVar, waveform);
 
             // 存盘逻辑
             if (setting.SaveToFile)
@@ -53,30 +74,6 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
                 for (int ch = 0; ch < channels; ch++)
                     names[ch] = task.AIChannels[ch].VirtualName;
                 DaqFileWriter.AppendCsv(filePath, data, names, setting.MaxFileSizeMB, context.LogAction);
-            }
-
-            // 自定义事件：将采集数据构造为 WaveformData 发送到界面
-            if (setting.EnableCustomEvent && !string.IsNullOrWhiteSpace(setting.CustomEventName))
-            {
-                var waveform = new WaveformData
-                {
-                    TaskID = taskName,
-                    SampleRate = task.Timing.SampleClockRate,
-                    StartTime = DateTime.Now,
-                    Channels = new List<ChannelData>(channels)
-                };
-                for (int ch = 0; ch < channels; ch++)
-                {
-                    var chData = new double[samples];
-                    for (int s = 0; s < samples; s++)
-                        chData[s] = data[ch, s];
-                    waveform.Channels.Add(new ChannelData
-                    {
-                        Channel = task.AIChannels[ch].VirtualName,
-                        Values = chData
-                    });
-                }
-                context.RaiseCustomEvent(setting.CustomEventName, waveform);
             }
 
             return new ExecutionResult

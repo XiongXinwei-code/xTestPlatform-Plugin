@@ -66,8 +66,8 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
                 resolvedItems.Add(new OpcUaDataAcqItem { NodeId = nodeId, ColumnName = item.ColumnName });
             }
 
-            // 启动后台采集任务
-            var acqTask = new OpcUaDataAcqTask(taskName, session, resolvedItems, setting.SamplingIntervalMs, setting.MaxDurationMs);
+            // 启动后台采集任务（有界 FIFO 缓冲）
+            var acqTask = new OpcUaDataAcqTask(taskName, session, resolvedItems, setting.SamplingIntervalMs, setting.MaxDurationMs, setting.BufferSize);
             context.CurrentStep.RuntimeData[taskKey] = acqTask;
             // 同时保存 items 配置供 Stop 步骤使用
             context.CurrentStep.RuntimeData[taskKey + "_items"] = resolvedItems;

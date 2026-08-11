@@ -31,10 +31,4 @@ public class NiDaqAiReadSetting
 
     /// <summary>单个文件大小上限 (MB)，超过后自动轮转</summary>
     public int MaxFileSizeMB { get; set; } = 500;
-
-    /// <summary>是否启用自定义事件发送采集数据</summary>
-    public bool EnableCustomEvent { get; set; } = false;
-
-    /// <summary>自定义事件名称</summary>
-    public string CustomEventName { get; set; } = "AiDataReady";
 }

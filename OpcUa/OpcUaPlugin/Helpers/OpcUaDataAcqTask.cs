@@ -7,12 +7,13 @@ using OpcUa.Models;
 
 namespace OpcUa.Helpers;
 
-/// <summary>OPC UA 后台数据采集任务，管理定时轮询和数据缓冲</summary>
+/// <summary>OPC UA 后台数据采集任务，管理定时轮询和有界 FIFO 数据缓冲（仿硬件采集卡模式）</summary>
 public sealed class OpcUaDataAcqTask : IDisposable
 {
     private readonly Session _session;
     private readonly List<OpcUaDataAcqItem> _items;
     private readonly int _samplingIntervalMs;
+    private readonly int _bufferSize;
     private readonly CancellationTokenSource _cts;
     private readonly Task _loopTask;
     private readonly ConcurrentQueue<DataAcqRecord> _buffer = new();
@@ -21,13 +22,19 @@ public sealed class OpcUaDataAcqTask : IDisposable
     public string TaskName { get; }
     public bool IsRunning => !_cts.IsCancellationRequested;
     public int SampleCount => _buffer.Count;
+    public int SamplingIntervalMs => _samplingIntervalMs;
+    public IReadOnlyList<OpcUaDataAcqItem> Items => _items;
 
-    public OpcUaDataAcqTask(string taskName, Session session, List<OpcUaDataAcqItem> items, int samplingIntervalMs, int maxDurationMs)
+    /// <summary>缓冲区是否已溢出（溢出后采集停止，与硬件 FIFO 溢出行为一致）</summary>
+    public bool HasOverflowed { get; private set; }
+
+    public OpcUaDataAcqTask(string taskName, Session session, List<OpcUaDataAcqItem> items, int samplingIntervalMs, int maxDurationMs, int bufferSize)
     {
         TaskName = taskName;
         _session = session;
         _items = items;
         _samplingIntervalMs = samplingIntervalMs;
+        _bufferSize = bufferSize > 0 ? bufferSize : 10000;
         _cts = new CancellationTokenSource();
         _startTime = DateTime.Now;
 
@@ -67,6 +74,13 @@ public sealed class OpcUaDataAcqTask : IDisposable
                     record.Values[i] = response.Results[i].Value;
                 }
 
+                // 缓冲满则溢出：停止采集，由 Read 步骤报错（仿硬件 FIFO 溢出）
+                if (_buffer.Count >= _bufferSize)
+                {
+                    HasOverflowed = true;
+                    break;
+                }
+
                 _buffer.Enqueue(record);
 
                 await Task.Delay(_samplingIntervalMs, ct);
@@ -83,7 +97,16 @@ public sealed class OpcUaDataAcqTask : IDisposable
         }
     }
 
-    /// <summary>停止采集并返回所有缓冲数据</summary>
+    /// <summary>从 FIFO 缓冲中取出（消费）数据，maxCount 为 -1 时取出当前全部可用数据</summary>
+    public List<DataAcqRecord> Read(int maxCount)
+    {
+        var results = new List<DataAcqRecord>();
+        while ((maxCount < 0 || results.Count < maxCount) && _buffer.TryDequeue(out var record))
+            results.Add(record);
+        return results;
+    }
+
+    /// <summary>停止采集并返回缓冲中未被消费的残留数据</summary>
     public async Task<List<DataAcqRecord>> StopAsync()
     {
         _cts.Cancel();
@@ -95,8 +118,8 @@ public sealed class OpcUaDataAcqTask : IDisposable
         return results;
     }
 
-    /// <summary>导出数据为 CSV 文件</summary>
-    public static void ExportToCsv(string filePath, List<OpcUaDataAcqItem> items, List<DataAcqRecord> records)
+    /// <summary>追加写入 CSV 文件，文件不存在时先写入表头</summary>
+    public static void AppendCsv(string filePath, IReadOnlyList<OpcUaDataAcqItem> items, List<DataAcqRecord> records)
     {
         var dir = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
@@ -104,11 +127,14 @@ public sealed class OpcUaDataAcqTask : IDisposable
 
         var sb = new StringBuilder();
 
-        // 表头
-        sb.Append("Timestamp");
-        foreach (var item in items)
-            sb.Append(',').Append(string.IsNullOrWhiteSpace(item.ColumnName) ? item.NodeId : item.ColumnName);
-        sb.AppendLine();
+        // 表头（仅首次写入）
+        if (!File.Exists(filePath))
+        {
+            sb.Append("Timestamp");
+            foreach (var item in items)
+                sb.Append(',').Append(string.IsNullOrWhiteSpace(item.ColumnName) ? item.NodeId : item.ColumnName);
+            sb.AppendLine();
+        }
 
         // 数据行
         foreach (var record in records)
@@ -123,33 +149,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
             sb.AppendLine();
         }
 
-        File.WriteAllText(filePath, sb.ToString(), new UTF8Encoding(false));
-    }
-
-    /// <summary>计算统计值（均值、最大值、最小值）</summary>
-    public static DataAcqStatistics CalculateStatistics(int columnIndex, List<DataAcqRecord> records)
-    {
-        var stats = new DataAcqStatistics();
-        var values = new List<double>();
-
-        foreach (var record in records)
-        {
-            if (record.Values[columnIndex] != null &&
-                double.TryParse(Convert.ToString(record.Values[columnIndex], CultureInfo.InvariantCulture), NumberStyles.Any, CultureInfo.InvariantCulture, out var v))
-            {
-                values.Add(v);
-            }
-        }
-
-        if (values.Count > 0)
-        {
-            stats.Average = values.Average();
-            stats.Max = values.Max();
-            stats.Min = values.Min();
-            stats.Count = values.Count;
-        }
-
-        return stats;
+        File.AppendAllText(filePath, sb.ToString(), new UTF8Encoding(false));
     }
 
     public void Dispose()
@@ -164,13 +164,4 @@ public class DataAcqRecord
 {
     public DateTime Timestamp { get; set; }
     public object?[] Values { get; set; } = Array.Empty<object?>();
-}
-
-/// <summary>采集统计结果</summary>
-public class DataAcqStatistics
-{
-    public double Average { get; set; }
-    public double Max { get; set; }
-    public double Min { get; set; }
-    public int Count { get; set; }
 }

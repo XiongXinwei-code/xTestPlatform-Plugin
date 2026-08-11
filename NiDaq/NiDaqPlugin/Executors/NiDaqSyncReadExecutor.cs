@@ -41,12 +41,40 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
             int aiChannels = aiData.GetLength(0);
             int samples = aiData.GetLength(1);
 
-            context.SetVariable(resultVar, aiData);
-
             // 读取编码器数据
             var ciReader = new CounterSingleChannelReader(task.Stream);
             double encoderValue = ciReader.ReadSingleSampleDouble();
-            context.SetVariable($"{resultVar}_Encoder", encoderValue);
+
+            // 构造波形数据（AI 通道 + 编码器通道，ResultVariable 为波形类型 Waveform）
+            var waveform = new WaveformData
+            {
+                TaskID = taskName,
+                SampleRate = task.Timing.SampleClockRate,
+                StartTime = DateTime.Now,
+                Channels = new List<ChannelData>(aiChannels + 1)
+            };
+            for (int ch = 0; ch < aiChannels; ch++)
+            {
+                var chData = new double[samples];
+                for (int s = 0; s < samples; s++)
+                    chData[s] = aiData[ch, s];
+                waveform.Channels.Add(new ChannelData
+                {
+                    Channel = task.AIChannels[ch].VirtualName,
+                    Values = chData
+                });
+            }
+            waveform.Channels.Add(new ChannelData
+            {
+                Channel = "Encoder",
+                Values = [encoderValue]
+            });
+
+            if (!string.IsNullOrWhiteSpace(resultVar))
+            {
+                context.SetVariable(resultVar, waveform);
+                context.SetVariable($"{resultVar}_Encoder", encoderValue);
+            }
 
             // 存盘逻辑：将位置(编码器)与模拟量数据合并写入同一文件
             if (setting.SaveToFile)
@@ -60,35 +88,6 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
                 for (int ch = 0; ch < aiChannels; ch++)
                     aiNames[ch] = task.AIChannels[ch].VirtualName;
                 DaqFileWriter.AppendSyncCsv(filePath, aiData, aiNames, encoderValue, setting.MaxFileSizeMB, context.LogAction);
-            }
-
-            // 自定义事件：将采集数据构造为 WaveformData 发送到界面
-            if (setting.EnableCustomEvent && !string.IsNullOrWhiteSpace(setting.CustomEventName))
-            {
-                var waveform = new WaveformData
-                {
-                    TaskID = taskName,
-                    SampleRate = task.Timing.SampleClockRate,
-                    StartTime = DateTime.Now,
-                    Channels = new List<ChannelData>(aiChannels + 1)
-                };
-                for (int ch = 0; ch < aiChannels; ch++)
-                {
-                    var chData = new double[samples];
-                    for (int s = 0; s < samples; s++)
-                        chData[s] = aiData[ch, s];
-                    waveform.Channels.Add(new ChannelData
-                    {
-                        Channel = task.AIChannels[ch].VirtualName,
-                        Values = chData
-                    });
-                }
-                waveform.Channels.Add(new ChannelData
-                {
-                    Channel = "Encoder",
-                    Values = [encoderValue]
-                });
-                context.RaiseCustomEvent(setting.CustomEventName, waveform);
             }
 
             return new ExecutionResult
