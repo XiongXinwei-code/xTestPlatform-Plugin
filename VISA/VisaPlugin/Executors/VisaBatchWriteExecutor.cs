@@ -39,6 +39,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
             }
 
             int sent = 0;
+            var terminator = GetTerminator(context, connName);
             foreach (var item in setting.Items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -47,7 +48,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
                 if (string.IsNullOrWhiteSpace(command))
                     continue;
 
-                VisaHelper.Write(session, command);
+                VisaHelper.Write(session, command, terminator);
                 sent++;
                 context.LogAction?.Invoke($"VISA BatchWrite [{sent}]: {command}");
 
@@ -76,4 +77,8 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
             };
         }
     }
+
+    /// <summary>获取打开会话时保存的终止符，未找到时默认换行符</summary>
+    private static string GetTerminator(IExecutionContext context, string connName) =>
+        context.CurrentStep!.RuntimeData.TryGetValue(VisaHelper.GetTerminatorKey(connName), out var t) && t is string term ? term : "\n";
 }

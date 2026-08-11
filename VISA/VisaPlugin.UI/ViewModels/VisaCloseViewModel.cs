@@ -7,7 +7,7 @@ using xTestPlatform.Core.SequenceModels;
 namespace VISA.UI.ViewModels;
 
 /// <summary>
-/// VISA 鍏抽棴浼氳瘽缂栬緫鍣ㄧ殑 ViewModel
+/// VISA 关闭会话编辑器 ViewModel
 /// </summary>
 public class VisaCloseViewModel : INotifyPropertyChanged
 {

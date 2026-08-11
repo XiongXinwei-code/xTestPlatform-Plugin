@@ -46,7 +46,7 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
 
             try
             {
-                var response = VisaHelper.Query(session, "*OPC?", true);
+                var response = VisaHelper.Query(session, "*OPC?", true, GetTerminator(context, connName));
                 context.LogAction?.Invoke($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
 
                 return new ExecutionResult
@@ -77,4 +77,8 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
             };
         }
     }
+
+    /// <summary>获取打开会话时保存的终止符，未找到时默认换行符</summary>
+    private static string GetTerminator(IExecutionContext context, string connName) =>
+        context.CurrentStep!.RuntimeData.TryGetValue(VisaHelper.GetTerminatorKey(connName), out var t) && t is string term ? term : "\n";
 }

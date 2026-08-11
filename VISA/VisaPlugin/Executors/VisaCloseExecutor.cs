@@ -32,6 +32,7 @@ public sealed class VisaCloseExecutor : IStepExecutor
                 session.Dispose();
                 context.CurrentStep.RuntimeData.Remove(key);
             }
+            context.CurrentStep.RuntimeData.Remove(VisaHelper.GetTerminatorKey(connName));
 
             context.LogAction?.Invoke($"VISA 会话已关闭: {connName}");
             return new ExecutionResult
