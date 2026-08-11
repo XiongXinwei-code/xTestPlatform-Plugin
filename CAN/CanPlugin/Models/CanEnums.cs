@@ -21,7 +21,9 @@ public enum CanAdapterType
     NI = 0,
     PEAK = 1,
     Vector = 2,
-    ZLG = 3
+    ZLG = 3,
+    Kvaser = 4,
+    TOSUN = 5
 }
 
 /// <summary>CAN 帧类型</summary>

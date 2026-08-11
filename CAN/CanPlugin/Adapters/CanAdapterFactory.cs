@@ -10,9 +10,11 @@ public static class CanAdapterFactory
         return adapterType switch
         {
             CanAdapterType.NI => new NiXnet.NiXnetAdapter(),
-            // CanAdapterType.PEAK => new PcanAdapter(),
-            // CanAdapterType.Vector => new VectorAdapter(),
-            // CanAdapterType.ZLG => new ZlgAdapter(),
+            CanAdapterType.PEAK => new Peak.PcanAdapter(),
+            CanAdapterType.Vector => new Vector.VectorAdapter(),
+            CanAdapterType.ZLG => new Zlg.ZlgAdapter(),
+            CanAdapterType.Kvaser => new Kvaser.KvaserAdapter(),
+            CanAdapterType.TOSUN => new Tosun.TosunAdapter(),
             _ => throw new NotSupportedException($"适配器类型 {adapterType} 尚未实现")
         };
     }
