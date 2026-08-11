@@ -842,16 +842,16 @@ public interface IResourceRegistry {
 **使用示例（Executor 中共享设备连接）：**
 
 ```csharp
-// 打开步骤：注册连接（Run 生命周期 = 本次运行结束自动释放）
+// 打开步骤：注册连接（硬件会话使用默认 Engine 生命周期，跨运行持久保持，引擎停止时释放）
 var port = new SerialPortConnection(portName, baudRate);
 port.Open();
-ctx.Resources.Set($"SerialPort.{portName}", port, ResourceLifetime.Run);
+ctx.Resources.Set($"SerialPort.{portName}", port);  // 默认 ResourceLifetime.Engine
 
 // 读写步骤：取出已注册的连接
 if (!ctx.Resources.TryGet<SerialPortConnection>($"SerialPort.{portName}", out var conn))
     return Error("串口未打开，请先执行 SerialPort_Open 步骤");
 
-// 惰性创建：不存在则创建并注册
+// 惰性创建：不存在则创建并注册（临时资源可用 Run 生命周期，本次运行结束自动释放）
 var session = ctx.Resources.GetOrAdd("Device.Session",
     () => new DeviceSession(address), ResourceLifetime.Run);
 
