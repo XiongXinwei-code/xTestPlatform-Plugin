@@ -17,31 +17,21 @@
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.1.4" />
   </ItemGroup>
 
-  <!-- NI DAQmx + TDMS DLL direct reference (requires NI-DAQmx driver installed) -->
-  <!-- Use 64-bit runtime assemblies from Assemblies (64-bit)\Current, NOT the 32-bit reference assemblies -->
-  <!-- Set /p:NiDaqStub=true to force stub mode even when the driver is installed (for CI parity testing) -->
-  <PropertyGroup>
-    <NiDaqStub Condition="'$(NiDaqStub)' == '' and !Exists('C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll')">true</NiDaqStub>
-  </PropertyGroup>
-
-  <ItemGroup Condition="'$(NiDaqStub)' != 'true'">
+  <!-- NI DAQmx + TDMS DLL references from repo-local libs folder (64-bit runtime assemblies), buildable on CI and dev machines -->
+  <!-- NOTE: target machine still requires NI-DAQmx driver installed at runtime -->
+  <ItemGroup>
 	<Reference Include="NationalInstruments.DAQmx">
-	  <HintPath>C:\Program Files (x86)\National Instruments\MeasurementStudioVS2010\DotNET\Assemblies (64-bit)\Current\NationalInstruments.DAQmx.dll</HintPath>
+	  <HintPath>..\libs\NationalInstruments.DAQmx.dll</HintPath>
 	  <Private>true</Private>
 	</Reference>
 	<Reference Include="NationalInstruments.Common">
-	  <HintPath>C:\Program Files (x86)\National Instruments\Measurement Studio\DotNET\v4.0\AnyCPU\NationalInstruments.Common 19.1.40\NationalInstruments.Common.dll</HintPath>
+	  <HintPath>..\libs\NationalInstruments.Common.dll</HintPath>
 	  <Private>true</Private>
 	</Reference>
 	<Reference Include="NationalInstruments.Tdms">
-	  <HintPath>C:\Program Files\National Instruments\Shared\Skyline\TDMReader\NationalInstruments.Tdms.dll</HintPath>
+	  <HintPath>..\libs\NationalInstruments.Tdms.dll</HintPath>
 	  <Private>true</Private>
 	</Reference>
   </ItemGroup>
-
-  <!-- Stub mode when NI driver not installed -->
-  <PropertyGroup Condition="'$(NiDaqStub)' == 'true'">
-	<DefineConstants>$(DefineConstants);NIDAQ_STUB</DefineConstants>
-  </PropertyGroup>
 
 </Project>

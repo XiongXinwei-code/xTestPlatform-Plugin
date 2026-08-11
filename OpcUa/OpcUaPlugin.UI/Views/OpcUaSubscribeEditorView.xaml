@@ -12,6 +12,7 @@
         <syncfusion:TabItemExt Header="OpcUa Subscribe"
                                Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png"
                                ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150"/>
@@ -67,6 +68,7 @@
                 <TextBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding SamplingIntervalMs, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

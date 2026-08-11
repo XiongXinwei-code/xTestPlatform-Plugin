@@ -17,8 +17,8 @@ internal static class NiDriverCheck
             if (_available.HasValue) return _available.Value;
             try
             {
-                // Force load the NI DAQmx assembly
-                _ = typeof(NationalInstruments.DAQmx.DaqSystem);
+                // Actually touch the native NI-DAQmx driver (P/Invoke), not just the managed assembly
+                _ = NationalInstruments.DAQmx.DaqSystem.Local.Devices;
                 _available = true;
             }
             catch

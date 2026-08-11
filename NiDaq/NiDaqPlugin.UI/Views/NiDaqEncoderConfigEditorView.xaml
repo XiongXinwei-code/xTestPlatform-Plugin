@@ -26,6 +26,7 @@
         <syncfusion:TabItemExt Header="编码器配置"
                                Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png"
                                ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -58,6 +59,7 @@
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="输出单位" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Source={StaticResource EncoderUnitValues}}" SelectedItem="{Binding Unit}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>
