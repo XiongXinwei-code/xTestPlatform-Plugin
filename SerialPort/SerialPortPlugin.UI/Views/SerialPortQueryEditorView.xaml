@@ -18,6 +18,7 @@
 		<syncfusion:TabItemExt Header="SerialPort Query"
 							   Image="pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png"
 							   ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
 			<Grid Margin="16">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>
@@ -30,7 +31,6 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="PortName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -67,9 +67,21 @@
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+			</Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+		<syncfusion:TabItemExt Header="Write Data">
+			<Grid Margin="16">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="120"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
 
-				<TextBlock Grid.Row="6" Grid.Column="0" Text="WriteData:" VerticalAlignment="Top" Margin="0,4,8,0"/>
-				<expr:ExpressionTextBox Grid.Row="6" Grid.Column="1"
+				<TextBlock Grid.Row="0" Grid.Column="0" Text="WriteData:" VerticalAlignment="Top" Margin="0,4,8,0"/>
+				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1"
 					ScriptText="{Binding WriteData, Mode=TwoWay}"
 					ExpectedResultType="String"
 					IsMultiLine="True"

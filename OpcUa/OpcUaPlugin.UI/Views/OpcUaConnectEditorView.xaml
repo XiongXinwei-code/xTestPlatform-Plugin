@@ -15,6 +15,7 @@
         <syncfusion:TabItemExt Header="OpcUa Connect"
                                Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png"
                                ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140"/>
@@ -87,6 +88,7 @@
                           Content="Auto Accept Certificate"
                           IsChecked="{Binding AutoAcceptCertificate}"/>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>
