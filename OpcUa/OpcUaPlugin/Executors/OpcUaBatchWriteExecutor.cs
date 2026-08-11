@@ -25,7 +25,7 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not Session session)
+            if (!context.Resources.TryGet<Session>(key, out var session))
             {
                 return new ExecutionResult
                 {

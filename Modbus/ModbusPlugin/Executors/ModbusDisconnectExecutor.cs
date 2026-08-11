@@ -30,17 +30,12 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is IModbusMaster master)
+			// Remove 会自动 Dispose 资源
+			context.Resources.Remove(key);
+			if (context.Resources.TryGet<object>(key + "_transport", out var tObj))
 			{
-				master.Dispose();
-				context.CurrentStep.RuntimeData.Remove(key);
-			}
-
-			if (context.CurrentStep.RuntimeData.TryGetValue(key + "_transport", out var tObj))
-			{
-				if (tObj is TcpClient tcp) tcp.Dispose();
-				else if (tObj is SerialPort sp) { sp.Close(); sp.Dispose(); }
-				context.CurrentStep.RuntimeData.Remove(key + "_transport");
+				if (tObj is SerialPort sp) { try { sp.Close(); } catch { /* 忽略关闭异常 */ } }
+				context.Resources.Remove(key + "_transport");
 			}
 
 			context.LogAction?.Invoke($"Modbus 连接已关闭: {connName}");

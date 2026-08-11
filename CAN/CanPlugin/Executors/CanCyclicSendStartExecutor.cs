@@ -23,7 +23,7 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
             // 获取 CAN 适配器
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var adapterKey = CanHelper.GetAdapterKey(connName);
-            if (!context.CurrentStep.RuntimeData.TryGetValue(adapterKey, out var obj) || obj is not ICanAdapter adapter)
+            if (!context.Resources.TryGet<ICanAdapter>(adapterKey, out var adapter))
             {
                 return new ExecutionResult
                 {
@@ -39,15 +39,14 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
             var taskKey = GetTaskKey(taskName);
 
             // 如果已有同名任务，先停止
-            if (context.CurrentStep.RuntimeData.TryGetValue(taskKey, out var existingObj) && existingObj is CancellationTokenSource existingCts)
+            if (context.Resources.TryGet<CancellationTokenSource>(taskKey, out var existingCts))
             {
                 await existingCts.CancelAsync();
-                existingCts.Dispose();
-                context.CurrentStep.RuntimeData.Remove(taskKey);
+                context.Resources.Remove(taskKey);
             }
 
             var cts = new CancellationTokenSource();
-            context.CurrentStep.RuntimeData[taskKey] = cts;
+            context.Resources.Set(taskKey, cts);
 
             var enabledMessages = setting.Messages.Where(m => m.Enabled).ToList();
             if (enabledMessages.Count == 0)

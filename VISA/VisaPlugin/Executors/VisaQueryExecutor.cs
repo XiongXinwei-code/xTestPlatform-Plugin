@@ -29,7 +29,7 @@ public sealed class VisaQueryExecutor : IStepExecutor
             var varName = setting.ResultVariable;
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not IMessageBasedSession session)
+            if (!context.Resources.TryGet<IMessageBasedSession>(key, out var session))
             {
                 return new ExecutionResult
                 {
@@ -41,7 +41,7 @@ public sealed class VisaQueryExecutor : IStepExecutor
                 };
             }
 
-            var response = VisaHelper.Query(session, command, setting.TrimResponse);
+            var response = VisaHelper.Query(session, command, setting.TrimResponse, GetTerminator(context, connName));
             context.SetVariable(varName, response);
 
             context.LogAction?.Invoke($"VISA Query: {command} => {response}");
@@ -66,4 +66,8 @@ public sealed class VisaQueryExecutor : IStepExecutor
             };
         }
     }
+
+    /// <summary>获取打开会话时保存的终止符，未找到时默认换行符</summary>
+    private static string GetTerminator(IExecutionContext context, string connName) =>
+        context.Resources.TryGet<string>(VisaHelper.GetTerminatorKey(connName), out var term) ? term : "\n";
 }

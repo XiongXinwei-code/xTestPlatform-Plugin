@@ -39,6 +39,15 @@ public sealed class NiDaqAiConfigPlugin : StepPluginBase<NiDaqAiConfigSetting>
 
         - Terminal 可选值：Differential, RSE, NRSE, Pseudodifferential
 
+        ## 物理通道命名规则
+
+        格式为 `<设备名>/<通道>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
+
+        - 单个 AI 通道：`Dev1/ai0`
+        - 连续通道范围：`Dev1/ai0:3`（表示 ai0~ai3 共 4 通道）
+        - 多个不连续通道：`Dev1/ai0,Dev1/ai2,Dev1/ai5`（逗号分隔）
+        - 时钟/触发源使用 PFI 端子时需带前导斜杠：`/Dev1/PFI0`
+
         ## 行为
 
         - 仅创建任务，不启动采集

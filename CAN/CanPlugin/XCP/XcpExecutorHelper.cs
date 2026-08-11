@@ -11,13 +11,13 @@ internal static class XcpExecutorHelper
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
 
-    /// <summary>从 RuntimeData 获取 CAN 适配器并创建 XcpClient</summary>
+    /// <summary>从资源注册表获取 CAN 适配器并创建 XcpClient</summary>
     public static async Task<(XcpClient? client, string? error)> CreateClientAsync(
         XcpCommonSetting common, IExecutionContext context, CancellationToken ct)
     {
         var connName = await Evaluator.EvalStringAsync(common.ConnectionName, context);
         var key = CanHelper.GetAdapterKey(connName);
-        if (!context.CurrentStep!.RuntimeData.TryGetValue(key, out var obj) || obj is not ICanAdapter adapter)
+        if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             return (null, $"CAN 连接未找到: {connName}，请先执行 CAN_Open 步骤");
 
         var txIdStr = await Evaluator.EvalStringAsync(common.TxId, context);

@@ -10,37 +10,47 @@ public static class VisaHelper
     /// <summary>根据连接名称生成运行时数据存储的唯一键</summary>
     public static string GetSessionKey(string connectionName) => $"__VISA_{connectionName}";
 
+    /// <summary>根据连接名称生成终止符存储的唯一键</summary>
+    public static string GetTerminatorKey(string connectionName) => $"__VISA_{connectionName}__TERM";
+
+    /// <summary>
+    /// 将用户配置的终止符归一化为真实字符（同时支持转义文本 \n、\r、\r\n 与真实字符），为空时默认换行符
+    /// </summary>
+    public static string NormalizeTerminator(string? terminator)
+    {
+        if (string.IsNullOrEmpty(terminator))
+            return "\n";
+        return terminator.Replace("\\r", "\r").Replace("\\n", "\n");
+    }
+
     /// <summary>
     /// 打开 VISA 会话
     /// </summary>
     public static IMessageBasedSession OpenSession(string resourceString, int openTimeoutMs, int ioTimeoutMs, string terminator)
     {
-        var session = (IMessageBasedSession)GlobalResourceManager.Open(resourceString, AccessModes.None, openTimeoutMs);
+        var visaSession = GlobalResourceManager.Open(resourceString, AccessModes.None, openTimeoutMs);
+        if (visaSession is not IMessageBasedSession session)
+        {
+            visaSession.Dispose();
+            throw new InvalidOperationException($"资源 {resourceString} 不是消息型 VISA 设备，无法进行 SCPI 通信");
+        }
+
         session.TimeoutMilliseconds = ioTimeoutMs;
 
-        if (!string.IsNullOrEmpty(terminator))
-        {
-            // 设置终止符
-            var termChar = terminator switch
-            {
-                "\\n" => '\n',
-                "\\r" => '\r',
-                "\\r\\n" => '\n',
-                _ => terminator.Length > 0 ? terminator[0] : '\n'
-            };
-            session.TerminationCharacter = (byte)termChar;
-            session.TerminationCharacterEnabled = true;
-        }
+        // 读取终止符取归一化后的最后一个字符（如 \r\n 取 \n）
+        var term = NormalizeTerminator(terminator);
+        session.TerminationCharacter = (byte)term[^1];
+        session.TerminationCharacterEnabled = true;
 
         return session;
     }
 
     /// <summary>
-    /// 发送 SCPI 命令（自动追加终止符）
+    /// 发送 SCPI 命令（追加配置的终止符）
     /// </summary>
-    public static void Write(IMessageBasedSession session, string command)
+    public static void Write(IMessageBasedSession session, string command, string terminator = "\n")
     {
-        session.FormattedIO.WriteLine(command);
+        session.FormattedIO.Write(command + terminator);
     }
 
     /// <summary>
@@ -55,9 +65,9 @@ public static class VisaHelper
     /// <summary>
     /// 发送命令并读取响应（Query）
     /// </summary>
-    public static string Query(IMessageBasedSession session, string command, bool trim)
+    public static string Query(IMessageBasedSession session, string command, bool trim, string terminator = "\n")
     {
-        Write(session, command);
+        Write(session, command, terminator);
         return Read(session, trim);
     }
 }

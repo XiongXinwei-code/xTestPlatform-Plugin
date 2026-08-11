@@ -24,6 +24,14 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
         | Channel | 表达式(string) | 是 | — | 物理通道，如 Dev1/port0/line0:7 |
         | ResultVariable | string | 是 | — | 结果变量名，写入类型为 uint（端口状态值） |
 
+        ## 物理通道命名规则
+
+        格式为 `<设备名>/port<端口号>/line<线号>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
+
+        - 单条数字线：`Dev1/port0/line0`
+        - 连续线范围：`Dev1/port0/line0:7`（line0~line7 共 8 条线）
+        - 整个端口：`Dev1/port0`
+
         ## 行为
 
         - 单次读取，无需预先配置任务

@@ -2,7 +2,7 @@ using CAN.Models;
 
 namespace CAN.Helpers;
 
-/// <summary>CAN 连接管理辅助类，通过 RuntimeData 存取适配器实例</summary>
+/// <summary>CAN 连接管理辅助类，通过资源注册表存取适配器实例</summary>
 public static class CanHelper
 {
     private const string KeyPrefix = "CAN_Adapter_";

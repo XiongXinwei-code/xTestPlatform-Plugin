@@ -29,6 +29,13 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
         | DistancePerPulse | double | 否 | 0.3515625 | 每脉冲对应的距离/角度 |
         | Unit | 枚举 | 否 | Degrees | 可选值：Pulses, Degrees, Millimeters |
 
+        ## 物理通道命名规则
+
+        格式为 `<设备名>/ctr<计数器号>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
+
+        - 计数器通道：`Dev1/ctr0`、`Dev1/ctr1`（每个编码器占用一个计数器）
+        - 编码器 A/B/Z 相实际接线端子由计数器默认路由决定，可在 NI MAX 中查看
+
         ## 行为
 
         - 仅创建任务，不启动采集

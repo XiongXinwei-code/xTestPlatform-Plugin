@@ -48,6 +48,14 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
 
         - DecodingType 可选值：X1, X2, X4；Unit 可选值：Pulses, Degrees, Millimeters
 
+        ## 物理通道命名规则
+
+        格式为 `<设备名>/<通道>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
+
+        - AI 通道：`Dev1/ai0`；连续范围 `Dev1/ai0:3`；多个不连续通道逗号分隔 `Dev1/ai0,Dev1/ai2`
+        - 计数器（编码器）通道：`Dev1/ctr0`、`Dev1/ctr1`
+        - 时钟/触发源使用 PFI 端子时需带前导斜杠：`/Dev1/PFI0`
+
         ## 行为
 
         - 仅创建任务，不启动采集

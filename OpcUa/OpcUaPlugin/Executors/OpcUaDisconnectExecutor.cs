@@ -24,11 +24,10 @@ public sealed class OpcUaDisconnectExecutor : IStepExecutor
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) && obj is Session session)
+            if (context.Resources.TryGet<Session>(key, out var session))
             {
                 await session.CloseAsync(cancellationToken);
-                session.Dispose();
-                context.CurrentStep.RuntimeData.Remove(key);
+                context.Resources.Remove(key);
                 context.LogAction?.Invoke($"OPC UA 连接已断开: {connName}");
             }
             else

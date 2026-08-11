@@ -12,13 +12,13 @@ internal static class UdsExecutorHelper
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
 
-    /// <summary>从 RuntimeData 获取 CAN 适配器并创建 UDS 客户端</summary>
+    /// <summary>从资源注册表获取 CAN 适配器并创建 UDS 客户端</summary>
     public static async Task<(UdsClient? client, string? error)> CreateClientAsync(
         UdsCommonSetting common, IExecutionContext context, CancellationToken ct)
     {
         var connName = await Evaluator.EvalStringAsync(common.ConnectionName, context);
         var key = CanHelper.GetAdapterKey(connName);
-        if (!context.CurrentStep!.RuntimeData.TryGetValue(key, out var obj) || obj is not ICanAdapter adapter)
+        if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             return (null, $"CAN 连接未找到: {connName}");
 
         var txIdStr = await Evaluator.EvalStringAsync(common.TxId, context);

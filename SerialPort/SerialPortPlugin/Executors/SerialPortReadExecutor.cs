@@ -34,7 +34,7 @@ public sealed class SerialPortReadExecutor : IStepExecutor
 
             var key = SerialPortHelper.GetPortKey(portName);
 
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not SysSerialPort port || !port.IsOpen)
+            if (!context.Resources.TryGet<SysSerialPort>(key, out var port) || !port.IsOpen)
                 return new ExecutionResult
                 {
                     StepResult = new StepResult

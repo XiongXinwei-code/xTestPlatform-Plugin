@@ -7,7 +7,7 @@ using xTestPlatform.Core.SequenceModels;
 namespace VISA.UI.Views;
 
 /// <summary>
-/// VisaQueryEditorView 缂栬緫鍣ㄨ鍥?
+/// VisaQueryEditorView 编辑器视图
 /// </summary>
 public partial class VisaQueryEditorView : UserControl, IRefreshableEditor
 {

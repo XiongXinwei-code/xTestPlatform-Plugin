@@ -22,7 +22,7 @@ public sealed class CanWriteExecutor : IStepExecutor
         {
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = CanHelper.GetAdapterKey(connName);
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not ICanAdapter adapter)
+            if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             {
                 return new ExecutionResult
                 {

@@ -23,7 +23,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
         {
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = LinHelper.GetAdapterKey(connName);
-            if (!context.CurrentStep.RuntimeData.TryGetValue(key, out var obj) || obj is not ILinAdapter adapter)
+            if (!context.Resources.TryGet<ILinAdapter>(key, out var adapter))
             {
                 return new ExecutionResult
                 {

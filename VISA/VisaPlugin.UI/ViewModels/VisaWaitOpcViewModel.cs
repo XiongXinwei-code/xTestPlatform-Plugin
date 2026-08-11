@@ -7,7 +7,7 @@ using xTestPlatform.Core.SequenceModels;
 namespace VISA.UI.ViewModels;
 
 /// <summary>
-/// VISA WaitOPC 缂栬緫鍣ㄧ殑 ViewModel
+/// VISA WaitOPC 编辑器 ViewModel
 /// </summary>
 public class VisaWaitOpcViewModel : INotifyPropertyChanged
 {
