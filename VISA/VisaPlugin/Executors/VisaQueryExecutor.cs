@@ -41,7 +41,18 @@ public sealed class VisaQueryExecutor : IStepExecutor
                 };
             }
 
-            var response = VisaHelper.Query(session, command, setting.TrimResponse, GetTerminator(context, connName));
+            string response;
+            var gate = VisaHelper.GetLock(session);
+            await gate.WaitAsync(cancellationToken);
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                response = VisaHelper.Query(session, command, setting.TrimResponse, GetTerminator(context, connName));
+            }
+            finally
+            {
+                gate.Release();
+            }
             context.SetVariable(varName, response);
 
             context.LogAction?.Invoke($"VISA Query: {command} => {response}");
@@ -50,7 +61,7 @@ public sealed class VisaQueryExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Passed, Value = response }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

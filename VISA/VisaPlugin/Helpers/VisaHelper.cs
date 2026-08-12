@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Ivi.Visa;
 
 namespace VISA.Helpers;
@@ -7,6 +8,12 @@ namespace VISA.Helpers;
 /// </summary>
 public static class VisaHelper
 {
+    private static readonly ConditionalWeakTable<IMessageBasedSession, SemaphoreSlim> SessionLocks = new();
+
+    /// <summary>获取会话对应的 I/O 互斥锁，用于串行化并行步骤对同一会话的访问（会话销毁后锁自动回收）</summary>
+    public static SemaphoreSlim GetLock(IMessageBasedSession session) =>
+        SessionLocks.GetValue(session, _ => new SemaphoreSlim(1, 1));
+
     /// <summary>根据连接名称生成运行时数据存储的唯一键</summary>
     public static string GetSessionKey(string connectionName) => $"__VISA_{connectionName}";
 
@@ -52,11 +59,12 @@ public static class VisaHelper
     }
 
     /// <summary>
-    /// 发送 SCPI 命令（追加配置的终止符）
+    /// 发送 SCPI 命令（追加配置的终止符），并刷新写缓冲区确保数据实际发出（END/EOI 结尾）
     /// </summary>
     public static void Write(IMessageBasedSession session, string command, string terminator = "\n")
     {
         session.FormattedIO.Write(command + terminator);
+        session.FormattedIO.FlushWrite(true);
     }
 
     /// <summary>

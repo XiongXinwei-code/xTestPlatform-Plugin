@@ -13,9 +13,10 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
         var serializer = new DoipDiagRequestPlugin().CreateSerializer();
         var setting = (DoipDiagRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
+        string? name = null;
         try
         {
-            var name = await EthernetExecutorHelper.EvalStringAsync(setting.SessionName, context);
+            name = await EthernetExecutorHelper.EvalStringAsync(setting.SessionName, context);
             var targetStr = await EthernetExecutorHelper.EvalStringAsync(setting.TargetAddress, context);
             var dataStr = await EthernetExecutorHelper.EvalStringAsync(setting.RequestData, context);
 
@@ -63,12 +64,15 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
         }
         catch (OperationCanceledException)
         {
+            // 超时后迟到的响应会残留在 TCP 流中，关闭会话防止后续请求读到旧数据
+            if (name != null)
+                DoipConnectionManager.Close(name);
             return new ExecutionResult
             {
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = "DoIP 诊断请求超时: 未在超时时间内收到响应" }
+                    Error = new ErrorInfo { Message = "DoIP 诊断请求超时: 未在超时时间内收到响应，会话已关闭，请重新执行 DoIP_Connect" }
                 }
             };
         }

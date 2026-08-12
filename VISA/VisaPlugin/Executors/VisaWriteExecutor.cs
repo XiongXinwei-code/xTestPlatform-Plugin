@@ -40,7 +40,17 @@ public sealed class VisaWriteExecutor : IStepExecutor
                 };
             }
 
-            VisaHelper.Write(session, command, GetTerminator(context, connName));
+            var gate = VisaHelper.GetLock(session);
+            await gate.WaitAsync(cancellationToken);
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                VisaHelper.Write(session, command, GetTerminator(context, connName));
+            }
+            finally
+            {
+                gate.Release();
+            }
 
             context.LogAction?.Invoke($"VISA Write: {command}");
             return new ExecutionResult
@@ -48,7 +58,7 @@ public sealed class VisaWriteExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Passed, Value = command }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
