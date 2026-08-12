@@ -35,7 +35,7 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         if (s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("CAN_003", "波特率必须大于 0"));
         if (s.Protocol != CanProtocolType.Classic && s.DataBitRate <= 0)
-            errors.Add(StepSettingError.Error("CAN_005", "CAN FD/XL 模式下数据段波特率必须大于 0"));
+            errors.Add(StepSettingError.Error("CAN_005", "CAN FD 模式下数据段波特率必须大于 0"));
         else if (s.Protocol != CanProtocolType.Classic && s.DataBitRate < s.BaudRate)
             errors.Add(StepSettingError.Warning("CAN_W01", "数据段波特率通常应大于等于仲裁段波特率"));
         return errors;

@@ -80,8 +80,11 @@ internal static class NiXnetApi
     public const uint nxMode_FrameInStream = 6;
     public const uint nxMode_FrameOutStream = 9;
 
-    // Frame Stream 模式无需数据库，必须使用 ":memory:" 内存数据库名（空字符串会报 0xBFF63163）
+    // Frame Stream 模式无需数据库，必须使用特殊内存数据库名（空字符串会报 0xBFF63163）。
+    // IO 模式（经典 / FD / FD+BRS）通过数据库名选择，Interface:CAN:I/O Mode 属性是只读的。
     public const string InMemoryDatabase = ":memory:";
+    public const string InMemoryDatabaseCanFd = ":can_fd:";
+    public const string InMemoryDatabaseCanFdBrs = ":can_fd_brs:";
 
     // 作用域
     public const uint nxScope_Normal = 0;
@@ -95,7 +98,6 @@ internal static class NiXnetApi
     public const uint nxCANioMode_CAN = 0;
     public const uint nxCANioMode_CAN_FD = 1;
     public const uint nxCANioMode_CAN_FD_BRS = 2;
-    public const uint nxCANioMode_CAN_XL = 3;
 
     // 帧类型（Raw Frame 的 Type 字节，nixnet.h）
     public const byte nxFrameType_CAN_Data = 0x00;
@@ -108,10 +110,13 @@ internal static class NiXnetApi
     // 扩展帧标志位于 Identifier 字段的 bit 29
     public const uint nxFrameId_CAN_IsExtended = 0x20000000;
 
-    /// <summary>检查 NI-XNET 返回状态码，非 0 则抛出异常</summary>
+    // 读帧超时错误码（nxErrEventTimeout，0xBFF6300A）
+    public const int nxErrEventTimeout = unchecked((int)0xBFF6300A);
+
+    /// <summary>检查 NI-XNET 返回状态码：负数为错误抛出异常，正数为警告忽略</summary>
     public static void CheckStatus(int status)
     {
-        if (status == 0) return;
+        if (status >= 0) return;
         var sb = new System.Text.StringBuilder(2048);
         nxStatusToString(status, 2048, sb);
         throw new InvalidOperationException($"NI-XNET 错误 ({status}): {sb}");

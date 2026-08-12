@@ -72,7 +72,6 @@
                           SelectedIndex="{Binding Protocol, Converter={StaticResource EnumToIntConverter}}">
                     <ComboBoxItem Content="Classic"/>
                     <ComboBoxItem Content="CAN FD"/>
-                    <ComboBoxItem Content="CAN XL"/>
                 </ComboBox>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="DataBitRate:" VerticalAlignment="Center" Margin="0,0,8,8"

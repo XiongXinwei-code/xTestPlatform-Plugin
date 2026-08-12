@@ -9,7 +9,6 @@ public sealed class NiXnetAdapter : ICanAdapter
     private uint _rxSession;
     private uint _txSession;
     private bool _isConnected;
-    private CanProtocolType _protocol;
     private readonly object _lock = new();
     private readonly Queue<CanMessage> _pendingFrames = new();
 
@@ -40,19 +39,25 @@ public sealed class NiXnetAdapter : ICanAdapter
 
     private void OpenInternal(CanAdapterConfig config)
     {
-        _protocol = config.Protocol;
         var interfaceName = config.Channel; // 如 "CAN1"
 
-        // 创建接收会话（Frame In Stream，使用 :memory: 内存数据库，无需 FIBEX/DBC 数据库文件）
+        // IO 模式通过特殊内存数据库名选择（Interface:CAN:I/O Mode 属性是只读的，不能直接写）
+        string database = config.Protocol switch
+        {
+            CanProtocolType.FD => NiXnetApi.InMemoryDatabaseCanFdBrs,
+            _ => NiXnetApi.InMemoryDatabase
+        };
+
+        // 创建接收会话（Frame In Stream，使用内存数据库，无需 FIBEX/DBC 数据库文件）
         var status = NiXnetApi.nxCreateSession(
-            NiXnetApi.InMemoryDatabase, "", "", interfaceName,
+            database, "", "", interfaceName,
             NiXnetApi.nxMode_FrameInStream,
             out _rxSession);
         NiXnetApi.CheckStatus(status);
 
         // 创建发送会话（Frame Out Stream）
         status = NiXnetApi.nxCreateSession(
-            NiXnetApi.InMemoryDatabase, "", "", interfaceName,
+            database, "", "", interfaceName,
             NiXnetApi.nxMode_FrameOutStream,
             out _txSession);
         NiXnetApi.CheckStatus(status);
@@ -67,23 +72,8 @@ public sealed class NiXnetAdapter : ICanAdapter
             NiXnetApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
         NiXnetApi.CheckStatus(status);
 
-        // 设置 CAN IO 模式
-        uint ioMode = config.Protocol switch
-        {
-            CanProtocolType.FD => NiXnetApi.nxCANioMode_CAN_FD_BRS,
-            CanProtocolType.XL => throw new NotSupportedException("NI-XNET 不支持 CAN XL 协议，请选择 Classic 或 FD"),
-            _ => NiXnetApi.nxCANioMode_CAN
-        };
-        status = NiXnetApi.nxSetProperty(_rxSession,
-            NiXnetApi.nxPropSession_IntfCanIoMode, 4, ref ioMode);
-        NiXnetApi.CheckStatus(status);
-
-        status = NiXnetApi.nxSetProperty(_txSession,
-            NiXnetApi.nxPropSession_IntfCanIoMode, 4, ref ioMode);
-        NiXnetApi.CheckStatus(status);
-
-        // CAN FD / XL 数据段波特率
-        if (config.Protocol != CanProtocolType.Classic)
+        // CAN FD 数据段波特率
+        if (config.Protocol == CanProtocolType.FD)
         {
             uint dataBaudRate = (uint)config.DataBitRate;
             status = NiXnetApi.nxSetProperty(_rxSession,
@@ -164,8 +154,11 @@ public sealed class NiXnetAdapter : ICanAdapter
 
             var status = NiXnetApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, timeout, out uint bytesRead);
 
-            if (status != 0 || bytesRead == 0)
-                continue; // 超时或无数据，由 deadline 控制退出
+            if (status == NiXnetApi.nxErrEventTimeout)
+                continue; // 超时无数据，由 deadline 控制退出
+            NiXnetApi.CheckStatus(status); // 其他错误直接抛出，警告忽略
+            if (bytesRead == 0)
+                continue;
 
             // nxReadFrame 一次可能返回多帧，全部解析入队，避免丢帧
             lock (_lock)
@@ -191,7 +184,8 @@ public sealed class NiXnetAdapter : ICanAdapter
         // Bytes 16+:   Payload（最少 8 字节，按 8 字节对齐填充）
 
         int payloadLen = message.Data.Length;
-        int paddedPayload = Math.Max(8, (payloadLen + 7) & ~7);
+        int txLen = GetValidTxLength(payloadLen, message.IsFd); // 非法长度向上对齐并用0x00填充
+        int paddedPayload = Math.Max(8, (txLen + 7) & ~7);
         var frame = new byte[16 + paddedPayload];
 
         // Timestamp = 0 (for TX)
@@ -206,13 +200,37 @@ public sealed class NiXnetAdapter : ICanAdapter
             ? NiXnetApi.nxFrameType_CANFDBRS_Data
             : NiXnetApi.nxFrameType_CAN_Data;
 
-        // Payload length
-        frame[15] = (byte)payloadLen;
+        // Payload length（必须为合法 CAN/CAN FD 长度，不足部分已由零字节填充）
+        frame[15] = (byte)txLen;
 
         // Data
         Buffer.BlockCopy(message.Data, 0, frame, 16, payloadLen);
 
         return frame;
+    }
+
+    /// <summary>校验并对齐到合法的 CAN/CAN FD 发送长度（0-8/12/16/20/24/32/48/64）</summary>
+    private static int GetValidTxLength(int length, bool isFd)
+    {
+        if (!isFd)
+        {
+            if (length > 8)
+                throw new ArgumentException($"CAN 经典帧数据长度不能超过 8 字节（当前 {length}）");
+            return length;
+        }
+
+        return length switch
+        {
+            <= 8 => length,
+            <= 12 => 12,
+            <= 16 => 16,
+            <= 20 => 20,
+            <= 24 => 24,
+            <= 32 => 32,
+            <= 48 => 48,
+            <= 64 => 64,
+            _ => throw new ArgumentException($"CAN FD 帧数据长度不能超过 64 字节（当前 {length}）")
+        };
     }
 
     /// <summary>解析缓冲区中的全部 NI-XNET 帧</summary>
@@ -235,7 +253,11 @@ public sealed class NiXnetAdapter : ICanAdapter
             {
                 var msg = new CanMessage();
 
-                msg.TimestampNs = (long)BinaryPrimitives.ReadUInt64LittleEndian(buffer.AsSpan(offset));
+                // XNET 时间戳为 1601-01-01 起的 100ns 计数（FILETIME），转为 Unix 纪元纳秒
+                ulong rawTs = BinaryPrimitives.ReadUInt64LittleEndian(buffer.AsSpan(offset));
+                msg.TimestampNs = rawTs > 116444736000000000UL
+                    ? (long)(rawTs - 116444736000000000UL) * 100
+                    : (long)rawTs * 100;
 
                 uint rawId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(offset + 8));
                 msg.FrameType = (rawId & NiXnetApi.nxFrameId_CAN_IsExtended) != 0
@@ -244,7 +266,6 @@ public sealed class NiXnetAdapter : ICanAdapter
 
                 msg.IsFd = frameType is NiXnetApi.nxFrameType_CANFD_Data
                     or NiXnetApi.nxFrameType_CANFDBRS_Data;
-                msg.IsXl = false; // NI-XNET 不支持 CAN XL
 
                 int dataLen = Math.Min(payloadLen, length - offset - 16);
                 msg.Data = new byte[dataLen];

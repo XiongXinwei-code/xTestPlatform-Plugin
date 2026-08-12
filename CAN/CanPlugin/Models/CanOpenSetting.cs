@@ -20,7 +20,7 @@ public class CanOpenSetting
     /// <summary>协议类型</summary>
     public CanProtocolType Protocol { get; set; } = CanProtocolType.Classic;
 
-    /// <summary>数据段波特率（CAN FD/XL 有效）</summary>
+    /// <summary>数据段波特率（CAN FD 有效）</summary>
     public int DataBitRate { get; set; } = 2_000_000;
 
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>

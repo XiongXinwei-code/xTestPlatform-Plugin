@@ -17,9 +17,7 @@ public sealed class VectorAdapter : ICanAdapter
 
     public void Open(CanAdapterConfig config)
     {
-        if (_isConnected) throw new InvalidOperationException("CAN 通道已打开");
-        if (config.Protocol == CanProtocolType.XL)
-            throw new NotSupportedException("Vector 适配器暂不支持 CAN XL 协议");
+
 
         try
         {
