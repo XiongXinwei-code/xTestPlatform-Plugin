@@ -39,7 +39,13 @@ public static class VisaHelper
 
         // 读取终止符取归一化后的最后一个字符（如 \r\n 取 \n）
         var term = NormalizeTerminator(terminator);
-        session.TerminationCharacter = (byte)term[^1];
+        var termChar = term[^1];
+        if (termChar > 0xFF)
+        {
+            session.Dispose();
+            throw new InvalidOperationException("终止符必须是单字节字符（如 \\n、\\r\\n），不支持中文等多字节字符");
+        }
+        session.TerminationCharacter = (byte)termChar;
         session.TerminationCharacterEnabled = true;
 
         return session;

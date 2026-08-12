@@ -18,7 +18,8 @@ public class SerialPortQuerySetting
 
 	public int ReadBytes { get; set; } = 0;
 
-	public string Terminator { get; set; } = "\n";
+	/// <summary>终止符，以转义文本存储（如 \n、\r\n）；为空表示不按终止符结束，读到超时为止</summary>
+	public string Terminator { get; set; } = "\\n";
 
 	public string ResultVariable { get; set; } = string.Empty;
 }

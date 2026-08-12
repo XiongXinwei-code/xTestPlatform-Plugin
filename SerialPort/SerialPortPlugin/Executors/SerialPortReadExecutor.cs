@@ -66,6 +66,7 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             {
                 using var ms = new MemoryStream();
                 var temp = new byte[1024];
+                var terminator = SerialPortHelper.NormalizeTerminator(s.Terminator);
                 try
                 {
                     while (!cts.Token.IsCancellationRequested)
@@ -74,10 +75,10 @@ public sealed class SerialPortReadExecutor : IStepExecutor
                         if (read == 0) break;
                         ms.Write(temp, 0, read);
 
-                        if (s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(s.Terminator))
+                        if (s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(terminator))
                         {
                             var current = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-                            if (current.Contains(s.Terminator))
+                            if (current.Contains(terminator))
                                 break;
                         }
                     }

@@ -41,12 +41,8 @@
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="终止符:" VerticalAlignment="Center" Margin="0,6"/>
                 <ComboBox Grid.Row="4" Grid.Column="1" Margin="0,6" Width="200" HorizontalAlignment="Left"
                           IsEditable="True"
-                          Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged}">
-                    <ComboBoxItem Content="\n"/>
-                    <ComboBoxItem Content="\r"/>
-                    <ComboBoxItem Content="\r\n"/>
-                    <ComboBoxItem Content=""/>
-                </ComboBox>
+                          ItemsSource="{Binding TerminatorPresets}"
+                          Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged}" />
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
