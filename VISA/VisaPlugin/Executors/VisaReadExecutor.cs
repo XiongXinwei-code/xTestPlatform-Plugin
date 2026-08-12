@@ -40,7 +40,18 @@ public sealed class VisaReadExecutor : IStepExecutor
                 };
             }
 
-            var response = VisaHelper.Read(session, setting.TrimResponse);
+            string response;
+            var gate = VisaHelper.GetLock(session);
+            await gate.WaitAsync(cancellationToken);
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                response = VisaHelper.Read(session, setting.TrimResponse);
+            }
+            finally
+            {
+                gate.Release();
+            }
             context.SetVariable(varName, response);
 
             context.LogAction?.Invoke($"VISA Read: {response}");
@@ -49,7 +60,7 @@ public sealed class VisaReadExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Passed, Value = response }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

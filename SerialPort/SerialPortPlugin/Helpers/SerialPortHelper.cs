@@ -8,6 +8,17 @@ public static class SerialPortHelper
 
     public static string GetPortKey(string portName) => $"{PortKeyPrefix}{portName}";
 
+    /// <summary>
+    /// 将用户配置的终止符归一化为真实字符（同时支持转义文本 \n、\r、\r\n、\t 与真实字符）；
+    /// 为空时保持为空（表示不按终止符结束，读到超时为止）
+    /// </summary>
+    public static string NormalizeTerminator(string? terminator)
+    {
+        if (string.IsNullOrEmpty(terminator))
+            return string.Empty;
+        return terminator.Replace("\\r", "\r").Replace("\\n", "\n").Replace("\\t", "\t");
+    }
+
     public static byte[] ConvertToBytes(string data, SerialPortDataFormat format)
     {
         return format switch

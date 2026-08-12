@@ -39,6 +39,9 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
                 };
             }
 
+            var gate = VisaHelper.GetLock(session);
+            await gate.WaitAsync(cancellationToken);
+
             // 如果指定了超时，临时修改会话超时
             var originalTimeout = session.TimeoutMilliseconds;
             if (setting.TimeoutMs > 0)
@@ -46,6 +49,7 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var response = VisaHelper.Query(session, "*OPC?", true, GetTerminator(context, connName));
                 context.LogAction?.Invoke($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
 
@@ -59,9 +63,10 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
                 // 恢复原始超时
                 if (setting.TimeoutMs > 0)
                     session.TimeoutMilliseconds = originalTimeout;
+                gate.Release();
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

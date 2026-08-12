@@ -1,4 +1,5 @@
 using System.Windows;
+using VISA.Helpers;
 using VISA.Models;
 using VISA.UI.Views;
 using StepEditor.Abstractions;
@@ -38,6 +39,9 @@ public sealed class VisaOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_003", "打开超时必须大于 0"));
         if (s.IoTimeoutMs <= 0)
             errors.Add(StepSettingError.Error("VISA_004", "IO 超时必须大于 0"));
+        var term = VisaHelper.NormalizeTerminator(s.Terminator);
+        if (term[^1] > 0xFF)
+            errors.Add(StepSettingError.Error("VISA_005", "终止符必须是单字节字符（如 \\n、\\r\\n），不支持中文等多字节字符"));
         return errors;
     }
 }

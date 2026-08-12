@@ -54,8 +54,18 @@ public sealed class SerialPortQueryViewModel : SerialPortViewModelBase
 
 	public string Terminator
 	{
-		get => _setting?.Terminator ?? "\n";
-		set { if (_setting != null && _setting.Terminator != value) { _setting.Terminator = value; OnPropertyChanged(); QueueSave(); } }
+		get => EscapeTerminator(_setting?.Terminator);
+		set { if (_setting != null && Terminator != value) { _setting.Terminator = value; OnPropertyChanged(); QueueSave(); } }
+	}
+
+	/// <summary>常用终止符预设（转义文本形式），供下拉选择，也可手动输入自定义值或清空（读到超时为止）</summary>
+	public IReadOnlyList<string> TerminatorPresets { get; } = new[] { "\\n", "\\r\\n", "\\r" };
+
+	/// <summary>将真实控制字符转义为可见文本（兼容旧数据），空值保持为空</summary>
+	private static string EscapeTerminator(string? terminator)
+	{
+		if (string.IsNullOrEmpty(terminator)) return string.Empty;
+		return terminator.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
 	}
 
 	public string ResultVariable

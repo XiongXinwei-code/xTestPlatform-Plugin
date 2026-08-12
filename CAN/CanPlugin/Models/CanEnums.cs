@@ -9,9 +9,7 @@ public enum CanProtocolType
     /// <summary>经典 CAN 2.0（最大 8 字节）</summary>
     Classic = 0,
     /// <summary>CAN FD（最大 64 字节）</summary>
-    FD = 1,
-    /// <summary>CAN XL（最大 2048 字节）</summary>
-    XL = 2
+    FD = 1
 }
 
 /// <summary>CAN 硬件适配器类型</summary>

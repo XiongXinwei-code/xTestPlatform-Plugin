@@ -40,20 +40,29 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
 
             int sent = 0;
             var terminator = GetTerminator(context, connName);
-            foreach (var item in setting.Items)
+            var gate = VisaHelper.GetLock(session);
+            await gate.WaitAsync(cancellationToken);
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                foreach (var item in setting.Items)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                var command = await Evaluator.EvalStringAsync(item.Command, context);
-                if (string.IsNullOrWhiteSpace(command))
-                    continue;
+                    var command = await Evaluator.EvalStringAsync(item.Command, context);
+                    if (string.IsNullOrWhiteSpace(command))
+                        continue;
 
-                VisaHelper.Write(session, command, terminator);
-                sent++;
-                context.LogAction?.Invoke($"VISA BatchWrite [{sent}]: {command}");
+                    VisaHelper.Write(session, command, terminator);
+                    sent++;
+                    context.LogAction?.Invoke($"VISA BatchWrite [{sent}]: {command}");
 
-                if (item.DelayMs > 0)
-                    await Task.Delay(item.DelayMs, cancellationToken);
+                    if (item.DelayMs > 0)
+                        await Task.Delay(item.DelayMs, cancellationToken);
+                }
+            }
+            finally
+            {
+                gate.Release();
             }
 
             return new ExecutionResult
@@ -61,7 +70,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已发送 {sent} 条命令" }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

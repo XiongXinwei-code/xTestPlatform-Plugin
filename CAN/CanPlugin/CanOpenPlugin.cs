@@ -15,7 +15,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
     public override string Description => """
         ## 功能
 
-        打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD、CAN XL 协议。
+        打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD 协议。
 
         ## 参数
 
@@ -24,8 +24,8 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | AdapterType | 枚举 | 是 | — | 硬件类型，可选值：NI, PEAK, Vector, ZLG, Kvaser, TOSUN |
         | Channel | 表达式(string) | 是 | — | 通道名称 |
         | BaudRate | int | 是 | — | 仲裁段波特率 |
-        | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD, XL |
-        | DataBitRate | int | FD/XL 时 | — | 数据段波特率 |
+        | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD |
+        | DataBitRate | int | FD 时 | — | 数据段波特率 |
         | ConnectionName | 表达式(string) | 是 | — | 连接标识名，序列内唯一 |
 
         ## 通道命名规则
@@ -39,7 +39,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - Kvaser（CANlib）：通道索引，如 `0`、`1`，在 Kvaser Hardware 工具中查看
         - TOSUN（同星）：通道索引，如 `0`、`1`，默认连接第一个 USB 设备
 
-        注意：PEAK / Vector / ZLG / Kvaser / TOSUN 适配器不支持 CAN XL 协议；运行机器需安装对应厂商驱动（NI-XNET / PCAN-Basic / Vector XL Driver / ZLGCAN / Kvaser Drivers / TSMaster）。
+        注意：运行机器需安装对应厂商驱动（NI-XNET / PCAN-Basic / Vector XL Driver / ZLGCAN / Kvaser Drivers / TSMaster）。
 
         ## 行为
 
@@ -57,7 +57,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);
-        var proto = s.Protocol == CanProtocolType.Classic ? "Classic" : s.Protocol == CanProtocolType.FD ? "FD" : "XL";
+        var proto = s.Protocol == CanProtocolType.FD ? "FD" : "Classic";
         return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps)";
     }
 }

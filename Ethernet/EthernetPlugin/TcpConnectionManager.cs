@@ -26,7 +26,15 @@ public static class TcpConnectionManager
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(timeoutMs);
 
-        await client.ConnectAsync(host, port, cts.Token);
+        try
+        {
+            await client.ConnectAsync(host, port, cts.Token);
+        }
+        catch
+        {
+            client.Dispose();
+            throw;
+        }
         _clients[connectionName] = client;
         return client;
     }

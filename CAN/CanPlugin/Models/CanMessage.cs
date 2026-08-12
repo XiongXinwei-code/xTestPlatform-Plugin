@@ -1,6 +1,6 @@
 namespace CAN.Models;
 
-/// <summary>统一 CAN 报文结构，支持 Classic/FD/XL</summary>
+/// <summary>统一 CAN 报文结构，支持 Classic/FD</summary>
 public class CanMessage
 {
     /// <summary>CAN ID（标准帧 11-bit，扩展帧 29-bit）</summary>
@@ -14,9 +14,6 @@ public class CanMessage
 
     /// <summary>是否为 CAN FD 帧（BRS 位速率切换）</summary>
     public bool IsFd { get; set; }
-
-    /// <summary>是否为 CAN XL 帧</summary>
-    public bool IsXl { get; set; }
 
     /// <summary>接收时间戳（纳秒）</summary>
     public long TimestampNs { get; set; }

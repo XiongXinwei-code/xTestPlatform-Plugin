@@ -24,7 +24,15 @@ public static class DoipConnectionManager
         var tcp = new TcpClient();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(timeoutMs);
-        await tcp.ConnectAsync(host, port, cts.Token);
+        try
+        {
+            await tcp.ConnectAsync(host, port, cts.Token);
+        }
+        catch
+        {
+            tcp.Dispose();
+            throw;
+        }
 
         var client = new DoipClient(tcp, sourceAddress, timeoutMs);
         try

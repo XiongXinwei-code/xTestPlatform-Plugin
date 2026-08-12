@@ -46,9 +46,20 @@ public sealed class UdpReceiveExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = $"UDP 接收超时({setting.TimeoutMs}ms): 端口 {setting.LocalPort}" }
+                }
+            };
         }
         catch (Exception ex)
         {

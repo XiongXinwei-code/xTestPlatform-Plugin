@@ -61,9 +61,20 @@ public sealed class TcpReceiveExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = $"TCP 接收超时({setting.TimeoutMs}ms)" }
+                }
+            };
         }
         catch (Exception ex)
         {

@@ -13,14 +13,16 @@ public sealed class DoipConnectExecutor : IStepExecutor
         var serializer = new DoipConnectPlugin().CreateSerializer();
         var setting = (DoipConnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
+        string? host = null;
+        var port = 0;
         try
         {
             var name = await EthernetExecutorHelper.EvalStringAsync(setting.SessionName, context);
-            var host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
+            host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
             var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.RemotePort, context);
             var srcStr = await EthernetExecutorHelper.EvalStringAsync(setting.SourceAddress, context);
 
-            if (!int.TryParse(portStr, out var port))
+            if (!int.TryParse(portStr, out port))
                 return Error($"DoIP 连接失败: 端口号 [{portStr}] 无效");
 
             var sourceAddress = DoipHelper.ParseAddress(srcStr);
@@ -42,9 +44,13 @@ public sealed class DoipConnectExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return Error($"DoIP 连接超时({setting.TimeoutMs}ms): {host}:{port}");
         }
         catch (Exception ex)
         {

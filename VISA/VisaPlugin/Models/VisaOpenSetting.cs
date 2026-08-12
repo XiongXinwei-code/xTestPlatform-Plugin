@@ -23,6 +23,6 @@ public class VisaOpenSetting
     /// <summary>I/O 超时时间（毫秒），用于读写操作</summary>
     public int IoTimeoutMs { get; set; } = 10000;
 
-    /// <summary>终止符字符，默认换行符</summary>
-    public string Terminator { get; set; } = "\n";
+    /// <summary>终止符，以转义文本存储（如 \n、\r\n），默认换行符</summary>
+    public string Terminator { get; set; } = "\\n";
 }

@@ -14,12 +14,12 @@ public sealed class SerialPortReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var step = context.CurrentStep!.Step;
+        var serializer = new SerialPortReadPlugin().CreateSerializer();
+        var s = (SerialPortReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
         try
         {
-            var step = context.CurrentStep!.Step;
-            var serializer = new SerialPortReadPlugin().CreateSerializer();
-            var s = (SerialPortReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
             var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 
             if (string.IsNullOrWhiteSpace(portName))
@@ -66,6 +66,7 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             {
                 using var ms = new MemoryStream();
                 var temp = new byte[1024];
+                var terminator = SerialPortHelper.NormalizeTerminator(s.Terminator);
                 try
                 {
                     while (!cts.Token.IsCancellationRequested)
@@ -74,10 +75,10 @@ public sealed class SerialPortReadExecutor : IStepExecutor
                         if (read == 0) break;
                         ms.Write(temp, 0, read);
 
-                        if (s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(s.Terminator))
+                        if (s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(terminator))
                         {
                             var current = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-                            if (current.Contains(s.Terminator))
+                            if (current.Contains(terminator))
                                 break;
                         }
                     }
@@ -102,9 +103,20 @@ public sealed class SerialPortReadExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = $"串口读取超时({s.ReadTimeoutMs}ms): 未读满 {s.ReadBytes} 字节" }
+                }
+            };
         }
         catch (Exception ex)
         {
