@@ -57,9 +57,20 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = "DoIP 诊断请求超时: 未在超时时间内收到响应" }
+                }
+            };
         }
         catch (Exception ex)
         {

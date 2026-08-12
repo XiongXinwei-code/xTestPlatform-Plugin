@@ -70,9 +70,20 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = $"DoIP 车辆发现超时({setting.TimeoutMs}ms): 未收到车辆公告" }
+                }
+            };
         }
         catch (Exception ex)
         {

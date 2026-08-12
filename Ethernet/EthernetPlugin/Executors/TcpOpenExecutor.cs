@@ -13,13 +13,15 @@ public sealed class TcpOpenExecutor : IStepExecutor
         var serializer = new TcpOpenPlugin().CreateSerializer();
         var setting = (TcpOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
+        string? host = null;
+        var port = 0;
         try
         {
-            var host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
+            host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
             var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.RemotePort, context);
             var name = await EthernetExecutorHelper.EvalStringAsync(setting.ConnectionName, context);
 
-            if (!int.TryParse(portStr, out var port))
+            if (!int.TryParse(portStr, out port))
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -43,9 +45,20 @@ public sealed class TcpOpenExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (OperationCanceledException)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = $"TCP 连接超时({setting.ConnectTimeoutMs}ms): {host}:{port}" }
+                }
+            };
         }
         catch (Exception ex)
         {

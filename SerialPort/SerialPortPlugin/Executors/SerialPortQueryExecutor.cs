@@ -14,12 +14,12 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
+		var step = context.CurrentStep!.Step;
+		var serializer = new SerialPortQueryPlugin().CreateSerializer();
+		var s = (SerialPortQuerySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
 		try
 		{
-			var step = context.CurrentStep!.Step;
-			var serializer = new SerialPortQueryPlugin().CreateSerializer();
-			var s = (SerialPortQuerySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
 			var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 
 			if (string.IsNullOrWhiteSpace(portName))
@@ -109,9 +109,20 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 				}
 			};
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+		}
+		catch (OperationCanceledException)
+		{
+			return new ExecutionResult
+			{
+				StepResult = new StepResult
+				{
+					Status = TestStatus.Error,
+					Error = new ErrorInfo { Message = $"串口查询读取超时({s.ReadTimeoutMs}ms): 未读满 {s.ReadBytes} 字节" }
+				}
+			};
 		}
 		catch (Exception ex)
 		{
