@@ -85,21 +85,8 @@ jobs:
               $csprojs = Get-ChildItem $dir.FullName -Recurse -Filter "*.csproj" | Sort-Object FullName
               if ($csprojs.Count -eq 0) { continue }
 
-              # 以主插件项目（非 .UI）中的最大版本号为基准，目录内所有项目统一使用同一版本
-              $baseVersion = $null
-              foreach ($csproj in $csprojs) {
-                  $content = Get-Content $csproj.FullName -Raw
-                  if ($content -match '<Version>(\d+)\.(\d+)\.(\d+)</Version>') {
-                      $candidate = [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
-                      if (-not $baseVersion -or $candidate -gt $baseVersion) { $baseVersion = $candidate }
-                  }
-              }
-              if ($baseVersion) {
-                  $v = "$($baseVersion.Major).$($baseVersion.Minor).$($baseVersion.Build + 1)"
-              } else {
-                  # 目录内所有项目都没有 <Version> 属性，初始 1.0.0
-                  $v = "1.0.0"
-              }
+              # 锁步版本：有变更的插件统一写入整包新版本号，与 Release tag 保持一致
+              $v = "${{ steps.bump_version.outputs.new_version }}"
 
               foreach ($csproj in $csprojs) {
                   $content = Get-Content $csproj.FullName -Raw
