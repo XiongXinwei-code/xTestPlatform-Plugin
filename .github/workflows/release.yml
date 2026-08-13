@@ -10,7 +10,7 @@ on:
 
 # 防止并发发布导致版本冲突
 concurrency:
-  group: auto-release-${{ github.ref }}
+  group: auto-release
   cancel-in-progress: false
 
 env:
@@ -44,13 +44,86 @@ jobs:
               $minor = [int]$parts[1]
               $patch = [int]$parts[2] + 1
           } else {
+              $latestTag = ""
               $major = 1; $minor = 0; $patch = 0
           }
           $newVersion = "$major.$minor.$patch"
           $newTag = "v$newVersion"
-          Write-Host "✅ 版本号已递增为 $newVersion"
+          Write-Host "✅ 版本号已递增为 $newVersion（上一个 tag: $latestTag）"
           echo "new_version=$newVersion" >> $env:GITHUB_OUTPUT
           echo "new_tag=$newTag" >> $env:GITHUB_OUTPUT
+          echo "prev_tag=$latestTag" >> $env:GITHUB_OUTPUT
+
+      # ── 2.5 递增有变更插件的版本号并写回 csproj ────────────────────────
+      - name: 递增变更插件的版本号
+        shell: pwsh
+        run: |
+          $prevTag = "${{ steps.bump_version.outputs.prev_tag }}"
+
+          # 找出所有插件顶层目录（与编译步骤的约定一致）
+          $pluginDirs = Get-ChildItem -Directory | Where-Object {
+              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+          }
+
+          # 计算自上一个 tag 以来有变更的顶层目录
+          if ($prevTag) {
+              $changedFiles = git diff --name-only "$prevTag..HEAD"
+          } else {
+              # 无历史 tag：视为全部变更（首次发布）
+              $changedFiles = git ls-files
+          }
+          $changedTopDirs = $changedFiles |
+              Where-Object { $_ -match '/' } |
+              ForEach-Object { ($_ -split '/')[0] } |
+              Sort-Object -Unique
+
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          $bumped = @()
+          foreach ($dir in $pluginDirs) {
+              if ($changedTopDirs -notcontains $dir.Name) { continue }
+
+              $csprojs = Get-ChildItem $dir.FullName -Recurse -Filter "*.csproj" | Sort-Object FullName
+              if ($csprojs.Count -eq 0) { continue }
+
+              # 以主插件项目（非 .UI）中的最大版本号为基准，目录内所有项目统一使用同一版本
+              $baseVersion = $null
+              foreach ($csproj in $csprojs) {
+                  $content = Get-Content $csproj.FullName -Raw
+                  if ($content -match '<Version>(\d+)\.(\d+)\.(\d+)</Version>') {
+                      $candidate = [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
+                      if (-not $baseVersion -or $candidate -gt $baseVersion) { $baseVersion = $candidate }
+                  }
+              }
+              if ($baseVersion) {
+                  $v = "$($baseVersion.Major).$($baseVersion.Minor).$($baseVersion.Build + 1)"
+              } else {
+                  # 目录内所有项目都没有 <Version> 属性，初始 1.0.0
+                  $v = "1.0.0"
+              }
+
+              foreach ($csproj in $csprojs) {
+                  $content = Get-Content $csproj.FullName -Raw
+                  if ($content -match '<Version>\d+\.\d+\.\d+</Version>') {
+                      $content = $content -replace '<Version>\d+\.\d+\.\d+</Version>', "<Version>$v</Version>"
+                  } else {
+                      $content = [regex]::new('<PropertyGroup>').Replace($content, "<PropertyGroup>`n    <Version>$v</Version>", 1)
+                  }
+                  [IO.File]::WriteAllText($csproj.FullName, $content, $utf8)
+              }
+              $bumped += "$($dir.Name) -> v$v"
+              Write-Host "  🔖 $($dir.Name): 版本递增为 $v（共 $($csprojs.Count) 个项目）"
+          }
+
+          if ($bumped.Count -gt 0) {
+              git config user.name  "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add "*.csproj"
+              git commit -m "🔖 自动递增插件版本号 [skip ci]`n`n$($bumped -join "`n")"
+              git push origin master
+              Write-Host "✅ 已提交 $($bumped.Count) 个插件的版本变更"
+          } else {
+              Write-Host "ℹ️ 没有插件目录发生变更，跳过版本递增"
+          }
 
       # ── 3. 创建并推送 tag ──────────────────────────────────────────────
       - name: 创建并推送标签
@@ -71,9 +144,8 @@ jobs:
       - name: 编译所有插件
         shell: pwsh
         run: |
-          # 约定：顶层目录中包含 *Plugin*.csproj 的即为插件目录
+          # 约定：顶层目录中包含 *Plugin*.csproj 的即为插件目录（与版本递增步骤一致）
           $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*.csproj" | Select-String -Pattern "Plugin" -SimpleMatch).Count -gt 0 -or
               (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
           }
 
@@ -120,21 +192,69 @@ jobs:
               }
           }
 
-      # ── 7. 打包 ZIP ────────────────────────────────────────────────────
+      # ── 7. 打包 ZIP（整包 + 单插件包 + manifest.json） ──────────────────
       - name: 打包 ZIP
         shell: pwsh
         run: |
           $version = "${{ steps.bump_version.outputs.new_version }}"
+          $tag     = "${{ steps.bump_version.outputs.new_tag }}"
           $zipName = "Plugins-v$version.zip"
+          $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
 
+          # ① 整包（离线全量包 / 兼容旧流程）
           Compress-Archive `
-            -Path "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}\*" `
+            -Path "$publishRoot\*" `
             -DestinationPath "$env:GITHUB_WORKSPACE\$zipName"
 
           $zipFile = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
-          Write-Host "✅ 已打包: $($zipFile.Name)  ($([math]::Round($zipFile.Length/1MB,2)) MB)"
+          Write-Host "✅ 已打包整包: $($zipFile.Name)  ($([math]::Round($zipFile.Length/1MB,2)) MB)"
 
-          # 仅保留后续需要使用的 ZIP_NAME
+          # ② 单插件包 + manifest 条目
+          $assetsDir = "$env:GITHUB_WORKSPACE\assets"
+          New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
+
+          $entries = @()
+          foreach ($dir in Get-ChildItem $publishRoot -Directory) {
+              $pluginName = $dir.Name
+              $pluginZip  = "$pluginName-v$version.zip"
+              $pluginZipPath = Join-Path $assetsDir $pluginZip
+
+              Compress-Archive -Path "$($dir.FullName)\*" -DestinationPath $pluginZipPath
+
+              $sha256 = (Get-FileHash $pluginZipPath -Algorithm SHA256).Hash
+              $size   = (Get-Item $pluginZipPath).Length
+
+              # 插件版本：优先取该插件 csproj 中的 <Version>，否则用整包版本
+              $pluginVersion = $version
+              $desc = ""
+              $csproj = Get-ChildItem "$env:GITHUB_WORKSPACE\$pluginName" -Recurse -Filter "*.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($csproj) {
+                  $content = Get-Content $csproj.FullName -Raw
+                  if ($content -match '<Version>([^<]+)</Version>') { $pluginVersion = $Matches[1].Trim() }
+                  if ($content -match '<Description>([^<]+)</Description>') { $desc = $Matches[1].Trim() }
+              }
+
+              $entries += [ordered]@{
+                  name               = $pluginName
+                  version            = $pluginVersion
+                  description        = $desc
+                  downloadUrl        = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$pluginZip"
+                  sha256             = $sha256
+                  size               = $size
+                  minPlatformVersion = ""
+              }
+              Write-Host "  📦 $pluginZip  v$pluginVersion  ($([math]::Round($size/1KB,1)) KB)"
+          }
+
+          # ③ 生成 manifest.json
+          $manifest = [ordered]@{
+              manifestVersion = 1
+              releaseTag      = $tag
+              plugins         = $entries
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content "$assetsDir\manifest.json" -Encoding UTF8
+          Write-Host "✅ manifest.json 已生成（$($entries.Count) 个插件）"
+
           "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # ── 8. 生成 Release Notes ─────────────────────────────────────────
@@ -157,14 +277,17 @@ jobs:
           Write-Host "✅ Release Notes 已生成"
           Get-Content "$env:GITHUB_WORKSPACE\release_notes.md"
 
-      # ── 9. 创建 GitHub Release 并上传 ZIP ─────────────────────────────
+      # ── 9. 创建 GitHub Release 并上传附件 ─────────────────────────────
       - name: 创建 Release 并上传插件包
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.bump_version.outputs.new_tag }}
           name: "${{ steps.bump_version.outputs.new_tag }}"
           body_path: ${{ github.workspace }}\release_notes.md
-          files: ${{ env.ZIP_NAME }}
+          files: |
+            ${{ env.ZIP_NAME }}
+            assets/*.zip
+            assets/manifest.json
           generate_release_notes: false
           token: ${{ secrets.PLUGIN_TOKEN }}
 
