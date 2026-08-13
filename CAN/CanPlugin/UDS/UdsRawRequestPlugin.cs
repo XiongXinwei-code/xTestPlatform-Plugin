@@ -21,12 +21,12 @@ public sealed class UdsRawRequestPlugin : StepPluginBase<UdsRawRequestSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | RequestData | 表达式(string) | 是 | — | 十六进制请求数据，如 "10 03" |
+        | RequestData | string([ExpressionField]) | 是 | — | 十六进制请求数据，如 "10 03" |
         | WaitResponse | bool | 否 | true | 是否等待响应 |
         | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | 表达式(string) | 是 | — | 请求 CAN ID |
-        | RxId | 表达式(string) | 是 | — | 响应 CAN ID |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
+        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

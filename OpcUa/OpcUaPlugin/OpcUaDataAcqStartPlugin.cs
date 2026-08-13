@@ -23,8 +23,8 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | 表达式(string) | 是 | — | 采集任务标识名，序列内唯一 |
-        | ConnectionName | 表达式(string) | 是 | — | 已建立的 OPC UA 连接名 |
+        | TaskName | string([ExpressionField]) | 是 | — | 采集任务标识名，序列内唯一 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 OPC UA 连接名 |
         | Items | 集合 | 是 | — | 采集节点列表，元素结构见示例 |
         | SamplingIntervalMs | int | 否 | 100 | 采样间隔毫秒数 |
         | MaxDurationMs | int | 否 | 0 | 最大采集时长，0 表示无限 |

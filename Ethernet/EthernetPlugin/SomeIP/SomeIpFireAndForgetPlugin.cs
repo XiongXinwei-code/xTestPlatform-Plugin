@@ -21,14 +21,14 @@ public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForg
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | RemoteHost | 表达式(string) | 是 | "192.168.1.20" | 服务端 IP |
-        | RemotePort | 表达式(string) | 是 | "30501" | 服务端端口 |
+        | RemoteHost | string([ExpressionField]) | 是 | "192.168.1.20" | 服务端 IP |
+        | RemotePort | string([ExpressionField]) | 是 | "30501" | 服务端端口 |
         | Transport | 枚举 | 否 | Udp | 传输方式，可选值：Udp, Tcp |
-        | ServiceId | 表达式(string) | 是 | "0x1234" | 服务 ID |
-        | MethodId | 表达式(string) | 是 | "0x0001" | 方法 ID |
-        | ClientId | 表达式(string) | 否 | "0x0001" | 客户端 ID |
-        | InterfaceVersion | 表达式(string) | 否 | "0x01" | 接口版本 |
-        | Payload | 表达式(string) | 否 | 空 | 十六进制负载，可为空 |
+        | ServiceId | string([ExpressionField]) | 是 | "0x1234" | 服务 ID |
+        | MethodId | string([ExpressionField]) | 是 | "0x0001" | 方法 ID |
+        | ClientId | string([ExpressionField]) | 否 | "0x0001" | 客户端 ID |
+        | InterfaceVersion | string([ExpressionField]) | 否 | "0x01" | 接口版本 |
+        | Payload | string([ExpressionField]) | 否 | 空 | 十六进制负载，可为空 |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

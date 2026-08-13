@@ -21,11 +21,11 @@ public sealed class UdsWriteDataByIdPlugin : StepPluginBase<UdsWriteDataByIdSett
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | Did | 表达式(string) | 是 | — | 数据标识符，如 0xF199 |
-        | Data | 表达式(string) | 是 | — | 十六进制写入数据，如 "01 02 03" |
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | 表达式(string) | 是 | — | 请求 CAN ID |
-        | RxId | 表达式(string) | 是 | — | 响应 CAN ID |
+        | Did | string([ExpressionField]) | 是 | — | 数据标识符，如 0xF199 |
+        | Data | string([ExpressionField]) | 是 | — | 十六进制写入数据，如 "01 02 03" |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
+        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

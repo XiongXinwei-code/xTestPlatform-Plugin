@@ -1,7 +1,6 @@
 ﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.3.0 | **框架**：.NET 8 / WPF | **日期**：2026-02-27
-> **仓库**：https://code.ruhlamat.com.cn/xtest/xtest.git（branch: `develop`）
+> **版本**：3.3.1 | **框架**：.NET 8 / WPF | **日期**：2026-08-13
 
 ---
 
@@ -52,6 +51,7 @@
     - 11.3 [标准 XAML 模板](#113-标准-xaml-模板)
     - 11.4 [View 标准结构](#114-view-标准结构)
     - 11.5 [ViewModel 防抖保存模式](#115-viewmodel-防抖保存模式)
+      - 11.5.1 [集合项（DataGrid / TreeView 等）修改必须触发保存（强制）](#1151-集合项datagrid--treeview-等修改必须触发保存强制)
     - 11.6 [表达式编辑控件（ExpressionTextBox）](#116-表达式编辑控件expressiontextbox)
 12. [序列化规范](#12-序列化规范)
     - 12.1 [集合属性与子项设计规范](#121-集合属性与子项设计规范)
@@ -135,6 +135,7 @@
 - [ ] 表达式字段使用 `ExpressionTextBox` 控件而非普通 TextBox（§11.6）
 - [ ] View 中 `SequenceFile` 和 `EditPosition` 声明为 `DependencyProperty`（而非普通 CLR 属性），且 `CreateEditor` 中已将 `sequenceFile` 参数赋值给 `view.SequenceFile`（§11.4、§4.5）
 - [ ] ViewModel 采用防抖保存（§11.5）
+- [ ] 集合类编辑器（DataGrid/TreeView/ItemsControl 等绑定集合项）已订阅每个集合项的 `PropertyChanged` 并触发 `QueueSave()`，增删行时同步订阅/退订（§11.5.1）
 
 **资源与部署**
 - [ ] 提供图标（无正式图标也放占位图，`IconPath` 不留空）（§2.1）
@@ -1272,6 +1273,44 @@ public class MyEditorViewModel : INotifyPropertyChanged {
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }
 ```
+
+#### 11.5.1 集合项（DataGrid / TreeView 等）修改必须触发保存（强制）
+
+> ⚠️ **常见 Bug**：标量字段通过 ViewModel 属性 setter 调用 `QueueSave()`，不会漏保存；但 **DataGrid 单元格、TreeView / ListView / ItemsControl 模板内的控件直接绑定集合项对象的属性**（如 `{Binding FrameId}`），编辑时值直接写入 Model，**完全不经过 ViewModel 的 setter**。若没有订阅集合项的 `PropertyChanged`，就不会触发 `QueueSave()`，表现为：界面显示已修改，但保存文件后重新加载仍是旧值。
+
+**规则**：只要控件绑定的是集合项（无论 DataGrid、TreeView 还是 ItemsControl 模板），就必须：
+
+1. 集合项 Model 类实现 `INotifyPropertyChanged`，所有属性 setter 触发通知；
+2. ViewModel 在 `Load()` 中遍历集合，为每个 item 订阅 `PropertyChanged` → `QueueSave()`；
+3. 添加行时为新 item 订阅，删除行时退订。
+
+```csharp
+private void Load() {
+    // ...反序列化 _setting 后：
+    foreach (var item in _setting.Items)
+        item.PropertyChanged += OnItemChanged;   // 单元格编辑 → 触发保存
+    // ...
+}
+
+private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
+
+public void AddItem()
+{
+    var item = new MyItem();
+    item.PropertyChanged += OnItemChanged;   // 新增行也要订阅
+    _setting!.Items.Add(item);
+    QueueSave();
+}
+
+public void RemoveItem(MyItem item)
+{
+    item.PropertyChanged -= OnItemChanged;   // 删除行退订，避免泄漏
+    _setting!.Items.Remove(item);
+    QueueSave();
+}
+```
+
+参考正确实现：CAN 插件 `CanCyclicSendStartViewModel`（直接订阅模式）、VISA 插件 `VisaBatchWriteViewModel`（包装 ItemViewModel 转发模式）。两种模式均可，优先推荐直接订阅模式（代码更少）。
 
 ### 11.6 表达式编辑控件（ExpressionTextBox）
 

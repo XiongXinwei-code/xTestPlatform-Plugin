@@ -21,10 +21,10 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SessionName | 表达式(string) | 是 | "DOIP1" | 会话标识名 |
-        | RemoteHost | 表达式(string) | 是 | "192.168.1.10" | DoIP 实体 IP |
-        | RemotePort | 表达式(string) | 是 | "13400" | TCP 端口 |
-        | SourceAddress | 表达式(string) | 是 | "0x0E00" | 诊断仪逻辑地址 |
+        | SessionName | string([ExpressionField]) | 是 | "DOIP1" | 会话标识名 |
+        | RemoteHost | string([ExpressionField]) | 是 | "192.168.1.10" | DoIP 实体 IP |
+        | RemotePort | string([ExpressionField]) | 是 | "13400" | TCP 端口 |
+        | SourceAddress | string | 是 | "0x0E00" | 诊断仪逻辑地址 |
         | ActivationType | 枚举 | 否 | Default | 可选值：Default, WwhObd, CentralSecurity |
         | TimeoutMs | int | 否 | 3000 | 超时毫秒数 |
         | EnableLog | bool | 否 | true | 是否输出日志 |

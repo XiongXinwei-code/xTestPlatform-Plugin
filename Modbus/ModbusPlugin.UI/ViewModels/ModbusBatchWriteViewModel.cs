@@ -35,6 +35,8 @@ public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 				? (ModbusBatchWriteSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
 				: (ModbusBatchWriteSetting)_serializer.CreateDefault();
 			Items = _setting.Items;
+			foreach (var item in Items)
+				item.PropertyChanged += OnItemChanged;
 			OnPropertyChanged(string.Empty);
 		}
 		finally { _suppressSave = false; }
@@ -51,8 +53,10 @@ public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 	public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
 	public int IntervalMs { get => _setting?.IntervalMs ?? 0; set { if (_setting == null || _setting.IntervalMs == value) return; _setting.IntervalMs = value; OnPropertyChanged(); QueueSave(); } }
 
-	public void AddItem() { Items.Add(new ModbusBatchWriteItem()); QueueSave(); }
-	public void RemoveItem(ModbusBatchWriteItem item) { Items.Remove(item); QueueSave(); }
+	public void AddItem() { var item = new ModbusBatchWriteItem(); item.PropertyChanged += OnItemChanged; Items.Add(item); QueueSave(); }
+	public void RemoveItem(ModbusBatchWriteItem item) { item.PropertyChanged -= OnItemChanged; Items.Remove(item); QueueSave(); }
+
+	private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 
 	public event PropertyChangedEventHandler? PropertyChanged;
 	protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

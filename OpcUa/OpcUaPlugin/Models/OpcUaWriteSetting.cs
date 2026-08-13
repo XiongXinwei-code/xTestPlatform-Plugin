@@ -12,8 +12,7 @@ public class OpcUaWriteSetting
     public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要写入的节点标识</summary>
-    [ExpressionField]
-    public string NodeId { get; set; } = "\"ns=2;s=MyVariable\"";
+    public string NodeId { get; set; } = "ns=2;s=MyVariable";
 
     /// <summary>要写入的值（表达式）</summary>
     [ExpressionField]

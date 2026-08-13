@@ -21,9 +21,9 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | "TCP1" | 连接标识名 |
-        | RemoteHost | 表达式(string) | 是 | "192.168.1.1" | 远端 IP 地址 |
-        | RemotePort | 表达式(string) | 是 | "13400" | 远端端口号 |
+        | ConnectionName | string([ExpressionField]) | 是 | "TCP1" | 连接标识名 |
+        | RemoteHost | string([ExpressionField]) | 是 | "192.168.1.1" | 远端 IP 地址 |
+        | RemotePort | string([ExpressionField]) | 是 | "13400" | 远端端口号 |
         | ConnectTimeoutMs | int | 否 | 3000 | 连接超时毫秒数 |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 

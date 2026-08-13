@@ -21,7 +21,7 @@ public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDisco
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | BroadcastAddress | 表达式(string) | 是 | "255.255.255.255" | 广播地址 |
+        | BroadcastAddress | string([ExpressionField]) | 是 | "255.255.255.255" | 广播地址 |
         | Port | int | 否 | 13400 | UDP 发现端口 |
         | TimeoutMs | int | 否 | 3000 | 等待响应超时毫秒数 |
         | ResultVariable | string | 否 | 空 | 存储发现结果的变量路径 |

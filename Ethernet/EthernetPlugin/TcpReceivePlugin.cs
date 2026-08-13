@@ -21,7 +21,7 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | "TCP1" | 已打开的连接标识名 |
+        | ConnectionName | string([ExpressionField]) | 是 | "TCP1" | 已打开的连接标识名 |
         | ExpectedLength | int | 否 | 0 | 期望字节数，0 表示接收任意长度 |
         | TimeoutMs | int | 否 | 3000 | 接收超时毫秒数 |
         | Encoding | 枚举 | 否 | Hex | 结果编码格式，可选值：Hex, Utf8, Ascii |

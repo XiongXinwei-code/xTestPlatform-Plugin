@@ -22,11 +22,11 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | AdapterType | 枚举 | 是 | — | 硬件类型，可选值：NI, PEAK, Vector, ZLG, Kvaser, TOSUN |
-        | Channel | 表达式(string) | 是 | — | 通道名称 |
+        | Channel | string([ExpressionField]) | 是 | — | 通道名称 |
         | BaudRate | int | 是 | — | 仲裁段波特率 |
         | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD |
         | DataBitRate | int | FD 时 | — | 数据段波特率 |
-        | ConnectionName | 表达式(string) | 是 | — | 连接标识名，序列内唯一 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一 |
 
         ## 通道命名规则
 

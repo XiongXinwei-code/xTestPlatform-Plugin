@@ -21,8 +21,8 @@ public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | Channel | 表达式(string) | 是 | — | 物理通道，如 Dev1/port0/line0 |
-        | Value | 表达式(string) | 是 | — | 输出值，true/false 或 byte |
+        | Channel | string([ExpressionField]) | 是 | — | 物理通道，如 Dev1/port0/line0 |
+        | Value | string([ExpressionField]) | 是 | — | 输出值，true/false 或 byte |
 
         ## 物理通道命名规则
 

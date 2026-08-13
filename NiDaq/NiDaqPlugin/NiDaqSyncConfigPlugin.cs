@@ -21,7 +21,7 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | 表达式(string) | 是 | — | 任务名称 |
+        | TaskName | string([ExpressionField]) | 是 | — | 任务名称 |
         | AiChannels | 集合 | 是 | — | AI 通道列表，元素结构见下方示例 |
         | EncoderChannels | 集合 | 是 | — | 编码器通道列表，元素结构见下方示例 |
         | SampleRate | double | 是 | — | 采样率 Hz |

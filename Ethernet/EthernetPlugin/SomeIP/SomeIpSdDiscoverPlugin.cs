@@ -21,9 +21,9 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | MulticastAddress | 表达式(string) | 是 | "224.244.224.245" | SD 组播地址 |
+        | MulticastAddress | string([ExpressionField]) | 是 | "224.244.224.245" | SD 组播地址 |
         | Port | int | 否 | 30490 | SD 端口 |
-        | ServiceId | 表达式(string) | 否 | "0xFFFF" | 查找的服务 ID，0xFFFF 表示所有服务 |
+        | ServiceId | string([ExpressionField]) | 否 | "0xFFFF" | 查找的服务 ID，0xFFFF 表示所有服务 |
         | TimeoutMs | int | 否 | 3000 | 收集响应超时毫秒数 |
         | ResultVariable | string | 否 | 空 | 存储发现结果的变量路径 |
         | EnableLog | bool | 否 | true | 是否输出日志 |

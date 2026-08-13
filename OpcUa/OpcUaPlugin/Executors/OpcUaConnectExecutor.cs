@@ -58,9 +58,7 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
             IUserIdentity userIdentity;
             if (setting.AuthMode == OpcUaAuthMode.UserPassword)
             {
-                var userName = await Evaluator.EvalStringAsync(setting.UserName, context);
-                var password = await Evaluator.EvalStringAsync(setting.Password, context);
-                userIdentity = new UserIdentity(userName, password);
+                userIdentity = new UserIdentity(setting.UserName, setting.Password);
             }
             else
             {

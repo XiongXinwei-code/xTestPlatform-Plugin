@@ -21,8 +21,8 @@ public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | "TCP1" | 已打开的连接标识名 |
-        | Data | 表达式(string) | 是 | "01 02 03" | 发送数据 |
+        | ConnectionName | string([ExpressionField]) | 是 | "TCP1" | 已打开的连接标识名 |
+        | Data | string([ExpressionField]) | 是 | "01 02 03" | 发送数据 |
         | Encoding | 枚举 | 否 | Hex | 数据编码格式，可选值：Hex, Utf8, Ascii |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 

@@ -1,4 +1,4 @@
-﻿using SerialPort.Executors;
+using SerialPort.Executors;
 using SerialPort.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -21,8 +21,8 @@ public sealed class SerialPortWritePlugin : StepPluginBase<SerialPortWriteSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | PortName | 表达式(string) | 是 | — | 已打开的端口名 |
-        | WriteData | 表达式(string) | 是 | — | 要写入的数据 |
+        | PortName | string([ExpressionField]) | 是 | — | 已打开的端口名 |
+        | WriteData | string([ExpressionField]) | 是 | — | 要写入的数据 |
         | DataFormat | 枚举 | 否 | String | 可选值：String, Hex, Bin |
 
         ## 行为

@@ -46,10 +46,8 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="SourceAddress:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding SourceAddress, Mode=TwoWay}" ExpectedResultType="String"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+                         Text="{Binding SourceAddress, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="ActivationType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <ComboBox Grid.Row="4" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"

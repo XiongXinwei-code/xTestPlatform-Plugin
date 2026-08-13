@@ -21,9 +21,9 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | LocalPort | 表达式(string) | 是 | "30502" | 本地监听 UDP 端口 |
-        | ServiceId | 表达式(string) | 是 | "0x1234" | 服务 ID 过滤 |
-        | EventId | 表达式(string) | 是 | "0x8001" | 事件 ID 过滤 |
+        | LocalPort | string([ExpressionField]) | 是 | "30502" | 本地监听 UDP 端口 |
+        | ServiceId | string([ExpressionField]) | 是 | "0x1234" | 服务 ID 过滤 |
+        | EventId | string([ExpressionField]) | 是 | "0x8001" | 事件 ID 过滤 |
         | TimeoutMs | int | 否 | 5000 | 等待通知超时毫秒数 |
         | ResultVariable | string | 否 | 空 | 存储通知负载的变量路径 |
         | EnableLog | bool | 否 | true | 是否输出日志 |

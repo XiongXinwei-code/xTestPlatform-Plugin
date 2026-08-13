@@ -24,7 +24,7 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | 表达式(string) | 是 | — | 要关闭的 Modbus 连接标识名 |
+		| ConnectionName | string([ExpressionField]) | 是 | — | 要关闭的 Modbus 连接标识名 |
 
 		## 行为
 

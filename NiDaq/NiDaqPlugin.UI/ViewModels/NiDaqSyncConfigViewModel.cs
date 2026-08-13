@@ -30,6 +30,10 @@ public class NiDaqSyncConfigViewModel : INotifyPropertyChanged
                 : (NiDaqSyncConfigSetting)_serializer.CreateDefault();
             AiChannels = _setting.AiChannels;
             EncoderChannels = _setting.EncoderChannels;
+            foreach (var ch in AiChannels)
+                ch.PropertyChanged += OnItemChanged;
+            foreach (var ch in EncoderChannels)
+                ch.PropertyChanged += OnItemChanged;
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -55,10 +59,12 @@ public class NiDaqSyncConfigViewModel : INotifyPropertyChanged
     public ObservableCollection<NiDaqAiChannel> AiChannels { get; private set; } = new();
     public ObservableCollection<NiDaqSyncEncoderChannel> EncoderChannels { get; private set; } = new();
 
-    public void AddAiChannel() { AiChannels.Add(new NiDaqAiChannel()); QueueSave(); }
-    public void RemoveAiChannel(NiDaqAiChannel ch) { AiChannels.Remove(ch); QueueSave(); }
-    public void AddEncoderChannel() { EncoderChannels.Add(new NiDaqSyncEncoderChannel()); QueueSave(); }
-    public void RemoveEncoderChannel(NiDaqSyncEncoderChannel ch) { EncoderChannels.Remove(ch); QueueSave(); }
+    public void AddAiChannel() { var ch = new NiDaqAiChannel(); ch.PropertyChanged += OnItemChanged; AiChannels.Add(ch); QueueSave(); }
+    public void RemoveAiChannel(NiDaqAiChannel ch) { ch.PropertyChanged -= OnItemChanged; AiChannels.Remove(ch); QueueSave(); }
+    public void AddEncoderChannel() { var ch = new NiDaqSyncEncoderChannel(); ch.PropertyChanged += OnItemChanged; EncoderChannels.Add(ch); QueueSave(); }
+    public void RemoveEncoderChannel(NiDaqSyncEncoderChannel ch) { ch.PropertyChanged -= OnItemChanged; EncoderChannels.Remove(ch); QueueSave(); }
+
+    private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

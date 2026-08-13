@@ -49,10 +49,9 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
             var nodesToRead = new ReadValueIdCollection();
             foreach (var item in setting.Items)
             {
-                var nodeIdStr = await Evaluator.EvalStringAsync(item.NodeId, context);
                 nodesToRead.Add(new ReadValueId
                 {
-                    NodeId = OpcUaHelper.ParseNodeId(nodeIdStr),
+                    NodeId = OpcUaHelper.ParseNodeId(item.NodeId),
                     AttributeId = Attributes.Value
                 });
             }

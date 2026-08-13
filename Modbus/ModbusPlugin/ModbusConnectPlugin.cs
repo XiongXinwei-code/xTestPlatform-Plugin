@@ -24,11 +24,11 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | 表达式(string) | 是 | Modbus1 | 连接标识名，序列内唯一 |
+		| ConnectionName | string([ExpressionField]) | 是 | Modbus1 | 连接标识名，序列内唯一 |
 		| TransportType | 枚举 | 是 | TCP | 可选值：TCP, RTU |
-		| IpAddress | 表达式(string) | TCP 时 | 127.0.0.1 | TCP 服务器地址 |
+		| IpAddress | string([ExpressionField]) | TCP 时 | 127.0.0.1 | TCP 服务器地址 |
 		| TcpPort | int | 否 | 502 | TCP 端口 |
-		| PortName | 表达式(string) | RTU 时 | — | 串口名，如 COM1 |
+		| PortName | string([ExpressionField]) | RTU 时 | — | 串口名，如 COM1 |
 		| BaudRate | int | 否 | 9600 | 波特率（RTU） |
 		| DataBits | int | 否 | 8 | 数据位（RTU） |
 		| StopBits | int | 否 | 1 | 停止位（RTU） |

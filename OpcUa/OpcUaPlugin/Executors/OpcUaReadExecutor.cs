@@ -23,7 +23,7 @@ public sealed class OpcUaReadExecutor : IStepExecutor
         try
         {
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
-            var nodeIdStr = await Evaluator.EvalStringAsync(setting.NodeId, context);
+            var nodeIdStr = setting.NodeId;
             var key = OpcUaHelper.GetSessionKey(connName);
 
             if (!context.Resources.TryGet<Session>(key, out var session))

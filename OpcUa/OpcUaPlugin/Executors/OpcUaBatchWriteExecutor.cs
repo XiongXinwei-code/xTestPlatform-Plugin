@@ -49,9 +49,8 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
             var writeValues = new WriteValueCollection();
             foreach (var item in setting.Items)
             {
-                var nodeIdStr = await Evaluator.EvalStringAsync(item.NodeId, context);
                 var writeValueStr = await Evaluator.EvalStringAsync(item.WriteValue, context);
-                var nodeId = OpcUaHelper.ParseNodeId(nodeIdStr);
+                var nodeId = OpcUaHelper.ParseNodeId(item.NodeId);
 
                 object writeValue;
                 if (item.DataType == OpcUaDataType.Auto)

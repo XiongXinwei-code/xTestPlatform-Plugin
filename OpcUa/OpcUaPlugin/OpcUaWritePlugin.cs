@@ -22,9 +22,9 @@ public sealed class OpcUaWritePlugin : StepPluginBase<OpcUaWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已建立的 OPC UA 连接名 |
-        | NodeId | 表达式(string) | 是 | — | 节点标识，如 ns=2;s=SetPoint |
-        | WriteValue | 表达式(string) | 是 | — | 要写入的值 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 OPC UA 连接名 |
+        | NodeId | string | 是 | — | 节点标识，如 ns=2;s=SetPoint |
+        | WriteValue | string([ExpressionField]) | 是 | — | 要写入的值 |
         | DataType | 枚举 | 否 | Auto | 可选值：Auto, Boolean, Int16, UInt16, Int32, UInt32, Int64, UInt64, Float, Double, String |
         | TimeoutMs | int | 否 | 5000 | 超时毫秒数 |
 

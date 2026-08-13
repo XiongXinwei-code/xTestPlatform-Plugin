@@ -28,6 +28,8 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
             _setting = _step.StepSetting.Setting is { Length: > 0 } d
                 ? (LinCyclicSendStartSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (LinCyclicSendStartSetting)_serializer.CreateDefault();
+            foreach (var item in _setting.Frames)
+                item.PropertyChanged += OnItemChanged;
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -65,16 +67,21 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
     public void AddFrame()
     {
         if (_setting == null) return;
-        _setting.Frames.Add(new LinCyclicFrameItem());
+        var item = new LinCyclicFrameItem();
+        item.PropertyChanged += OnItemChanged;
+        _setting.Frames.Add(item);
         QueueSave();
     }
 
     public void RemoveFrame(LinCyclicFrameItem item)
     {
         if (_setting == null) return;
+        item.PropertyChanged -= OnItemChanged;
         _setting.Frames.Remove(item);
         QueueSave();
     }
+
+    private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null)

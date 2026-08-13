@@ -21,11 +21,11 @@ public sealed class XcpShortUploadPlugin : StepPluginBase<XcpShortUploadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | TxId | 表达式(string) | 是 | "0x7E1" | XCP 请求 CAN ID |
-        | RxId | 表达式(string) | 是 | "0x7E9" | XCP 响应 CAN ID |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField]) | 是 | "0x7E1" | XCP 请求 CAN ID |
+        | RxId | string([ExpressionField]) | 是 | "0x7E9" | XCP 响应 CAN ID |
         | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
-        | Address | 表达式(string) | 是 | "0x40001000" | ECU 内存地址 |
+        | Address | string([ExpressionField]) | 是 | "0x40001000" | ECU 内存地址 |
         | AddressExtension | 枚举 | 否 | None | 可选值：None, Odt, Daq |
         | ReadLength | int | 否 | 4 | 读取字节数 1-7 |
         | ByteOrder | 枚举 | 否 | LittleEndian | 可选值：LittleEndian, BigEndian |

@@ -21,8 +21,8 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | "LIN1" | 已打开的连接标识名 |
-        | TaskName | 表达式(string) | 是 | "LinCyclicTask1" | 任务标识名，Stop 步骤用此名称停止 |
+        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名 |
+        | TaskName | string([ExpressionField]) | 是 | "LinCyclicTask1" | 任务标识名，Stop 步骤用此名称停止 |
         | EnableLog | bool | 否 | false | 是否输出发送日志 |
         | Frames | 集合 | 是 | — | 周期发送帧列表，元素结构见下方示例 |
 

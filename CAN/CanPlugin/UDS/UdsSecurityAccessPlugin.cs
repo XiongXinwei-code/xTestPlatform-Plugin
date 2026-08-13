@@ -25,9 +25,9 @@ public sealed class UdsSecurityAccessPlugin : StepPluginBase<UdsSecurityAccessSe
         | SeedVariable | string | 是 | — | 存储 ECU 返回 Seed 的变量名，KeyExpression 中通过此名引用 |
         | KeyExpression | 表达式(byte[]) | 是 | — | Key 计算表达式，如 new byte[]{(byte)(Seed[0]^0xA5)} |
         | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 bool（解锁是否成功） |
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | 表达式(string) | 是 | — | 请求 CAN ID |
-        | RxId | 表达式(string) | 是 | — | 响应 CAN ID |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
+        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为
