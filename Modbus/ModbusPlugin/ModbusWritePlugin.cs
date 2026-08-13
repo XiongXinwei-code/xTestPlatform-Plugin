@@ -24,11 +24,11 @@ public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | 表达式(string) | 是 | — | 已建立的 Modbus 连接名 |
+		| ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 Modbus 连接名 |
 		| SlaveAddress | byte | 否 | 1 | 从站地址 |
 		| RegisterType | 枚举 | 是 | HoldingRegister | 可选值：Coil, HoldingRegister（写入只支持这两种） |
 		| StartAddress | 表达式(int) | 是 | — | 起始地址 |
-		| Values | 表达式(string) | 是 | — | 要写入的值，逗号分隔，如 "100,200" |
+		| Values | string([ExpressionField]) | 是 | — | 要写入的值，逗号分隔，如 "100,200" |
 		| DataFormat | 枚举 | 否 | UInt16 | 可选值：UInt16, Int16, UInt32_AB_CD, Int32_AB_CD, Float_AB_CD, UInt32_CD_AB, Int32_CD_AB, Float_CD_AB |
 
 		## 行为

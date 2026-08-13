@@ -19,9 +19,8 @@ public class DoipConnectSetting
     [ExpressionField]
     public string RemotePort { get; set; } = "\"13400\"";
 
-    /// <summary>源地址（诊断仪逻辑地址，支持表达式，如 0x0E00）</summary>
-    [ExpressionField]
-    public string SourceAddress { get; set; } = "\"0x0E00\"";
+    /// <summary>源地址（诊断仪逻辑地址，如 0x0E00）</summary>
+    public string SourceAddress { get; set; } = "0x0E00";
 
     /// <summary>路由激活类型</summary>
     public DoipActivationType ActivationType { get; set; } = DoipActivationType.Default;

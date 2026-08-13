@@ -20,12 +20,11 @@ public sealed class DoipConnectExecutor : IStepExecutor
             var name = await EthernetExecutorHelper.EvalStringAsync(setting.SessionName, context);
             host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
             var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.RemotePort, context);
-            var srcStr = await EthernetExecutorHelper.EvalStringAsync(setting.SourceAddress, context);
 
             if (!int.TryParse(portStr, out port))
                 return Error($"DoIP 连接失败: 端口号 [{portStr}] 无效");
 
-            var sourceAddress = DoipHelper.ParseAddress(srcStr);
+            var sourceAddress = DoipHelper.ParseAddress(setting.SourceAddress);
             var activationType = DoipHelper.ToActivationByte(setting.ActivationType);
 
             await DoipConnectionManager.ConnectAsync(

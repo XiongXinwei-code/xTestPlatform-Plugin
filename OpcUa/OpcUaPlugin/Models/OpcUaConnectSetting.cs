@@ -22,12 +22,10 @@ public class OpcUaConnectSetting
     public OpcUaAuthMode AuthMode { get; set; } = OpcUaAuthMode.Anonymous;
 
     /// <summary>用户名（UserPassword 模式时使用）</summary>
-    [ExpressionField]
-    public string UserName { get; set; } = "\"\"";
+    public string UserName { get; set; } = "";
 
     /// <summary>密码（UserPassword 模式时使用）</summary>
-    [ExpressionField]
-    public string Password { get; set; } = "\"\"";
+    public string Password { get; set; } = "";
 
     /// <summary>连接超时时间（毫秒）</summary>
     public int TimeoutMs { get; set; } = 5000;

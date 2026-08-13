@@ -22,7 +22,7 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | 表达式(string) | 是 | — | 要停止的采集任务名 |
+        | TaskName | string([ExpressionField]) | 是 | — | 要停止的采集任务名 |
 
         ## 行为
 

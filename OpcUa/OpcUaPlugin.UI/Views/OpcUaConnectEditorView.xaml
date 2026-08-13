@@ -64,21 +64,15 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="UserName:" VerticalAlignment="Center" Margin="0,0,8,8"
                            Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
-                    Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ScriptText="{Binding UserName, Mode=TwoWay}"
-                    ExpectedResultType="String"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+                         Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"
+                         Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Password:" VerticalAlignment="Center" Margin="0,0,8,8"
                            Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
-                    Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"
-                    ScriptText="{Binding Password, Mode=TwoWay}"
-                    ExpectedResultType="String"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                         Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"
+                         Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"

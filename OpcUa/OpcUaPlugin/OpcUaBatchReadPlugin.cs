@@ -22,7 +22,7 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已建立的 OPC UA 连接名 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 OPC UA 连接名 |
         | Items | 集合 | 是 | — | 节点读取列表，元素结构见示例 |
         | TimeoutMs | int | 否 | 5000 | 超时毫秒数 |
 

@@ -12,8 +12,7 @@ public class OpcUaReadSetting
     public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要读取的节点标识（如 ns=2;s=Temperature）</summary>
-    [ExpressionField]
-    public string NodeId { get; set; } = "\"ns=2;s=MyVariable\"";
+    public string NodeId { get; set; } = "ns=2;s=MyVariable";
 
     /// <summary>读取结果存入的变量名</summary>
     public string ResultVariable { get; set; } = "Locals.ReadValue";

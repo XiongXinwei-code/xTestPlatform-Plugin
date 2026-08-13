@@ -21,10 +21,10 @@ public sealed class CanWritePlugin : StepPluginBase<CanWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
-        | CanId | 表达式(string) | 是 | — | CAN ID，如 0x7DF |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
+        | CanId | string([ExpressionField]) | 是 | — | CAN ID，如 0x7DF |
         | FrameType | 枚举 | 否 | Standard | 可选值：Standard, Extended |
-        | Data | 表达式(string) | 是 | — | 十六进制数据，如 "02 10 01" |
+        | Data | string([ExpressionField]) | 是 | — | 十六进制数据，如 "02 10 01" |
         | UseFdFrame | bool | 否 | false | 是否使用 CAN FD 帧 |
         | EnableLog | bool | 否 | true | 是否输出发送日志 |
 

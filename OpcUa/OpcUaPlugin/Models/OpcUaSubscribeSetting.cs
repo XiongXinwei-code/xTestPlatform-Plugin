@@ -12,8 +12,7 @@ public class OpcUaSubscribeSetting
     public string ConnectionName { get; set; } = "\"OpcUa1\"";
 
     /// <summary>要订阅的节点标识</summary>
-    [ExpressionField]
-    public string NodeId { get; set; } = "\"ns=2;s=TestComplete\"";
+    public string NodeId { get; set; } = "ns=2;s=TestComplete";
 
     /// <summary>期望值（达到此值时订阅完成）</summary>
     [ExpressionField]

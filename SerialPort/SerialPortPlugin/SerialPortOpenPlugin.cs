@@ -1,4 +1,4 @@
-﻿using SerialPort.Executors;
+using SerialPort.Executors;
 using SerialPort.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -21,7 +21,7 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | PortName | 表达式(string) | 是 | — | 端口名，如 COM1 |
+        | PortName | string([ExpressionField]) | 是 | — | 端口名，如 COM1 |
         | BaudRate | int | 否 | 9600 | 波特率 |
         | DataBits | int | 否 | 8 | 数据位，取值 5-8 |
         | StopBits | int | 否 | 1 | 停止位：0=None, 1=One, 2=Two |

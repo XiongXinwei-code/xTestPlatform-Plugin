@@ -24,10 +24,10 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 VISA 连接标识名 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
         | Items | 集合 | 是 | — | 命令列表，元素结构见示例 |
 
-        Items 元素字段：Command(表达式(string), SCPI 命令)，DelayMs(int, 发送后延时毫秒，0 表示不延时)。
+        Items 元素字段：Command(string([ExpressionField]), SCPI 命令)，DelayMs(int, 发送后延时毫秒，0 表示不延时)。
 
         ## 行为
 

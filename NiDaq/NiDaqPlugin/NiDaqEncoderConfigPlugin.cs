@@ -21,8 +21,8 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | 表达式(string) | 是 | — | 任务名称 |
-        | CounterChannel | 表达式(string) | 是 | — | Counter 通道，如 Dev1/ctr0 |
+        | TaskName | string([ExpressionField]) | 是 | — | 任务名称 |
+        | CounterChannel | string([ExpressionField]) | 是 | — | Counter 通道，如 Dev1/ctr0 |
         | DecodingType | 枚举 | 否 | X4 | 可选值：X1, X2, X4 |
         | PulsesPerRevolution | int | 否 | 1024 | 每转脉冲数 PPR |
         | ZIndexEnable | bool | 否 | false | 是否启用 Z 索引复位 |

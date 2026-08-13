@@ -22,11 +22,11 @@ public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | AdapterType | 枚举 | 否 | NI | 可选值：NI, PEAK, Vector, IXXAT |
-        | Channel | 表达式(string) | 是 | "LIN1" | 硬件通道名称 |
+        | Channel | string([ExpressionField]) | 是 | "LIN1" | 硬件通道名称 |
         | BaudRate | int | 否 | 19200 | 波特率 |
         | LinVersion | 枚举 | 否 | LIN_2x | 可选值：LIN_1x, LIN_2x |
         | IsMaster | bool | 否 | true | 是否主节点 |
-        | ConnectionName | 表达式(string) | 是 | "LIN1" | 运行时连接标识名，供后续步骤引用 |
+        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 运行时连接标识名，供后续步骤引用 |
 
         ## 行为
 

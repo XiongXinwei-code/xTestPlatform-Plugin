@@ -21,8 +21,8 @@ public sealed class CanCyclicSendStopPlugin : StepPluginBase<CanCyclicSendStopSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | CAN 连接标识名 |
-        | TaskName | 表达式(string) | 是 | — | 要停止的任务标识名 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | CAN 连接标识名 |
+        | TaskName | string([ExpressionField]) | 是 | — | 要停止的任务标识名 |
 
         ## 行为
 

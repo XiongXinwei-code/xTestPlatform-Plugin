@@ -24,7 +24,7 @@ public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 VISA 连接标识名 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
         | TimeoutMs | int | 否 | 0 | 等待超时毫秒数，0 表示使用 Open 时设置的默认 IO 超时 |
 
         ## 行为

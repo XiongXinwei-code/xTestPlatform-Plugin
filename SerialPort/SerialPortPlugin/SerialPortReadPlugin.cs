@@ -1,4 +1,4 @@
-﻿using SerialPort.Executors;
+using SerialPort.Executors;
 using SerialPort.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -21,12 +21,12 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | PortName | 表达式(string) | 是 | — | 已打开的端口名 |
+        | PortName | string([ExpressionField]) | 是 | — | 已打开的端口名 |
         | DataFormat | 枚举 | 否 | String | 可选值：String, Hex, Bin |
         | ReadTimeoutMs | int | 否 | 3000 | 读超时毫秒数 |
         | ReadBytes | int | 否 | 0 | 读取字节数，0 表示读到终止符 |
         | Terminator | string | 否 | \n | 终止符，ReadBytes=0 时生效 |
-        | ResultVariable | 表达式(string) | 是 | — | 结果存入的变量名 |
+        | ResultVariable | string([ExpressionField]) | 是 | — | 结果存入的变量名 |
 
         ## 行为
 

@@ -44,7 +44,16 @@
                 <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,0,8">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Node ID" Binding="{Binding NodeId}" Width="*"/>
-                        <DataGridTextColumn Header="Write Value" Binding="{Binding WriteValue}" Width="*"/>
+                        <DataGridTemplateColumn Header="Write Value" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <expr:ExpressionTextBox
+                                        ScriptText="{Binding WriteValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridComboBoxColumn Header="Data Type" SelectedValueBinding="{Binding DataType}" Width="120"/>
                     </DataGrid.Columns>
                 </DataGrid>

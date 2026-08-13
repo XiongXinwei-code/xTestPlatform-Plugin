@@ -21,7 +21,7 @@ public sealed class DoipDisconnectPlugin : StepPluginBase<DoipDisconnectSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SessionName | 表达式(string) | 是 | "DOIP1" | 要关闭的会话标识名 |
+        | SessionName | string([ExpressionField]) | 是 | "DOIP1" | 要关闭的会话标识名 |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

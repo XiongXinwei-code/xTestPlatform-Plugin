@@ -14,7 +14,6 @@ public class OpcUaBatchReadItem : INotifyPropertyChanged
     private string _resultVariable = "";
 
     /// <summary>节点标识</summary>
-    [ExpressionField]
     public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
 
     /// <summary>结果存入的变量名</summary>

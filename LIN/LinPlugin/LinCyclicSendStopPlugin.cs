@@ -21,7 +21,7 @@ public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | 表达式(string) | 是 | "LinCyclicTask1" | 要停止的任务标识名 |
+        | TaskName | string([ExpressionField]) | 是 | "LinCyclicTask1" | 要停止的任务标识名 |
 
         ## 行为
 

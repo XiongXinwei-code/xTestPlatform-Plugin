@@ -21,8 +21,8 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
-        | TaskName | 表达式(string) | 是 | — | 任务标识名，Stop 时用此名称停止 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
+        | TaskName | string([ExpressionField]) | 是 | — | 任务标识名，Stop 时用此名称停止 |
         | EnableLog | bool | 否 | false | 是否输出发送日志 |
         | Messages | 集合 | 是 | — | 周期报文列表，元素结构见示例 |
 

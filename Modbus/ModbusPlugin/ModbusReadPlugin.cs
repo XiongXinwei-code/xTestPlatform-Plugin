@@ -24,7 +24,7 @@ public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | 表达式(string) | 是 | — | 已建立的 Modbus 连接名 |
+		| ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 Modbus 连接名 |
 		| SlaveAddress | byte | 否 | 1 | 从站地址 |
 		| RegisterType | 枚举 | 是 | HoldingRegister | 可选值：Coil, DiscreteInput, HoldingRegister, InputRegister |
 		| StartAddress | 表达式(int) | 是 | — | 起始地址 |

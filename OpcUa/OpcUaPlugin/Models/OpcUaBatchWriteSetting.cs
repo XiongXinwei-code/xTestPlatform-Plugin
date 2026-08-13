@@ -15,7 +15,6 @@ public class OpcUaBatchWriteItem : INotifyPropertyChanged
     private OpcUaDataType _dataType = OpcUaDataType.Auto;
 
     /// <summary>节点标识</summary>
-    [ExpressionField]
     public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
 
     /// <summary>要写入的值（表达式）</summary>

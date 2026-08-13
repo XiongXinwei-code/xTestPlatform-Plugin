@@ -24,8 +24,8 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | VISA1 | 连接标识名，序列内唯一 |
-        | ResourceString | 表达式(string) | 是 | — | VISA 资源字符串，如 TCPIP::192.168.1.1::INSTR、GPIB0::1::INSTR |
+        | ConnectionName | string([ExpressionField]) | 是 | VISA1 | 连接标识名，序列内唯一 |
+        | ResourceString | string([ExpressionField]) | 是 | — | VISA 资源字符串，如 TCPIP::192.168.1.1::INSTR、GPIB0::1::INSTR |
         | OpenTimeoutMs | int | 否 | 5000 | 打开超时毫秒数 |
         | IoTimeoutMs | int | 否 | 3000 | IO 超时毫秒数 |
         | Terminator | string | 否 | \n | 终止符 |

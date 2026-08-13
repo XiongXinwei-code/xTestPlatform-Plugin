@@ -23,9 +23,9 @@ public sealed class UdsDiagSessionPlugin : StepPluginBase<UdsDiagSessionSetting>
         |------|------|------|--------|------|
         | SessionType | 枚举 | 否 | Extended | 可选值：Default, Programming, Extended |
         | SuppressPositiveResponse | bool | 否 | false | 是否抑制正响应 |
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | 表达式(string) | 是 | — | 请求 CAN ID，如 0x7DF |
-        | RxId | 表达式(string) | 是 | — | 响应 CAN ID，如 0x7E8 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID，如 0x7DF |
+        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID，如 0x7E8 |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

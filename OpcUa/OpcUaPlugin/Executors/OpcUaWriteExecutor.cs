@@ -23,7 +23,7 @@ public sealed class OpcUaWriteExecutor : IStepExecutor
         try
         {
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
-            var nodeIdStr = await Evaluator.EvalStringAsync(setting.NodeId, context);
+            var nodeIdStr = setting.NodeId;
             var writeValueStr = await Evaluator.EvalStringAsync(setting.WriteValue, context);
             var key = OpcUaHelper.GetSessionKey(connName);
 

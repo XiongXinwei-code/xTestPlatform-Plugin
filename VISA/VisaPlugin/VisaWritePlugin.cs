@@ -24,8 +24,8 @@ public sealed class VisaWritePlugin : StepPluginBase<VisaWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | 表达式(string) | 是 | — | 已打开的 VISA 连接标识名 |
-        | Command | 表达式(string) | 是 | — | SCPI 命令，如 *RST |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
+        | Command | string([ExpressionField]) | 是 | — | SCPI 命令，如 *RST |
 
         ## 行为
 

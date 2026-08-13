@@ -37,7 +37,16 @@
                           AutoGenerateColumns="False" CanUserAddRows="False"
                           CanUserDeleteRows="False" HeadersVisibility="Column">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="SCPI 命令" Binding="{Binding Command, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                        <DataGridTemplateColumn Header="SCPI 命令" Width="*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <expr:ExpressionTextBox
+                                        ScriptText="{Binding Command, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="延时(ms)" Binding="{Binding DelayMs, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
                     </DataGrid.Columns>
                 </DataGrid>

@@ -24,7 +24,7 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | 表达式(string) | 是 | — | 已建立的 Modbus 连接名 |
+		| ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 Modbus 连接名 |
 		| Items | 集合 | 是 | — | 写入项列表，元素结构见示例 |
 		| IntervalMs | int | 否 | 0 | 每项写入间隔毫秒数 |
 
