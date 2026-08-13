@@ -1,4 +1,4 @@
-using LIN.Helpers;
+using System.Buffers.Binary;
 using LIN.Models;
 
 namespace LIN.Adapters.NiXnet;
@@ -10,6 +10,7 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     private uint _txSession;
     private bool _isConnected;
     private readonly object _lock = new();
+    private readonly Queue<LinFrame> _pendingFrames = new();
 
     public bool IsConnected => _isConnected;
 
@@ -26,22 +27,29 @@ public sealed class NiXnetLinAdapter : ILinAdapter
                 "未找到 nixnet.dll，请安装 NI-XNET 驱动程序。" +
                 "下载地址: https://www.ni.com/zh-cn/support/downloads/drivers/download.ni-xnet.html");
         }
+        catch
+        {
+            // 中途失败时清理已创建的会话，避免接口被占用
+            if (_rxSession != 0) { NiXnetLinApi.nxClear(_rxSession); _rxSession = 0; }
+            if (_txSession != 0) { NiXnetLinApi.nxClear(_txSession); _txSession = 0; }
+            throw;
+        }
     }
 
     private void OpenInternal(LinAdapterConfig config)
     {
-        var interfaceName = config.Channel;
+        var interfaceName = config.Channel; // 如 "LIN1"
 
-        // 创建接收会话（Frame In Stream）
+        // 创建接收会话（Frame In Stream，使用内存数据库，无需 LDF 数据库文件）
         var status = NiXnetLinApi.nxCreateSession(
-            "", "", "", interfaceName,
+            NiXnetLinApi.InMemoryDatabase, "", "", interfaceName,
             NiXnetLinApi.nxMode_FrameInStream,
             out _rxSession);
         NiXnetLinApi.CheckStatus(status);
 
         // 创建发送会话（Frame Out Stream）
         status = NiXnetLinApi.nxCreateSession(
-            "", "", "", interfaceName,
+            NiXnetLinApi.InMemoryDatabase, "", "", interfaceName,
             NiXnetLinApi.nxMode_FrameOutStream,
             out _txSession);
         NiXnetLinApi.CheckStatus(status);
@@ -56,11 +64,17 @@ public sealed class NiXnetLinAdapter : ILinAdapter
             NiXnetLinApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
         NiXnetLinApi.CheckStatus(status);
 
-        // 启动会话
-        status = NiXnetLinApi.nxStart(_rxSession, NiXnetLinApi.nxStartStop_SessionOnly);
+        // 设置主/从节点（主节点才能主动发送帧头）
+        uint isMaster = config.IsMaster ? 1u : 0u;
+        status = NiXnetLinApi.nxSetProperty(_txSession,
+            NiXnetLinApi.nxPropSession_IntfLINMaster, 4, ref isMaster);
         NiXnetLinApi.CheckStatus(status);
 
-        status = NiXnetLinApi.nxStart(_txSession, NiXnetLinApi.nxStartStop_SessionOnly);
+        // 启动会话
+        status = NiXnetLinApi.nxStart(_rxSession, NiXnetLinApi.nxScope_Normal);
+        NiXnetLinApi.CheckStatus(status);
+
+        status = NiXnetLinApi.nxStart(_txSession, NiXnetLinApi.nxScope_Normal);
         NiXnetLinApi.CheckStatus(status);
 
         _isConnected = true;
@@ -73,13 +87,14 @@ public sealed class NiXnetLinAdapter : ILinAdapter
             if (!_isConnected) return;
             try
             {
-                if (_rxSession != 0) { NiXnetLinApi.nxStop(_rxSession, NiXnetLinApi.nxStartStop_SessionOnly); NiXnetLinApi.nxClear(_rxSession); }
-                if (_txSession != 0) { NiXnetLinApi.nxStop(_txSession, NiXnetLinApi.nxStartStop_SessionOnly); NiXnetLinApi.nxClear(_txSession); }
+                if (_rxSession != 0) { NiXnetLinApi.nxStop(_rxSession, NiXnetLinApi.nxScope_Normal); NiXnetLinApi.nxClear(_rxSession); }
+                if (_txSession != 0) { NiXnetLinApi.nxStop(_txSession, NiXnetLinApi.nxScope_Normal); NiXnetLinApi.nxClear(_txSession); }
             }
             finally
             {
                 _rxSession = 0;
                 _txSession = 0;
+                _pendingFrames.Clear();
                 _isConnected = false;
             }
         }
@@ -89,15 +104,8 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     {
         if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");
 
-        // 构造 NI-XNET LIN 帧字节流并写入
-        // 帧格式: [FrameId(1), DataLen(1), Data(N)]
-        var buf = new byte[2 + frame.Data.Length];
-        buf[0] = LinHelper.CalcProtectedId(frame.FrameId);
-        buf[1] = (byte)frame.Data.Length;
-        Array.Copy(frame.Data, 0, buf, 2, frame.Data.Length);
-
-        uint bytesWritten = 0;
-        var status = NiXnetLinApi.nxWriteFrame(_txSession, buf, (uint)buf.Length, 0.1, out bytesWritten);
+        var buf = BuildFrameBytes(frame);
+        var status = NiXnetLinApi.nxWriteFrame(_txSession, buf, (uint)buf.Length, 1.0);
         NiXnetLinApi.CheckStatus(status);
     }
 
@@ -111,36 +119,98 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     {
         if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");
 
-        double timeoutSec = timeoutMs / 1000.0;
-        var buf = new byte[512];
-        uint bytesRead = 0;
-
+        var buffer = new byte[8192];
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (DateTime.UtcNow < deadline && !ct.IsCancellationRequested)
+
+        while (!ct.IsCancellationRequested)
         {
-            var status = NiXnetLinApi.nxReadFrame(_rxSession, buf, (uint)buf.Length, timeoutSec, out bytesRead);
-            if (status != 0 || bytesRead < 2) continue;
-
-            byte rawId = buf[0];
-            byte dataLen = buf[1];
-            if (dataLen > 8 || bytesRead < (uint)(2 + dataLen)) continue;
-
-            byte frameId = (byte)(rawId & 0x3F);
-            if (filterFrameId.HasValue && frameId != filterFrameId.Value) continue;
-
-            var data = new byte[dataLen];
-            Array.Copy(buf, 2, data, 0, dataLen);
-
-            return new LinFrame
+            // 先从缓存队列中查找匹配帧
+            lock (_lock)
             {
-                FrameId = frameId,
-                Data = data,
-                TimestampNs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1_000_000L
-            };
+                while (_pendingFrames.Count > 0)
+                {
+                    var pending = _pendingFrames.Dequeue();
+                    if (filterFrameId == null || pending.FrameId == filterFrameId.Value)
+                        return pending;
+                }
+            }
+
+            double timeout = (deadline - DateTime.UtcNow).TotalSeconds;
+            if (timeout <= 0) break;
+
+            var status = NiXnetLinApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, timeout, out uint bytesRead);
+
+            if (status == NiXnetLinApi.nxErrEventTimeout)
+                continue; // 超时无数据，由 deadline 控制退出
+            NiXnetLinApi.CheckStatus(status);
+            if (bytesRead == 0)
+                continue;
+
+            // nxReadFrame 一次可能返回多帧，全部解析入队，避免丢帧
+            lock (_lock)
+            {
+                foreach (var frame in ParseFrames(buffer, (int)bytesRead))
+                    _pendingFrames.Enqueue(frame);
+            }
         }
 
         ct.ThrowIfCancellationRequested();
         return null;
+    }
+
+    /// <summary>构建 NI-XNET 原始帧字节（nxFrameVar_t 格式）</summary>
+    private static byte[] BuildFrameBytes(LinFrame frame)
+    {
+        // NI-XNET Raw LIN Frame (nxFrameVar_t):
+        // Bytes 0-7:   Timestamp (TX 时为 0)
+        // Bytes 8-11:  Identifier (little-endian，LIN 原始 ID 0-63，奇偶校验位由驱动计算)
+        // Byte 12:     Type (LIN Data = 0x40)
+        // Byte 13:     Flags
+        // Byte 14:     Info
+        // Byte 15:     PayloadLength
+        // Bytes 16+:   Payload（最少 8 字节，按 8 字节对齐填充）
+
+        int payloadLen = frame.Data.Length;
+        int paddedPayload = Math.Max(8, (payloadLen + 7) & ~7);
+        var buf = new byte[16 + paddedPayload];
+
+        BinaryPrimitives.WriteUInt32LittleEndian(buf.AsSpan(8), (uint)(frame.FrameId & 0x3F));
+        buf[12] = NiXnetLinApi.nxFrameType_LIN_Data;
+        buf[15] = (byte)payloadLen;
+        Array.Copy(frame.Data, 0, buf, 16, payloadLen);
+
+        return buf;
+    }
+
+    /// <summary>解析 NI-XNET 原始帧字节流（可能包含多帧）</summary>
+    private static IEnumerable<LinFrame> ParseFrames(byte[] buffer, int totalBytes)
+    {
+        int offset = 0;
+        while (offset + 16 <= totalBytes)
+        {
+            long timestamp = BinaryPrimitives.ReadInt64LittleEndian(buffer.AsSpan(offset));
+            uint identifier = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(offset + 8));
+            byte type = buffer[offset + 12];
+            byte payloadLen = buffer[offset + 15];
+            int paddedPayload = Math.Max(8, (payloadLen + 7) & ~7);
+
+            if (offset + 16 + paddedPayload > totalBytes) yield break;
+
+            if (type == NiXnetLinApi.nxFrameType_LIN_Data && payloadLen <= 8)
+            {
+                var data = new byte[payloadLen];
+                Array.Copy(buffer, offset + 16, data, 0, payloadLen);
+
+                yield return new LinFrame
+                {
+                    FrameId = (byte)(identifier & 0x3F),
+                    Data = data,
+                    TimestampNs = timestamp * 100L // NI-XNET 时间戳单位为 100ns
+                };
+            }
+
+            offset += 16 + paddedPayload;
+        }
     }
 
     public void Dispose() => Close();

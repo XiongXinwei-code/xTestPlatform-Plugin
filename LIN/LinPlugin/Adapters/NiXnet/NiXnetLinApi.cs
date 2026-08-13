@@ -2,47 +2,92 @@ using System.Runtime.InteropServices;
 
 namespace LIN.Adapters.NiXnet;
 
-/// <summary>NI-XNET LIN P/Invoke 接口（复用 nixnet.dll）</summary>
+/// <summary>NI-XNET LIN P/Invoke 接口（复用 nixnet.dll，定义与 nixnet.h 对齐）</summary>
 internal static class NiXnetLinApi
 {
     private const string DllName = "nixnet.dll";
 
-    // 会话模式常量
-    internal const uint nxMode_FrameInStream  = 0;
-    internal const uint nxMode_FrameOutStream = 2;
-
-    // 属性 ID 常量
-    internal const uint nxPropSession_IntfBaudRate = 0x03190009u;
-
-    // 启停常量
-    internal const uint nxStartStop_SessionOnly = 0;
-
-    [DllImport(DllName, CharSet = CharSet.Ansi)]
+    // ── 会话管理 ──────────────────────────────────────────────
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int nxCreateSession(
-        string databaseName, string clusterName, string list,
-        string interfaceName, uint mode, out uint sessionRef);
+        string databaseName,
+        string clusterName,
+        string list,
+        string interfaceName,
+        uint mode,
+        out uint sessionRef);
 
-    [DllImport(DllName)]
-    internal static extern int nxStart(uint sessionRef, uint scope);
-
-    [DllImport(DllName)]
-    internal static extern int nxStop(uint sessionRef, uint scope);
-
-    [DllImport(DllName)]
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int nxClear(uint sessionRef);
 
-    [DllImport(DllName)]
-    internal static extern int nxSetProperty(uint sessionRef, uint propertyId, uint propertySize, ref uint propertyValue);
+    // ── 启动/停止 ─────────────────────────────────────────────
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int nxStart(uint sessionRef, uint scope);
 
-    [DllImport(DllName)]
-    internal static extern int nxWriteFrame(uint sessionRef, byte[] buffer, uint bufferSize, double timeout, out uint numberBytesWritten);
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int nxStop(uint sessionRef, uint scope);
 
-    [DllImport(DllName)]
-    internal static extern int nxReadFrame(uint sessionRef, byte[] buffer, uint bufferSize, double timeout, out uint numberBytesRead);
+    // ── 读写帧 ────────────────────────────────────────────────
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int nxReadFrame(
+        uint sessionRef,
+        byte[] buffer,
+        uint sizeOfBuffer,
+        double timeout,
+        out uint numberOfBytesReturned);
 
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int nxWriteFrame(
+        uint sessionRef,
+        byte[] buffer,
+        uint numberOfBytesToWrite,
+        double timeout);
+
+    // ── 属性设置 ──────────────────────────────────────────────
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int nxSetProperty(
+        uint sessionRef,
+        uint propertyId,
+        uint propertySize,
+        ref uint value);
+
+    // ── 状态码检查 ────────────────────────────────────────────
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern void nxStatusToString(
+        int status,
+        uint sizeOfString,
+        [MarshalAs(UnmanagedType.LPStr)] System.Text.StringBuilder statusDescription);
+
+    // ── 常量 ──────────────────────────────────────────────────
+
+    // 会话模式（nixnet.h：FrameInStream=6，FrameOutStream=9）
+    internal const uint nxMode_FrameInStream = 6;
+    internal const uint nxMode_FrameOutStream = 9;
+
+    // Frame Stream 模式无需数据库，必须使用特殊内存数据库名（空字符串会报 0xBFF63163）
+    internal const string InMemoryDatabase = ":memory:";
+
+    // 作用域
+    internal const uint nxScope_Normal = 0;
+
+    // 属性 ID（nixnet.h：nxClass_Session=0x00100000 | 属性编号）
+    internal const uint nxPropSession_IntfBaudRate = 0x00100016;  // 波特率 (U32)
+    internal const uint nxPropSession_IntfLINMaster = 0x00100023; // LIN 主节点 (Bool/U32)
+
+    // LIN 帧类型（Raw Frame 的 Type 字节，nixnet.h）
+    internal const byte nxFrameType_LIN_Data = 0x40;
+    internal const byte nxFrameType_LIN_BusError = 0x41;
+    internal const byte nxFrameType_LIN_NoResponse = 0x42;
+
+    // 读帧超时错误码（nxErrEventTimeout）
+    internal const int nxErrEventTimeout = unchecked((int)0xBFF6300A);
+
+    /// <summary>检查 NI-XNET 返回状态码：负数为错误抛出异常，正数为警告忽略</summary>
     internal static void CheckStatus(int status)
     {
-        if (status != 0)
-            throw new InvalidOperationException($"NI-XNET LIN 操作失败，错误码: 0x{status:X8}");
+        if (status >= 0) return;
+        var sb = new System.Text.StringBuilder(2048);
+        nxStatusToString(status, 2048, sb);
+        throw new InvalidOperationException($"NI-XNET LIN 错误 ({status}): {sb}");
     }
 }
