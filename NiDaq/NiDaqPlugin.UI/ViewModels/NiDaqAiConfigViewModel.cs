@@ -29,6 +29,8 @@ public class NiDaqAiConfigViewModel : INotifyPropertyChanged
                 ? (NiDaqAiConfigSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (NiDaqAiConfigSetting)_serializer.CreateDefault();
             Channels = _setting.Channels;
+            foreach (var ch in Channels)
+                ch.PropertyChanged += OnItemChanged;
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -53,8 +55,10 @@ public class NiDaqAiConfigViewModel : INotifyPropertyChanged
 
     public ObservableCollection<NiDaqAiChannel> Channels { get; private set; } = new();
 
-    public void AddChannel() { Channels.Add(new NiDaqAiChannel()); QueueSave(); }
-    public void RemoveChannel(NiDaqAiChannel ch) { Channels.Remove(ch); QueueSave(); }
+    public void AddChannel() { var ch = new NiDaqAiChannel(); ch.PropertyChanged += OnItemChanged; Channels.Add(ch); QueueSave(); }
+    public void RemoveChannel(NiDaqAiChannel ch) { ch.PropertyChanged -= OnItemChanged; Channels.Remove(ch); QueueSave(); }
+
+    private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
