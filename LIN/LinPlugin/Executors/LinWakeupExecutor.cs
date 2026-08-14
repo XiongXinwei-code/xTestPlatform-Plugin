@@ -39,6 +39,12 @@ public sealed class LinWakeupExecutor : IStepExecutor
             adapter.Wakeup(setting.WakeupMode == LinWakeupMode.Remote);
             context.LogAction?.Invoke($"LIN 总线已唤醒: {connName} ({(setting.WakeupMode == LinWakeupMode.Remote ? "总线唤醒" : "本地唤醒")})");
 
+            if (setting.PostWakeupDelayMs > 0)
+            {
+                await Task.Delay(setting.PostWakeupDelayMs, cancellationToken);
+                context.LogAction?.Invoke($"唤醒后延时 {setting.PostWakeupDelayMs}ms 完成，从节点应已就绪");
+            }
+
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Passed }

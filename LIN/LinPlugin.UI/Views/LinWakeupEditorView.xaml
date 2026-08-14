@@ -20,6 +20,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
@@ -33,6 +34,9 @@
                     <ComboBoxItem Content="远程唤醒（总线唤醒）"/>
                     <ComboBoxItem Content="本地唤醒（仅本地接口）"/>
                 </ComboBox>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="唤醒后延时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                    Value="{Binding PostWakeupDelayMs, Mode=TwoWay}" MinValue="0"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

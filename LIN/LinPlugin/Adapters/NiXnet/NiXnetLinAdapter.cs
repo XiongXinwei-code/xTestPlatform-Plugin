@@ -104,11 +104,29 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     {
         if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");
 
-        // 写 Interface:LIN:Sleep 属性：RemoteWake 在总线上发送唤醒模式，LocalWake 仅唤醒本地接口
-        uint sleepState = remote ? NiXnetLinApi.nxLINSleep_RemoteWake : NiXnetLinApi.nxLINSleep_LocalWake;
-        var status = NiXnetLinApi.nxSetProperty(_txSession,
-            NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref sleepState);
-        NiXnetLinApi.CheckStatus(status, "LIN 唤醒");
+        // Interface:LIN:Sleep 属性是"状态转换请求"：RemoteWake 仅在接口处于睡眠态时
+        // 才会发送总线唤醒模式（接口已唤醒时写入被忽略）。而 nxStart 后接口默认为唤醒态，
+        // 因此需先写 LocalSleep（仅本地置睡眠，无总线信号）再写 RemoteWake，
+        // 强制触发"睡眠→唤醒"转换，确保唤醒模式真正发送到总线上。
+        if (remote)
+        {
+            uint localSleep = NiXnetLinApi.nxLINSleep_LocalSleep;
+            var st = NiXnetLinApi.nxSetProperty(_txSession,
+                NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref localSleep);
+            NiXnetLinApi.CheckStatus(st, "LIN 唤醒(预置本地睡眠)");
+
+            uint remoteWake = NiXnetLinApi.nxLINSleep_RemoteWake;
+            st = NiXnetLinApi.nxSetProperty(_txSession,
+                NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref remoteWake);
+            NiXnetLinApi.CheckStatus(st, "LIN 唤醒(发送总线唤醒模式)");
+        }
+        else
+        {
+            uint localWake = NiXnetLinApi.nxLINSleep_LocalWake;
+            var st = NiXnetLinApi.nxSetProperty(_txSession,
+                NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref localWake);
+            NiXnetLinApi.CheckStatus(st, "LIN 唤醒(本地接口唤醒)");
+        }
     }
 
     public void Write(LinFrame frame)

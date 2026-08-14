@@ -23,12 +23,14 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 要唤醒的连接标识名 |
         | WakeupMode | LinWakeupMode | 是 | Remote | 唤醒模式：Remote（总线唤醒）/ Local（仅本地接口） |
+        | PostWakeupDelayMs | int | 是 | 100 | 唤醒后延时（毫秒），等待从节点就绪；0 表示不延时 |
 
         ## 行为
 
         - 必须在 `LIN_Open` 之后使用
         - Remote 模式向总线发送唤醒模式，随后本地接口自动进入唤醒状态
         - Local 模式仅将本地接口置为唤醒状态，不发送任何总线信号
+        - 唤醒后按 PostWakeupDelayMs 延时后才返回，确保从节点就绪（LIN 2.x 规定从节点需在唤醒后 100ms 内就绪）
 
         ## 示例
 
@@ -45,6 +47,6 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);
-        return $"Wakeup {s.ConnectionName} ({(s.WakeupMode == LinWakeupMode.Remote ? "总线唤醒" : "本地唤醒")})";
+        return $"Wakeup {s.ConnectionName} ({(s.WakeupMode == LinWakeupMode.Remote ? "总线唤醒" : "本地唤醒")}, 延时 {s.PostWakeupDelayMs}ms)";
     }
 }

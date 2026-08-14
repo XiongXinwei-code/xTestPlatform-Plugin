@@ -56,6 +56,12 @@ public class LinWakeupViewModel : INotifyPropertyChanged
         set { if (_setting == null || (int)_setting.WakeupMode == value || value < 0) return; _setting.WakeupMode = (LinWakeupMode)value; OnPropertyChanged(); QueueSave(); }
     }
 
+    public int PostWakeupDelayMs
+    {
+        get => _setting?.PostWakeupDelayMs ?? 100;
+        set { if (_setting == null || _setting.PostWakeupDelayMs == value) return; _setting.PostWakeupDelayMs = value; OnPropertyChanged(); QueueSave(); }
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
