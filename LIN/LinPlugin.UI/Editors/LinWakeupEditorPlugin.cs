@@ -40,6 +40,9 @@ public sealed class LinWakeupEditorPlugin : IStepEditorPlugin
                     context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         }
 
+        if (s.PostWakeupDelayMs < 0)
+            errors.Add(StepSettingError.Error("LIN_WK03", "唤醒后延时不能为负数"));
+
         return errors;
     }
 }

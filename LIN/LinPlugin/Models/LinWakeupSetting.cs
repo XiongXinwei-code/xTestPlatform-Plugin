@@ -12,4 +12,7 @@ public class LinWakeupSetting
 
     /// <summary>唤醒模式（Remote：总线唤醒；Local：仅本地接口）</summary>
     public LinWakeupMode WakeupMode { get; set; } = LinWakeupMode.Remote;
+
+    /// <summary>唤醒后延时（毫秒），等待从节点就绪，LIN 2.x 规范上限为 100ms</summary>
+    public int PostWakeupDelayMs { get; set; } = 100;
 }
