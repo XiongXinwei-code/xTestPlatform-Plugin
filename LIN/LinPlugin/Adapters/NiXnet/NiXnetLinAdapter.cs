@@ -64,10 +64,10 @@ public sealed class NiXnetLinAdapter : ILinAdapter
             NiXnetLinApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
         NiXnetLinApi.CheckStatus(status, "设置发送会话波特率");
 
-        // 设置主/从节点（主节点才能主动发送帧头；nxBool 为 8 位）
-        byte isMaster = config.IsMaster ? (byte)1 : (byte)0;
+        // 设置主/从节点（主节点才能主动发送帧头；属性类型为 U32，4 字节）
+        uint isMaster = config.IsMaster ? 1u : 0u;
         status = NiXnetLinApi.nxSetProperty(_txSession,
-            NiXnetLinApi.nxPropSession_IntfLINMaster, 1, ref isMaster);
+            NiXnetLinApi.nxPropSession_IntfLINMaster, 4, ref isMaster);
         NiXnetLinApi.CheckStatus(status, "设置主/从节点");
 
         // 启动会话
