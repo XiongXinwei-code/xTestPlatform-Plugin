@@ -28,6 +28,7 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
 
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="AdapterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -59,8 +60,12 @@
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="IsMaster:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding IsMaster}" Margin="0,0,0,8"/>
 
-				<TextBlock Grid.Row="5" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+				<TextBlock Grid.Row="5" Grid.Column="0" Text="接收缓冲区(帧数):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<syncfusion:IntegerTextBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+					Value="{Binding RxQueueSize, Mode=TwoWay}" MinValue="1"/>
+
+				<TextBlock Grid.Row="6" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
 					ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
 					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />

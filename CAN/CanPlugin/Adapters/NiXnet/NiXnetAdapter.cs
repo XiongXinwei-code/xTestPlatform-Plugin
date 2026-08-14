@@ -85,6 +85,17 @@ public sealed class NiXnetAdapter : ICanAdapter
             NiXnetApi.CheckStatus(status);
         }
 
+        // 设置接收队列大小（QueueSize 单位为字节；每帧按 nxFrameVar_t 最大 24 字节估算，
+        // CAN FD 按 16+64=80 字节；防止两次 Read 步骤之间驱动队列溢出丢帧）
+        if (config.RxQueueSize > 0)
+        {
+            int bytesPerFrame = config.Protocol == CanProtocolType.FD ? 80 : 24;
+            uint queueBytes = (uint)(config.RxQueueSize * bytesPerFrame);
+            status = NiXnetApi.nxSetProperty(_rxSession,
+                NiXnetApi.nxPropSession_QueueSize, 4, ref queueBytes);
+            NiXnetApi.CheckStatus(status);
+        }
+
         // 启动会话
         status = NiXnetApi.nxStart(_rxSession, NiXnetApi.nxScope_Normal);
         NiXnetApi.CheckStatus(status);
@@ -149,16 +160,22 @@ public sealed class NiXnetAdapter : ICanAdapter
                 }
             }
 
-            double timeout = (deadline - DateTime.UtcNow).TotalSeconds;
-            if (timeout <= 0) break;
+            if (DateTime.UtcNow >= deadline) break;
 
-            var status = NiXnetApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, timeout, out uint bytesRead);
+            // 注意：nxReadFrame 的 timeout 语义是"等待直到填满整个缓冲区"，
+            // 未填满时返回 nxErrEventTimeout，但已收到的帧仍通过 bytesRead 返回。
+            // 因此这里使用 timeout=0（立即返回当前已有帧）+ 轮询模式，
+            // 且无论状态如何，只要 bytesRead > 0 都必须解析，否则会丢帧。
+            var status = NiXnetApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
 
-            if (status == NiXnetApi.nxErrEventTimeout)
-                continue; // 超时无数据，由 deadline 控制退出
-            NiXnetApi.CheckStatus(status); // 其他错误直接抛出，警告忽略
+            if (status != NiXnetApi.nxErrEventTimeout)
+                NiXnetApi.CheckStatus(status); // 其他错误直接抛出，警告忽略
+
             if (bytesRead == 0)
+            {
+                Thread.Sleep(5); // 无数据时短暂让出 CPU，由 deadline 控制退出
                 continue;
+            }
 
             // nxReadFrame 一次可能返回多帧，全部解析入队，避免丢帧
             lock (_lock)

@@ -31,7 +31,8 @@ public sealed class LinOpenExecutor : IStepExecutor
                 Channel    = channel,
                 BaudRate   = setting.BaudRate,
                 LinVersion = setting.LinVersion,
-                IsMaster   = setting.IsMaster
+                IsMaster   = setting.IsMaster,
+                RxQueueSize = setting.RxQueueSize
             });
 
             // Set 会自动销毁同名旧适配器（如上次运行异常终止未关闭）

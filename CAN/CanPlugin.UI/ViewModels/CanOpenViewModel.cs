@@ -46,6 +46,7 @@ public class CanOpenViewModel : INotifyPropertyChanged
     public int Protocol { get => (int)(_setting?.Protocol ?? CanProtocolType.Classic); set { if (_setting == null) return; _setting.Protocol = (CanProtocolType)value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowDataBitRate)); QueueSave(); } }
     public int DataBitRate { get => _setting?.DataBitRate ?? 2000000; set { if (_setting == null || _setting.DataBitRate == value) return; _setting.DataBitRate = value; OnPropertyChanged(); QueueSave(); } }
     public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
+    public int RxQueueSize { get => _setting?.RxQueueSize ?? 512; set { if (_setting == null || _setting.RxQueueSize == value) return; _setting.RxQueueSize = value; OnPropertyChanged(); QueueSave(); } }
 
     public bool ShowDataBitRate => (_setting?.Protocol ?? CanProtocolType.Classic) != CanProtocolType.Classic;
 

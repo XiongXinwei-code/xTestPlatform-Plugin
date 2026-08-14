@@ -38,6 +38,10 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_005", "CAN FD 模式下数据段波特率必须大于 0"));
         else if (s.Protocol != CanProtocolType.Classic && s.DataBitRate < s.BaudRate)
             errors.Add(StepSettingError.Warning("CAN_W01", "数据段波特率通常应大于等于仲裁段波特率"));
+        if (s.RxQueueSize <= 0)
+            errors.Add(StepSettingError.Error("CAN_006", "接收缓冲区大小必须大于 0"));
+        else if (s.RxQueueSize < 512)
+            errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于默认值 512 帧，高负载总线下可能丢帧"));
         return errors;
     }
 }

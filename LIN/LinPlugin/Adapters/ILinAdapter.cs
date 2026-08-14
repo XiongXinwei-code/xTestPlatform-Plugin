@@ -37,4 +37,6 @@ public class LinAdapterConfig
     public int BaudRate { get; set; } = 19200;
     public LinVersionType LinVersion { get; set; } = LinVersionType.LIN_2x;
     public bool IsMaster { get; set; } = true;
+    /// <summary>接收缓冲区大小（帧数）</summary>
+    public int RxQueueSize { get; set; } = 512;
 }
