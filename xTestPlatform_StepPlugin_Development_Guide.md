@@ -145,7 +145,7 @@
 **插件文档（详情页）**
 - [ ] 插件目录包含 README.md（功能介绍，面向使用者）（§14.2.2）
 - [ ] CHANGELOG.md 已添加本次版本的变更条目（§14.2.2）
-- [ ] plugin.json 的 steps 列表与实际 Step 一致（§14.2.2）
+- [ ] README.md 的"包含的步骤"表格与实际 Step 一致（可用 `tools\Generate-PluginDocs.ps1` 重新生成，manifest 的 steps 由 CI 反射自动提取）（§14.2.2）
 
 ---
 
@@ -2033,14 +2033,14 @@ DelayCheck/
 > - `<Authors>` 是 NuGet 打包属性，**不会**写入 DLL，插件管理器读取不到；请使用 `<Company>`。
 > - `<Description>` 同时被 AI 助手用于理解插件行为，必须准确反映程序实际功能。
 
-### 14.2.2 插件文档（README / CHANGELOG / plugin.json）
+### 14.2.2 插件文档（README / CHANGELOG）
 
 插件管理器提供**详情页**，展示三部分内容，数据来自插件顶层目录（如 `CAN\`、`Modbus\`）下的文件，由 CI 打包时写入 manifest.json：
 
 | 详情页 Tab | 数据来源文件 | 说明 |
 |-----------|-------------|------|
 | 功能介绍 | `README.md` | Markdown 渲染，必备 |
-| 包含的步骤 | `plugin.json` 的 `steps[]` | 步骤名称与简述 |
+| 包含的步骤 | CI 反射提取（`tools\StepInfoExtractor`） | 自动，无需维护 |
 | 更新记录 | `CHANGELOG.md` | Markdown 渲染，推荐手写，缺失时 CI 自动兜底 |
 
 所有文件必须为 **UTF-8 编码**。
@@ -2085,18 +2085,15 @@ DelayCheck/
 - 变更条目以 `新增：`/`修复：`/`变更：`/`移除：` 开头
 - **更新插件时应同步在 CHANGELOG.md 追加本次版本的条目**。未更新时 CI 会用该插件目录的 git 提交记录自动兜底生成本版本段落（并输出警告），但内容质量不如手写，且不含历史版本记录
 
-**plugin.json（步骤列表）**
+**包含的步骤（自动提取，无需维护）**
 
-```json
-{
-  "steps": [
-    { "displayName": "CAN_Send", "description": "发送一帧 CAN 报文" },
-    { "displayName": "CAN_Receive", "description": "接收并匹配 CAN 报文" }
-  ]
-}
-```
+CI 打包时会用 `tools\StepInfoExtractor`（控制台工具）反射扫描编译产物中的 `*.StepPlugin.dll`，提取所有 `IStepPlugin` 实现的 `DisplayName` 与 `Description`（取 `## 功能` 段的首行作为简述）写入 manifest 的 `steps[]`。因此：
 
-新增或删除 Step 时须同步维护；可执行 `tools\Generate-PluginDocs.ps1` 从源码自动重新生成。
+- 新增/删除/重命名 Step 时**无需维护任何清单文件**，详情页自动与代码保持一致
+- 前提是 `DisplayName`、`Description` 按 §2.1 规范填写（Description 的 `## 功能` 段首行将作为步骤简述展示）
+- 本地可验证：`dotnet run --project tools\StepInfoExtractor -c Release -- <插件产物目录>`
+
+README 中的"包含的步骤"表格可执行 `tools\Generate-PluginDocs.ps1` 从源码自动重新生成。
 
 **提交消息规范（保证兜底 CHANGELOG 可读）**
 

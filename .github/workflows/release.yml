@@ -193,9 +193,6 @@ jobs:
               if (-not (Test-Path (Join-Path $dir.FullName "CHANGELOG.md"))) {
                   Write-Warning "$($dir.Name) 缺少 CHANGELOG.md，详情页更新记录将由提交记录自动兜底"
               }
-              if (-not (Test-Path (Join-Path $dir.FullName "plugin.json"))) {
-                  Write-Warning "$($dir.Name) 缺少 plugin.json，详情页将无步骤列表"
-              }
           }
 
       # ── 7. 打包 ZIP（整包 + 单插件包 + manifest.json） ──────────────────
@@ -218,6 +215,13 @@ jobs:
           # ② 单插件包 + manifest 条目
           $assetsDir = "$env:GITHUB_WORKSPACE\assets"
           New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
+
+          # 预先编译步骤信息提取工具（反射扫描 *.StepPlugin.dll）
+          dotnet build tools\StepInfoExtractor\StepInfoExtractor.csproj -c Release --nologo -v q
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "❌ StepInfoExtractor 编译失败"
+              exit 1
+          }
 
           $entries = @()
           foreach ($dir in Get-ChildItem $publishRoot -Directory) {
@@ -277,19 +281,19 @@ jobs:
                   }
               }
 
-              # 包含的步骤：读取插件目录下手工维护的 plugin.json（{ "steps": [...] }）
+              # 包含的步骤：反射扫描编译产物中的 *.StepPlugin.dll，提取所有 IStepPlugin 实现的 DisplayName/Description
               $steps = @()
-              $pluginJsonPath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "plugin.json"
-              if (Test-Path $pluginJsonPath) {
+              $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)"
+              if ($LASTEXITCODE -eq 0 -and $stepsJson) {
                   try {
-                      $pluginMeta = Get-Content $pluginJsonPath -Raw -Encoding UTF8 | ConvertFrom-Json
-                      if ($pluginMeta.steps) { $steps = @($pluginMeta.steps) }
+                      $steps = @(($stepsJson -join "`n") | ConvertFrom-Json)
                   } catch {
-                      Write-Warning "$pluginName 的 plugin.json 解析失败：$_"
+                      Write-Warning "$pluginName 步骤信息 JSON 解析失败：$_"
                   }
               } else {
-                  Write-Warning "$pluginName 缺少 plugin.json，详情页将无步骤列表"
+                  Write-Warning "$pluginName 步骤信息提取失败，详情页将无步骤列表"
               }
+              if ($steps.Count -eq 0) { Write-Warning "$pluginName 未提取到任何步骤" }
 
               $entries += [ordered]@{
                   name               = $pluginName

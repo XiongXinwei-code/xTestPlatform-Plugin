@@ -104,16 +104,8 @@ foreach ($dir in $pluginDirs) {
 	}
 	$steps = @($steps | Sort-Object displayName)
 
-	# ── plugin.json ──
-	if ($steps.Count -eq 0) {
-		$stepsJson = '[]'
-	} elseif ($steps.Count -eq 1) {
-		$stepsJson = "[`n$($steps[0] | ConvertTo-Json -Depth 3)`n]"
-	} else {
-		$stepsJson = ($steps | ConvertTo-Json -Depth 3)
-	}
-	$pluginJson = "{`n  `"steps`": $($stepsJson -replace "`n", "`n  ")`n}`n"
-	[IO.File]::WriteAllText((Join-Path $dir.FullName 'plugin.json'), $pluginJson, $utf8)
+	# 注：steps 列表不再写入 plugin.json，CI 通过 tools\StepInfoExtractor 反射提取；
+	# 此处提取的 steps 仅用于生成 README 的"包含的步骤"表格。
 
 	# ── README.md ──
 	$m = $meta[$name]
