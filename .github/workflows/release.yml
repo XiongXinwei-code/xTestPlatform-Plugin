@@ -179,6 +179,25 @@ jobs:
               }
           }
 
+      # ── 6.5 文档质量门禁（缺失仅警告，暂不阻断构建） ────────────────────────
+      - name: 检查插件文档
+        shell: pwsh
+        run: |
+          $pluginDirs = Get-ChildItem -Directory | Where-Object {
+              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+          }
+          foreach ($dir in $pluginDirs) {
+              if (-not (Test-Path (Join-Path $dir.FullName "README.md"))) {
+                  Write-Warning "$($dir.Name) 缺少 README.md，详情页将无功能介绍"
+              }
+              if (-not (Test-Path (Join-Path $dir.FullName "CHANGELOG.md"))) {
+                  Write-Warning "$($dir.Name) 缺少 CHANGELOG.md，详情页更新记录将由提交记录自动兜底"
+              }
+              if (-not (Test-Path (Join-Path $dir.FullName "plugin.json"))) {
+                  Write-Warning "$($dir.Name) 缺少 plugin.json，详情页将无步骤列表"
+              }
+          }
+
       # ── 7. 打包 ZIP（整包 + 单插件包 + manifest.json） ──────────────────
       - name: 打包 ZIP
         shell: pwsh

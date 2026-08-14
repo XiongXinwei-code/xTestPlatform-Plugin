@@ -142,6 +142,11 @@
 - [ ] 部署时 DLL 及私有依赖（`MessagePack.dll` 等）复制到 `Plugins` 目录（§8.3、§8.4）
 - [ ] 日志消息、Description、校验错误使用中文
 
+**插件文档（详情页）**
+- [ ] 插件目录包含 README.md（功能介绍，面向使用者）（§14.2.2）
+- [ ] CHANGELOG.md 已添加本次版本的变更条目（§14.2.2）
+- [ ] plugin.json 的 steps 列表与实际 Step 一致（§14.2.2）
+
 ---
 
 ## 1. 架构概览
@@ -2027,6 +2032,75 @@ DelayCheck/
 > - `<Company>` 必须写在**执行层项目**（`*.StepPlugin.dll` 对应的 csproj）中才会被提取；只写在 UI 层无效。
 > - `<Authors>` 是 NuGet 打包属性，**不会**写入 DLL，插件管理器读取不到；请使用 `<Company>`。
 > - `<Description>` 同时被 AI 助手用于理解插件行为，必须准确反映程序实际功能。
+
+### 14.2.2 插件文档（README / CHANGELOG / plugin.json）
+
+插件管理器提供**详情页**，展示三部分内容，数据来自插件顶层目录（如 `CAN\`、`Modbus\`）下的文件，由 CI 打包时写入 manifest.json：
+
+| 详情页 Tab | 数据来源文件 | 说明 |
+|-----------|-------------|------|
+| 功能介绍 | `README.md` | Markdown 渲染，必备 |
+| 包含的步骤 | `plugin.json` 的 `steps[]` | 步骤名称与简述 |
+| 更新记录 | `CHANGELOG.md` | Markdown 渲染，推荐手写，缺失时 CI 自动兜底 |
+
+所有文件必须为 **UTF-8 编码**。
+
+**README.md（功能介绍，必备）**
+
+```markdown
+# CAN 插件
+
+## 功能概述
+通过 CAN 总线收发报文，支持标准帧与扩展帧……
+
+## 支持的硬件
+- Vector VN1630
+- PEAK PCAN-USB
+
+## 使用前提
+需安装 XL Driver Library ……
+```
+
+要求：
+- 面向**使用者**（测试工程师）而非开发者
+- 首行为 `# <插件名>` 一级标题
+- 说明功能、支持的硬件/协议、使用前提、注意事项
+
+**CHANGELOG.md（更新记录，推荐手写）**
+
+```markdown
+# 更新记录
+
+## v0.0.40 - 2026-02-11
+- 新增：支持 CAN FD 帧收发
+- 修复：波特率 250k 时初始化失败
+
+## v0.0.39 - 2026-02-01
+- 首次发布
+```
+
+要求：
+- 版本号与 csproj `<Version>`（即 Release tag）一致，倒序排列（最新在上）
+- 每个版本条目使用 `## v<版本号> - <日期>` 二级标题
+- 变更条目以 `新增：`/`修复：`/`变更：`/`移除：` 开头
+- **更新插件时应同步在 CHANGELOG.md 追加本次版本的条目**。未更新时 CI 会用该插件目录的 git 提交记录自动兜底生成本版本段落（并输出警告），但内容质量不如手写，且不含历史版本记录
+
+**plugin.json（步骤列表）**
+
+```json
+{
+  "steps": [
+    { "displayName": "CAN_Send", "description": "发送一帧 CAN 报文" },
+    { "displayName": "CAN_Receive", "description": "接收并匹配 CAN 报文" }
+  ]
+}
+```
+
+新增或删除 Step 时须同步维护；可执行 `tools\Generate-PluginDocs.ps1` 从源码自动重新生成。
+
+**提交消息规范（保证兜底 CHANGELOG 可读）**
+
+提交消息应使用 `feat: `/`fix: `/`refactor: ` 前缀 + 面向用户可读的描述（如 `feat: CAN 插件支持 CAN FD 帧`），避免"改bug"、"临时提交"这类消息，否则自动兜底生成的更新记录不可读。
 
 ### 14.3 Setting 模型
 
