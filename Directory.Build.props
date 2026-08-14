@@ -1,0 +1,12 @@
+<Project>
+  <!--
+	插件公共属性：对本仓库下所有项目自动生效。
+	Company 会写入 DLL 的 CompanyName 字段，CI 打包时提取为插件清单的 author 字段，
+	在插件管理器界面显示为"作者/公司"。
+	单个插件如需覆盖，在其 .csproj 的 PropertyGroup 中重新定义 <Company> 即可。
+  -->
+  <PropertyGroup>
+	<Company>儒拉玛特</Company>
+	<Authors>xTestPlatform Team</Authors>
+  </PropertyGroup>
+</Project>

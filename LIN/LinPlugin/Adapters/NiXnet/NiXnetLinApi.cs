@@ -51,6 +51,13 @@ internal static class NiXnetLinApi
         uint propertySize,
         ref uint value);
 
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int nxSetProperty(
+        uint sessionRef,
+        uint propertyId,
+        uint propertySize,
+        ref byte value);
+
     // ── 状态码检查 ────────────────────────────────────────────
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void nxStatusToString(
@@ -83,11 +90,12 @@ internal static class NiXnetLinApi
     internal const int nxErrEventTimeout = unchecked((int)0xBFF6300A);
 
     /// <summary>检查 NI-XNET 返回状态码：负数为错误抛出异常，正数为警告忽略</summary>
-    internal static void CheckStatus(int status)
+    internal static void CheckStatus(int status, string context = "")
     {
         if (status >= 0) return;
         var sb = new System.Text.StringBuilder(2048);
         nxStatusToString(status, 2048, sb);
-        throw new InvalidOperationException($"NI-XNET LIN 错误 ({status}): {sb}");
+        var prefix = string.IsNullOrEmpty(context) ? "" : $"[{context}] ";
+        throw new InvalidOperationException($"NI-XNET LIN 错误 {prefix}({status}): {sb}");
     }
 }

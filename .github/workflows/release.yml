@@ -179,6 +179,22 @@ jobs:
               }
           }
 
+      # ── 6.5 文档质量门禁（缺失仅警告，暂不阻断构建） ────────────────────────
+      - name: 检查插件文档
+        shell: pwsh
+        run: |
+          $pluginDirs = Get-ChildItem -Directory | Where-Object {
+              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+          }
+          foreach ($dir in $pluginDirs) {
+              if (-not (Test-Path (Join-Path $dir.FullName "README.md"))) {
+                  Write-Warning "$($dir.Name) 缺少 README.md，详情页将无功能介绍"
+              }
+              if (-not (Test-Path (Join-Path $dir.FullName "CHANGELOG.md"))) {
+                  Write-Warning "$($dir.Name) 缺少 CHANGELOG.md，详情页更新记录将由提交记录自动兜底"
+              }
+          }
+
       # ── 7. 打包 ZIP（整包 + 单插件包 + manifest.json） ──────────────────
       - name: 打包 ZIP
         shell: pwsh
@@ -199,6 +215,13 @@ jobs:
           # ② 单插件包 + manifest 条目
           $assetsDir = "$env:GITHUB_WORKSPACE\assets"
           New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
+
+          # 预先编译步骤信息提取工具（反射扫描 *.StepPlugin.dll）
+          dotnet build tools\StepInfoExtractor\StepInfoExtractor.csproj -c Release --nologo -v q
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "❌ StepInfoExtractor 编译失败"
+              exit 1
+          }
 
           $entries = @()
           foreach ($dir in Get-ChildItem $publishRoot -Directory) {
@@ -221,14 +244,70 @@ jobs:
                   if ($content -match '<Description>([^<]+)</Description>') { $desc = $Matches[1].Trim() }
               }
 
+              # 作者/公司：从插件主 DLL 的 CompanyName 提取（由 csproj/Directory.Build.props 的 <Company> 写入）
+              $author = ""
+              $mainDll = Get-ChildItem $dir.FullName -Filter "*.StepPlugin.dll" | Select-Object -First 1
+              if (-not $mainDll) { $mainDll = Get-ChildItem $dir.FullName -Filter "*.dll" | Select-Object -First 1 }
+              if ($mainDll) {
+                  $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($mainDll.FullName)
+                  if ($info.CompanyName) { $author = $info.CompanyName.Trim() }
+              }
+
+              # 发布时间：该插件目录最后一次实际提交时间（ISO 8601）
+              $publishedAt = git log -1 --format=%cI -- "$pluginName/"
+              if (-not $publishedAt) { $publishedAt = (Get-Date).ToString("o") }
+
+              # 详情页内容：README（功能介绍）与 CHANGELOG（更新记录，缺失时用 git log 兜底）
+              $readme = ""
+              $changelog = ""
+              $readmePath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "README.md"
+              $changelogPath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "CHANGELOG.md"
+              if (Test-Path $readmePath) { $readme = Get-Content $readmePath -Raw -Encoding UTF8 }
+
+              if (Test-Path $changelogPath) {
+                  # 优先：手写 CHANGELOG
+                  $changelog = Get-Content $changelogPath -Raw -Encoding UTF8
+              } else {
+                  # 兜底：用该插件目录的提交记录自动生成本版本段落
+                  $prevTag = "${{ steps.bump_version.outputs.prev_tag }}"
+                  if ($prevTag) {
+                      $log = git log "$prevTag..HEAD" --pretty=format:"- %s" --no-merges -- "$pluginName/"
+                  } else {
+                      $log = git log --pretty=format:"- %s" --no-merges -- "$pluginName/"
+                  }
+                  if ($log) {
+                      $changelog = "# 更新记录`n`n## v$pluginVersion - $(Get-Date -Format yyyy-MM-dd)`n$($log -join "`n")"
+                      Write-Warning "$pluginName 缺少 CHANGELOG.md，已用提交记录自动生成，请尽快补写"
+                  }
+              }
+
+              # 包含的步骤：反射扫描编译产物中的 *.StepPlugin.dll，提取所有 IStepPlugin 实现的 DisplayName/Description
+              $steps = @()
+              $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)"
+              if ($LASTEXITCODE -eq 0 -and $stepsJson) {
+                  try {
+                      $steps = @(($stepsJson -join "`n") | ConvertFrom-Json)
+                  } catch {
+                      Write-Warning "$pluginName 步骤信息 JSON 解析失败：$_"
+                  }
+              } else {
+                  Write-Warning "$pluginName 步骤信息提取失败，详情页将无步骤列表"
+              }
+              if ($steps.Count -eq 0) { Write-Warning "$pluginName 未提取到任何步骤" }
+
               $entries += [ordered]@{
                   name               = $pluginName
                   version            = $pluginVersion
                   description        = $desc
+                  author             = $author
+                  publishedAt        = $publishedAt
                   downloadUrl        = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$pluginZip"
                   sha256             = $sha256
                   size               = $size
                   minPlatformVersion = ""
+                  readme             = $readme
+                  changelog          = $changelog
+                  steps              = $steps
               }
               Write-Host "  📦 $pluginZip  v$pluginVersion  ($([math]::Round($size/1KB,1)) KB)"
           }
@@ -239,7 +318,7 @@ jobs:
               releaseTag      = $tag
               plugins         = $entries
           }
-          $manifest | ConvertTo-Json -Depth 5 | Set-Content "$assetsDir\manifest.json" -Encoding UTF8
+          $manifest | ConvertTo-Json -Depth 6 | Set-Content "$assetsDir\manifest.json" -Encoding UTF8
           Write-Host "✅ manifest.json 已生成（$($entries.Count) 个插件）"
 
           "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
