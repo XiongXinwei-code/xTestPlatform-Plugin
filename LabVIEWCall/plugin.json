@@ -1,0 +1,8 @@
+{
+  "steps": [
+  {
+      "displayName":  "LabVIEW Call",
+      "description":  "调用 LabVIEW 虚拟仪器（VI）文件，执行其中定义的功能。适用于需要在测试流程中集成 LabVIEW 功能的场景。"
+  }
+  ]
+}

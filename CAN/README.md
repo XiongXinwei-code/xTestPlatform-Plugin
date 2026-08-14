@@ -1,0 +1,41 @@
+# CAN 插件
+
+## 功能概述
+
+通过 CAN 总线与被测设备通信，支持 CAN 2.0 Classic 与 CAN FD 报文的收发、周期发送，并内置 UDS 诊断（ISO 14229）与 XCP 标定协议步骤。
+
+## 支持的硬件/协议
+
+- Vector（需安装 XL Driver Library）
+- PEAK PCAN
+- NI-XNET
+- ZLG 周立功
+- Kvaser
+- TOSUN 同星
+
+## 包含的步骤
+
+| 步骤 | 说明 |
+|------|------|
+| CAN_Close | 关闭已打开的 CAN 通道并释放硬件资源。 |
+| CAN_Cyclic_SendStart | 启动 CAN 周期发送任务，按配置的报文列表持续循环发送 CAN 帧，直到执行 CAN_Cyclic_SendStop 停止。用于模拟整车网络环境（如车速、转速等信号）。 |
+| CAN_Cyclic_SendStop | 停止指定的 CAN 周期发送任务。 |
+| CAN_Open | 打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD 协议。 |
+| CAN_Read | 从已打开的 CAN 通道接收一帧报文，可按 ID 过滤，结果存入变量。 |
+| CAN_Write | 向已打开的 CAN 通道发送一帧报文。 |
+| UDS_ClearDTC | 清除 ECU 故障码（UDS 服务 0x14）。 |
+| UDS_DiagSession | 切换 ECU 诊断会话模式（UDS 服务 0x10）。 |
+| UDS_RawRequest | 发送原始 UDS 请求数据（通用，任意服务），适用于其他专用 UDS 插件未覆盖的服务。 |
+| UDS_ReadDataByID | 通过 DID 读取 ECU 数据（UDS 服务 0x22），结果以十六进制字符串存入变量。 |
+| UDS_ReadDTC | 读取 ECU 故障码（UDS 服务 0x19），结果以十六进制字符串存入变量。 |
+| UDS_RoutineControl | 执行 ECU 例程控制（UDS 服务 0x31）。 |
+| UDS_SecurityAccess | 执行 UDS 安全访问（Seed & Key，服务 0x27）解锁 ECU，自动完成 Request Seed → 计算 Key（通过表达式）→ Send Key 全流程。 |
+| UDS_WriteDataByID | 通过 DID 向 ECU 写入数据（UDS 服务 0x2E）。 |
+| XCP_Connect | 建立 XCP on CAN 连接，发送 CONNECT 命令并获取从站能力信息。 |
+| XCP_Disconnect | 断开 XCP on CAN 连接，向从站发送 DISCONNECT 命令。 |
+| XCP_ShortDownload | 通过 XCP SHORT_DOWNLOAD 命令向 ECU 内存地址写入最多 6 字节数据（标定参数修改）。 |
+| XCP_ShortUpload | 通过 XCP SHORT_UPLOAD 命令从 ECU 内存地址读取最多 7 字节数据。 |
+
+## 使用前提
+
+使用前需安装对应硬件厂商的驱动程序；UDS/XCP 步骤需先通过 CAN_Open 打开通道。

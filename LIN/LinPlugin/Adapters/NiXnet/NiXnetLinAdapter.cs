@@ -45,37 +45,37 @@ public sealed class NiXnetLinAdapter : ILinAdapter
             NiXnetLinApi.InMemoryDatabase, "", "", interfaceName,
             NiXnetLinApi.nxMode_FrameInStream,
             out _rxSession);
-        NiXnetLinApi.CheckStatus(status);
+        NiXnetLinApi.CheckStatus(status, "创建接收会话");
 
         // 创建发送会话（Frame Out Stream）
         status = NiXnetLinApi.nxCreateSession(
             NiXnetLinApi.InMemoryDatabase, "", "", interfaceName,
             NiXnetLinApi.nxMode_FrameOutStream,
             out _txSession);
-        NiXnetLinApi.CheckStatus(status);
+        NiXnetLinApi.CheckStatus(status, "创建发送会话");
 
         // 设置波特率
         uint baudRate = (uint)config.BaudRate;
         status = NiXnetLinApi.nxSetProperty(_rxSession,
             NiXnetLinApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
-        NiXnetLinApi.CheckStatus(status);
+        NiXnetLinApi.CheckStatus(status, "设置接收会话波特率");
 
         status = NiXnetLinApi.nxSetProperty(_txSession,
             NiXnetLinApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
-        NiXnetLinApi.CheckStatus(status);
+        NiXnetLinApi.CheckStatus(status, "设置发送会话波特率");
 
-        // 设置主/从节点（主节点才能主动发送帧头）
-        uint isMaster = config.IsMaster ? 1u : 0u;
+        // 设置主/从节点（主节点才能主动发送帧头；nxBool 为 8 位）
+        byte isMaster = config.IsMaster ? (byte)1 : (byte)0;
         status = NiXnetLinApi.nxSetProperty(_txSession,
-            NiXnetLinApi.nxPropSession_IntfLINMaster, 4, ref isMaster);
-        NiXnetLinApi.CheckStatus(status);
+            NiXnetLinApi.nxPropSession_IntfLINMaster, 1, ref isMaster);
+        NiXnetLinApi.CheckStatus(status, "设置主/从节点");
 
         // 启动会话
         status = NiXnetLinApi.nxStart(_rxSession, NiXnetLinApi.nxScope_Normal);
-        NiXnetLinApi.CheckStatus(status);
+        NiXnetLinApi.CheckStatus(status, "启动接收会话");
 
         status = NiXnetLinApi.nxStart(_txSession, NiXnetLinApi.nxScope_Normal);
-        NiXnetLinApi.CheckStatus(status);
+        NiXnetLinApi.CheckStatus(status, "启动发送会话");
 
         _isConnected = true;
     }

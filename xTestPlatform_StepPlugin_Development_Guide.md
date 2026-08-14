@@ -2000,6 +2000,34 @@ DelayCheck/
 > `CommunityToolkit.Mvvm` 可用于简化 ViewModel 的 `INotifyPropertyChanged` 实现（可选）。  
 > Syncfusion 版本应与主程序保持一致，当前为 **32.1.25**。
 
+### 14.2.1 插件元数据（作者 / 公司 / 描述）
+
+插件管理器会在插件列表中显示每个插件的**描述**、**作者/公司**和**发布时间**，这些信息由 CI 打包时自动提取，来源如下：
+
+| 显示项 | 来源 | 维护位置 |
+|--------|------|----------|
+| 描述 | 执行层 csproj 的 `<Description>` | 每个插件必填 |
+| 作者/公司 | 插件 DLL 的 `CompanyName`（由 `<Company>` 属性写入） | 仓库根 `Directory.Build.props` 提供默认值，插件可覆盖 |
+| 发布时间 | 该插件目录最后一次 git 提交时间 | 自动，无需维护 |
+
+**默认值**：仓库根目录的 `Directory.Build.props` 已为所有插件项目统一设置 `<Company>`，新插件无需任何配置即会继承。
+
+**个别插件覆盖**：如果某个插件由特定团队/公司开发，在该插件的**执行层 csproj** 中重新定义即可：
+
+```xml
+<PropertyGroup>
+    <!-- ✅ 描述必填：显示在插件管理器列表和 AI 工具箱中 -->
+    <Description>通过 CAN 总线收发报文，支持标准帧与扩展帧</Description>
+    <!-- 可选：覆盖 Directory.Build.props 中的默认公司名 -->
+    <Company>某某科技有限公司</Company>
+</PropertyGroup>
+```
+
+> ⚠️ 注意：
+> - `<Company>` 必须写在**执行层项目**（`*.StepPlugin.dll` 对应的 csproj）中才会被提取；只写在 UI 层无效。
+> - `<Authors>` 是 NuGet 打包属性，**不会**写入 DLL，插件管理器读取不到；请使用 `<Company>`。
+> - `<Description>` 同时被 AI 助手用于理解插件行为，必须准确反映程序实际功能。
+
 ### 14.3 Setting 模型
 
 ```csharp

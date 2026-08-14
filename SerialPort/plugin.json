@@ -1,0 +1,24 @@
+{
+  "steps": [
+      {
+          "displayName":  "SerialPort_Close",
+          "description":  "关闭指定串口并释放资源。"
+      },
+      {
+          "displayName":  "SerialPort_Open",
+          "description":  "打开指定串口并配置通信参数，打开后通过 PortName 标识连接，供后续读写步骤使用。"
+      },
+      {
+          "displayName":  "SerialPort_Query",
+          "description":  "向已打开的串口发送数据并读取响应（Write+Read 一体操作），响应存入指定变量。"
+      },
+      {
+          "displayName":  "SerialPort_Read",
+          "description":  "从已打开的串口读取数据，结果存入 ResultVariable 指定的变量。"
+      },
+      {
+          "displayName":  "SerialPort_Write",
+          "description":  "向已打开的串口写入数据。"
+      }
+  ]
+}
