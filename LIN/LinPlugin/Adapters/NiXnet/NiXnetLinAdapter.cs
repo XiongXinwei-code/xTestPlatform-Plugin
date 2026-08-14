@@ -100,6 +100,17 @@ public sealed class NiXnetLinAdapter : ILinAdapter
         }
     }
 
+    public void Wakeup(bool remote = true)
+    {
+        if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");
+
+        // 写 Interface:LIN:Sleep 属性：RemoteWake 在总线上发送唤醒模式，LocalWake 仅唤醒本地接口
+        uint sleepState = remote ? NiXnetLinApi.nxLINSleep_RemoteWake : NiXnetLinApi.nxLINSleep_LocalWake;
+        var status = NiXnetLinApi.nxSetProperty(_txSession,
+            NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref sleepState);
+        NiXnetLinApi.CheckStatus(status, "LIN 唤醒");
+    }
+
     public void Write(LinFrame frame)
     {
         if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");

@@ -20,6 +20,9 @@ public interface ILinAdapter : IDisposable
     /// <summary>接收指定 ID 的 LIN 帧</summary>
     LinFrame? Read(byte frameId, int timeoutMs, CancellationToken ct = default);
 
+    /// <summary>唤醒 LIN 总线（remote 为 true 时在总线上发送唤醒模式，否则仅唤醒本地接口）</summary>
+    void Wakeup(bool remote = true);
+
     /// <summary>是否已连接</summary>
     bool IsConnected { get; }
 }

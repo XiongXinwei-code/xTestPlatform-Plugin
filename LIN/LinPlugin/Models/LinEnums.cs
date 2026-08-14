@@ -31,3 +31,13 @@ public enum LinChecksumType
     /// <summary>增强校验（保护 ID + 数据字节，LIN 2.x 推荐）</summary>
     Enhanced = 1
 }
+
+/// <summary>LIN 唤醒模式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum LinWakeupMode
+{
+    /// <summary>远程唤醒（在总线上发送唤醒模式，唤醒所有节点）</summary>
+    Remote = 0,
+    /// <summary>本地唤醒（仅唤醒本地接口，不发送总线唤醒模式）</summary>
+    Local = 1
+}
