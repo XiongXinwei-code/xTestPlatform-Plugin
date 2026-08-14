@@ -80,6 +80,13 @@ internal static class NiXnetLinApi
     // 属性 ID（取自 NI-XNET 驱动 nixnet.h，高位编码了数据类型）
     internal const uint nxPropSession_IntfBaudRate = 0x00100016;   // 波特率 (u32 --rw)
     internal const uint nxPropSession_IntfLINMaster = 0x02100072;  // LIN 主节点 (bool --rw，按 u32 传递)
+    internal const uint nxPropSession_IntfLINSleep = 0x00100073;   // LIN 睡眠/唤醒状态 (u32 --w)
+
+    // nxPropSession_IntfLINSleep 取值（nixnet.h）
+    internal const uint nxLINSleep_RemoteSleep = 0; // 总线睡眠（发送 Go-to-Sleep 命令）
+    internal const uint nxLINSleep_RemoteWake = 1;  // 总线唤醒（发送唤醒模式）
+    internal const uint nxLINSleep_LocalSleep = 2;  // 仅本地接口睡眠
+    internal const uint nxLINSleep_LocalWake = 3;   // 仅本地接口唤醒
 
     // LIN 帧类型（Raw Frame 的 Type 字节，nixnet.h）
     internal const byte nxFrameType_LIN_Data = 0x40;
