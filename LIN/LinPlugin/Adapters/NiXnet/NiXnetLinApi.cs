@@ -77,9 +77,9 @@ internal static class NiXnetLinApi
     // 作用域
     internal const uint nxScope_Normal = 0;
 
-    // 属性 ID（nixnet.h：nxClass_Session=0x00100000 | 属性编号）
-    internal const uint nxPropSession_IntfBaudRate = 0x00100016;  // 波特率 (U32)
-    internal const uint nxPropSession_IntfLINMaster = 0x00100023; // LIN 主节点 (Bool/U32)
+    // 属性 ID（取自 NI-XNET 驱动 nixnet.h，高位编码了数据类型）
+    internal const uint nxPropSession_IntfBaudRate = 0x00100016;   // 波特率 (u32 --rw)
+    internal const uint nxPropSession_IntfLINMaster = 0x02100072;  // LIN 主节点 (bool --rw，按 u32 传递)
 
     // LIN 帧类型（Raw Frame 的 Type 字节，nixnet.h）
     internal const byte nxFrameType_LIN_Data = 0x40;
