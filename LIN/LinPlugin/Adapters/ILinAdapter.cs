@@ -23,6 +23,9 @@ public interface ILinAdapter : IDisposable
     /// <summary>唤醒 LIN 总线（remote 为 true 时在总线上发送唤醒模式，否则仅唤醒本地接口）</summary>
     void Wakeup(bool remote = true);
 
+    /// <summary>使 LIN 总线进入睡眠（remote 为 true 时由主节点发送 Go-to-Sleep 命令，否则仅本地接口睡眠）</summary>
+    void Sleep(bool remote = true);
+
     /// <summary>是否已连接</summary>
     bool IsConnected { get; }
 }

@@ -41,3 +41,13 @@ public enum LinWakeupMode
     /// <summary>本地唤醒（仅唤醒本地接口，不发送总线唤醒模式）</summary>
     Local = 1
 }
+
+/// <summary>LIN 睡眠模式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum LinSleepMode
+{
+    /// <summary>远程睡眠（主节点发送 Go-to-Sleep 命令，全总线节点入睡）</summary>
+    Remote = 0,
+    /// <summary>本地睡眠（仅本地接口置为睡眠态，不发送总线信号）</summary>
+    Local = 1
+}

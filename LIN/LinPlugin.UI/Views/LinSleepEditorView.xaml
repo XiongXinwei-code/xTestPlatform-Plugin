@@ -1,0 +1,43 @@
+<UserControl x:Class="LIN.UI.Views.LinSleepEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
+             mc:Ignorable="d" d:DesignHeight="200" d:DesignWidth="800">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="LIN Sleep"
+                               Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png"
+                               ImageHeight="20" ImageWidth="20">
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+                    ExpectedResultType="String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="睡眠模式:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Width="200" HorizontalAlignment="Left"
+                    SelectedIndex="{Binding SleepModeIndex, Mode=TwoWay}">
+                    <ComboBoxItem Content="远程睡眠（发送 Go-to-Sleep）"/>
+                    <ComboBoxItem Content="本地睡眠（仅本地接口）"/>
+                </ComboBox>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="入睡后延时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                    Value="{Binding PostSleepDelayMs, Mode=TwoWay}" MinValue="0"/>
+            </Grid>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>
