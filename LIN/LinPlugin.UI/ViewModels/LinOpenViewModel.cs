@@ -69,6 +69,11 @@ public class LinOpenViewModel : INotifyPropertyChanged
         get => _setting?.IsMaster ?? true;
         set { if (_setting == null || _setting.IsMaster == value) return; _setting.IsMaster = value; OnPropertyChanged(); QueueSave(); }
     }
+    public int RxQueueSize
+    {
+        get => _setting?.RxQueueSize ?? 512;
+        set { if (_setting == null || _setting.RxQueueSize == value) return; _setting.RxQueueSize = value; OnPropertyChanged(); QueueSave(); }
+    }
     public string ConnectionName
     {
         get => _setting?.ConnectionName ?? string.Empty;

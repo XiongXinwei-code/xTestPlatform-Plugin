@@ -265,7 +265,7 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| ConnectionName | 表达式(string) | 是 | — | 已建立的连接名 |
+| ConnectionName | string([ExpressionField]) | 是 | — | 已建立的连接名 |
 | TimeoutMs | int | 否 | 0 | 超时毫秒数，0 表示不限制 |
 | DataFormat | 枚举 | 否 | UInt16 | 可选值：UInt16, Int16, Float_AB_CD |
 | Items | 集合 | 是 | — | 读取项列表，元素结构见示例 |
@@ -297,7 +297,7 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 **设计要点：**
 
 1. **五个固定章节，顺序固定**：`功能` → `参数` → `行为` → `示例` → `相关插件`。前两节必填，后三节按需。
-2. **参数用表格**：类型列区分 `string / int / bool / 表达式(bool) / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成"表达式(xxx)"，AI 就知道要生成表达式而不是字面量。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
+2. **参数用表格**：类型列区分 `string / int / bool / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成 `string([ExpressionField])`、`int([ExpressionField])` 这种形式，即“实际类型([ExpressionField])”，AI 就知道要生成表达式而不是字面量。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
 3. **示例用 ```json 代码块**：渲染成等宽代码块，AI 也能直接照抄结构。含集合的 Setting 必须给示例。
 4. **相关插件**：对成组使用的插件族（连接/断开、启动/停止、配置/读取）特别有价值，帮助 AI 和用户理解组合用法。
 5. **代码实现用 C# 原始字符串字面量**（`"""..."""`）书写多行 Markdown，避免转义。
@@ -314,9 +314,9 @@ public override string Description => """
 
     | 参数 | 类型 | 必填 | 默认值 | 说明 |
     |------|------|------|--------|------|
-    | ConnectionName | 表达式(string) | 是 | — | 已打开的 VISA 连接标识名 |
-    | Command | 表达式(string) | 是 | — | SCPI 查询命令，如 *IDN? |
-    | ResultVariable | 表达式(string) | 是 | — | 结果存入的变量名 |
+    | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
+    | Command | string([ExpressionField]) | 是 | — | SCPI 查询命令，如 *IDN? |
+    | ResultVariable | string([ExpressionField]) | 是 | — | 结果存入的变量名 |
     | TrimResponse | bool | 否 | true | 是否去除响应首尾空白 |
 
     ## 行为

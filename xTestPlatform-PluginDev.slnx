@@ -12,6 +12,10 @@
     <Project Path="Ethernet/EthernetPlugin.UI/EthernetPlugin.UI.csproj" />
     <Project Path="Ethernet/EthernetPlugin/EthernetPlugin.csproj" />
   </Folder>
+  <Folder Name="/HTTP/">
+    <Project Path="Http/HttpPlugin.UI/HttpPlugin.UI.csproj" />
+    <Project Path="Http/HttpPlugin/HttpPlugin.csproj" />
+  </Folder>
   <Folder Name="/LabVIEW_Call/">
     <Project Path="LabVIEWCall/LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj">
       <Platform Solution="*|x64" Project="x64" />

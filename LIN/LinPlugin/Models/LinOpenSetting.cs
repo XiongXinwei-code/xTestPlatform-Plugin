@@ -22,6 +22,9 @@ public class LinOpenSetting
     /// <summary>是否作为主节点运行（否则为从节点）</summary>
     public bool IsMaster { get; set; } = true;
 
+    /// <summary>接收缓冲区大小（帧数，驱动层接收队列容量）</summary>
+    public int RxQueueSize { get; set; } = 512;
+
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"LIN1\"";

@@ -31,7 +31,8 @@ public sealed class CanOpenExecutor : IStepExecutor
                 Channel = channel,
                 BaudRate = setting.BaudRate,
                 Protocol = setting.Protocol,
-                DataBitRate = setting.DataBitRate
+                DataBitRate = setting.DataBitRate,
+                RxQueueSize = setting.RxQueueSize
             });
 
             // Set 会自动销毁同名旧适配器（如上次运行异常终止未关闭）

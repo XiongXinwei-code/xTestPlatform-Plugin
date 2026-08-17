@@ -32,4 +32,6 @@ public class CanAdapterConfig
     public CanProtocolType Protocol { get; set; } = CanProtocolType.Classic;
     public int DataBitRate { get; set; } = 2_000_000;
     public string DatabasePath { get; set; } = "";
+    /// <summary>接收缓冲区大小（帧数）</summary>
+    public int RxQueueSize { get; set; } = 512;
 }

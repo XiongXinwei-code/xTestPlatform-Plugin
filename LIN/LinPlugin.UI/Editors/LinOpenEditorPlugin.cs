@@ -35,6 +35,10 @@ public sealed class LinOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("LIN_003", $"ConnectionName 表达式无效: {connErr}"));
         if (s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("LIN_004", "波特率必须大于 0"));
+        if (s.RxQueueSize <= 0)
+            errors.Add(StepSettingError.Error("LIN_005", "接收缓冲区大小必须大于 0"));
+        else if (s.RxQueueSize < 512)
+            errors.Add(StepSettingError.Warning("LIN_W01", "接收缓冲区小于默认值 512 帧，高负载总线下可能丢帧"));
 
         return errors;
     }

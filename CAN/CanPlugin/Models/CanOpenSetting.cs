@@ -23,6 +23,9 @@ public class CanOpenSetting
     /// <summary>数据段波特率（CAN FD 有效）</summary>
     public int DataBitRate { get; set; } = 2_000_000;
 
+    /// <summary>接收缓冲区大小（帧数，驱动层接收队列容量）</summary>
+    public int RxQueueSize { get; set; } = 512;
+
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"CAN1\"";
