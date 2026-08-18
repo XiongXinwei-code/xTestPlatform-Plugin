@@ -47,12 +47,11 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 			// Write
 			var writeData = await Evaluator.EvalStringAsync(s.WriteData, context);
 			var writeBytes = SerialPortHelper.ConvertToBytes(writeData, s.DataFormat);
-			await port.BaseStream.WriteAsync(writeBytes, 0, writeBytes.Length, cancellationToken);
+			await SerialPortHelper.WriteWithTimeoutAsync(port, writeBytes, port.WriteTimeout, cancellationToken);
 
 			// Read
 			byte[] buffer;
-			using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-			cts.CancelAfter(s.ReadTimeoutMs);
+			var deadline = DateTime.UtcNow.AddMilliseconds(s.ReadTimeoutMs);
 
 			if (s.ReadBytes > 0)
 			{
@@ -60,8 +59,12 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 				int totalRead = 0;
 				while (totalRead < s.ReadBytes)
 				{
-					int read = await port.BaseStream.ReadAsync(
-						buffer, totalRead, s.ReadBytes - totalRead, cts.Token);
+					var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
+					if (remaining <= 0)
+						throw new TimeoutException();
+
+					int read = await SerialPortHelper.ReadWithTimeoutAsync(
+						port, buffer, totalRead, s.ReadBytes - totalRead, remaining, cancellationToken);
 					if (read == 0) break;
 					totalRead += read;
 				}
@@ -75,9 +78,15 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 				var terminator = SerialPortHelper.NormalizeTerminator(s.Terminator);
 				try
 				{
-					while (!cts.Token.IsCancellationRequested)
+					while (true)
 					{
-						int read = await port.BaseStream.ReadAsync(temp, 0, temp.Length, cts.Token);
+						cancellationToken.ThrowIfCancellationRequested();
+
+						var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
+						if (remaining <= 0) break;
+
+						int read = await SerialPortHelper.ReadWithTimeoutAsync(
+							port, temp, 0, temp.Length, remaining, cancellationToken);
 						if (read == 0) break;
 						ms.Write(temp, 0, read);
 
@@ -89,7 +98,7 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 						}
 					}
 				}
-				catch (OperationCanceledException) { /* timeout, return what we have */ }
+				catch (TimeoutException) { /* 未配置字节数时，超时即视为读取结束，返回已收到的数据 */ }
 				buffer = ms.ToArray();
 			}
 
@@ -109,11 +118,11 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 				}
 			};
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
 		}
-		catch (OperationCanceledException)
+		catch (TimeoutException)
 		{
 			return new ExecutionResult
 			{

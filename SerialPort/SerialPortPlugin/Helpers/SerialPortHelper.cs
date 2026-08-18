@@ -1,4 +1,5 @@
 ﻿using SerialPort.Models;
+using SysSerialPort = System.IO.Ports.SerialPort;
 
 namespace SerialPort.Helpers;
 
@@ -63,5 +64,59 @@ public static class SerialPortHelper
         for (int i = 0; i < bytes.Length; i++)
             bytes[i] = Convert.ToByte(bin.Substring(i * 8, 8), 2);
         return bytes;
+    }
+
+    /// <summary>
+    /// 带真实超时的串口写入。
+    /// SerialStream 的 WriteAsync 在 Windows 上会忽略 CancellationToken 且不受 WriteTimeout 约束，
+    /// 硬件流控未就绪时会永久阻塞；同步 Write 才会遵守 WriteTimeout 并抛出 TimeoutException。
+    /// 超时时抛出 <see cref="TimeoutException"/>，用户取消时抛出 <see cref="OperationCanceledException"/>。
+    /// </summary>
+    public static async Task WriteWithTimeoutAsync(
+        SysSerialPort port, byte[] data, int timeoutMs, CancellationToken cancellationToken)
+    {
+        port.WriteTimeout = timeoutMs;
+        await RunWithTimeoutAsync(
+            () => { port.Write(data, 0, data.Length); return 0; },
+            timeoutMs, cancellationToken);
+    }
+
+    /// <summary>
+    /// 带真实超时的串口读取，返回本次读到的字节数（同步 Read 至少返回 1 字节，超时抛 TimeoutException）。
+    /// 原因同 <see cref="WriteWithTimeoutAsync"/>：SerialStream.ReadAsync 不响应 CancellationToken。
+    /// </summary>
+    public static Task<int> ReadWithTimeoutAsync(
+        SysSerialPort port, byte[] buffer, int offset, int count, int timeoutMs, CancellationToken cancellationToken)
+    {
+        port.ReadTimeout = timeoutMs;
+        return RunWithTimeoutAsync(() => port.Read(buffer, offset, count), timeoutMs, cancellationToken);
+    }
+
+    /// <summary>
+    /// 在后台线程执行阻塞式串口操作，并附加一层软超时兜底：
+    /// 即使底层驱动无视 ReadTimeout/WriteTimeout，步骤也能超时返回而不会卡死整条序列。
+    /// </summary>
+    private static async Task<int> RunWithTimeoutAsync(
+        Func<int> operation, int timeoutMs, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var task = Task.Run(operation, CancellationToken.None);
+
+        // 留出余量，优先让驱动层自身的超时机制抛出 TimeoutException
+        var guard = timeoutMs > 0
+            ? TimeSpan.FromMilliseconds(timeoutMs + 1000)
+            : Timeout.InfiniteTimeSpan;
+
+        try
+        {
+            return await task.WaitAsync(guard, cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            // 底层未按时返回，标记任务异常避免 UnobservedTaskException
+            _ = task.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+            throw new TimeoutException($"串口操作超时({timeoutMs}ms)，端口无响应");
+        }
     }
 }
