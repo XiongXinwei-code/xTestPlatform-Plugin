@@ -105,6 +105,10 @@
             <CheckBox Content="Close VI front panel when done"
                       IsChecked="{Binding Setting.ClosePanel, ElementName=Root, Mode=TwoWay}"
                       VerticalAlignment="Center"/>
+            <TextBlock Text="Timeout(ms):" VerticalAlignment="Center" Margin="20,0,6,0"/>
+            <TextBox Width="90" VerticalAlignment="Center"
+                     Text="{Binding Setting.TimeoutMs, ElementName=Root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="VI 执行超时时间（毫秒），0 表示不限制"/>
         </StackPanel>
 
         <!-- Row 2: LvPanelView 参数面板 -->

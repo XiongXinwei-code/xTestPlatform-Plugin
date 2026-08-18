@@ -35,7 +35,8 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
             var reader = new AnalogMultiChannelReader(task.Stream);
             task.Stream.Timeout = setting.ReadTimeoutMs > 0 ? setting.ReadTimeoutMs : -1;
             int samplesToRead = setting.SamplesToRead > 0 ? setting.SamplesToRead : task.Stream.AvailableSamplesPerChannel > 0 ? (int)task.Stream.AvailableSamplesPerChannel : 100;
-            double[,] data = reader.ReadMultiSample(samplesToRead);
+            double[,] data = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                () => reader.ReadMultiSample(samplesToRead), setting.ReadTimeoutMs, "AI 读取", cancellationToken);
 
             int channels = data.GetLength(0);
             int samples = data.GetLength(1);
@@ -84,6 +85,10 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
                     Value = $"{channels} ch × {samples} samples"
                 }
             };
+        }
+        catch (TimeoutException ex)
+        {
+            return ErrorResult(ex.Message);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

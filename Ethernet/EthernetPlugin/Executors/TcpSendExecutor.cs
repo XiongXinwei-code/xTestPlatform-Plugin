@@ -21,7 +21,20 @@ public sealed class TcpSendExecutor : IStepExecutor
             var client = TcpConnectionManager.Get(name!);
             var bytes = EthernetDataHelper.Encode(dataStr!, setting.Encoding);
             var stream = client.GetStream();
-            await stream.WriteAsync(bytes, cancellationToken);
+
+            // 对端不取数据导致发送缓冲区满时，WriteAsync 会一直等待，需限定超时
+            var timeoutMs = setting.SendTimeoutMs > 0 ? setting.SendTimeoutMs : 3000;
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeoutCts.CancelAfter(timeoutMs);
+
+            try
+            {
+                await stream.WriteAsync(bytes, timeoutCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new TimeoutException($"TCP 发送超时({timeoutMs}ms): 对端未接收数据");
+            }
 
             if (setting.EnableLog)
                 context.LogAction?.Invoke($"TCP 发送: {name} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
@@ -38,6 +51,17 @@ public sealed class TcpSendExecutor : IStepExecutor
         catch (OperationCanceledException)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (TimeoutException ex)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
         catch (Exception ex)
         {

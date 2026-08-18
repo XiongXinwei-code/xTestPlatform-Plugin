@@ -17,6 +17,14 @@ namespace LabVIEWCallPlugin.Models
         private bool _showPanel;
         private string _inputParameters = string.Empty;
         private string _outputParameters = string.Empty;
+        private int _timeoutMs;
+
+        /// <summary>VI 执行超时时间（毫秒），0 表示不限制</summary>
+        public int TimeoutMs
+        {
+            get => _timeoutMs;
+            set => SetProperty(ref _timeoutMs, value);
+        }
 
         /// <summary>VI 文件完整路径</summary>
         public string ViFilePath

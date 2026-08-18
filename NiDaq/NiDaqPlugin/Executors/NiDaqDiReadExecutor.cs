@@ -29,7 +29,8 @@ public sealed class NiDaqDiReadExecutor : IStepExecutor
             task.DIChannels.CreateChannel(channel, "", ChannelLineGrouping.OneChannelForAllLines);
 
             var reader = new DigitalSingleChannelReader(task.Stream);
-            uint data = reader.ReadSingleSamplePortUInt32();
+            uint data = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                () => reader.ReadSingleSamplePortUInt32(), NiDaqTimeoutHelper.DefaultTimeoutMs, "DI 读取", cancellationToken);
 
             context.SetVariable(resultVar, data);
 
@@ -39,6 +40,17 @@ public sealed class NiDaqDiReadExecutor : IStepExecutor
                 {
                     Status = TestStatus.Passed,
                     Value = data.ToString()
+                }
+            };
+        }
+        catch (TimeoutException ex)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
                 }
             };
         }

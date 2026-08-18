@@ -41,6 +41,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 			}
 
 			var results = new List<string>();
+			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 			foreach (var item in setting.Items)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
@@ -49,19 +50,27 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 				switch (item.RegisterType)
 				{
 					case ModbusRegisterType.Coil:
-						var coils = await master.ReadCoilsAsync(item.SlaveAddress, item.StartAddress, item.Quantity);
+						var coils = await ModbusHelper.WithTimeoutAsync(
+							master.ReadCoilsAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+							timeoutMs, $"Modbus 批量读取线圈(地址 {item.StartAddress})", cancellationToken);
 						result = coils.Length == 1 ? coils[0] : coils;
 						break;
 					case ModbusRegisterType.DiscreteInput:
-						var inputs = await master.ReadInputsAsync(item.SlaveAddress, item.StartAddress, item.Quantity);
+						var inputs = await ModbusHelper.WithTimeoutAsync(
+							master.ReadInputsAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+							timeoutMs, $"Modbus 批量读取离散输入(地址 {item.StartAddress})", cancellationToken);
 						result = inputs.Length == 1 ? inputs[0] : inputs;
 						break;
 					case ModbusRegisterType.HoldingRegister:
-						var holdRegs = await master.ReadHoldingRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity);
+						var holdRegs = await ModbusHelper.WithTimeoutAsync(
+							master.ReadHoldingRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+							timeoutMs, $"Modbus 批量读取保持寄存器(地址 {item.StartAddress})", cancellationToken);
 						result = ModbusDataConverter.ConvertRegisters(holdRegs, item.DataFormat);
 						break;
 					default:
-						var inRegs = await master.ReadInputRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity);
+						var inRegs = await ModbusHelper.WithTimeoutAsync(
+							master.ReadInputRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+							timeoutMs, $"Modbus 批量读取输入寄存器(地址 {item.StartAddress})", cancellationToken);
 						result = ModbusDataConverter.ConvertRegisters(inRegs, item.DataFormat);
 						break;
 				}
@@ -86,6 +95,17 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 		catch (OperationCanceledException)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+		}
+		catch (TimeoutException ex)
+		{
+			return new ExecutionResult
+			{
+				StepResult = new StepResult
+				{
+					Status = TestStatus.Error,
+					Error = new ErrorInfo { Message = ex.Message }
+				}
+			};
 		}
 		catch (Exception ex)
 		{

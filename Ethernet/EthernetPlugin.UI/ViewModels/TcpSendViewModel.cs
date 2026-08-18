@@ -22,6 +22,11 @@ public class TcpSendViewModel : EthernetViewModelBase<TcpSendSetting>
         get => Setting == null ? 0 : Array.IndexOf(Encodings, Setting.Encoding);
         set { if (Setting == null || value < 0 || value >= Encodings.Length) return; Setting.Encoding = Encodings[value]; OnPropertyChanged(); QueueSave(); }
     }
+    public int SendTimeoutMs
+    {
+        get => Setting?.SendTimeoutMs ?? 3000;
+        set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
+    }
     public bool EnableLog
     {
         get => Setting?.EnableLog ?? true;

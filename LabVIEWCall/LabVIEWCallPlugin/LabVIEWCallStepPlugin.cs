@@ -30,6 +30,7 @@ namespace LabVIEWCallPlugin
             | ViFilePath | string | 是 | — | VI 文件完整路径 |
             | ShowPanel | bool | 否 | false | 调用时是否显示前面板 |
             | ClosePanel | bool | 否 | false | 执行完毕后是否关闭前面板 |
+            | TimeoutMs | int | 否 | 0 | VI 执行超时时间（毫秒），0 表示不限制 |
             | InputParameters | string | 否 | 空 | VI 输入控件参数的 JSON 序列化字符串，由编辑器自动生成 |
             | OutputParameters | string | 否 | 空 | VI 输出指示器参数的 JSON 序列化字符串，由编辑器自动生成 |
 
@@ -37,6 +38,8 @@ namespace LabVIEWCallPlugin
 
             - 需要本机安装 LabVIEW 运行时环境
             - VI 文件不存在或加载失败时步骤报错
+            - VI 调用为阻塞式非托管调用，无法响应取消；配置 `TimeoutMs` 后超时会终止等待并返回 Error
+            - `TimeoutMs` 为 0 时将一直等待 VI 返回，若 VI 可能不返回请务必配置超时
             """;
         public override string Category => "Adapter";
         public override string IconPath =>

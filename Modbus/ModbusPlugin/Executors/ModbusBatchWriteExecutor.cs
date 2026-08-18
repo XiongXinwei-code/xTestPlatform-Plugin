@@ -40,6 +40,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				};
 			}
 
+			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 			foreach (var item in setting.Items)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
@@ -49,17 +50,25 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 					var bools = item.Values.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
 						.Select(v => v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase)).ToArray();
 					if (bools.Length == 1)
-						await master.WriteSingleCoilAsync(item.SlaveAddress, item.StartAddress, bools[0]);
+						await ModbusHelper.WithTimeoutAsync(
+							master.WriteSingleCoilAsync(item.SlaveAddress, item.StartAddress, bools[0]),
+							timeoutMs, $"Modbus 批量写入线圈(地址 {item.StartAddress})", cancellationToken);
 					else
-						await master.WriteMultipleCoilsAsync(item.SlaveAddress, item.StartAddress, bools);
+						await ModbusHelper.WithTimeoutAsync(
+							master.WriteMultipleCoilsAsync(item.SlaveAddress, item.StartAddress, bools),
+							timeoutMs, $"Modbus 批量写入线圈(地址 {item.StartAddress})", cancellationToken);
 				}
 				else
 				{
 					var registers = ModbusDataConverter.ConvertToRegisters(item.Values, item.DataFormat);
 					if (registers.Length == 1)
-						await master.WriteSingleRegisterAsync(item.SlaveAddress, item.StartAddress, registers[0]);
+						await ModbusHelper.WithTimeoutAsync(
+							master.WriteSingleRegisterAsync(item.SlaveAddress, item.StartAddress, registers[0]),
+							timeoutMs, $"Modbus 批量写入寄存器(地址 {item.StartAddress})", cancellationToken);
 					else
-						await master.WriteMultipleRegistersAsync(item.SlaveAddress, item.StartAddress, registers);
+						await ModbusHelper.WithTimeoutAsync(
+							master.WriteMultipleRegistersAsync(item.SlaveAddress, item.StartAddress, registers),
+							timeoutMs, $"Modbus 批量写入寄存器(地址 {item.StartAddress})", cancellationToken);
 				}
 
 				if (setting.IntervalMs > 0)
@@ -76,6 +85,17 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 		catch (OperationCanceledException)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+		}
+		catch (TimeoutException ex)
+		{
+			return new ExecutionResult
+			{
+				StepResult = new StepResult
+				{
+					Status = TestStatus.Error,
+					Error = new ErrorInfo { Message = ex.Message }
+				}
+			};
 		}
 		catch (Exception ex)
 		{

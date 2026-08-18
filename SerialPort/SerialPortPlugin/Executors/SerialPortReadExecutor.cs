@@ -54,46 +54,63 @@ public sealed class SerialPortReadExecutor : IStepExecutor
                 while (totalRead < s.ReadBytes)
                 {
                     var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
-                    if (remaining <= 0)
-                        throw new TimeoutException();
+                    if (remaining <= 0) break;
 
                     int read = await SerialPortHelper.ReadWithTimeoutAsync(
                         port, buffer, totalRead, s.ReadBytes - totalRead, remaining, cancellationToken);
                     if (read == 0) break;
                     totalRead += read;
                 }
+
                 if (totalRead < s.ReadBytes)
-                    Array.Resize(ref buffer, totalRead);
+                    throw new TimeoutException(
+                        $"串口读取超时({s.ReadTimeoutMs}ms): 需读 {s.ReadBytes} 字节，实际只读到 {totalRead} 字节");
             }
             else
             {
                 using var ms = new MemoryStream();
                 var temp = new byte[1024];
                 var terminator = SerialPortHelper.NormalizeTerminator(s.Terminator);
-                try
+                var needTerminator = s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(terminator);
+                var matched = false;
+
+                while (true)
                 {
-                    while (true)
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
+                    if (remaining <= 0) break;
+
+                    int read;
+                    try
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
-                        if (remaining <= 0) break;
-
-                        int read = await SerialPortHelper.ReadWithTimeoutAsync(
+                        read = await SerialPortHelper.ReadWithTimeoutAsync(
                             port, temp, 0, temp.Length, remaining, cancellationToken);
-                        if (read == 0) break;
-                        ms.Write(temp, 0, read);
+                    }
+                    catch (TimeoutException)
+                    {
+                        break;
+                    }
+                    if (read == 0) break;
+                    ms.Write(temp, 0, read);
 
-                        if (s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(terminator))
+                    if (needTerminator)
+                    {
+                        var current = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+                        if (current.Contains(terminator))
                         {
-                            var current = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-                            if (current.Contains(terminator))
-                                break;
+                            matched = true;
+                            break;
                         }
                     }
                 }
-                catch (TimeoutException) { /* 未配置字节数时，超时即视为读取结束，返回已收到的数据 */ }
+
                 buffer = ms.ToArray();
+
+                // 配置了终止符却未等到，视为读取失败；未配置终止符时超时即为正常结束条件
+                if (needTerminator && !matched)
+                    throw new TimeoutException(
+                        $"串口读取超时({s.ReadTimeoutMs}ms): 未收到终止符，已收到 {buffer.Length} 字节");
             }
 
             var result = SerialPortHelper.ConvertFromBytes(buffer, s.DataFormat);
@@ -116,14 +133,14 @@ public sealed class SerialPortReadExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (TimeoutException)
+        catch (TimeoutException ex)
         {
             return new ExecutionResult
             {
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"串口读取超时({s.ReadTimeoutMs}ms): 未读满 {s.ReadBytes} 字节" }
+                    Error = new ErrorInfo { Message = ex.Message }
                 }
             };
         }

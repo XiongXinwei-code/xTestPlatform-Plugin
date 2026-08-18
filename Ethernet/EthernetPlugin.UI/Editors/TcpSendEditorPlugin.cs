@@ -36,6 +36,9 @@ public sealed class TcpSendEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.Data, context.ExecutionContext, out var e2))
             errors.Add(StepSettingError.Error("ETH_204", $"Data 表达式无效: {e2}"));
 
+        if (s.SendTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("ETH_205", "SendTimeoutMs 必须大于 0"));
+
         return errors;
     }
 }

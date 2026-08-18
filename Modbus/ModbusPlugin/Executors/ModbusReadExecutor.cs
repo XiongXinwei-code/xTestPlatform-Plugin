@@ -42,24 +42,33 @@ public sealed class ModbusReadExecutor : IStepExecutor
 
 			var startAddr = ushort.Parse(await Evaluator.EvalStringAsync(setting.StartAddress, context));
 			var quantity = ushort.Parse(await Evaluator.EvalStringAsync(setting.Quantity, context));
+			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 
 			object result;
 			switch (setting.RegisterType)
 			{
 				case ModbusRegisterType.Coil:
-					var coils = await master.ReadCoilsAsync(setting.SlaveAddress, startAddr, quantity);
+					var coils = await ModbusHelper.WithTimeoutAsync(
+						master.ReadCoilsAsync(setting.SlaveAddress, startAddr, quantity),
+						timeoutMs, "Modbus 读取线圈", cancellationToken);
 					result = coils.Length == 1 ? coils[0] : coils;
 					break;
 				case ModbusRegisterType.DiscreteInput:
-					var inputs = await master.ReadInputsAsync(setting.SlaveAddress, startAddr, quantity);
+					var inputs = await ModbusHelper.WithTimeoutAsync(
+						master.ReadInputsAsync(setting.SlaveAddress, startAddr, quantity),
+						timeoutMs, "Modbus 读取离散输入", cancellationToken);
 					result = inputs.Length == 1 ? inputs[0] : inputs;
 					break;
 				case ModbusRegisterType.HoldingRegister:
-					var holdRegs = await master.ReadHoldingRegistersAsync(setting.SlaveAddress, startAddr, quantity);
+					var holdRegs = await ModbusHelper.WithTimeoutAsync(
+						master.ReadHoldingRegistersAsync(setting.SlaveAddress, startAddr, quantity),
+						timeoutMs, "Modbus 读取保持寄存器", cancellationToken);
 					result = ModbusDataConverter.ConvertRegisters(holdRegs, setting.DataFormat);
 					break;
 				case ModbusRegisterType.InputRegister:
-					var inRegs = await master.ReadInputRegistersAsync(setting.SlaveAddress, startAddr, quantity);
+					var inRegs = await ModbusHelper.WithTimeoutAsync(
+						master.ReadInputRegistersAsync(setting.SlaveAddress, startAddr, quantity),
+						timeoutMs, "Modbus 读取输入寄存器", cancellationToken);
 					result = ModbusDataConverter.ConvertRegisters(inRegs, setting.DataFormat);
 					break;
 				default:
@@ -80,6 +89,17 @@ public sealed class ModbusReadExecutor : IStepExecutor
 		catch (OperationCanceledException)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+		}
+		catch (TimeoutException ex)
+		{
+			return new ExecutionResult
+			{
+				StepResult = new StepResult
+				{
+					Status = TestStatus.Error,
+					Error = new ErrorInfo { Message = ex.Message }
+				}
+			};
 		}
 		catch (Exception ex)
 		{

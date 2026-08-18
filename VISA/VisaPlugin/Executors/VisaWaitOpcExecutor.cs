@@ -50,7 +50,10 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var response = VisaHelper.Query(session, "*OPC?", true, GetTerminator(context, connName));
+                var timeoutMs = setting.TimeoutMs > 0 ? setting.TimeoutMs : VisaHelper.GetIoTimeoutMs(session);
+                var terminator = GetTerminator(context, connName);
+                var response = await VisaHelper.RunWithTimeoutAsync(
+                    () => VisaHelper.Query(session, "*OPC?", true, terminator), timeoutMs, "WaitOPC", cancellationToken);
                 context.LogAction?.Invoke($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
 
                 return new ExecutionResult
@@ -69,6 +72,17 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (TimeoutException ex)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
         catch (Exception ex)
         {

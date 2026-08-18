@@ -32,11 +32,13 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
 
             if (bool.TryParse(valueStr, out bool boolVal))
             {
-                writer.WriteSingleSampleSingleLine(true, boolVal);
+                await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                    () => writer.WriteSingleSampleSingleLine(true, boolVal), NiDaqTimeoutHelper.DefaultTimeoutMs, "DO 输出", cancellationToken);
             }
             else if (uint.TryParse(valueStr, out uint uintVal))
             {
-                writer.WriteSingleSamplePort(true, uintVal);
+                await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                    () => writer.WriteSingleSamplePort(true, uintVal), NiDaqTimeoutHelper.DefaultTimeoutMs, "DO 输出", cancellationToken);
             }
             else
             {
@@ -56,6 +58,17 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
                 {
                     Status = TestStatus.Passed,
                     Value = valueStr
+                }
+            };
+        }
+        catch (TimeoutException ex)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
                 }
             };
         }
