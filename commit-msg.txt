@@ -1,0 +1,7 @@
+CAN: 更新至 v1.1.0，补充 ZLG 原生库内置的更新记录与说明
+
+- CHANGELOG 新增 v1.1.0 条目，记录内置 ZLGCAN x64 原生库及
+  宿主动态加载场景下 zlgcan.dll 搜索路径错误的修复。
+- CanPlugin.csproj 版本号由 1.0.0 升至 1.1.0。
+- README 使用前提补充说明：ZLG 二次开发库已随插件发布至 Native/Zlg，
+  无需配置 PATH，但 USB 设备的 Windows 驱动仍需在测试机安装。

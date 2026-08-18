@@ -39,3 +39,5 @@
 ## 使用前提
 
 使用前需安装对应硬件厂商的驱动程序；UDS/XCP 步骤需先通过 CAN_Open 打开通道。
+
+其中 **ZLG 周立功** 的二次开发库（zlgcan.dll 及其 kerneldlls 内核驱动）已随插件一起发布，位于插件目录下的 `Native\Zlg`，无需额外配置 PATH 环境变量；但 USB 设备本身的 Windows 驱动程序仍需在测试机上安装。

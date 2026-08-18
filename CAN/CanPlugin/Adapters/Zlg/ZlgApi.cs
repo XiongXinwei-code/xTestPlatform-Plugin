@@ -7,6 +7,52 @@ internal static class ZlgApi
 {
     private const string DllName = "zlgcan.dll";
 
+    // ── 原生库加载 ────────────────────────────────────────────────────────
+    // 插件由宿主动态加载，DllImport 默认搜索的是宿主进程目录而非插件目录，
+    // 因此这里把随插件一起发布的 Native\Zlg 目录显式加入搜索路径。
+    // zlgcan.dll 还会从自身所在目录的 kerneldlls 下加载各板卡内核驱动，
+    // SetDllDirectory 可保证这些依赖同样能被找到。
+    static ZlgApi()
+    {
+        try
+        {
+            var pluginDir = Path.GetDirectoryName(typeof(ZlgApi).Assembly.Location);
+            if (string.IsNullOrEmpty(pluginDir))
+                return;
+
+            NativeDir = Path.Combine(pluginDir, "Native", "Zlg");
+            if (!File.Exists(Path.Combine(NativeDir, DllName)))
+            {
+                NativeDir = null;
+                return;
+            }
+
+            SetDllDirectory(NativeDir);
+            NativeLibrary.SetDllImportResolver(typeof(ZlgApi).Assembly, ResolveNativeLibrary);
+        }
+        catch
+        {
+            // 加载路径准备失败时退回系统默认搜索顺序（PATH / 已安装驱动目录）
+            NativeDir = null;
+        }
+    }
+
+    private static string? NativeDir;
+
+    private static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
+    {
+        if (NativeDir is not null && string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase)
+            && NativeLibrary.TryLoad(Path.Combine(NativeDir, DllName), out var handle))
+        {
+            return handle;
+        }
+        return IntPtr.Zero;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetDllDirectory(string lpPathName);
+
     // ── 返回值 ────────────────────────────────────────────
     public const uint STATUS_OK = 1;
 

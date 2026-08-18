@@ -17,4 +17,12 @@
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.2.1" />
   </ItemGroup>
 
+  <!-- ������ ZLGCAN ԭ���⣨x64�������� kerneldlls ��Ŀ¼�ṹ���Ƶ� ���Ŀ¼\Native\Zlg\ -->
+  <ItemGroup>
+	<None Include="Native\Zlg\x64\**\*.*" Exclude="Native\Zlg\x64\**\*.md;Native\Zlg\x64\**\*.h;Native\Zlg\x64\**\*.lib;Native\Zlg\x64\**\.gitkeep">
+	  <Link>Native\Zlg\%(RecursiveDir)%(Filename)%(Extension)</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+  </ItemGroup>
+
 </Project>
