@@ -1,4 +1,4 @@
-# 更新记录
+﻿# 更新记录
 
 ## v1.1.0 - 2026-08-18
 - 修复：`VisaRead` / `VisaQuery` / `VisaWrite` / `VisaBatchWrite` / `VisaWaitOpc` 在驱动层超时失效时会永久阻塞序列。VISA 的 `FormattedIO` 为同步阻塞 API 且不响应 `CancellationToken`，现统一通过 `VisaHelper.RunWithTimeoutAsync` 施加软超时兜底

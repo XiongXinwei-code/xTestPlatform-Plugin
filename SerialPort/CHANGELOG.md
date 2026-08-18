@@ -1,4 +1,4 @@
-# 更新记录
+﻿# 更新记录
 
 ## v1.1.0 - 2026-08-18
 - 修复：`SerialPortWrite` / `SerialPortRead` / `SerialPortQuery` 超时不生效导致序列永久阻塞的问题。`System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync` 不响应 `CancellationToken`，现改为同步读写 + 软超时兜底

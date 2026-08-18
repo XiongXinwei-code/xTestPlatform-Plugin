@@ -1,4 +1,4 @@
-# 更新记录
+﻿# 更新记录
 
 ## v1.1.0 - 2026-08-18
 - 修复：`NiDaqAiRead` / `NiDaqSyncRead` / `NiDaqEncoderRead` / `NiDaqDiRead` / `NiDaqDoWrite` 会永久阻塞序列的问题。DAQmx 的 Reader/Writer 为同步阻塞 API，且未配置超时时 `Stream.Timeout` 被设为 -1（无限等待）

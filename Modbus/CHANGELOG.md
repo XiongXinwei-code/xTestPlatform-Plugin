@@ -1,4 +1,4 @@
-# 更新记录
+﻿# 更新记录
 
 ## v1.1.0 - 2026-08-18
 - 修复：`ModbusRead` / `ModbusWrite` / `ModbusBatchRead` / `ModbusBatchWrite` 超时不生效的问题。NModbus 的 `Read*Async` / `Write*Async` 不接收 `CancellationToken`，现统一通过 `ModbusHelper.WithTimeoutAsync` 施加软超时
