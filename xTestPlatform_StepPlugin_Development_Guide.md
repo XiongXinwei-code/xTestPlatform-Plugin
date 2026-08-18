@@ -40,6 +40,7 @@
    - 8.2 [DLL 命名规范](#82-dll-命名规范)
    - 8.3 [部署步骤](#83-部署步骤)
    - 8.4 [依赖项部署注意事项](#84-依赖项部署注意事项)
+      - 8.4.1 [RID 专用依赖（`runtimes/` 资产）](#841-rid-专用依赖runtimes-资产)
    - 8.5 [加载日志](#85-加载日志)
 9. [EditPosition — 编辑位置对象](#9-editposition--编辑位置对象)
 10. [编辑器生命周期](#10-编辑器生命周期)
@@ -106,6 +107,7 @@
 - [ ] 两个独立项目：执行层 + UI 层（§1、§14.1）
 - [ ] DLL 命名：执行层 AssemblyName = `[Name].StepPlugin`，UI 层 = `[Name].StepPlugin.UI`（§8.2）
 - [ ] 执行层 csproj 设置 `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>`（§8.4）
+- [ ] 若引用了含 RID 专用资产（`runtimes/` 目录）的 NuGet 包（如 `System.IO.Ports`），**执行层和 UI 层 csproj 必须同时**声明 `<RuntimeIdentifier>win-x64</RuntimeIdentifier>`、`<SelfContained>false</SelfContained>`、`<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>`。两层输出到同一插件目录，任一层缺少 RID 都会用平台无关占位程序集覆盖 Windows 实现，运行时报 `PlatformNotSupportedException`（§8.4）
 - [ ] 引用 NuGet：`xTestPlatform.StepEditor.SDK`、`MessagePack`（表达式 UI 另需 ExpressionTextBox 相关包，§11.6）
 - [ ] `.cs` 文件保存为 UTF-8 无 BOM
 
@@ -1065,6 +1067,30 @@ UserControl? view = registry.Create("Check.MyStep", step);
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 </PropertyGroup>
 ```
+
+#### 8.4.1 RID 专用依赖（`runtimes/` 资产）
+
+部分 NuGet 包（典型如 `System.IO.Ports`）在 `lib/` 下只提供**平台无关的占位程序集**，真正的实现位于包内 `runtimes/win/lib/...`。若项目未指定 `RuntimeIdentifier`，构建只会把占位程序集复制到插件目录，运行时调用即抛出：
+
+```
+System.IO.Ports is currently only supported on Windows.
+```
+
+引用此类包时，须在 csproj 中声明：
+
+```xml
+<PropertyGroup>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+</PropertyGroup>
+```
+
+> `AppendRuntimeIdentifierToOutputPath=false` 用于保持插件自定义 `OutputPath` 不变。
+
+**关键：执行层和 UI 层必须同时声明。** UI 层通过 `ProjectReference` 传递引用了该包，且两个项目输出到**同一个插件目录**；只要有一层缺少 RID，后构建的那一层就会用占位程序集覆盖掉正确的 Windows 实现，导致故障时好时坏。
+
+自查方法：构建后比较插件目录根部的 DLL 与 `runtimes\win\lib\net8.0\` 下同名 DLL，两者文件大小应一致。
 
 ### 8.5 加载日志
 
