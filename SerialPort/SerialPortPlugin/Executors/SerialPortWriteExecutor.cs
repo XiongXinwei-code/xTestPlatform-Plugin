@@ -47,7 +47,7 @@ public sealed class SerialPortWriteExecutor : IStepExecutor
             var writeData = await Evaluator.EvalStringAsync(s.WriteData, context);
             var bytes = SerialPortHelper.ConvertToBytes(writeData, s.DataFormat);
 
-            await port.BaseStream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
+            await SerialPortHelper.WriteWithTimeoutAsync(port, bytes, port.WriteTimeout, cancellationToken);
 
             context.LogAction?.Invoke($"串口 {portName} 写入 {bytes.Length} 字节 ({s.DataFormat})");
 
