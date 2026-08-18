@@ -42,23 +42,32 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 
 			var startAddr = ushort.Parse(await Evaluator.EvalStringAsync(setting.StartAddress, context));
 			var valuesStr = await Evaluator.EvalStringAsync(setting.Values, context);
+			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 
 			if (setting.RegisterType == ModbusRegisterType.Coil)
 			{
 				var bools = valuesStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
 					.Select(v => v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase)).ToArray();
 				if (bools.Length == 1)
-					await master.WriteSingleCoilAsync(setting.SlaveAddress, startAddr, bools[0]);
+					await ModbusHelper.WithTimeoutAsync(
+						master.WriteSingleCoilAsync(setting.SlaveAddress, startAddr, bools[0]),
+						timeoutMs, "Modbus 写入单个线圈", cancellationToken);
 				else
-					await master.WriteMultipleCoilsAsync(setting.SlaveAddress, startAddr, bools);
+					await ModbusHelper.WithTimeoutAsync(
+						master.WriteMultipleCoilsAsync(setting.SlaveAddress, startAddr, bools),
+						timeoutMs, "Modbus 写入多个线圈", cancellationToken);
 			}
 			else
 			{
 				var registers = ModbusDataConverter.ConvertToRegisters(valuesStr, setting.DataFormat);
 				if (registers.Length == 1)
-					await master.WriteSingleRegisterAsync(setting.SlaveAddress, startAddr, registers[0]);
+					await ModbusHelper.WithTimeoutAsync(
+						master.WriteSingleRegisterAsync(setting.SlaveAddress, startAddr, registers[0]),
+						timeoutMs, "Modbus 写入单个寄存器", cancellationToken);
 				else
-					await master.WriteMultipleRegistersAsync(setting.SlaveAddress, startAddr, registers);
+					await ModbusHelper.WithTimeoutAsync(
+						master.WriteMultipleRegistersAsync(setting.SlaveAddress, startAddr, registers),
+						timeoutMs, "Modbus 写入多个寄存器", cancellationToken);
 			}
 
 			context.LogAction?.Invoke($"Modbus Write: Addr={startAddr}, Values={valuesStr}");
@@ -71,6 +80,17 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 		catch (OperationCanceledException)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+		}
+		catch (TimeoutException ex)
+		{
+			return new ExecutionResult
+			{
+				StepResult = new StepResult
+				{
+					Status = TestStatus.Error,
+					Error = new ErrorInfo { Message = ex.Message }
+				}
+			};
 		}
 		catch (Exception ex)
 		{

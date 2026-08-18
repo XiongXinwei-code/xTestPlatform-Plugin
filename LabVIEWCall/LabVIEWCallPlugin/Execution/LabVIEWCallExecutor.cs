@@ -76,9 +76,29 @@ namespace LabVIEWCallPlugin.Execution
             // ── 5. 在线程池执行 VI ───────────────────────────────────────
             try
             {
-                var outputValues = await Task.Run(
+                var viTask = Task.Run(
                     () => ExecuteVI(setting, inputs, outputs),
-                    cancellationToken);
+                    CancellationToken.None);
+
+                Dictionary<string, object?> outputValues;
+                if (setting.TimeoutMs > 0)
+                {
+                    // LabVIEW 调用为阻塞式非托管调用，无法响应取消；
+                    // 此处做软超时兵底，避免 VI 不返回时永久阻塞整个序列。
+                    try
+                    {
+                        outputValues = await viTask.WaitAsync(
+                            TimeSpan.FromMilliseconds(setting.TimeoutMs), cancellationToken);
+                    }
+                    catch (TimeoutException)
+                    {
+                        return ErrorResult($"VI 执行超时（{setting.TimeoutMs} ms）：{setting.ViFilePath}");
+                    }
+                }
+                else
+                {
+                    outputValues = await viTask.WaitAsync(cancellationToken);
+                }
 
                 foreach (var (path, value) in outputValues)
                     context.SetVariable(path, value);

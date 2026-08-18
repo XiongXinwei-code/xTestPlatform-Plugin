@@ -62,6 +62,10 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 			context.Resources.Set(key + "_transport", transport);
 			context.Resources.Set(key, master);
 
+			// NModbus 的异步方法不接受 CancellationToken，Transport 超时也不一定生效，
+			// 将超时值随连接保存，供后续读写步骤做软超时兜底
+			context.Resources.Set(ModbusHelper.GetTimeoutKey(connName), setting.TimeoutMs);
+
 			context.LogAction?.Invoke($"Modbus 连接已建立: {connName} ({setting.TransportType})");
 
 			return new ExecutionResult

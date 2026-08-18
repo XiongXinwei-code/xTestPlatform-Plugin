@@ -84,4 +84,52 @@ public static class VisaHelper
         Write(session, command, terminator);
         return Read(session, trim);
     }
+
+    /// <summary>
+    /// 在后台线程执行同步 VISA I/O，并施加软超时兜底。
+    /// VISA 的同步 API 不响应 CancellationToken，若驱动层超时失效会导致步骤永久阻塞，
+    /// 因此统一在插件层用 <see cref="Task.WaitAsync(TimeSpan, CancellationToken)"/> 限时，超时抛 <see cref="TimeoutException"/>。
+    /// </summary>
+    public static async Task<T> RunWithTimeoutAsync<T>(Func<T> action, int timeoutMs, string operation, CancellationToken cancellationToken)
+    {
+        var task = Task.Run(action, CancellationToken.None);
+        try
+        {
+            return await task.WaitAsync(TimeSpan.FromMilliseconds(GetSoftTimeoutMs(timeoutMs)), cancellationToken);
+        }
+        catch (TimeoutException)
+        {
+            throw new TimeoutException($"VISA {operation} 超时（{timeoutMs} ms），设备未在规定时间内响应");
+        }
+    }
+
+    /// <summary>
+    /// 在后台线程执行同步 VISA I/O（无返回值），并施加软超时兜底
+    /// </summary>
+    public static async Task RunWithTimeoutAsync(Action action, int timeoutMs, string operation, CancellationToken cancellationToken)
+    {
+        await RunWithTimeoutAsync(() => { action(); return true; }, timeoutMs, operation, cancellationToken);
+    }
+
+    /// <summary>获取会话的 I/O 超时（毫秒），读取失败时回退到默认值</summary>
+    public static int GetIoTimeoutMs(IMessageBasedSession session, int fallbackMs = 5000)
+    {
+        try
+        {
+            var timeout = session.TimeoutMilliseconds;
+            return timeout > 0 ? timeout : fallbackMs;
+        }
+        catch
+        {
+            return fallbackMs;
+        }
+    }
+
+    /// <summary>软超时在驱动超时基础上留出余量，优先让 VISA 自身抛出更精确的超时异常</summary>
+    private static int GetSoftTimeoutMs(int timeoutMs)
+    {
+        if (timeoutMs <= 0) return 5000;
+        var soft = timeoutMs + 1000;
+        return soft < timeoutMs ? int.MaxValue : soft;
+    }
 }

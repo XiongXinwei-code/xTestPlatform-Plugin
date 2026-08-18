@@ -40,6 +40,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
 
             int sent = 0;
             var terminator = GetTerminator(context, connName);
+            var timeoutMs = VisaHelper.GetIoTimeoutMs(session);
             var gate = VisaHelper.GetLock(session);
             await gate.WaitAsync(cancellationToken);
             try
@@ -52,7 +53,8 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
                     if (string.IsNullOrWhiteSpace(command))
                         continue;
 
-                    VisaHelper.Write(session, command, terminator);
+                    await VisaHelper.RunWithTimeoutAsync(
+                        () => VisaHelper.Write(session, command, terminator), timeoutMs, "批量写入", cancellationToken);
                     sent++;
                     context.LogAction?.Invoke($"VISA BatchWrite [{sent}]: {command}");
 
@@ -73,6 +75,17 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (TimeoutException ex)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
         catch (Exception ex)
         {

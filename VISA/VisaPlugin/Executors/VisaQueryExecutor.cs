@@ -47,7 +47,10 @@ public sealed class VisaQueryExecutor : IStepExecutor
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                response = VisaHelper.Query(session, command, setting.TrimResponse, GetTerminator(context, connName));
+                var timeoutMs = VisaHelper.GetIoTimeoutMs(session);
+                var terminator = GetTerminator(context, connName);
+                response = await VisaHelper.RunWithTimeoutAsync(
+                    () => VisaHelper.Query(session, command, setting.TrimResponse, terminator), timeoutMs, "查询", cancellationToken);
             }
             finally
             {
@@ -64,6 +67,17 @@ public sealed class VisaQueryExecutor : IStepExecutor
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (TimeoutException ex)
+        {
+            return new ExecutionResult
+            {
+                StepResult = new StepResult
+                {
+                    Status = TestStatus.Error,
+                    Error = new ErrorInfo { Message = ex.Message }
+                }
+            };
         }
         catch (Exception ex)
         {

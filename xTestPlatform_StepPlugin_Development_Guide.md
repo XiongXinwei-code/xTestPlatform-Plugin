@@ -121,6 +121,10 @@
 - [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
+- [ ] **阻塞式 I/O 必须做软超时兜底**：若底层 API 是同步阻塞调用，或其异步重载不响应 `CancellationToken`（如 `System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync`、NModbus 的 `Read*Async`、NI-VISA 的 `FormattedIO`、NI-DAQmx 的 `Reader/Writer`、LabVIEW 的 VI 调用），必须在插件层用 `Task.Run(...) + WaitAsync(TimeSpan, token)` 或同步读写 + 截止时间循环做软超时，**不能只在 Setting 里声明超时字段就认为超时生效**
+- [ ] 超时必须让步骤终止并返回 `TestStatus.Error`（附带含超时毫秒数的中文错误信息）；只有用户主动取消才返回 `Aborted`。禁止把"超时未收到数据"当作正常结束返回 `Passed`
+- [ ] 每个会发生等待的步骤都应提供可配置的超时字段（如 `SendTimeoutMs`、`ReadTimeoutMs`、`TimeoutMs`），并在编辑器 UI 中暴露；未配置时使用合理的默认值而非无限等待
+- [ ] **新增或修改 Setting 字段时必须同步四处**：① Setting 类属性；② 插件 `Description` 的"## 参数"表格（含类型/必填/默认值/说明）与"## 行为"节；③ 编辑器 ViewModel + XAML 绑定；④ `ValidateWithContextAsync` 的取值范围校验。四者缺一都算未交付（§2.1.1、§13.1）
 - [ ] Executor 不抛出未捕获异常：内部 try/catch，取消返回 `Aborted`、异常返回 `Error`（§13.4）
 
 **校验（三处均需）**

@@ -36,14 +36,16 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
             var aiReader = new AnalogMultiChannelReader(task.Stream);
             task.Stream.Timeout = setting.ReadTimeoutMs > 0 ? setting.ReadTimeoutMs : -1;
             int samplesToRead = setting.SamplesToRead > 0 ? setting.SamplesToRead : 100;
-            double[,] aiData = aiReader.ReadMultiSample(samplesToRead);
+            double[,] aiData = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                () => aiReader.ReadMultiSample(samplesToRead), setting.ReadTimeoutMs, "同步 AI 读取", cancellationToken);
 
             int aiChannels = aiData.GetLength(0);
             int samples = aiData.GetLength(1);
 
             // 读取编码器数据
             var ciReader = new CounterSingleChannelReader(task.Stream);
-            double encoderValue = ciReader.ReadSingleSampleDouble();
+            double encoderValue = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                () => ciReader.ReadSingleSampleDouble(), setting.ReadTimeoutMs, "同步编码器读取", cancellationToken);
 
             // 构造波形数据（AI 通道 + 编码器通道，ResultVariable 为波形类型 Waveform）
             var waveform = new WaveformData
@@ -98,6 +100,10 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
                     Value = $"Sync: {aiChannels} AI ch × {samples} samples + encoder"
                 }
             };
+        }
+        catch (TimeoutException ex)
+        {
+            return ErrorResult(ex.Message);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

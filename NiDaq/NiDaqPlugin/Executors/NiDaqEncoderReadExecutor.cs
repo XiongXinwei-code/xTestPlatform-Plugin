@@ -34,7 +34,8 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
 
             var reader = new CounterSingleChannelReader(task.Stream);
             task.Stream.Timeout = setting.ReadTimeoutMs > 0 ? setting.ReadTimeoutMs : -1;
-            double value = reader.ReadSingleSampleDouble();
+            double value = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
+                () => reader.ReadSingleSampleDouble(), setting.ReadTimeoutMs, "编码器读取", cancellationToken);
 
             context.SetVariable(resultVar, value);
 
@@ -46,6 +47,10 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
                     Value = $"{value:F4}"
                 }
             };
+        }
+        catch (TimeoutException ex)
+        {
+            return ErrorResult(ex.Message);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

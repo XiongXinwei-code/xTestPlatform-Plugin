@@ -62,6 +62,14 @@ namespace LabVIEWCallPlugin.UI
             }
             catch { return errors; }
 
+            // ── 超时配置校验 ─────────────────────────────────────────────
+            if (s.TimeoutMs < 0)
+                errors.Add(StepSettingError.Error("LV_TIMEOUT_INVALID",
+                    "超时时间不能为负数，请填写大于 0 的毫秒值，或填 0 表示不限制。"));
+            else if (s.TimeoutMs == 0)
+                errors.Add(StepSettingError.Warning("LV_TIMEOUT_UNLIMITED",
+                    "未配置超时时间，若 VI 未返回将永久阻塞序列，建议设置合理的超时毫秒值。"));
+
             // ── 阶段零：路径 / 文件存在性校验（无需 DLL）───────────────────
             if (string.IsNullOrWhiteSpace(s.ViFilePath))
             {
