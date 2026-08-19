@@ -51,12 +51,11 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
                 };
             }
 
-            // 解析节点表达式
+            // 节点列表（NodeId 为字面值，不做表达式求值）
             var resolvedItems = new List<OpcUaDataAcqItem>();
             foreach (var item in setting.Items)
             {
-                var nodeId = await Evaluator.EvalStringAsync(item.NodeId, context);
-                resolvedItems.Add(new OpcUaDataAcqItem { NodeId = nodeId, ColumnName = item.ColumnName });
+                resolvedItems.Add(new OpcUaDataAcqItem { NodeId = item.NodeId, ColumnName = item.ColumnName });
             }
 
             // 启动后台采集任务（有界 FIFO 缓冲）

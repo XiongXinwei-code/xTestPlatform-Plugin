@@ -1,4 +1,5 @@
 using System.Windows;
+using OpcUa.Helpers;
 using OpcUa.Models;
 using OpcUa.UI.Views;
 using OpcUa.UI.Validation;
@@ -38,8 +39,8 @@ public sealed class OpcUaBatchReadEditorPlugin : IStepEditorPlugin
             var item = s.Items[i];
             if (string.IsNullOrWhiteSpace(item.NodeId))
                 errors.Add(StepSettingError.Error("OPCUA_042", $"第 {i + 1} 行：节点标识不能为空"));
-            else if (!context.Evaluator.ValidateExpression(item.NodeId, context.ExecutionContext, out var nodeErr))
-                errors.Add(StepSettingError.Error("OPCUA_042E", $"第 {i + 1} 行：NodeId 表达式无效: {nodeErr}"));
+            else if (!OpcUaHelper.IsValidNodeId(item.NodeId))
+                errors.Add(StepSettingError.Error("OPCUA_042F", $"第 {i + 1} 行：节点标识格式无效，正确格式如 ns=2;s=MyVariable"));
             if (string.IsNullOrWhiteSpace(item.ResultVariable))
                 errors.Add(StepSettingError.Error("OPCUA_043", $"第 {i + 1} 行：结果变量不能为空"));
             else if (!context.ExecutionContext.HasVariable(item.ResultVariable))

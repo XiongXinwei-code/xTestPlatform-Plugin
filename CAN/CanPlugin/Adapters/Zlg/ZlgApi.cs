@@ -7,37 +7,90 @@ internal static class ZlgApi
 {
     private const string DllName = "zlgcan.dll";
 
-    // ── 原生库加载 ────────────────────────────────────────────────────────
+    // ── 原生库加载 ────────────────────────────────────────────────────────────────
     // 插件由宿主动态加载，DllImport 默认搜索的是宿主进程目录而非插件目录，
     // 因此这里把随插件一起发布的 Native\Zlg 目录显式加入搜索路径。
     // zlgcan.dll 还会从自身所在目录的 kerneldlls 下加载各板卡内核驱动，
     // SetDllDirectory 可保证这些依赖同样能被找到。
+    // 注意：宿主若以字节流方式加载插件程序集，Assembly.Location 会为空，
+    // 故这里按多个候选位置依次探测，而不是只依赖 Location。
     static ZlgApi()
     {
+        var tried = new List<string>();
         try
         {
-            var pluginDir = Path.GetDirectoryName(typeof(ZlgApi).Assembly.Location);
-            if (string.IsNullOrEmpty(pluginDir))
-                return;
-
-            NativeDir = Path.Combine(pluginDir, "Native", "Zlg");
-            if (!File.Exists(Path.Combine(NativeDir, DllName)))
+            foreach (var dir in EnumerateCandidateDirs())
             {
-                NativeDir = null;
-                return;
-            }
+                if (string.IsNullOrEmpty(dir) || tried.Contains(dir))
+                    continue;
+                tried.Add(dir);
 
-            SetDllDirectory(NativeDir);
-            NativeLibrary.SetDllImportResolver(typeof(ZlgApi).Assembly, ResolveNativeLibrary);
+                if (!File.Exists(Path.Combine(dir, DllName)))
+                    continue;
+
+                NativeDir = dir;
+                SetDllDirectory(dir);
+                NativeLibrary.SetDllImportResolver(typeof(ZlgApi).Assembly, ResolveNativeLibrary);
+                break;
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // 加载路径准备失败时退回系统默认搜索顺序（PATH / 已安装驱动目录）
+            // 准备加载路径失败时退回系统默认搜索顺序（PATH / 已安装驱动目录）
             NativeDir = null;
+            tried.Add($"[异常] {ex.Message}");
+        }
+
+        ProbedDirs = tried;
+    }
+
+    /// <summary>依次列出可能存放 Native\Zlg 的目录（可能包含空项）</summary>
+    private static IEnumerable<string?> EnumerateCandidateDirs()
+    {
+        // 1) 插件程序集自身所在目录（正常从文件加载时）
+        string? asmDir = null;
+        try
+        {
+            var loc = typeof(ZlgApi).Assembly.Location;
+            if (!string.IsNullOrEmpty(loc))
+                asmDir = Path.GetDirectoryName(loc);
+        }
+        catch { /* 忽略 */ }
+        if (asmDir is not null)
+            yield return Path.Combine(asmDir, "Native", "Zlg");
+
+        // 2) 宿主基目录下的插件目录（Assembly.Location 为空时的兜底）
+        var baseDir = AppContext.BaseDirectory;
+        if (!string.IsNullOrEmpty(baseDir))
+        {
+            yield return Path.Combine(baseDir, "Plugins", "CAN", "Native", "Zlg");
+            yield return Path.Combine(baseDir, "Native", "Zlg");
+
+            // 3) 插件目录名可能与宿主约定不同，扫描 Plugins 下一层
+            var pluginsRoot = Path.Combine(baseDir, "Plugins");
+            string[] subDirs;
+            try { subDirs = Directory.Exists(pluginsRoot) ? Directory.GetDirectories(pluginsRoot) : []; }
+            catch { subDirs = []; }
+            foreach (var sub in subDirs)
+                yield return Path.Combine(sub, "Native", "Zlg");
         }
     }
 
+    /// <summary>实际使用的原生库目录，未找到时为 null</summary>
     private static string? NativeDir;
+
+    /// <summary>探测过的目录，用于加载失败时输出诊断信息</summary>
+    private static readonly IReadOnlyList<string> ProbedDirs;
+
+    /// <summary>生成原生库加载失败的诊断说明</summary>
+    internal static string GetLoadDiagnostics()
+    {
+        if (NativeDir is not null)
+            return $"已定位原生库目录：{NativeDir}（加载仍失败，请确认该目录下的 zlgcan.dll 为 x64 版本且 kerneldlls 子目录完整）";
+
+        var dirs = ProbedDirs.Count == 0 ? "（无）" : string.Join("；", ProbedDirs);
+        return $"未在以下位置找到 {DllName}：{dirs}";
+    }
 
     private static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
     {

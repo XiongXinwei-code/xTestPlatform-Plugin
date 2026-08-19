@@ -14,10 +14,9 @@ public class OpcUaDataAcqItem : INotifyPropertyChanged
     private string _columnName = "";
 
     /// <summary>节点标识</summary>
-    [ExpressionField]
     public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
 
-    /// <summary>列名（用于CSV表头和变量标识）</summary>
+    /// <summary>列名
     public string ColumnName { get => _columnName; set => SetProperty(ref _columnName, value); }
 
     public event PropertyChangedEventHandler? PropertyChanged;
