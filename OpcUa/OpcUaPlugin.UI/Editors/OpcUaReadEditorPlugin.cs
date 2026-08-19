@@ -33,8 +33,6 @@ public sealed class OpcUaReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_020E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_021", "节点 ID 不能为空"));
-        else if (!context.Evaluator.ValidateExpression(s.NodeId, context.ExecutionContext, out var nodeErr))
-            errors.Add(StepSettingError.Error("OPCUA_021E", $"NodeId 表达式无效: {nodeErr}"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("OPCUA_022", "结果变量名不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

@@ -38,8 +38,6 @@ public sealed class OpcUaBatchReadEditorPlugin : IStepEditorPlugin
             var item = s.Items[i];
             if (string.IsNullOrWhiteSpace(item.NodeId))
                 errors.Add(StepSettingError.Error("OPCUA_042", $"第 {i + 1} 行：节点标识不能为空"));
-            else if (!context.Evaluator.ValidateExpression(item.NodeId, context.ExecutionContext, out var nodeErr))
-                errors.Add(StepSettingError.Error("OPCUA_042E", $"第 {i + 1} 行：NodeId 表达式无效: {nodeErr}"));
             if (string.IsNullOrWhiteSpace(item.ResultVariable))
                 errors.Add(StepSettingError.Error("OPCUA_043", $"第 {i + 1} 行：结果变量不能为空"));
             else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
