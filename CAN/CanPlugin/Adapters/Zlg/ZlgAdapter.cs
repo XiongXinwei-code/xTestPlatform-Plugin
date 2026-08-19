@@ -25,7 +25,8 @@ public sealed class ZlgAdapter : ICanAdapter
             throw new InvalidOperationException(
                 "未找到 zlgcan.dll，请将周立功 ZLGCAN 二次开发库（x64，含 kerneldlls 子目录）放入插件目录下的 Native\\Zlg 文件夹，" +
                 "或安装 ZLGCAN 驱动并将其所在目录加入 PATH。" +
-                "下载地址: https://www.zlg.cn/can/down/down/id/22.html");
+                "下载地址: https://www.zlg.cn/can/down/down/id/22.html" +
+                Environment.NewLine + "诊断信息：" + ZlgApi.GetLoadDiagnostics());
         }
     }
 
