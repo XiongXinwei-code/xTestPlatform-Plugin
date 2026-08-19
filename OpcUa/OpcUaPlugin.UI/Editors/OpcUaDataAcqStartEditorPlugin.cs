@@ -1,4 +1,5 @@
 using System.Windows;
+using OpcUa.Helpers;
 using OpcUa.Models;
 using OpcUa.UI.Views;
 using OpcUa.UI.Validation;
@@ -38,6 +39,8 @@ public sealed class OpcUaDataAcqStartEditorPlugin : IStepEditorPlugin
             var item = s.Items[i];
             if (string.IsNullOrWhiteSpace(item.NodeId))
                 errors.Add(StepSettingError.Error("OPCUA_074", $"第 {i + 1} 行：节点标识不能为空"));
+            else if (!OpcUaHelper.IsValidNodeId(item.NodeId))
+                errors.Add(StepSettingError.Error("OPCUA_074F", $"第 {i + 1} 行：节点标识格式无效，正确格式如 ns=2;s=MyVariable"));
             if (string.IsNullOrWhiteSpace(item.ColumnName))
                 errors.Add(StepSettingError.Error("OPCUA_075", $"第 {i + 1} 行：列名不能为空"));
         }

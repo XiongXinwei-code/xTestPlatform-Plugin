@@ -1,4 +1,5 @@
 using System.Windows;
+using OpcUa.Helpers;
 using OpcUa.Models;
 using OpcUa.UI.Views;
 using OpcUa.UI.Validation;
@@ -33,6 +34,8 @@ public sealed class OpcUaSubscribeEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_060E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_061", "节点 ID 不能为空"));
+        else if (!OpcUaHelper.IsValidNodeId(s.NodeId))
+            errors.Add(StepSettingError.Error("OPCUA_061F", "节点 ID 格式无效，正确格式如 ns=2;s=MyVariable"));
         if (!string.IsNullOrWhiteSpace(s.ExpectedValue)
             && !context.Evaluator.ValidateExpression(s.ExpectedValue, context.ExecutionContext, out var expErr))
             errors.Add(StepSettingError.Error("OPCUA_064", $"ExpectedValue 表达式无效: {expErr}"));

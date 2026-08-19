@@ -1,4 +1,5 @@
 using System.Windows;
+using OpcUa.Helpers;
 using OpcUa.Models;
 using OpcUa.UI.Views;
 using OpcUa.UI.Validation;
@@ -33,6 +34,8 @@ public sealed class OpcUaReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_020E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_021", "节点 ID 不能为空"));
+        else if (!OpcUaHelper.IsValidNodeId(s.NodeId))
+            errors.Add(StepSettingError.Error("OPCUA_021F", "节点 ID 格式无效，正确格式如 ns=2;s=MyVariable"));
         if (string.IsNullOrWhiteSpace(s.ResultVariable))
             errors.Add(StepSettingError.Error("OPCUA_022", "结果变量名不能为空"));
         else if (!context.ExecutionContext.HasVariable(s.ResultVariable))

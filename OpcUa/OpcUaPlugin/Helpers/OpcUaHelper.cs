@@ -34,6 +34,21 @@ public static class OpcUaHelper
         return NodeId.Parse(nodeIdString);
     }
 
+    /// <summary>校验 NodeId 字符串格式是否合法（如 ns=2;s=MyVariable）</summary>
+    public static bool IsValidNodeId(string nodeIdString)
+    {
+        if (string.IsNullOrWhiteSpace(nodeIdString)) return false;
+        try
+        {
+            var nodeId = NodeId.Parse(nodeIdString);
+            return !NodeId.IsNull(nodeId);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     /// <summary>比较值是否满足条件</summary>
     public static bool CompareValue(string actualValue, string expectedValue, OpcUaCompareMode mode)
     {

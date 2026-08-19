@@ -1,4 +1,5 @@
 using System.Windows;
+using OpcUa.Helpers;
 using OpcUa.Models;
 using OpcUa.UI.Views;
 using OpcUa.UI.Validation;
@@ -33,6 +34,8 @@ public sealed class OpcUaWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_030E", $"ConnectionName 表达式无效: {connErr}"));
         if (string.IsNullOrWhiteSpace(s.NodeId))
             errors.Add(StepSettingError.Error("OPCUA_031", "节点 ID 不能为空"));
+        else if (!OpcUaHelper.IsValidNodeId(s.NodeId))
+            errors.Add(StepSettingError.Error("OPCUA_031F", "节点 ID 格式无效，正确格式如 ns=2;s=MyVariable"));
         if (string.IsNullOrWhiteSpace(s.WriteValue))
             errors.Add(StepSettingError.Error("OPCUA_032", "写入值不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.WriteValue, context.ExecutionContext, out var valErr))
