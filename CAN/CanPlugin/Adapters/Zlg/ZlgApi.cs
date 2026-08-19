@@ -82,24 +82,40 @@ internal static class ZlgApi
     /// <summary>探测过的目录，用于加载失败时输出诊断信息</summary>
     private static readonly IReadOnlyList<string> ProbedDirs;
 
+    /// <summary>原生库实际加载失败的原因，成功时为 null</summary>
+    private static string? LoadFailure;
+
     /// <summary>生成原生库加载失败的诊断说明</summary>
     internal static string GetLoadDiagnostics()
     {
-        if (NativeDir is not null)
-            return $"已定位原生库目录：{NativeDir}（加载仍失败，请确认该目录下的 zlgcan.dll 为 x64 版本且 kerneldlls 子目录完整）";
-
         var dirs = ProbedDirs.Count == 0 ? "（无）" : string.Join("；", ProbedDirs);
-        return $"未在以下位置找到 {DllName}：{dirs}";
+
+        if (NativeDir is null)
+            return $"未在以下任何位置找到 {DllName}：{dirs}";
+
+        var kernelDir = Path.Combine(NativeDir, "kerneldlls");
+        var detail = LoadFailure is null
+            ? "未进入插件自带的加载流程（请确认运行的插件为最新版本）"
+            : $"加载失败：{LoadFailure}";
+
+        return $"已定位原生库目录：{NativeDir}（kerneldlls 存在={Directory.Exists(kernelDir)}）；{detail}；已探测：{dirs}";
     }
 
     private static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
     {
-        if (NativeDir is not null && string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase)
-            && NativeLibrary.TryLoad(Path.Combine(NativeDir, DllName), out var handle))
+        if (NativeDir is null || !string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
+            return IntPtr.Zero;
+
+        var path = Path.Combine(NativeDir, DllName);
+        try
         {
-            return handle;
+            return NativeLibrary.Load(path);
         }
-        return IntPtr.Zero;
+        catch (Exception ex)
+        {
+            LoadFailure = $"{ex.GetType().Name}: {ex.Message}";
+            return IntPtr.Zero;
+        }
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
