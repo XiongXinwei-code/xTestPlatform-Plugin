@@ -12,13 +12,29 @@
 ```
 Native\Zlg\x64\
 	zlgcan.dll
-	(同级的其它依赖 dll，如 kerneldlls 之外的运行库)
+	msvcr120.dll           ← VC++ 2013 运行库（zlgcan.dll 依赖）
+	msvcp120.dll           ← VC++ 2013 运行库（zlgcan.dll 依赖）
 	kerneldlls\
 		usbcanfd.dll
 		zlgcanfd.dll
 		usbcan.dll
 		...
+		devices_property\   ← 各型号设备属性配置
 ```
+
+## 关于 VC++ 运行库
+
+`zlgcan.dll` 导入表依赖 `MSVCR120.dll` / `MSVCP120.dll`（**Visual C++ 2013** 运行库）。
+Windows 不自带这套运行库，缺失时 `LoadLibrary` 会失败，而 .NET 会把这种情况
+**同样报成 `DllNotFoundException`**（提示“找不到 zlgcan.dll”），极具误导性。
+
+为避免现场还需单独安装运行库，这两个文件已随库一并放入本目录（app-local 部署）。
+`ZlgApi` 以绝对路径调用 `NativeLibrary.Load`，其内部使用 `LOAD_WITH_ALTERED_SEARCH_PATH`，
+会优先从 `zlgcan.dll` 所在目录解析依赖，因此本目录的副本会生效。
+
+> 注：`kerneldlls` 中有少量旧板卡驱动（如 CANET系列）依赖 **VC++ 2008**（`msvcr90.dll`）。
+> 该版本运行库是 SxS 并行程序集，无法通过 app-local 方式部署，
+> 如需使用这些型号需在现场安装周立功官方驱动包。USBCANFD 系列不受此影响。
 
 ## 注意事项
 

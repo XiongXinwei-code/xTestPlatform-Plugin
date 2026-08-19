@@ -36,7 +36,7 @@ public partial class OpcUaBatchWriteEditorView : UserControl, IRefreshableEditor
     private void OnAddClick(object sender, RoutedEventArgs e) => ViewModel.AddItem();
     private void OnRemoveClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: OpcUaBatchWriteItem item })
+        if (ItemsGrid.SelectedItem is OpcUaBatchWriteItem item)
             ViewModel.RemoveItem(item);
     }
 }

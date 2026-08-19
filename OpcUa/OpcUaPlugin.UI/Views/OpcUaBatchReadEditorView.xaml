@@ -41,7 +41,7 @@
                     <TextBox Grid.Column="1" Width="200" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
                 </Grid>
 
-                <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,0,8">
+                <DataGrid x:Name="ItemsGrid" Grid.Row="2" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Margin="0,0,0,8">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Node ID" Binding="{Binding NodeId}" Width="*"/>
                         <DataGridTextColumn Header="Result Variable" Binding="{Binding ResultVariable}" Width="*"/>
