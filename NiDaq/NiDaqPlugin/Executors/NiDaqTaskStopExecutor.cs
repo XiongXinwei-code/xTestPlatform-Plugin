@@ -45,16 +45,16 @@ public sealed class NiDaqTaskStopExecutor : IStepExecutor
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return ErrorResult($"任务停止失败：{ex.Message}");
+            return ErrorResult($"任务停止失败：{ex.Message}", ex);
         }
     }
 
-    private static ExecutionResult ErrorResult(string message) => new()
+    private static ExecutionResult ErrorResult(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

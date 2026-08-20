@@ -46,7 +46,7 @@ public sealed class LinCloseExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"关闭 LIN 通道失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"关闭 LIN 通道失败: {ex.Message}")
                 }
             };
         }

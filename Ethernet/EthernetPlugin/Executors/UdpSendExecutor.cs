@@ -59,7 +59,7 @@ public sealed class UdpSendExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"UDP SEND 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"UDP SEND 失败: {ex.Message}")
                 }
             };
         }

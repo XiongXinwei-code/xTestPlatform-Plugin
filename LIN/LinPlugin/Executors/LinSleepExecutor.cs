@@ -64,7 +64,7 @@ public sealed class LinSleepExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"LIN 睡眠失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"LIN 睡眠失败: {ex.Message}")
                 }
             };
         }

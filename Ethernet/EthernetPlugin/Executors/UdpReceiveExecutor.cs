@@ -68,7 +68,7 @@ public sealed class UdpReceiveExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"UDP RECEIVE 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"UDP RECEIVE 失败: {ex.Message}")
                 }
             };
         }

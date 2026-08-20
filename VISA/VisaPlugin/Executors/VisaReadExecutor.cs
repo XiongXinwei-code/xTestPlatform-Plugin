@@ -73,7 +73,7 @@ public sealed class VisaReadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = ex.Message }
+                    Error = ErrorInfo.FromException(ex)
                 }
             };
         }
@@ -84,7 +84,7 @@ public sealed class VisaReadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"VISA 读取失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"VISA 读取失败: {ex.Message}")
                 }
             };
         }

@@ -73,7 +73,7 @@ public sealed class OpcUaReadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"OPC UA 读取失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"OPC UA 读取失败: {ex.Message}")
                 }
             };
         }

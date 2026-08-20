@@ -481,7 +481,7 @@ return new ExecutionResult {
 return new ExecutionResult {
     StepResult = new StepResult {
         Status = TestStatus.Error,
-        Error  = new ErrorInfo { Message = ex.Message }
+        Error  = ErrorInfo.FromException(ex)
     }
 };
 ```
@@ -491,7 +491,12 @@ return new ExecutionResult {
 ```csharp
 public class ErrorInfo {
     public int    ErrorCode { get; set; }   // 错误码（可选，默认 0）
-    public string Message   { get; set; }   // 错误描述信息（必填）
+    public string Message   { get; set; }   // 错误描述信息（必填，面向用户）
+    public string? Detail   { get; set; }   // 诊断明细（可选，内层异常链 + 调用堆栈）
+
+    // 从异常构造：自动提取最内层异常作为 Message，
+    // 并把完整异常链与 StackTrace 写入 Detail
+    public static ErrorInfo FromException(Exception ex, string? message = null);
 }
 ```
 
@@ -501,15 +506,25 @@ public class ErrorInfo {
 // 业务校验失败（自定义错误码）
 Error = new ErrorInfo { ErrorCode = 1001, Message = "串口未打开，请检查连接" }
 
-// 捕获异常（通用错误码）
-Error = new ErrorInfo { ErrorCode = -1, Message = ex.Message }
-
 // 简单报错（不设置错误码）
 Error = new ErrorInfo { Message = "超时：未在指定时间内收到响应" }
+
+// ✅ 推荐：捕获异常时使用 FromException，自动保留内层异常链与堆栈
+catch (Exception ex) {
+    Error = ErrorInfo.FromException(ex);
+}
+
+// ✅ 推荐：保留业务上下文，同时附带堆栈
+catch (Exception ex) {
+    Error = ErrorInfo.FromException(ex, $"读取设备 {s.DeviceName} 失败: {ex.Message}");
+}
 ```
 
 > 💡 `ErrorInfo.Message` 会显示在测试报告和步骤结果列表中，应使用**用户可理解的中文描述**，避免堆栈信息。  
+> `ErrorInfo.Detail` **不会写入测试报告**，仅用于调试诊断（AI 助手与工程师通过调试工具读取），因此可以放心存放异常链与堆栈。  
 > `ErrorCode` 为可选字段，可用于程序化判断错误类型（如生产界面根据错误码做不同处理）。
+
+> ⚠️ 不要再写 `new ErrorInfo { Message = ex.Message }`。这种写法会丢掉内层异常（例如反射调用的 `TargetInvocationException`、驱动包装异常）和调用堆栈，导致故障难以定位。统一改用 `ErrorInfo.FromException(ex)`。
 
 ### 2.6 StepSettingError — 校验错误
 
@@ -1909,7 +1924,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
         return new ExecutionResult {
             StepResult = new StepResult {
                 Status = TestStatus.Error,
-                Error  = new ErrorInfo { Message = ex.Message }
+                Error  = ErrorInfo.FromException(ex)
             }
         };
     }
@@ -1921,10 +1936,12 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 | 异常类型                         | 处理方式                              |
 | ---------------------------- | --------------------------------- |
 | `OperationCanceledException` | 设置 `TestStatus.Aborted`，正常返回      |
-| 其他 `Exception`               | 设置 `TestStatus.Error` + 错误信息，正常返回 |
+| 其他 `Exception`               | 设置 `TestStatus.Error` + `ErrorInfo.FromException(ex)`，正常返回 |
 | 绝不允许                         | 直接 `throw` 导致引擎崩溃                 |
 
 > ⚠️ 即使框架有兜底 try/catch，插件内部处理异常可以提供更精确的错误信息和上下文。
+
+> 💡 务必使用 `ErrorInfo.FromException(ex)` 而不是 `new ErrorInfo { Message = ex.Message }`。前者会自动提取最内层异常作为 `Message`，并把完整异常链与调用堆栈写入 `Detail`，供调试工具和 AI 助手排障；测试报告仍只显示 `Message`，不会被堆栈污染。
 
 ### 13.5 调试日志输出
 
@@ -2229,7 +2246,7 @@ catch (Exception ex) {
     return new ExecutionResult {
         StepResult = new StepResult {
             Status = TestStatus.Error,
-            Error  = new ErrorInfo { Message = ex.Message }
+            Error  = ErrorInfo.FromException(ex)
         }
     };
 }

@@ -70,16 +70,16 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return ErrorResult($"编码器配置失败：{ex.Message}");
+            return ErrorResult($"编码器配置失败：{ex.Message}", ex);
         }
     }
 
-    private static ExecutionResult ErrorResult(string message) => new()
+    private static ExecutionResult ErrorResult(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

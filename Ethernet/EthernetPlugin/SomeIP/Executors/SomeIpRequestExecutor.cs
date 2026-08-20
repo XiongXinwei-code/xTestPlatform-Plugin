@@ -84,7 +84,7 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"SOME/IP 请求失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"SOME/IP 请求失败: {ex.Message}")
                 }
             };
         }

@@ -52,7 +52,7 @@ public sealed class VisaOpenExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"VISA 打开失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"VISA 打开失败: {ex.Message}")
                 }
             };
         }

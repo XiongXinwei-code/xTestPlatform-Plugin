@@ -88,16 +88,16 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return ErrorResult($"读取采集数据失败: {ex.Message}");
+            return ErrorResult($"读取采集数据失败: {ex.Message}", ex);
         }
     }
 
-    private static ExecutionResult ErrorResult(string message) => new()
+    private static ExecutionResult ErrorResult(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

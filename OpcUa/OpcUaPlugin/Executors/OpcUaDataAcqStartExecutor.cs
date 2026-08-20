@@ -83,7 +83,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"启动数据采集失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"启动数据采集失败: {ex.Message}")
                 }
             };
         }

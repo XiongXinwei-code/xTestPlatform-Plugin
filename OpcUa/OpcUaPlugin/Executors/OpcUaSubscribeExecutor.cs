@@ -131,7 +131,7 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"OPC UA 订阅失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"OPC UA 订阅失败: {ex.Message}")
                 }
             };
         }

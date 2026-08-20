@@ -42,7 +42,7 @@ public sealed class DoipDisconnectExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"DoIP DISCONNECT 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"DoIP DISCONNECT 失败: {ex.Message}")
                 }
             };
         }

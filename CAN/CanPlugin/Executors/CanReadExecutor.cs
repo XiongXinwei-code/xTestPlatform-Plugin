@@ -95,7 +95,7 @@ public sealed class CanReadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"CAN 读取失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"CAN 读取失败: {ex.Message}")
                 }
             };
         }

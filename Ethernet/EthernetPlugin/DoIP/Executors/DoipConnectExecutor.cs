@@ -53,16 +53,16 @@ public sealed class DoipConnectExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return Error($"DoIP CONNECT 失败: {ex.Message}");
+            return Error($"DoIP CONNECT 失败: {ex.Message}", ex);
         }
     }
 
-    private static ExecutionResult Error(string message) => new()
+    private static ExecutionResult Error(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

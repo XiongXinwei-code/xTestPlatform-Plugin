@@ -67,7 +67,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                     StepResult = new StepResult
                     {
                         Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"Key 计算失败: {ex.Message}" }
+                        Error = ErrorInfo.FromException(ex, $"Key 计算失败: {ex.Message}")
                     }
                 };
             }
@@ -114,7 +114,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = ex.Message } } };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } };
         }
     }
 }

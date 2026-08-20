@@ -37,7 +37,7 @@ public sealed class XcpDisconnectExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"XCP DISCONNECT 失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"XCP DISCONNECT 失败: {ex.Message}")
                 }
             };
         }

@@ -74,7 +74,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"SOME/IP 订阅失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"SOME/IP 订阅失败: {ex.Message}")
                 }
             };
         }

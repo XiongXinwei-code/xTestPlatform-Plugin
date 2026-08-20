@@ -59,7 +59,7 @@ public sealed class TcpSendExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = ex.Message }
+                    Error = ErrorInfo.FromException(ex)
                 }
             };
         }
@@ -70,7 +70,7 @@ public sealed class TcpSendExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"TCP SEND 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"TCP SEND 失败: {ex.Message}")
                 }
             };
         }

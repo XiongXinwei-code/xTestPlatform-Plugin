@@ -1,4 +1,4 @@
-﻿using SerialPort.Helpers;
+using SerialPort.Helpers;
 using SerialPort.Models;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
@@ -74,7 +74,7 @@ public sealed class SerialPortOpenExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = ex.Message }
+                    Error = ErrorInfo.FromException(ex)
                 }
             };
         }

@@ -99,7 +99,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"LIN 发送并等待响应失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"LIN 发送并等待响应失败: {ex.Message}")
                 }
             };
         }

@@ -83,7 +83,7 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"DoIP 诊断请求失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"DoIP 诊断请求失败: {ex.Message}")
                 }
             };
         }

@@ -47,7 +47,7 @@ namespace LabVIEWCallPlugin.Execution
             }
             catch (Exception ex)
             {
-                return ErrorResult($"反序列化 LabVIEWCallSetting 失败: {ex.Message}");
+                return ErrorResult($"反序列化 LabVIEWCallSetting 失败: {ex.Message}", ex);
             }
 
             // ── 2. 前置校验 ──────────────────────────────────────────────
@@ -67,7 +67,7 @@ namespace LabVIEWCallPlugin.Execution
             }
             catch (Exception ex)
             {
-                return ErrorResult($"参数 JSON 解析失败: {ex.Message}");
+                return ErrorResult($"参数 JSON 解析失败: {ex.Message}", ex);
             }
 
             // ── 4. 运行时变量绑定：ValueSourceType == Variable 时从 context 取实际值 ──
@@ -109,7 +109,7 @@ namespace LabVIEWCallPlugin.Execution
                 };
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { return ErrorResult($"VI 执行异常: {ex.Message}"); }
+            catch (Exception ex) { return ErrorResult($"VI 执行异常: {ex.Message}", ex); }
         }
 
         // ── VI 执行核心 ───────────────────────────────────────────────────
@@ -531,12 +531,12 @@ namespace LabVIEWCallPlugin.Execution
 
         // ── 公共辅助 ─────────────────────────────────────────────────────────
 
-        private static ExecutionResult ErrorResult(string message) => new()
+        private static ExecutionResult ErrorResult(string message, Exception? ex = null) => new()
         {
             StepResult = new StepResult
             {
                 Status = TestStatus.Error,
-                Error = new ErrorInfo { Message = message }
+                Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
             }
         };
 

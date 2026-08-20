@@ -75,7 +75,7 @@ public sealed class LinWriteExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"LIN 发送失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"LIN 发送失败: {ex.Message}")
                 }
             };
         }

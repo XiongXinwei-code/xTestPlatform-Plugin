@@ -47,7 +47,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                 }
                 catch (Exception ex)
                 {
-                    return Error($"JSON 解析失败: {ex.Message}");
+                    return Error($"JSON 解析失败: {ex.Message}", ex);
                 }
 
                 if (value == null)
@@ -88,16 +88,16 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return Error($"JSON 提取失败: {ex.Message}");
+            return Error($"JSON 提取失败: {ex.Message}", ex);
         }
     }
 
-    private static ExecutionResult Error(string message) => new()
+    private static ExecutionResult Error(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

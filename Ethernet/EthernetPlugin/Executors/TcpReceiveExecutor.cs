@@ -83,7 +83,7 @@ public sealed class TcpReceiveExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"TCP RECEIVE 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"TCP RECEIVE 失败: {ex.Message}")
                 }
             };
         }

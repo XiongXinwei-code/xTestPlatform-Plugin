@@ -92,7 +92,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"SOME/IP-SD 服务发现失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"SOME/IP-SD 服务发现失败: {ex.Message}")
                 }
             };
         }
