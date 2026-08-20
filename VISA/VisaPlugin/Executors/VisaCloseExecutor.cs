@@ -44,7 +44,7 @@ public sealed class VisaCloseExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"VISA 关闭失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"VISA 关闭失败: {ex.Message}")
                 }
             };
         }

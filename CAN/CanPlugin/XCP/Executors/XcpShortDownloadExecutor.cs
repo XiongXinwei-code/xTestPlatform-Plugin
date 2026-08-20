@@ -62,7 +62,7 @@ public sealed class XcpShortDownloadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"XCP SHORT_DOWNLOAD 失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"XCP SHORT_DOWNLOAD 失败: {ex.Message}")
                 }
             };
         }

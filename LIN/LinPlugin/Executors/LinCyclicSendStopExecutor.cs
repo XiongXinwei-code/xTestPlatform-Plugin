@@ -54,7 +54,7 @@ public sealed class LinCyclicSendStopExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"LIN 周期发送停止失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"LIN 周期发送停止失败: {ex.Message}")
                 }
             };
         }

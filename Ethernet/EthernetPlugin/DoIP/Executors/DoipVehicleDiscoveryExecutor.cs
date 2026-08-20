@@ -92,7 +92,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"DoIP 车辆发现失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"DoIP 车辆发现失败: {ex.Message}")
                 }
             };
         }

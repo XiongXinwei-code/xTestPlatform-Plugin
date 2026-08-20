@@ -51,7 +51,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Failed, Value = responseHex, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
         }
         catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
-        catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = ex.Message } } }; }
+        catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }; }
     }
 
     private static byte[] ParseHex(string hex)

@@ -60,7 +60,7 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = ex.Message } } };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } };
         }
     }
 }

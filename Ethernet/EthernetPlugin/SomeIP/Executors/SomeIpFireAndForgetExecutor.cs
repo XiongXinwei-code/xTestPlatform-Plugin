@@ -68,7 +68,7 @@ public sealed class SomeIpFireAndForgetExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"SOME/IP FireAndForget 发送失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"SOME/IP FireAndForget 发送失败: {ex.Message}")
                 }
             };
         }

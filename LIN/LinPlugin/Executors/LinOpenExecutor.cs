@@ -58,7 +58,7 @@ public sealed class LinOpenExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"打开 LIN 通道失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"打开 LIN 通道失败: {ex.Message}")
                 }
             };
         }

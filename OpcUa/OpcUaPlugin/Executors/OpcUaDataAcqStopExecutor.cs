@@ -59,7 +59,7 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"停止数据采集失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"停止数据采集失败: {ex.Message}")
                 }
             };
         }

@@ -55,7 +55,7 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"CAN 周期发送停止失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"CAN 周期发送停止失败: {ex.Message}")
                 }
             };
         }

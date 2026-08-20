@@ -49,7 +49,7 @@ public sealed class XcpConnectExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"XCP CONNECT 失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"XCP CONNECT 失败: {ex.Message}")
                 }
             };
         }

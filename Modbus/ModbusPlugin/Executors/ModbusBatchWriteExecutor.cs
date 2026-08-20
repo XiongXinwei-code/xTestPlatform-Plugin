@@ -93,7 +93,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = ex.Message }
+					Error = ErrorInfo.FromException(ex)
 				}
 			};
 		}
@@ -104,7 +104,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 批量写入失败: {ex.Message}" }
+					Error = ErrorInfo.FromException(ex, $"Modbus 批量写入失败: {ex.Message}")
 				}
 			};
 		}

@@ -68,7 +68,7 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = ex.Message }
+                    Error = ErrorInfo.FromException(ex)
                 }
             };
         }
@@ -79,7 +79,7 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"DO 输出失败：{ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"DO 输出失败：{ex.Message}")
                 }
             };
         }

@@ -51,7 +51,7 @@ public sealed class OpcUaDisconnectExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"OPC UA 断开失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"OPC UA 断开失败: {ex.Message}")
                 }
             };
         }

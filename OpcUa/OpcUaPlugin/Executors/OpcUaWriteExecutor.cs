@@ -102,7 +102,7 @@ public sealed class OpcUaWriteExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"OPC UA 写入失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"OPC UA 写入失败: {ex.Message}")
                 }
             };
         }

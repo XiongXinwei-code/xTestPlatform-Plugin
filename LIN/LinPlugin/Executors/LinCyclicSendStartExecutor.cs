@@ -125,7 +125,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"LIN 周期发送启动失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"LIN 周期发送启动失败: {ex.Message}")
                 }
             };
         }

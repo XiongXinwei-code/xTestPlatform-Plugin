@@ -104,7 +104,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return Error($"HTTP 请求失败: {ex.Message}");
+            return Error($"HTTP 请求失败: {ex.Message}", ex);
         }
     }
 
@@ -114,12 +114,12 @@ public sealed class HttpRequestExecutor : IStepExecutor
             ? absolute
             : new Uri(path.TrimStart('/'), UriKind.Relative);
 
-    private static ExecutionResult Error(string message) => new()
+    private static ExecutionResult Error(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

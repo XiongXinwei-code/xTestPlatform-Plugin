@@ -78,7 +78,7 @@ public sealed class CanWriteExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"CAN 发送失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"CAN 发送失败: {ex.Message}")
                 }
             };
         }

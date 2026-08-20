@@ -43,7 +43,7 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
             }
             catch (Exception ex)
             {
-                return Error($"XML 解析失败: {ex.Message}");
+                return Error($"XML 解析失败: {ex.Message}", ex);
             }
 
             var navigator = document.CreateNavigator();
@@ -65,7 +65,7 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
                 }
                 catch (XPathException ex)
                 {
-                    return Error($"XPath 语法错误 [{item.Path}]: {ex.Message}");
+                    return Error($"XPath 语法错误 [{item.Path}]: {ex.Message}", ex);
                 }
 
                 if (value == null)
@@ -106,7 +106,7 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return Error($"XML 提取失败: {ex.Message}");
+            return Error($"XML 提取失败: {ex.Message}", ex);
         }
     }
 
@@ -126,12 +126,12 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
         }
     }
 
-    private static ExecutionResult Error(string message) => new()
+    private static ExecutionResult Error(string message, Exception? ex = null) => new()
     {
         StepResult = new StepResult
         {
             Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
+            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
         }
     };
 }

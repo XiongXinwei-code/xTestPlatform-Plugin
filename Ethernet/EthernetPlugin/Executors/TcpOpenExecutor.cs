@@ -67,7 +67,7 @@ public sealed class TcpOpenExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"TCP OPEN 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"TCP OPEN 失败: {ex.Message}")
                 }
             };
         }

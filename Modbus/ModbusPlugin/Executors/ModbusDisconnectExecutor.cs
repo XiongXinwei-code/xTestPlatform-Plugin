@@ -51,7 +51,7 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 断开失败: {ex.Message}" }
+					Error = ErrorInfo.FromException(ex, $"Modbus 断开失败: {ex.Message}")
 				}
 			};
 		}

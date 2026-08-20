@@ -84,7 +84,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = new ErrorInfo { Message = $"Modbus 连接失败: {ex.Message}" }
+					Error = ErrorInfo.FromException(ex, $"Modbus 连接失败: {ex.Message}")
 				}
 			};
 		}

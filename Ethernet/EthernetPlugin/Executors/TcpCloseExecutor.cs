@@ -42,7 +42,7 @@ public sealed class TcpCloseExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"TCP CLOSE 失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"TCP CLOSE 失败: {ex.Message}")
                 }
             };
         }

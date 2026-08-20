@@ -67,7 +67,7 @@ public sealed class XcpShortUploadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error  = new ErrorInfo { Message = $"XCP SHORT_UPLOAD 失败: {ex.Message}" }
+                    Error  = ErrorInfo.FromException(ex, $"XCP SHORT_UPLOAD 失败: {ex.Message}")
                 }
             };
         }

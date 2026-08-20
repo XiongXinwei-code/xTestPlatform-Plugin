@@ -46,7 +46,7 @@ public sealed class CanCloseExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"关闭 CAN 通道失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"关闭 CAN 通道失败: {ex.Message}")
                 }
             };
         }

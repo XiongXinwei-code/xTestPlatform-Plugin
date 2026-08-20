@@ -97,7 +97,7 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"OPC UA 连接失败: {ex.Message}" }
+                    Error = ErrorInfo.FromException(ex, $"OPC UA 连接失败: {ex.Message}")
                 }
             };
         }
