@@ -12,6 +12,7 @@
         <syncfusion:TabItemExt Header="UDS SecurityAccess"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
                                            ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140"/>
@@ -21,7 +22,6 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -54,17 +54,28 @@
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Seed Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SeedVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="Key Expression:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8" IsMultiLine="True"
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox Grid.Row="7" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
+            </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+
+        <syncfusion:TabItemExt Header="Key Expression">
+            <Grid Margin="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Key Expression:" VerticalAlignment="Center" Margin="0,0,0,8"/>
+                <expr:ExpressionTextBox Grid.Row="1" IsMultiLine="True"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                     ScriptText="{Binding KeyExpression, Mode=TwoWay}"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
-
-                <TextBlock Grid.Row="8" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
