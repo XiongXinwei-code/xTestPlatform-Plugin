@@ -19,9 +19,11 @@ public class CanReadSetting
     public int ReadTimeoutMs { get; set; } = 1000;
 
     /// <summary>结果存储变量路径（存储完整十六进制数据）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "";
 
     /// <summary>存储接收到的 CAN ID 的变量路径</summary>
+    [VariablePathField]
     public string IdVariable { get; set; } = "";
 
     /// <summary>是否输出日志</summary>

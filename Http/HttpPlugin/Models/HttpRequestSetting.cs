@@ -32,12 +32,15 @@ public class HttpRequestSetting
     public ObservableCollection<HttpHeaderItem> Headers { get; set; } = [];
 
     /// <summary>存放响应体字符串的变量名，留空则不写入</summary>
-    public string ResponseVariable { get; set; } = "HttpResponse";
+    [VariablePathField]
+    public string ResponseVariable { get; set; } = "Locals.HttpResponse";
 
     /// <summary>存放响应状态码的变量名，留空则不写入</summary>
+    [VariablePathField]
     public string StatusCodeVariable { get; set; } = string.Empty;
 
     /// <summary>存放请求耗时毫秒数的变量名，留空则不写入</summary>
+    [VariablePathField]
     public string ElapsedVariable { get; set; } = string.Empty;
 
     /// <summary>非 2xx 状态码是否判定步骤失败</summary>

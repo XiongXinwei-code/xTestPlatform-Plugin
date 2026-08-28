@@ -26,7 +26,7 @@ public sealed class LinWriteReadPlugin : StepPluginBase<LinWriteReadSetting>
         | Data | string([ExpressionField]) | 否 | 空 | 发送数据十六进制字符串 |
         | ChecksumType | 枚举 | 否 | Enhanced | 可选值：Classic, Enhanced |
         | ResponseTimeoutMs | int | 否 | 500 | 等待响应超时毫秒数 |
-        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

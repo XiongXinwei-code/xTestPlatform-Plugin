@@ -21,5 +21,6 @@ public class XcpShortUploadSetting : XcpCommonSetting
     public XcpByteOrder ByteOrder { get; set; } = XcpByteOrder.LittleEndian;
 
     /// <summary>结果存储变量路径</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

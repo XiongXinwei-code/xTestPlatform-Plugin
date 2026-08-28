@@ -30,7 +30,7 @@ public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 		| StartAddress | 表达式(int) | 是 | — | 起始地址 |
 		| Quantity | 表达式(int) | 是 | — | 读取数量 |
 		| DataFormat | 枚举 | 否 | UInt16 | 可选值：UInt16, Int16, UInt32_AB_CD, Int32_AB_CD, Float_AB_CD, UInt32_CD_AB, Int32_CD_AB, Float_CD_AB |
-		| ResultVariable | string | 是 | — | 结果存入的变量名 |
+		| ResultVariable | string(变量路径) | 是 | — | 结果存入的变量名 |
 
 		## 行为
 

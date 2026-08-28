@@ -18,7 +18,8 @@ public class VisaQuerySetting
     public string Command { get; set; } = "\"*IDN?\"";
 
     /// <summary>存储查询结果的变量名</summary>
-    public string ResultVariable { get; set; } = "VisaResult";
+    [VariablePathField]
+    public string ResultVariable { get; set; } = "Locals.VisaResult";
 
     /// <summary>是否自动去除响应中的首尾空白和终止符</summary>
     public bool TrimResponse { get; set; } = true;

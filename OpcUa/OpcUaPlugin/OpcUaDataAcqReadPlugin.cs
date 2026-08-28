@@ -25,7 +25,7 @@ public sealed class OpcUaDataAcqReadPlugin : StepPluginBase<OpcUaDataAcqReadSett
         |------|------|------|--------|------|
         | TaskName | string([ExpressionField]) | 是 | — | 要读取的采集任务名 |
         | SamplesToRead | int | 否 | -1 | 读取记录条数，-1=读取当前全部可用 |
-        | ResultVariable | string | 否 | 空 | 结果变量名，必须为波形类型（Waveform），写入 WaveformData（每列一个通道） |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，必须为波形类型（Waveform），写入 WaveformData（每列一个通道） |
         | SaveToFile | bool | 否 | false | 是否将数据追加保存到 CSV 文件 |
         | CsvFilePath | string([ExpressionField]) | SaveToFile=true 时 | 空 | CSV 文件路径，追加写入 |
 

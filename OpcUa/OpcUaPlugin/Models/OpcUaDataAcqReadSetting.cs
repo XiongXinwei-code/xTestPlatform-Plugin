@@ -15,6 +15,7 @@ public class OpcUaDataAcqReadSetting
     public int SamplesToRead { get; set; } = -1;
 
     /// <summary>结果变量名（波形类型 Waveform）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>是否将读取的数据追加保存到 CSV 文件</summary>

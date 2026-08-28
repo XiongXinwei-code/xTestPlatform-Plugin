@@ -24,7 +24,7 @@ public sealed class NiDaqSyncReadPlugin : StepPluginBase<NiDaqSyncReadSetting>
         | TaskName | string([ExpressionField]) | 是 | — | 要读取的同步任务名 |
         | SamplesToRead | int | 否 | -1 | 读取样本数，-1=读取所有可用 |
         | ReadTimeoutMs | int | 否 | 10000 | 读取超时 ms |
-        | ResultVariable | string | 否 | 空 | 结果变量名，必须为波形类型（Waveform），写入 WaveformData（AI 通道 + Encoder 通道） |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，必须为波形类型（Waveform），写入 WaveformData（AI 通道 + Encoder 通道） |
         | ExportFormat | 枚举 | 否 | Csv | 可选值：Csv, Tdms, Variable, CsvAndVariable, TdmsAndVariable |
         | SaveToFile | bool | 否 | false | 是否将采集数据保存到文件 |
         | OutputDirectory | string([ExpressionField]) | 否 | 空 | 输出文件目录 |

@@ -36,7 +36,7 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
         {
           "ConnectionName": "\"OpcUa1\"",
           "Items": [
-            { "NodeId": "ns=2;s=Temperature", "ResultVariable": "temp_value" }
+            { "NodeId": "ns=2;s=Temperature", "ResultVariable": "Locals.temp_value" }
           ],
           "TimeoutMs": 5000
         }

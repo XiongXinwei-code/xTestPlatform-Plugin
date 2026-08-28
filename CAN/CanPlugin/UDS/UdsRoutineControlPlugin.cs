@@ -24,7 +24,7 @@ public sealed class UdsRoutineControlPlugin : StepPluginBase<UdsRoutineControlSe
         | ControlType | 枚举 | 否 | Start | 可选值：Start, Stop, RequestResults |
         | RoutineId | string([ExpressionField]) | 是 | — | 例程 ID，如 0xFF00 |
         | OptionRecord | string([ExpressionField]) | 否 | 空 | 输入参数（十六进制），可为空 |
-        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
         | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
         | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |

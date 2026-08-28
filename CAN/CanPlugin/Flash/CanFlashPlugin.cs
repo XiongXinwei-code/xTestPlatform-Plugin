@@ -36,8 +36,8 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | CheckRoutineId | string([ExpressionField]) | 否 | "0x0202" | 校验例程 ID |
         | BlockRetryCount | int | 否 | 2 | 单块传输失败后的重试次数 |
         | InterBlockDelayMs | int | 否 | 0 | 每块之间的间隔毫秒数 |
-        | ProgressVariable | string | 否 | 空 | 进度变量名，写入类型为 int（0~100） |
-        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 int（已烧录总字节数） |
+        | ProgressVariable | string(变量路径) | 否 | 空 | 进度变量名，写入类型为 int（0~100） |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 int（已烧录总字节数） |
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
         | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
         | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
@@ -69,8 +69,8 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
           "MaxBlockSize": 512,
           "CheckMode": "Crc32",
           "CheckRoutineId": "\"0x0202\"",
-          "ProgressVariable": "flashProgress",
-          "ResultVariable": "flashedBytes"
+          "ProgressVariable": "Locals.flashProgress",
+          "ResultVariable": "Locals.flashedBytes"
         }
         ```
 

@@ -24,6 +24,7 @@ public class HttpExtractItem : INotifyPropertyChanged
     }
 
     /// <summary>提取结果写入的变量名</summary>
+    [VariablePathField]
     public string TargetVariable
     {
         get => _targetVariable;

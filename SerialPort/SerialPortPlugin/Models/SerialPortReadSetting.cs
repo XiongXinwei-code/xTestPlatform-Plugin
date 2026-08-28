@@ -1,4 +1,4 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace SerialPort.Models;
@@ -19,5 +19,6 @@ public class SerialPortReadSetting
     public string Terminator { get; set; } = "\\n";
 
     /// <summary>读取结果存放的目标变量路径（如 Locals.ReceivedData）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

@@ -30,7 +30,7 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
         | InterfaceVersion | string([ExpressionField]) | 否 | "0x01" | 接口版本 |
         | Payload | string([ExpressionField]) | 否 | 空 | 十六进制负载，可为空 |
         | TimeoutMs | int | 否 | 3000 | 响应超时毫秒数 |
-        | ResultVariable | string | 否 | 空 | 存储响应负载的变量路径 |
+        | ResultVariable | string(变量路径) | 否 | 空 | 存储响应负载的变量路径 |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

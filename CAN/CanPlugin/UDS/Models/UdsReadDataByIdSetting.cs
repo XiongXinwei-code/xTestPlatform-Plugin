@@ -11,5 +11,6 @@ public class UdsReadDataByIdSetting : UdsCommonSetting
     public string Did { get; set; } = "\"0xF190\"";
 
     /// <summary>结果变量（存储读取到的十六进制数据）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "";
 }

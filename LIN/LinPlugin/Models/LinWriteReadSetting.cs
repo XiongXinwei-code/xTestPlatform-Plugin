@@ -25,6 +25,7 @@ public class LinWriteReadSetting
     public int ResponseTimeoutMs { get; set; } = 500;
 
     /// <summary>结果存储变量路径（存储从机响应数据，十六进制字符串）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>是否输出日志</summary>

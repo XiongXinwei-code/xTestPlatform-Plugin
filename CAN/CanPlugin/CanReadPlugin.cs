@@ -24,8 +24,8 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
         | FilterId | string([ExpressionField]) | 否 | 空 | 过滤 CAN ID，如 0x7E8，为空则接收任意帧 |
         | ReadTimeoutMs | int | 否 | — | 读取超时毫秒数 |
-        | ResultVariable | string | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据） |
-        | IdVariable | string | 否 | 空 | 接收帧 CAN ID 存入的变量名 |
+        | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据） |
+        | IdVariable | string(变量路径) | 否 | 空 | 接收帧 CAN ID 存入的变量名 |
         | EnableLog | bool | 否 | true | 是否输出读取日志 |
 
         ## 行为

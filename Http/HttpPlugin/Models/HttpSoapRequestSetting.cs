@@ -33,9 +33,11 @@ public class HttpSoapRequestSetting
     public ObservableCollection<HttpHeaderItem> Headers { get; set; } = [];
 
     /// <summary>存放响应 XML 字符串的变量名，留空则不写入</summary>
-    public string ResponseVariable { get; set; } = "SoapResponse";
+    [VariablePathField]
+    public string ResponseVariable { get; set; } = "Locals.SoapResponse";
 
     /// <summary>存放响应状态码的变量名，留空则不写入</summary>
+    [VariablePathField]
     public string StatusCodeVariable { get; set; } = string.Empty;
 
     /// <summary>响应中包含 SOAP Fault 时是否判定步骤失败</summary>
