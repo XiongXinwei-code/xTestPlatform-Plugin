@@ -34,6 +34,14 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
         - 端口不存在或已被占用时步骤报错
         - 同一 PortName 重复打开会报错，需先用 SerialPort_Close 关闭
 
+        ## 检索关键词
+
+        串口、串行口、COM 口、COM1、UART、
+        RS-232、RS232、RS-485、RS485、RS-422、RS422、TTL 串口、
+        USB 转串口、USB-to-Serial、CH340、FTDI、CP2102、虚拟串口
+
+        RS-485 / RS-422 设备通常经转换器或接口卡映射为普通 COM 口，同样使用本插件打开；本插件不处理半双工收发方向控制。
+
         ## 相关插件
 
         - `SerialPort_Write` / `SerialPort_Read` / `SerialPort_Query`：在已打开的端口上收发数据

@@ -25,12 +25,19 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
         | ExpectedLength | int | 否 | 0 | 期望字节数，0 表示接收任意长度 |
         | TimeoutMs | int | 否 | 3000 | 接收超时毫秒数 |
         | Encoding | 枚举 | 否 | Hex | 结果编码格式，可选值：Hex, Utf8, Ascii |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名（名称由使用者自定义），写入类型为 string |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 
         - 超时未收到数据时步骤报错
+        - `ResultVariable` 为覆盖写入：每次执行都用本次接收结果替换该变量的原有值
+
+        ## 多次接收时的变量命名
+
+        - 变量名完全由使用者指定，不存在固定或保留名称。
+        - 序列中存在多个 `Ethernet_TcpReceive` 步骤时（多通道、多次问答等），必须为每个步骤指定**互不相同**的 `ResultVariable`（例如 `errStack1`、`errStack2`），否则后一步骤会覆盖前一步骤的结果，导致信息丢失。
+        - 覆盖不是本步骤的限制，而是复用同一变量名的后果。遇到「结果被覆盖」时，正确做法是换用不同的变量名；不要改为只接收一次。
 
         ## 相关插件
 

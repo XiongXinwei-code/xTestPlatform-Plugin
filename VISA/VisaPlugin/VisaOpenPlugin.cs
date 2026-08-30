@@ -35,6 +35,12 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
         - 资源不存在或打开超时时步骤报错
         - 同名 ConnectionName 重复打开会报错，需先用 VISA_Close 关闭
 
+        ## 检索关键词
+
+        VISA、NI-VISA、Keysight IO Libraries、Resource String、资源字符串、
+        GPIB、IEEE-488、USB-TMC、USBTMC、TCPIP、INSTR、SOCKET、ASRL、
+        SCPI、仪器控制、可编程仪器、万用表、程控电源、示波器、电子负载
+
         ## 相关插件
 
         - `VISA_Write` / `VISA_Read` / `VISA_Query` / `VISA_BatchWrite` / `VISA_WaitOPC`：在此连接上操作
