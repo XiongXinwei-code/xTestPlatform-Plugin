@@ -14,5 +14,6 @@ public class UdsRawRequestSetting : UdsCommonSetting
     public bool WaitResponse { get; set; } = true;
 
     /// <summary>结果变量（存储完整响应十六进制数据）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "";
 }

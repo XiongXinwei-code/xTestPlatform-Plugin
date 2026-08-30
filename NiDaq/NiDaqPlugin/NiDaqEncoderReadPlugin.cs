@@ -23,7 +23,7 @@ public sealed class NiDaqEncoderReadPlugin : StepPluginBase<NiDaqEncoderSetting>
         |------|------|------|--------|------|
         | TaskName | string([ExpressionField]) | 是 | — | 要读取的编码器任务名 |
         | ReadTimeoutMs | int | 否 | 5000 | 读取超时 ms |
-        | ResultVariable | string | 是 | — | 结果变量名，写入类型为 double（位置值） |
+        | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 double（位置值） |
 
         ## 行为
 

@@ -26,7 +26,7 @@ public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
         | ExpectedLength | int | 否 | 0 | 期望字节数，0 表示接收任意长度 |
         | TimeoutMs | int | 否 | 3000 | 接收超时毫秒数 |
         | Encoding | 枚举 | 否 | Hex | 结果编码格式，可选值：Hex, Utf8, Ascii |
-        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

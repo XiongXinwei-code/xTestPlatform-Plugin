@@ -25,7 +25,7 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
         | ServiceId | string([ExpressionField]) | 是 | "0x1234" | 服务 ID 过滤 |
         | EventId | string([ExpressionField]) | 是 | "0x8001" | 事件 ID 过滤 |
         | TimeoutMs | int | 否 | 5000 | 等待通知超时毫秒数 |
-        | ResultVariable | string | 否 | 空 | 存储通知负载的变量路径 |
+        | ResultVariable | string(变量路径) | 否 | 空 | 存储通知负载的变量路径 |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

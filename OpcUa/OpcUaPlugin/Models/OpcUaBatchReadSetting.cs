@@ -17,6 +17,7 @@ public class OpcUaBatchReadItem : INotifyPropertyChanged
     public string NodeId { get => _nodeId; set => SetProperty(ref _nodeId, value); }
 
     /// <summary>结果存入的变量名</summary>
+    [VariablePathField]
     public string ResultVariable { get => _resultVariable; set => SetProperty(ref _resultVariable, value); }
 
     public event PropertyChangedEventHandler? PropertyChanged;

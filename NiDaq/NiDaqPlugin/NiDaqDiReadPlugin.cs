@@ -22,7 +22,7 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | Channel | string([ExpressionField]) | 是 | — | 物理通道，如 Dev1/port0/line0:7 |
-        | ResultVariable | string | 是 | — | 结果变量名，写入类型为 uint（端口状态值） |
+        | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 uint（端口状态值） |
 
         ## 物理通道命名规则
 

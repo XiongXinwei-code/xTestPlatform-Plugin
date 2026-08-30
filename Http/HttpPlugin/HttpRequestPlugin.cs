@@ -30,9 +30,9 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
         | ContentType | 枚举 | 否 | None | 请求体类型，可选值：None, Json, Xml, Text, FormUrlEncoded |
         | Body | string([ExpressionField]) | 否 | — | 请求体内容，可用表达式拼接变量生成 JSON |
         | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField])），结构见示例 |
-        | ResponseVariable | string | 否 | HttpResponse | 响应体字符串写入的变量名，写入类型为 string |
-        | StatusCodeVariable | string | 否 | — | 响应状态码写入的变量名，写入类型为 int |
-        | ElapsedVariable | string | 否 | — | 请求耗时毫秒数写入的变量名，写入类型为 int |
+        | ResponseVariable | string(变量路径) | 否 | Locals.HttpResponse |
+        | StatusCodeVariable | string(变量路径) | 否 | — | 响应状态码写入的变量名，写入类型为 int |
+        | ElapsedVariable | string(变量路径) | 否 | — | 请求耗时毫秒数写入的变量名，写入类型为 int |
         | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 状态码是否判定步骤失败 |
         | LogPayload | bool | 否 | true | 是否将请求与响应内容写入运行日志 |
 
@@ -57,8 +57,8 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
           "Headers": [
             { "Name": "X-Request-Id", "Value": "Locals.RequestId" }
           ],
-          "ResponseVariable": "HttpResponse",
-          "StatusCodeVariable": "HttpStatus",
+          "ResponseVariable": "Locals.HttpResponse",
+          "StatusCodeVariable": "Locals.HttpStatus",
           "TreatNonSuccessAsFailure": true,
           "LogPayload": true
         }

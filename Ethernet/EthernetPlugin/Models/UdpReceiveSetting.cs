@@ -23,6 +23,7 @@ public class UdpReceiveSetting
     public EthernetDataEncoding Encoding { get; set; } = EthernetDataEncoding.Hex;
 
     /// <summary>结果存储变量路径</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>是否输出日志</summary>

@@ -18,6 +18,7 @@ public class DoipVehicleDiscoverySetting
     public int TimeoutMs { get; set; } = 3000;
 
     /// <summary>结果存储变量路径（存储 VIN 与逻辑地址信息，可选）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>是否输出日志</summary>

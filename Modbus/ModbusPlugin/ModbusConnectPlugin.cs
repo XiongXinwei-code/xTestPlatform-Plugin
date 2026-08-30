@@ -39,6 +39,15 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 
 		- TransportType=TCP 时使用 IpAddress/TcpPort，RTU 时使用串口参数
 		- 连接失败或同名连接已存在时步骤报错
+		- 仅支持 TCP 与 RTU 两种传输方式，不支持 Modbus ASCII
+
+		## 检索关键词
+
+		Modbus、Modbus TCP、Modbus RTU、模总线、
+		从站地址、从机地址、Slave ID、Unit ID、功能码、
+		RS-485、RS485、串口从站、PLC 通信、仪表采集
+
+		寄存器与线圈（保持寄存器、输入寄存器、线圈、离散输入）的选择在 `Modbus_Read` / `Modbus_Write` 步骤中配置，不在本步骤。
 
 		## 相关插件
 

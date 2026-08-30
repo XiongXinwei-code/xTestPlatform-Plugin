@@ -17,6 +17,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
 
         打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD 协议。
 
+        本插件按**协议**命名，不按厂商命名：所有厂商的 CAN 接口卡统一通过本插件接入，具体厂商由 `AdapterType` 字段选择。
+        平台中不存在、也不需要按厂商或驱动命名的独立 CAN 插件（如 ZlgCan、PCAN、Kvaser 插件）——需要 CAN 通信时一律使用 `CAN_*` 系列步骤。
+
         ## 参数
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
@@ -45,6 +48,14 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         ## 行为
 
         - 硬件不存在、通道被占用或同名连接已存在时步骤报错
+
+        ## 检索关键词
+
+        CAN、CAN bus、CAN 总线、CAN 2.0、CAN FD、CANFD、DBC、
+        NI-XNET、XNET、PEAK、PCAN、PCAN-Basic、PCAN-USB、
+        Vector、XL Driver Library、vxlapi、VN1610、
+        ZLG、周立功、ZLGCAN、USBCAN、USBCANFD、CANalyst、
+        Kvaser、CANlib、TOSUN、同星、TSMaster
 
         ## 相关插件
 

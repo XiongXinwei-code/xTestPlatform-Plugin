@@ -15,6 +15,7 @@ public class OpcUaReadSetting
     public string NodeId { get; set; } = "ns=2;s=MyVariable";
 
     /// <summary>读取结果存入的变量名</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "Locals.ReadValue";
 
     /// <summary>读取超时时间（毫秒）</summary>

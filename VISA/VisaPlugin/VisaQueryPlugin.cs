@@ -26,7 +26,7 @@ public sealed class VisaQueryPlugin : StepPluginBase<VisaQuerySetting>
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
         | Command | string([ExpressionField]) | 是 | — | SCPI 查询命令，如 *IDN? |
-        | ResultVariable | string | 是 | — | 结果变量名，写入类型为 string（仪器响应字符串） |
+        | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 string（仪器响应字符串） |
         | TrimResponse | bool | 否 | true | 是否去除响应首尾空白 |
 
         ## 行为

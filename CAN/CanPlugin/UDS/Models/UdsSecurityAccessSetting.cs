@@ -10,6 +10,7 @@ public class UdsSecurityAccessSetting : UdsCommonSetting
     public int SecurityLevel { get; set; } = 1;
 
     /// <summary>存储 ECU 返回 Seed 的变量名（供 KeyExpression 引用）</summary>
+    [VariablePathField]
     public string SeedVariable { get; set; } = "";
 
     /// <summary>
@@ -21,5 +22,6 @@ public class UdsSecurityAccessSetting : UdsCommonSetting
     public string KeyExpression { get; set; } = "";
 
     /// <summary>结果变量（存储解锁状态 true/false）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "";
 }

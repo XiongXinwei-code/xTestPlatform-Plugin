@@ -57,8 +57,10 @@ public class CanFlashSetting : UdsCommonSetting
     public int InterBlockDelayMs { get; set; } = 0;
 
     /// <summary>进度变量名（写入 0~100 的整数百分比），为空则不写入</summary>
+    [VariablePathField]
     public string ProgressVariable { get; set; } = string.Empty;
 
     /// <summary>结果变量名（写入实际烧录的总字节数），为空则不写入</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

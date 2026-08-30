@@ -15,5 +15,6 @@ public class NiDaqEncoderSetting
     public int ReadTimeoutMs { get; set; } = 10000;
 
     /// <summary>结果存入的变量名</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

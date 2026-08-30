@@ -11,5 +11,6 @@ public class NiDaqDiReadSetting
     public string Channel { get; set; } = string.Empty;
 
     /// <summary>结果存入的变量名</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

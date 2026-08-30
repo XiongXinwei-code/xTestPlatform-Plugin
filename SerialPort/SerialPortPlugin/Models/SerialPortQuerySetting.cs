@@ -1,4 +1,4 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace SerialPort.Models;
@@ -21,5 +21,6 @@ public class SerialPortQuerySetting
 	/// <summary>终止符，以转义文本存储（如 \n、\r\n）；为空表示不按终止符结束，读到超时为止</summary>
 	public string Terminator { get; set; } = "\\n";
 
+	[VariablePathField]
 	public string ResultVariable { get; set; } = string.Empty;
 }

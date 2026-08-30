@@ -28,5 +28,6 @@ public class UdsRoutineControlSetting : UdsCommonSetting
     public string OptionRecord { get; set; } = "\"\"";
 
     /// <summary>结果变量</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "";
 }

@@ -17,6 +17,7 @@ public class NiDaqSyncReadSetting
     public int ReadTimeoutMs { get; set; } = 10000;
 
     /// <summary>结果变量名</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 
     /// <summary>导出格式</summary>

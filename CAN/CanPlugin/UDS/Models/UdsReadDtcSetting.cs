@@ -1,4 +1,5 @@
 using MessagePack;
+using xTestPlatform.Core.Models.StepSettings;
 
 namespace CAN.UDS.Models;
 
@@ -12,5 +13,6 @@ public class UdsReadDtcSetting : UdsCommonSetting
     public byte StatusMask { get; set; } = 0xFF;
 
     /// <summary>结果变量（存储 DTC 列表十六进制数据）</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "";
 }

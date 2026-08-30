@@ -57,7 +57,8 @@
 12. [序列化规范](#12-序列化规范)
     - 12.1 [集合属性与子项设计规范](#121-集合属性与子项设计规范)
     - 12.2 [`[ExpressionField]` 特性（表达式预编译）](#122-expressionfield-特性表达式预编译)
-    - 12.3 [设置版本管理](#123-设置版本管理)
+    - 12.3 [`[VariablePathField]` 特性（变量写入路径）](#123-variablepathfield-特性变量写入路径)
+    - 12.4 [设置版本管理](#124-设置版本管理)
 13. [设置校验规范](#13-设置校验规范)
     - 13.1 [UI 上下文校验（IStepEditorPlugin）](#131-ui-上下文校验istepeditorplugin)
     - 13.2 [执行器内部校验（IStepExecutor）](#132-执行器内部校验istepexecutor)
@@ -119,6 +120,8 @@
 - [ ] 所有插件枚举类型已标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`，确保 AI 可用字符串名称传枚举值（§2.1.1）
 - [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
 - [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
+- [ ] 所有作为"结果写入目标"的 string 字段已标记 `[VariablePathField]`（判断依据：Executor 中该字段被传给 `ctx.SetVariable`），且默认值/示例使用带作用域前缀的完整路径（如 `Locals.rxData`）（§12.3）
+- [ ] `[ExpressionField]` 与 `[VariablePathField]` 未同时标记在同一属性上；`Description` 参数表格中类型列已相应写成 `string([ExpressionField])` 或 `string(变量路径)`（§12.3）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
 - [ ] **阻塞式 I/O 必须做软超时兜底**：若底层 API 是同步阻塞调用，或其异步重载不响应 `CancellationToken`（如 `System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync`、NModbus 的 `Read*Async`、NI-VISA 的 `FormattedIO`、NI-DAQmx 的 `Reader/Writer`、LabVIEW 的 VI 调用），必须在插件层用 `Task.Run(...) + WaitAsync(TimeSpan, token)` 或同步读写 + 截止时间循环做软超时，**不能只在 Setting 里声明超时字段就认为超时生效**
@@ -303,7 +306,7 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 **设计要点：**
 
 1. **五个固定章节，顺序固定**：`功能` → `参数` → `行为` → `示例` → `相关插件`。前两节必填，后三节按需。
-2. **参数用表格**：类型列区分 `string / int / bool / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成 `string([ExpressionField])`、`int([ExpressionField])` 这种形式，即“实际类型([ExpressionField])”，AI 就知道要生成表达式而不是字面量。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
+2. **参数用表格**：类型列区分 `string / int / bool / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成 `string([ExpressionField])`、`int([ExpressionField])` 这种形式，即“实际类型([ExpressionField])”，AI 就知道要生成表达式而不是字面量。标了 `[VariablePathField]` 的字段写成 `string(变量路径)`，说明列给出带作用域前缀的示例（如 `Locals.rxData`），AI 就知道要填完整变量路径而不是裸变量名或表达式（§12.3）。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
 3. **示例用 ```json 代码块**：渲染成等宽代码块，AI 也能直接照抄结构。含集合的 Setting 必须给示例。
 4. **相关插件**：对成组使用的插件族（连接/断开、启动/停止、配置/读取）特别有价值，帮助 AI 和用户理解组合用法。
 5. **代码实现用 C# 原始字符串字面量**（`"""..."""`）书写多行 Markdown，避免转义。
@@ -322,7 +325,7 @@ public override string Description => """
     |------|------|------|--------|------|
     | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
     | Command | string([ExpressionField]) | 是 | — | SCPI 查询命令，如 *IDN? |
-    | ResultVariable | string([ExpressionField]) | 是 | — | 结果存入的变量名 |
+    | ResultVariable | string(变量路径) | 是 | — | 结果存入的变量，如 Locals.idn |
     | TrimResponse | bool | 否 | true | 是否去除响应首尾空白 |
 
     ## 行为
@@ -1722,7 +1725,67 @@ public class MySetting {
 
 > 💡 **判断依据**：若默认值在表达式引擎中应被解析为字符串，则必须在 C# 字符串外层再加一层转义引号（`"\"值\""`）。
 
-### 12.3 设置版本管理
+### 12.3 `[VariablePathField]` 特性（变量写入路径）
+
+如果 Setting 类中包含**用于指定"把结果写到哪个变量"**的 `string` 属性，**必须**添加 `[VariablePathField]` 特性：
+
+```csharp
+using xTestPlatform.Core.Models.StepSettings;
+
+[MessagePackObject(true)]
+public class MySetting {
+    [ExpressionField]
+    public string ConnectionName { get; set; } = "\"COM1\"";   // 表达式：运行时求值
+
+    [VariablePathField]
+    public string ResultVariable { get; set; } = string.Empty; // 变量路径：写入目标
+
+    public string Title { get; set; } = string.Empty;          // 普通字面量
+}
+```
+
+**作用**：让 AI 助手和 `get_step_schema` 能区分出第三类字段。查询 schema 时该字段会显示 `[变量路径]` 标记，AI 就知道要填 `Locals.engStatus` 这样的完整路径，而不必猜测或反编译插件。
+
+#### 三类 string 字段的区别
+
+Setting 中的 `string` 属性一共有三种语义，**必须**用特性区分清楚，否则 AI 无法判断该填什么：
+
+| 类别 | 标记 | 填写内容 | 示例值 |
+|---|---|---|---|
+| 表达式 | `[ExpressionField]` | C# 表达式脚本（Roslyn 求值），字符串常量需内嵌引号 | `"\"COM1\""`、`Locals.port.ToString()` |
+| 变量路径 | `[VariablePathField]` | 变量的完整路径 `Scope.Name`，不加引号 | `Locals.engStatus` |
+| 普通字面量 | 无标记 | 原文直接填写，不加引号 | `我的标题` |
+
+> ⚠️ 两个特性**互斥**，同一属性不能同时标记。表达式字段是"读取并计算"，变量路径字段是"写入目标"。
+
+#### 判断方法
+
+判断依据只有一条：**看 Executor 里这个字段的值是怎么用的**。
+
+```csharp
+// ✅ 需要 [VariablePathField] —— 值被当作变量路径写入
+ctx.SetVariable(setting.ResultVariable, data);
+
+// ✅ 需要 [ExpressionField] —— 值被当作表达式求值
+var host = await evaluator.EvaluateAsync<string>(setting.RemoteHost, ctx);
+
+// ✅ 不标记 —— 值被直接当字符串使用
+result.Title = setting.Title;
+```
+
+常见的变量路径字段命名：`ResultVariable`、`ReturnVariable`、`TargetVariable`、`StdOutVariable`、`StdErrVariable`、`ExitCodeVariable`、`LoopVariable`。
+
+> ⚠️ **完整路径与裸变量名**：运行时 `SetVariable("engStatus", ...)` 会默认归到 `Locals` 作用域，所以裸名也能跑通。但**文档、默认值、示例 JSON 中一律使用带前缀的完整路径**（`Locals.engStatus`），避免 AI 学到裸名写法后在非 Locals 作用域下出错。
+
+#### 同步要求
+
+标记了 `[VariablePathField]` 的字段，插件 `Description` 的"## 参数"表格中类型列必须写成 `string(变量路径)`，与 `[ExpressionField]` 写成 `string([ExpressionField])` 的规则对应（§2.1.1）：
+
+```markdown
+| ResultVariable | string(变量路径) | 否 | — | 存储接收数据的变量（如 Locals.rxData） |
+```
+
+### 12.4 设置版本管理
 
 当 Setting 结构需要升级（新增/修改字段）时，使用版本管理确保旧数据兼容：
 
@@ -2673,7 +2736,7 @@ using xTestPlatform.Core.SequenceModels;       // SequenceFile
 |---------|------|---------|
 | `xTestPlatform.Core.Plugins.BuiltIn` | `StepPluginBase<T>` | Plugin 主类 |
 | `xTestPlatform.Core.Plugins.Contracts` | `IStepPlugin`, `IStepExecutor`, `StepSettingError` | Plugin 主类、Executor、Editor |
-| `xTestPlatform.Core.Models.StepSettings` | `[ExpressionField]` 特性 | Setting 模型 |
+| `xTestPlatform.Core.Models.StepSettings` | `[ExpressionField]`、`[VariablePathField]` 特性 | Setting 模型 |
 | `xTestPlatform.Core.Engine` | `IExecutionContext` | Executor、Editor（校验） |
 | `xTestPlatform.Core.Models` | `Step`, `LogAction` | Executor |
 | **`xTestPlatform.Core.Services.ExpressionEngine`** | **`IExpressionEvaluator`, `ExpressionEvaluatorFactory`** | **Executor、Editor** |

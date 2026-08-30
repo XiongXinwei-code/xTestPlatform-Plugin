@@ -25,7 +25,7 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
         | TargetAddress | string([ExpressionField]) | 是 | "0x1000" | ECU 逻辑地址 |
         | RequestData | string([ExpressionField]) | 是 | "22 F1 90" | UDS 请求十六进制数据 |
         | TimeoutMs | int | 否 | 3000 | 响应超时毫秒数 |
-        | ResultVariable | string | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
+        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为

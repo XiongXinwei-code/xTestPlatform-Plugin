@@ -41,7 +41,7 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 		{
 		  "ConnectionName": "\"Modbus1\"",
 		  "Items": [
-			{ "SlaveAddress": 1, "RegisterType": "HoldingRegister", "StartAddress": 0, "Quantity": 2, "DataFormat": "Float_AB_CD", "ResultVariable": "temperature" }
+			{ "SlaveAddress": 1, "RegisterType": "HoldingRegister", "StartAddress": 0, "Quantity": 2, "DataFormat": "Float_AB_CD", "ResultVariable": "Locals.temperature" }
 		  ],
 		  "IntervalMs": 0
 		}

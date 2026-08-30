@@ -26,7 +26,7 @@ public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
         | NodeId | string | 是 | — | 节点标识，如 ns=2;s=Status |
         | ExpectedValue | string([ExpressionField]) | 是 | — | 期望值 |
         | CompareMode | 枚举 | 否 | Equal | 可选值：Equal, NotEqual, GreaterThan, LessThan, Contains |
-        | ResultVariable | string | 否 | 空 | 节点当前值存入的变量名 |
+        | ResultVariable | string(变量路径) | 否 | 空 | 节点当前值存入的变量名 |
         | TimeoutMs | int | 否 | 10000 | 等待超时毫秒数 |
         | SamplingIntervalMs | int | 否 | 100 | 采样间隔毫秒数 |
 

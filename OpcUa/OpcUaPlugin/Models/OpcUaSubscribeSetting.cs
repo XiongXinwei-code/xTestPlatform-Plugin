@@ -22,6 +22,7 @@ public class OpcUaSubscribeSetting
     public OpcUaCompareMode CompareMode { get; set; } = OpcUaCompareMode.Equal;
 
     /// <summary>订阅到的值存入的变量名</summary>
+    [VariablePathField]
     public string ResultVariable { get; set; } = "Locals.SubValue";
 
     /// <summary>超时时间（毫秒），超时则返回 Error</summary>

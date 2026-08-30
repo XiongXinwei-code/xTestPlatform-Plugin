@@ -30,8 +30,8 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
         | SoapAction | string([ExpressionField]) | 否 | — | SOAPAction 值，通常为命名空间加操作名 |
         | Envelope | string([ExpressionField]) | 是 | — | 完整的 SOAP Envelope XML，可用表达式拼接变量 |
         | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField])），结构见示例 |
-        | ResponseVariable | string | 否 | SoapResponse | 响应 XML 写入的变量名，写入类型为 string |
-        | StatusCodeVariable | string | 否 | — | 响应状态码写入的变量名，写入类型为 int |
+        | ResponseVariable | string(变量路径) | 否 | Locals.SoapResponse |
+        | StatusCodeVariable | string(变量路径) | 否 | — | 响应状态码写入的变量名，写入类型为 int |
         | TreatSoapFaultAsFailure | bool | 否 | true | 响应中包含 SOAP Fault 时是否判定步骤失败 |
         | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 状态码是否判定步骤失败 |
         | LogPayload | bool | 否 | true | 是否将请求与响应内容写入运行日志 |
@@ -55,7 +55,7 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
           "SoapAction": "\"http://tempuri.org/ReportResult\"",
           "Envelope": "\"<soap:Envelope xmlns:soap=\\\"http://schemas.xmlsoap.org/soap/envelope/\\\"><soap:Body><ReportResult xmlns=\\\"http://tempuri.org/\\\"><sn>SN001</sn></ReportResult></soap:Body></soap:Envelope>\"",
           "Headers": [],
-          "ResponseVariable": "SoapResponse",
+          "ResponseVariable": "Locals.SoapResponse",
           "TreatSoapFaultAsFailure": true,
           "TreatNonSuccessAsFailure": true,
           "LogPayload": true

@@ -31,5 +31,6 @@ public class ModbusReadSetting
 	public ModbusDataFormat DataFormat { get; set; } = ModbusDataFormat.UInt16;
 
 	/// <summary>存储读取结果的变量名</summary>
+	[VariablePathField]
 	public string ResultVariable { get; set; } = "";
 }

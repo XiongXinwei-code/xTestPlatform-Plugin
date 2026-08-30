@@ -33,7 +33,8 @@ public class ModbusBatchItem : INotifyPropertyChanged
 	/// <summary>数据解析格式</summary>
 	public ModbusDataFormat DataFormat { get => _dataFormat; set => SetProperty(ref _dataFormat, value); }
 
-	/// <summary>存储读取结果的变量名（为空则不存储）</summary>
+	/// <summary>存储读取结果的变量路径（为空则不存储）</summary>
+	[VariablePathField]
 	public string ResultVariable { get => _resultVariable; set => SetProperty(ref _resultVariable, value); }
 
 	public event PropertyChangedEventHandler? PropertyChanged;

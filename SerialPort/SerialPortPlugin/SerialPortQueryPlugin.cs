@@ -27,7 +27,7 @@ public sealed class SerialPortQueryPlugin : StepPluginBase<SerialPortQuerySettin
 		| ReadTimeoutMs | int | 否 | 3000 | 读取超时毫秒数 |
 		| ReadBytes | int | 否 | 0 | 读取字节数，0 表示读到终止符 |
 		| Terminator | string | 否 | \n | 终止符，ReadBytes=0 时生效 |
-		| ResultVariable | string([ExpressionField]) | 是 | — | 响应存入的变量名 |
+		| ResultVariable | string(变量路径) | 是 | — | 响应存入的变量名 |
 
 		## 行为
 
