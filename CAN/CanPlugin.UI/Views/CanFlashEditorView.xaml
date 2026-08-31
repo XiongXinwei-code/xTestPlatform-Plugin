@@ -144,10 +144,10 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="10" Grid.ColumnSpan="2" Text="ECU 刷写规范预设" FontWeight="Bold" Margin="0,16,0,8"/>
+                <TextBlock Grid.Row="9" Grid.ColumnSpan="2" Text="ECU 刷写规范预设" FontWeight="Bold" Margin="0,16,0,8"/>
 
-                <TextBlock Grid.Row="11" Grid.Column="0" Text="选择预设:" Style="{StaticResource LabelStyle}"/>
-                <StackPanel Grid.Row="11" Grid.Column="1" Margin="0,0,0,8">
+                <TextBlock Grid.Row="10" Grid.Column="0" Text="选择预设:" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="10" Grid.Column="1" Margin="0,0,0,8">
                     <StackPanel Orientation="Horizontal">
                         <ComboBox Width="200" ItemsSource="{Binding Presets}"
                                   SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Name"/>
@@ -172,52 +172,39 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="擦除参数格式:" Style="{StaticResource LabelStyle}"/>
-                <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,8">
-                    <ComboBox Width="320" HorizontalAlignment="Left"
-                              IsEnabled="{Binding EraseBeforeDownload}"
-                              SelectedIndex="{Binding EraseParamFormatIndex}">
-                        <ComboBoxItem Content="起始地址 + 长度"/>
-                        <ComboBoxItem Content="地址长度格式标识 + 起始地址 + 长度"/>
-                        <ComboBoxItem Content="地址长度格式标识 + 起始地址 + 结束地址"/>
-                    </ComboBox>
-                    <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
-                               Text="需与 ECU 刷写规范中擦除例程的报文字节布局一致；若 ECU 回复 NRC 0x13，多半是此项选错。"/>
-                </StackPanel>
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="擦除超时 (ms):" Style="{StaticResource LabelStyle}"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="擦除超时 (ms):" Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          IsEnabled="{Binding EraseBeforeDownload}"
                          Text="{Binding EraseTimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <Separator Grid.Row="4" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
+                <Separator Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="地址长度格式:" Style="{StaticResource LabelStyle}"/>
-                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="地址长度格式:" Style="{StaticResource LabelStyle}"/>
+                <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding AddressAndLengthFormatId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="数据格式标识:" Style="{StaticResource LabelStyle}"/>
-                <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="数据格式标识:" Style="{StaticResource LabelStyle}"/>
+                <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding DataFormatId, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="单块最大字节:" Style="{StaticResource LabelStyle}"/>
-                <StackPanel Grid.Row="7" Grid.Column="1" Margin="0,0,0,8">
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="单块最大字节:" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="6" Grid.Column="1" Margin="0,0,0,8">
                     <TextBox Width="200" HorizontalAlignment="Left"
                              Text="{Binding MaxBlockSize, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                Text="实际取值不会超过 ECU 在请求下载响应中允许的块长度。"/>
                 </StackPanel>
 
-                <TextBlock Grid.Row="8" Grid.Column="0" Text="块重试次数:" Style="{StaticResource LabelStyle}"/>
-                <TextBox Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="块重试次数:" Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="7" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding BlockRetryCount, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="9" Grid.Column="0" Text="块间延时 (ms):" Style="{StaticResource LabelStyle}"/>
-                <StackPanel Grid.Row="9" Grid.Column="1" Margin="0,0,0,8">
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="块间延时 (ms):" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="8" Grid.Column="1" Margin="0,0,0,8">
                     <TextBox Width="200" HorizontalAlignment="Left"
                              Text="{Binding InterBlockDelayMs, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"

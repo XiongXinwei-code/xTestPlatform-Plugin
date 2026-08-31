@@ -95,20 +95,11 @@ public sealed class CanFlashExecutor : IStepExecutor
                         0x31, 0x01,
                         (byte)(eraseRoutineId >> 8), (byte)eraseRoutineId
                     };
-                    if (setting.EraseParamFormat != EraseParamFormat.AddressAndLength)
-                        eraseRequest.Add(alfid);
-
                     eraseRequest.AddRange(EncodeValue(segment.StartAddress, addressBytes));
-
-                    if (setting.EraseParamFormat == EraseParamFormat.FormatIdAddressAndEndAddress)
-                        eraseRequest.AddRange(EncodeValue(
-                            segment.StartAddress + (uint)segment.Length - 1, lengthBytes));
-                    else
-                        eraseRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
+                    eraseRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
 
                     if (setting.EnableLog)
-                        context.LogAction?.Invoke(
-                            $"UDS Flash: 擦除 0x{segment.StartAddress:X8}，长度 {segment.Length} 字节，参数格式 {setting.EraseParamFormat}");
+                        context.LogAction?.Invoke($"UDS Flash: 擦除 0x{segment.StartAddress:X8}，长度 {segment.Length} 字节");
 
                     var eraseResponse = await eraseClient.RequestAsync(eraseRequest.ToArray(), cancellationToken);
                     if (!eraseResponse.IsPositive)
