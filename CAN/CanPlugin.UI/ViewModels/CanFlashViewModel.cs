@@ -85,6 +85,12 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         set { if (Setting == null || Setting.EraseTimeoutMs == value) return; Setting.EraseTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
     }
 
+    public int EraseParamFormatIndex
+    {
+        get => (int)(Setting?.EraseParamFormat ?? EraseParamFormat.AddressAndLength);
+        set { if (Setting == null || (int)Setting.EraseParamFormat == value) return; Setting.EraseParamFormat = (EraseParamFormat)value; OnPropertyChanged(); QueueSave(); }
+    }
+
     // ── 校验 ────────────────────────────────────────────────────────
     public int CheckModeIndex
     {
@@ -224,6 +230,7 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         EraseBeforeDownload = preset.EraseBeforeDownload;
         EraseRoutineId = preset.EraseRoutineId;
         EraseTimeoutMs = preset.EraseTimeoutMs;
+        EraseParamFormatIndex = (int)preset.EraseParamFormat;
         MaxBlockSize = preset.MaxBlockSize;
         BlockRetryCount = preset.BlockRetryCount;
         InterBlockDelayMs = preset.InterBlockDelayMs;
@@ -246,6 +253,7 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
             EraseBeforeDownload = Setting.EraseBeforeDownload,
             EraseRoutineId = Setting.EraseRoutineId,
             EraseTimeoutMs = Setting.EraseTimeoutMs,
+            EraseParamFormat = Setting.EraseParamFormat,
             MaxBlockSize = Setting.MaxBlockSize,
             BlockRetryCount = Setting.BlockRetryCount,
             InterBlockDelayMs = Setting.InterBlockDelayMs,

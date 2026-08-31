@@ -93,6 +93,9 @@ public sealed class CanFlashEditorPlugin : IStepEditorPlugin
 
             if (s.EraseTimeoutMs <= 0)
                 errors.Add(StepSettingError.Error("UDS_F010", "擦除超时必须大于 0"));
+
+            if (!Enum.IsDefined(typeof(EraseParamFormat), s.EraseParamFormat))
+                errors.Add(StepSettingError.Error("UDS_F014", "擦除参数格式取值无效"));
         }
 
         // ── 校验 ────────────────────────────────────────────────────

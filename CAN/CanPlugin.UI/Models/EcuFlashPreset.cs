@@ -29,6 +29,9 @@ public sealed class EcuFlashPreset
     /// <summary>擦除超时（ms）</summary>
     public int EraseTimeoutMs { get; set; } = 30000;
 
+    /// <summary>擦除例程的请求参数格式</summary>
+    public EraseParamFormat EraseParamFormat { get; set; } = EraseParamFormat.AddressAndLength;
+
     /// <summary>单块最大传输字节数</summary>
     public int MaxBlockSize { get; set; } = 512;
 

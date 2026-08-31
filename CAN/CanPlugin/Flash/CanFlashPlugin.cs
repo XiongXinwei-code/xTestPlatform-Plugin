@@ -30,6 +30,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | DataFormatId | string([ExpressionField]) | 否 | "0x00" | 数据格式标识，0x00 表示不压缩不加密 |
         | EraseBeforeDownload | bool | 否 | true | 是否在下载前执行擦除例程 |
         | EraseRoutineId | string([ExpressionField]) | 否 | "0xFF00" | 擦除例程 ID |
+        | EraseParamFormat | 枚举 | 否 | AddressAndLength | 可选值：AddressAndLength, FormatIdAddressAndLength, FormatIdAddressAndEndAddress；擦除例程的请求参数格式 |
         | EraseTimeoutMs | int | 否 | 30000 | 擦除超时毫秒数 |
         | MaxBlockSize | int | 否 | 512 | 单块最大字节数，实际不超过 ECU 在 0x34 响应中允许的长度 |
         | CheckMode | 枚举 | 否 | Crc32 | 可选值：None, Crc32, Checksum |
@@ -48,6 +49,11 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - 本插件不切换诊断会话、不执行安全访问，需由前置步骤先完成 `UDS_DiagSession`（进入编程会话）与安全解锁
         - 烧录期间不要再次发送 0x10 服务，否则会清除已有的安全解锁状态
         - 固件解析为多个地址连续的数据段，逐段执行 0x34 → 0x36 循环 → 0x37
+        - 擦除请求固定为 `0x31 0x01 <擦除例程 ID>`，后续参数由 EraseParamFormat 决定：
+          - AddressAndLength：`<起始地址><长度>`
+          - FormatIdAddressAndLength：`<地址长度格式标识><起始地址><长度>`
+          - FormatIdAddressAndEndAddress：`<地址长度格式标识><起始地址><结束地址>`，结束地址 = 起始地址 + 长度 - 1
+        - 地址与长度字节数统一取自 AddressAndLengthFormatId；若 ECU 返回 NRC 0x13，通常是 EraseParamFormat 与刷写规范不一致
         - 实际分块大小取 MaxBlockSize 与 ECU 在 0x34 响应中允许长度的较小值
         - 块序号从 1 开始循环递增，到 0xFF 后回绕到 0x00
         - 单块传输失败时按 BlockRetryCount 重试，重试耗尽则步骤报错
@@ -66,6 +72,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
           "AddressAndLengthFormatId": "\"0x44\"",
           "EraseBeforeDownload": true,
           "EraseRoutineId": "\"0xFF00\"",
+          "EraseParamFormat": "FormatIdAddressAndLength",
           "MaxBlockSize": 512,
           "CheckMode": "Crc32",
           "CheckRoutineId": "\"0x0202\"",
