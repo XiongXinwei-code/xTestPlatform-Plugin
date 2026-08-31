@@ -37,9 +37,6 @@ public class CanFlashSetting : UdsCommonSetting
     [ExpressionField]
     public string EraseRoutineId { get; set; } = "\"0xFF00\"";
 
-    /// <summary>擦除例程的请求参数格式，需与 ECU 刷写规范一致</summary>
-    public EraseParamFormat EraseParamFormat { get; set; } = EraseParamFormat.AddressAndLength;
-
     /// <summary>擦除操作超时（ms），擦除耗时通常远长于普通请求</summary>
     public int EraseTimeoutMs { get; set; } = 30000;
 
