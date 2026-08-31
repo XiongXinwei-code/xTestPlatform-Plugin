@@ -47,7 +47,7 @@ public sealed class ZlgAdapter : ICanAdapter
 
         _deviceHandle = ZlgApi.OpenDevice(deviceType, deviceIndex, 0);
         if (_deviceHandle == IntPtr.Zero)
-            throw new InvalidOperationException($"打开 ZLG 设备失败：{parts[0]} 索引 {deviceIndex}（请检查设备连接和驱动安装）");
+            throw new InvalidOperationException($"打开 ZLG 设备失败：{parts[0]} 索引 {deviceIndex}（请检查设备连接和驱动安装）。");
 
         var initConfig = new ZlgApi.ZCAN_CHANNEL_INIT_CONFIG
         {
