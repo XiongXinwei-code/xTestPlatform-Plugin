@@ -45,7 +45,20 @@
                     ScriptText="{Binding Channel, Mode=TwoWay}"
                     ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <expr:ExpressionTextBox.ToolTip>
+                        <TextBlock>
+                            通道标识，格式取决于 AdapterType：<LineBreak/>
+                            • NI（NI-XNET）：接口名 CAN&lt;编号&gt;，如 CAN1（编号从 1 开始）<LineBreak/>
+                            • PEAK（PCAN-Basic）：PCAN_USBBUS&lt;编号&gt;，如 PCAN_USBBUS1（也可简写为 1~16）<LineBreak/>
+                            • Vector：全局通道索引，如 0、1<LineBreak/>
+                            • Kvaser / TOSUN：通道索引，如 0、1<LineBreak/>
+                            • ZLG：&lt;设备类型&gt;/&lt;设备索引&gt;/&lt;通道索引&gt;，如 USBCAN2/0/0、USBCANFD-200U/0/1<LineBreak/>
+                            &#160;&#160;设备类型须与实际型号完全一致（区分短横线），支持：USBCAN1、USBCAN2、<LineBreak/>
+                            &#160;&#160;USBCAN-E-U、USBCAN-2E-U、USBCANFD-200U、USBCANFD-100U、USBCANFD-MINI
+                        </TextBlock>
+                    </expr:ExpressionTextBox.ToolTip>
+                </expr:ExpressionTextBox>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="AdapterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <ComboBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"

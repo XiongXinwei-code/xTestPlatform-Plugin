@@ -295,6 +295,60 @@ internal static class ZlgApi
     [DllImport(DllName, EntryPoint = "ZCAN_SetValue", CharSet = CharSet.Ansi)]
     public static extern uint SetValue(IntPtr deviceHandle, string path, string value);
 
+    [DllImport(DllName, EntryPoint = "GetIProperty")]
+    private static extern IntPtr GetIProperty(IntPtr deviceHandle);
+
+    [DllImport(DllName, EntryPoint = "ReleaseIProperty")]
+    private static extern uint ReleaseIProperty(IntPtr property);
+
+    /// <summary>zlgcan.dll 导出的属性接口（函数指针表）</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IProperty
+    {
+        public IntPtr SetValue;
+        public IntPtr GetValue;
+        public IntPtr GetPropertys;
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet = CharSet.Ansi)]
+    private delegate uint SetValueDelegate(string path, string value);
+
+    /// <summary>
+    /// 设置设备属性。优先使用 GetIProperty 返回的 SetValue 函数指针
+    /// （USBCANFD 系列的波特率属性只有该路径可靠生效），失败时回退到 ZCAN_SetValue。
+    /// </summary>
+    public static bool TrySetProperty(IntPtr deviceHandle, string path, string value)
+    {
+        IntPtr propertyPtr = IntPtr.Zero;
+        try
+        {
+            propertyPtr = GetIProperty(deviceHandle);
+            if (propertyPtr != IntPtr.Zero)
+            {
+                var property = Marshal.PtrToStructure<IProperty>(propertyPtr);
+                if (property.SetValue != IntPtr.Zero)
+                {
+                    var setValue = Marshal.GetDelegateForFunctionPointer<SetValueDelegate>(property.SetValue);
+                    if (setValue(path, value) == STATUS_OK)
+                        return true;
+                }
+            }
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // 旧版 zlgcan.dll 未导出 GetIProperty，走下面的回退分支
+        }
+        finally
+        {
+            if (propertyPtr != IntPtr.Zero)
+            {
+                try { ReleaseIProperty(propertyPtr); } catch (EntryPointNotFoundException) { }
+            }
+        }
+
+        return SetValue(deviceHandle, path, value) == STATUS_OK;
+    }
+
     /// <summary>判断是否为 USBCANFD 系列设备（波特率须用 SetValue 配置）</summary>
     public static bool IsCanFdDevice(uint deviceType) =>
         deviceType is ZCAN_USBCANFD_200U or ZCAN_USBCANFD_100U or ZCAN_USBCANFD_MINI;
