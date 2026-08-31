@@ -6,8 +6,8 @@ using System.Text.Json;
 namespace LabVIEWCallPlugin.UI.Converters
 {
     /// <summary>
-    /// ¶àÖµ×ª»»Æ÷£º½âÎöºÍ¸ñÊ½»¯Ã¶¾ÙÖµ JSON ×Ö·û´®
-    /// ¸ñÊ½: {"String Value":"add","Enum Strings":["add","subtract","multiply","divide"]}
+    /// å°† LabVIEW æšä¸¾æ§ä»¶çš„ JSON æè¿°è½¬æ¢ä¸ºå½“å‰é€‰ä¸­çš„å­—ç¬¦ä¸²å€¼ã€‚
+    /// æ ¼å¼ç¤ºä¾‹: {"String Value":"add","Enum Strings":["add","subtract","multiply","divide"]}
     /// </summary>
     public class EnumValueConverter : IMultiValueConverter
     {
@@ -28,7 +28,7 @@ namespace LabVIEWCallPlugin.UI.Converters
                 }
                 catch (JsonException)
                 {
-                    // JSON ½âÎöÊ§°Ü£¬·µ»ØÔ­Ê¼Öµ
+                    // JSON è§£æå¤±è´¥æ—¶ï¼Œç›´æ¥è¿”å›åŸå§‹å­—ç¬¦ä¸²
                     return jsonString;
                 }
             }
@@ -46,7 +46,7 @@ namespace LabVIEWCallPlugin.UI.Converters
                         JsonElement root = doc.RootElement;
                         if (root.TryGetProperty("Enum Strings", out JsonElement enumStrings))
                         {
-                            // ÖØ¹¹ JSON£¬¸üĞÂ String Value
+                            // ä¿ç•™åŸæœ‰æšä¸¾é¡¹åˆ—è¡¨ï¼Œä»…æ›´æ–° String Value
                             string updatedJson = JsonSerializer.Serialize(new
                             {
                                 StringValue = selectedValue,
@@ -58,7 +58,7 @@ namespace LabVIEWCallPlugin.UI.Converters
                 }
                 catch (JsonException)
                 {
-                    // Èç¹û½âÎöÊ§°Ü£¬·µ»ØÑ¡¶¨µÄÖµ
+                    // JSON è§£æå¤±è´¥æ—¶ï¼Œé€€å›ä¸‹é¢çš„åŸå€¼è¿”å›é€»è¾‘
                 }
             }
             return new object[] { value };
@@ -66,7 +66,7 @@ namespace LabVIEWCallPlugin.UI.Converters
     }
 
     /// <summary>
-    /// ×ª»»Æ÷£ºÓÃÓÚÌáÈ¡Ã¶¾ÙÁĞ±í
+    /// ä» LabVIEW æšä¸¾æ§ä»¶çš„ JSON æè¿°ä¸­æå–å…¨éƒ¨å¯é€‰é¡¹ï¼Œä¾› ItemsSource ç»‘å®šä½¿ç”¨ã€‚
     /// </summary>
     public class EnumListConverter : IValueConverter
     {
@@ -87,15 +87,14 @@ namespace LabVIEWCallPlugin.UI.Converters
                 }
                 catch (JsonException)
                 {
-                    // JSON ½âÎöÊ§°Ü£¬·µ»Ø¿ÕÊı×é
+                    // JSON è§£æå¤±è´¥æ—¶ï¼Œè¿”å›ç©ºåˆ—è¡¨
                 }
             }
             return Array.Empty<string>();
         }
 
+        // è¯¥è½¬æ¢å™¨ä»…ç”¨äºå•å‘æä¾›é€‰é¡¹åˆ—è¡¨ï¼Œåå‘å†™å›æ— æ„ä¹‰ï¼Œä¿æŒç»‘å®šåŸå€¼ä¸å˜
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            throw new NotImplementedException();
-        }
+            => Binding.DoNothing;
     }
 }
