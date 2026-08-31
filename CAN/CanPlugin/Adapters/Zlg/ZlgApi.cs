@@ -169,22 +169,39 @@ internal static class ZlgApi
     public const uint ZCAN_TYPE_CAN = 0;
     public const uint ZCAN_TYPE_CANFD = 1;
 
-    // ── 初始化配置（union 简化为 CAN/CANFD 通用布局） ─────
+    // ── 初始化配置（原生为 union，必须按 CAN/CANFD 两套布局分别映射） ─────
     [StructLayout(LayoutKind.Sequential)]
-    public struct ZCAN_CHANNEL_INIT_CONFIG
+    public struct ZCAN_CHANNEL_CAN_CFG
     {
-        public uint can_type;      // 0=CAN, 1=CANFD
         public uint acc_code;
         public uint acc_mask;
-        public uint abit_timing;   // CANFD 仲裁段时序（或 CAN 保留）
-        public uint dbit_timing;   // CANFD 数据段时序
-        public uint brp;
+        public uint reserved;
         public byte filter;
         public byte timing0;       // CAN 波特率 BTR0
         public byte timing1;       // CAN 波特率 BTR1
         public byte mode;          // 0=正常
-        public uint pad;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ZCAN_CHANNEL_CANFD_CFG
+    {
+        public uint acc_code;
+        public uint acc_mask;
+        public uint abit_timing;   // 仅部分老设备使用，USBCANFD 系列须用 SetValue 设置波特率
+        public uint dbit_timing;
+        public uint brp;
+        public byte filter;
+        public byte mode;          // 0=正常
+        public ushort pad;
         public uint reserved;
+    }
+
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
+    public struct ZCAN_CHANNEL_INIT_CONFIG
+    {
+        [FieldOffset(0)] public uint can_type;      // 0=CAN, 1=CANFD
+        [FieldOffset(4)] public ZCAN_CHANNEL_CAN_CFG can;
+        [FieldOffset(4)] public ZCAN_CHANNEL_CANFD_CFG canfd;
     }
 
     // ── 报文结构（对应 canfd_frame，Linux 风格） ──────────
@@ -273,6 +290,14 @@ internal static class ZlgApi
 
     [DllImport(DllName, EntryPoint = "ZCAN_GetReceiveNum")]
     public static extern uint GetReceiveNum(IntPtr channelHandle, byte type);
+
+    /// <summary>设置设备属性（USBCANFD 系列须通过该接口配置波特率）</summary>
+    [DllImport(DllName, EntryPoint = "ZCAN_SetValue", CharSet = CharSet.Ansi)]
+    public static extern uint SetValue(IntPtr deviceHandle, string path, string value);
+
+    /// <summary>判断是否为 USBCANFD 系列设备（波特率须用 SetValue 配置）</summary>
+    public static bool IsCanFdDevice(uint deviceType) =>
+        deviceType is ZCAN_USBCANFD_200U or ZCAN_USBCANFD_100U or ZCAN_USBCANFD_MINI;
 
     /// <summary>设备类型名转设备类型码</summary>
     public static uint ParseDeviceType(string name) => name.Trim().ToUpperInvariant() switch

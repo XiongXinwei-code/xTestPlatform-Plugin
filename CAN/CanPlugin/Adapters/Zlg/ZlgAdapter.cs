@@ -51,22 +51,49 @@ public sealed class ZlgAdapter : ICanAdapter
 
         var initConfig = new ZlgApi.ZCAN_CHANNEL_INIT_CONFIG
         {
-            can_type = _isFd ? ZlgApi.ZCAN_TYPE_CANFD : ZlgApi.ZCAN_TYPE_CAN,
-            acc_code = 0,
-            acc_mask = 0xFFFFFFFF,
-            filter = 0,
-            mode = 0
+            can_type = _isFd ? ZlgApi.ZCAN_TYPE_CANFD : ZlgApi.ZCAN_TYPE_CAN
         };
 
-        if (_isFd)
+        if (ZlgApi.IsCanFdDevice(deviceType))
         {
-            // CANFD 设备时序由设备属性设置决定，这里使用时序字段直接传入波特率（USBCANFD 系列支持）
-            initConfig.abit_timing = (uint)config.BaudRate;
-            initConfig.dbit_timing = (uint)config.DataBitRate;
+            // USBCANFD 系列：波特率必须在 InitCAN 之前通过设备属性设置，
+            // 直接把 bps 填入 abit_timing/dbit_timing 会得到无效时序，导致后续发送失败。
+            if (ZlgApi.SetValue(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
+                    config.BaudRate.ToString()) != ZlgApi.STATUS_OK)
+            {
+                ZlgApi.CloseDevice(_deviceHandle);
+                _deviceHandle = IntPtr.Zero;
+                throw new InvalidOperationException($"设置 ZLG 通道 {channelIndex} 仲裁段波特率 {config.BaudRate} bps 失败");
+            }
+
+            int dataBitRate = _isFd ? config.DataBitRate : config.BaudRate;
+            if (ZlgApi.SetValue(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
+                    dataBitRate.ToString()) != ZlgApi.STATUS_OK)
+            {
+                ZlgApi.CloseDevice(_deviceHandle);
+                _deviceHandle = IntPtr.Zero;
+                throw new InvalidOperationException($"设置 ZLG 通道 {channelIndex} 数据段波特率 {dataBitRate} bps 失败");
+            }
+
+            initConfig.canfd.acc_code = 0;
+            initConfig.canfd.acc_mask = 0xFFFFFFFF;
+            initConfig.canfd.filter = 0;
+            initConfig.canfd.mode = 0;
+        }
+        else if (_isFd)
+        {
+            // 非 USBCANFD 系列不支持 CAN FD
+            ZlgApi.CloseDevice(_deviceHandle);
+            _deviceHandle = IntPtr.Zero;
+            throw new InvalidOperationException($"ZLG 设备类型 {parts[0]} 不支持 CAN FD，请改用 USBCANFD 系列设备或将协议设为 Classic");
         }
         else
         {
-            (initConfig.timing0, initConfig.timing1) = ZlgApi.ToTiming(config.BaudRate);
+            initConfig.can.acc_code = 0;
+            initConfig.can.acc_mask = 0xFFFFFFFF;
+            initConfig.can.filter = 0;
+            initConfig.can.mode = 0;
+            (initConfig.can.timing0, initConfig.can.timing1) = ZlgApi.ToTiming(config.BaudRate);
         }
 
         _channelHandle = ZlgApi.InitCAN(_deviceHandle, channelIndex, ref initConfig);
@@ -115,21 +142,24 @@ public sealed class ZlgAdapter : ICanAdapter
 
         if (_isFd && message.IsFd)
         {
+            int len = Math.Min(message.Data.Length, 64);
+            byte dlcLen = ToFdLength(len); // CAN FD 只允许特定长度，不足处补 0
             var data = new ZlgApi.ZCAN_TransmitFD_Data
             {
                 frame = new ZlgApi.canfd_frame
                 {
                     can_id = canId,
-                    len = (byte)Math.Min(message.Data.Length, 64),
+                    len = dlcLen,
                     flags = ZlgApi.CANFD_BRS,
                     data = new byte[64]
                 },
                 transmit_type = 0
             };
-            Array.Copy(message.Data, data.frame.data, Math.Min(message.Data.Length, 64));
+            Array.Copy(message.Data, data.frame.data, len);
 
             if (ZlgApi.TransmitFD(_channelHandle, ref data, 1) != 1)
-                throw new InvalidOperationException("ZLG CANFD 报文发送失败");
+                throw new InvalidOperationException(
+                    $"ZLG CANFD 报文发送失败（ID=0x{message.Id:X}，长度={dlcLen}），请检查总线连接、终端电阻及波特率配置");
         }
         else
         {
@@ -146,9 +176,23 @@ public sealed class ZlgAdapter : ICanAdapter
             Array.Copy(message.Data, data.frame.data, Math.Min(message.Data.Length, 8));
 
             if (ZlgApi.Transmit(_channelHandle, ref data, 1) != 1)
-                throw new InvalidOperationException("ZLG CAN 报文发送失败");
+                throw new InvalidOperationException(
+                    $"ZLG CAN 报文发送失败（ID=0x{message.Id:X}，长度={data.frame.can_dlc}），请检查总线连接、终端电阻及波特率配置");
         }
     }
+
+    /// <summary>把实际字节数向上取整为 CAN FD 允许的帧长度</summary>
+    private static byte ToFdLength(int length) => length switch
+    {
+        <= 8 => (byte)length,
+        <= 12 => 12,
+        <= 16 => 16,
+        <= 20 => 20,
+        <= 24 => 24,
+        <= 32 => 32,
+        <= 48 => 48,
+        _ => 64
+    };
 
     public CanMessage? Read(int timeoutMs, CancellationToken ct = default) => ReadInternal(null, timeoutMs, ct);
 
