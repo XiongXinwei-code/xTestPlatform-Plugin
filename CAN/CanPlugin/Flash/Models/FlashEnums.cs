@@ -16,6 +16,18 @@ public enum FirmwareFormat
     Binary = 3
 }
 
+/// <summary>擦除例程的请求参数格式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum EraseParamFormat
+{
+    /// <summary>起始地址 + 长度，不带地址长度格式标识</summary>
+    AddressAndLength = 0,
+    /// <summary>地址长度格式标识 + 起始地址 + 长度</summary>
+    FormatIdAddressAndLength = 1,
+    /// <summary>地址长度格式标识 + 起始地址 + 结束地址（结束地址为该段最后一个字节的地址）</summary>
+    FormatIdAddressAndEndAddress = 2
+}
+
 /// <summary>烧录完成后的校验方式</summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum FlashCheckMode
