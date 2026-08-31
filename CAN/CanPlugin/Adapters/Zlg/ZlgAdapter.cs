@@ -58,21 +58,25 @@ public sealed class ZlgAdapter : ICanAdapter
         {
             // USBCANFD 系列：波特率必须在 InitCAN 之前通过设备属性设置，
             // 直接把 bps 填入 abit_timing/dbit_timing 会得到无效时序，导致后续发送失败。
-            if (ZlgApi.SetValue(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
-                    config.BaudRate.ToString()) != ZlgApi.STATUS_OK)
+            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
+                    config.BaudRate.ToString()))
             {
                 ZlgApi.CloseDevice(_deviceHandle);
                 _deviceHandle = IntPtr.Zero;
-                throw new InvalidOperationException($"设置 ZLG 通道 {channelIndex} 仲裁段波特率 {config.BaudRate} bps 失败");
+                throw new InvalidOperationException(
+                    $"设置 ZLG 通道 {channelIndex} 仲裁段波特率 {config.BaudRate} bps 失败。" +
+                    $"请确认：设备类型 {parts[0]} 与实际硬件一致、通道号 {channelIndex} 存在、" +
+                    "该波特率在设备支持范围内，且设备未被 ZCANPRO 等其他软件占用。");
             }
 
             int dataBitRate = _isFd ? config.DataBitRate : config.BaudRate;
-            if (ZlgApi.SetValue(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
-                    dataBitRate.ToString()) != ZlgApi.STATUS_OK)
+            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
+                    dataBitRate.ToString()))
             {
                 ZlgApi.CloseDevice(_deviceHandle);
                 _deviceHandle = IntPtr.Zero;
-                throw new InvalidOperationException($"设置 ZLG 通道 {channelIndex} 数据段波特率 {dataBitRate} bps 失败");
+                throw new InvalidOperationException(
+                    $"设置 ZLG 通道 {channelIndex} 数据段波特率 {dataBitRate} bps 失败，请确认该波特率在设备支持范围内。");
             }
 
             initConfig.canfd.acc_code = 0;
