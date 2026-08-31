@@ -319,28 +319,74 @@ internal static class ZlgApi
     /// 不同型号或驱动版本只支持其中一种，全部失败返回 false。
     /// </summary>
     public static bool TrySetProperty(IntPtr deviceHandle, string path, string value)
+        => TrySetProperty(deviceHandle, path, value, out _);
+
+    /// <summary>
+    /// 设置设备属性，并输出两条路径各自的失败原因，便于现场定位。
+    /// </summary>
+    public static bool TrySetProperty(IntPtr deviceHandle, string path, string value, out string diagnostics)
     {
+        var log = new System.Text.StringBuilder();
         try
         {
-            if (SetValue(deviceHandle, path, value) == STATUS_OK)
+            uint ret = SetValue(deviceHandle, path, value);
+            if (ret == STATUS_OK)
+            {
+                diagnostics = "ZCAN_SetValue 成功";
                 return true;
+            }
+            log.Append($"ZCAN_SetValue 返回 {ret}");
         }
-        catch (EntryPointNotFoundException) { /* 老版本无该导出，改走 IProperty */ }
+        catch (EntryPointNotFoundException)
+        {
+            log.Append("zlgcan.dll 无 ZCAN_SetValue 导出");
+        }
+        catch (Exception ex)
+        {
+            log.Append($"ZCAN_SetValue 异常 {ex.GetType().Name}: {ex.Message}");
+        }
 
         IntPtr prop = IntPtr.Zero;
         try
         {
             prop = GetIProperty(deviceHandle);
-            if (prop == IntPtr.Zero) return false;
+            if (prop == IntPtr.Zero)
+            {
+                log.Append("；GetIProperty 返回空指针");
+                diagnostics = log.ToString();
+                return false;
+            }
 
             var table = Marshal.PtrToStructure<IProperty>(prop);
-            if (table.SetValue == IntPtr.Zero) return false;
+            if (table.SetValue == IntPtr.Zero)
+            {
+                log.Append("；IProperty.SetValue 函数指针为空");
+                diagnostics = log.ToString();
+                return false;
+            }
 
             var setter = Marshal.GetDelegateForFunctionPointer<SetValueFunc>(table.SetValue);
-            return setter(path, value) == STATUS_OK;
+            uint ret2 = setter(path, value);
+            if (ret2 == STATUS_OK)
+            {
+                diagnostics = log.Append("；IProperty.SetValue 成功").ToString();
+                return true;
+            }
+
+            log.Append($"；IProperty.SetValue 返回 {ret2}");
+            diagnostics = log.ToString();
+            return false;
         }
         catch (EntryPointNotFoundException)
         {
+            log.Append("；zlgcan.dll 无 GetIProperty 导出");
+            diagnostics = log.ToString();
+            return false;
+        }
+        catch (Exception ex)
+        {
+            log.Append($"；IProperty 调用异常 {ex.GetType().Name}: {ex.Message}");
+            diagnostics = log.ToString();
             return false;
         }
         finally
