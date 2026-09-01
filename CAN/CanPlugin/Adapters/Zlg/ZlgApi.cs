@@ -346,7 +346,15 @@ internal static class ZlgApi
             }
         }
 
-        return SetValue(deviceHandle, path, value) == STATUS_OK;
+        try
+        {
+            return SetValue(deviceHandle, path, value) == STATUS_OK;
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // 部分旧版 DLL 只有 GetIProperty 属性接口。
+            return false;
+        }
     }
 
     /// <summary>判断是否为 USBCANFD 系列设备（波特率须用 SetValue 配置）</summary>
