@@ -22,7 +22,10 @@ public class CanFlashSetting : UdsCommonSetting
     [ExpressionField]
     public string BaseAddress { get; set; } = "\"0x08000000\"";
 
-    /// <summary>地址与长度格式标识符（0x44 表示 4 字节地址 + 4 字节长度）</summary>
+    /// <summary>
+    /// 地址与长度格式标识符（0x44 表示 4 字节地址 + 4 字节长度）。
+    /// 用于擦除例程的 option record 与 0x34 RequestDownload。
+    /// </summary>
     [ExpressionField]
     public string AddressAndLengthFormatId { get; set; } = "\"0x44\"";
 

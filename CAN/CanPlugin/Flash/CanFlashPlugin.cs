@@ -26,7 +26,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | FilePath | string([ExpressionField]) | 是 | — | 固件文件路径 |
         | Format | 枚举 | 否 | Auto | 可选值：Auto, IntelHex, SRecord, Binary；Auto 按扩展名识别 |
         | BaseAddress | string([ExpressionField]) | 否 | "0x08000000" | 基地址，仅 Binary 格式使用 |
-        | AddressAndLengthFormatId | string([ExpressionField]) | 否 | "0x44" | 地址与长度格式标识，高半字节为长度字节数、低半字节为地址字节数 |
+        | AddressAndLengthFormatId | string([ExpressionField]) | 否 | "0x44" | 地址与长度格式标识，高半字节为长度字节数、低半字节为地址字节数；用于擦除例程与 0x34 请求下载 |
         | DataFormatId | string([ExpressionField]) | 否 | "0x00" | 数据格式标识，0x00 表示不压缩不加密 |
         | EraseBeforeDownload | bool | 否 | true | 是否在下载前执行擦除例程 |
         | EraseRoutineId | string([ExpressionField]) | 否 | "0xFF00" | 擦除例程 ID |

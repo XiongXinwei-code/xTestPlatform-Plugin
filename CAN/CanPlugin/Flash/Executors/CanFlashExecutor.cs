@@ -95,6 +95,10 @@ public sealed class CanFlashExecutor : IStepExecutor
                         0x31, 0x01,
                         (byte)(eraseRoutineId >> 8), (byte)eraseRoutineId
                     };
+                    // 擦除例程的 option record 与 RequestDownload 一样以 ALFID 开头：
+                    // [addressAndLengthFormatId][memoryAddress][memorySize]。
+                    // 缺少 ALFID 会使常见的 FF00 擦除例程以 NRC 0x13 拒绝请求。
+                    eraseRequest.Add(alfid);
                     eraseRequest.AddRange(EncodeValue(segment.StartAddress, addressBytes));
                     eraseRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
 
