@@ -295,13 +295,6 @@ internal static class ZlgApi
     [DllImport(DllName, EntryPoint = "ZCAN_SetValue", CharSet = CharSet.Ansi)]
     public static extern uint SetValue(IntPtr deviceHandle, string path, string value);
 
-    // 当设备不接受 canfd_* 属性路径时，ZLGCAN SDK 提供这两个专用接口作为回退。
-    [DllImport(DllName, EntryPoint = "ZCAN_SetAbitBaud")]
-    private static extern uint SetAbitBaud(IntPtr deviceHandle, uint canIndex, uint baudRate);
-
-    [DllImport(DllName, EntryPoint = "ZCAN_SetDbitBaud")]
-    private static extern uint SetDbitBaud(IntPtr deviceHandle, uint canIndex, uint baudRate);
-
     [DllImport(DllName, EntryPoint = "GetIProperty")]
     private static extern IntPtr GetIProperty(IntPtr deviceHandle);
 
@@ -359,40 +352,7 @@ internal static class ZlgApi
         }
         catch (EntryPointNotFoundException)
         {
-            // 部分旧版 DLL 只有 GetIProperty 属性接口；该接口同样不可用时，
-            // 调用方可继续尝试专用的 ZCAN_SetAbitBaud / ZCAN_SetDbitBaud。
-            return false;
-        }
-    }
-
-    /// <summary>设置 CAN FD 仲裁段波特率；兼容不接受属性路径的 ZLGCAN DLL。</summary>
-    public static bool TrySetCanFdArbitrationBaud(IntPtr deviceHandle, uint canIndex, int baudRate)
-    {
-        if (TrySetProperty(deviceHandle, $"{canIndex}/canfd_abit_baud_rate", baudRate.ToString()))
-            return true;
-
-        try
-        {
-            return SetAbitBaud(deviceHandle, canIndex, (uint)baudRate) == STATUS_OK;
-        }
-        catch (EntryPointNotFoundException)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>设置 CAN FD 数据段波特率；兼容不接受属性路径的 ZLGCAN DLL。</summary>
-    public static bool TrySetCanFdDataBaud(IntPtr deviceHandle, uint canIndex, int baudRate)
-    {
-        if (TrySetProperty(deviceHandle, $"{canIndex}/canfd_dbit_baud_rate", baudRate.ToString()))
-            return true;
-
-        try
-        {
-            return SetDbitBaud(deviceHandle, canIndex, (uint)baudRate) == STATUS_OK;
-        }
-        catch (EntryPointNotFoundException)
-        {
+            // 部分旧版 DLL 只有 GetIProperty 属性接口。
             return false;
         }
     }
