@@ -124,8 +124,20 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
 
     public bool EraseWithAddressAndLength
     {
-        get => Setting?.EraseWithAddressAndLength ?? true;
-        set { if (Setting == null || Setting.EraseWithAddressAndLength == value) return; Setting.EraseWithAddressAndLength = value; OnPropertyChanged(); QueueSave(); }
+        get => Setting?.UseMappedRange == true || Setting?.EraseWithAddressAndLength != false;
+        set
+        {
+            if (Setting == null) return;
+            if (Setting.UseMappedRange && !value)
+            {
+                OnPropertyChanged();
+                return;
+            }
+            if (Setting.EraseWithAddressAndLength == value) return;
+            Setting.EraseWithAddressAndLength = value;
+            OnPropertyChanged();
+            QueueSave();
+        }
     }
 
     public int EraseTimeoutMs

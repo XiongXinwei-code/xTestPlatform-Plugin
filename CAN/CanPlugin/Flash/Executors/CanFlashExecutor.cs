@@ -105,7 +105,9 @@ public sealed class CanFlashExecutor : IStepExecutor
                         0x31, 0x01,
                         (byte)(eraseRoutineId >> 8), (byte)eraseRoutineId
                     };
-                    if (setting.EraseWithAddressAndLength != false)
+                    // 映射范围必须把同一范围的地址和长度传给擦除例程；历史 UI 状态即使保存为
+                    // false，也不能让映射模式退化为无参数擦除。
+                    if (setting.UseMappedRange || setting.EraseWithAddressAndLength != false)
                     {
                         // 带参数擦除的 option record：
                         // [addressAndLengthFormatId][memoryAddress][memorySize]。

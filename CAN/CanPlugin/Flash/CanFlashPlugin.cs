@@ -41,7 +41,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | DataFormatId | string([ExpressionField]) | 否 | "0x00" | 数据格式标识，0x00 表示不压缩不加密 |
         | EraseBeforeDownload | bool | 否 | true | 是否在下载前执行擦除例程 |
         | EraseRoutineId | string([ExpressionField]) | 否 | "0xFF00" | 擦除例程 ID |
-        | EraseWithAddressAndLength | bool | 否 | true | true 时擦除请求附带 [ALFID][地址][长度]；false 时执行无参数擦除 |
+        | EraseWithAddressAndLength | bool | 否 | true | true 时擦除请求附带 [ALFID][地址][长度]；false 时执行无参数擦除；UseMappedRange=true 时强制带参数 |
         | EraseTimeoutMs | int | 否 | 30000 | 擦除超时毫秒数 |
         | MaxBlockSize | int | 否 | 512 | 单块最大字节数，实际不超过 ECU 在 0x34 响应中允许的长度；0 表示完全采用 ECU 返回值 |
         | PreDownloadDelayMs | int | 否 | 0 | 擦除与下载前等待时间，用于等待 FlashDriver 激活 |
@@ -62,7 +62,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - 烧录期间不要再次发送 0x10 服务，否则会清除已有的安全解锁状态
         - 默认将固件解析为多个地址连续的数据段，逐段执行 0x34 → 0x36 循环 → 0x37；启用映射范围后，所有数据段会按指定范围合并，地址空洞使用填充字节补齐
         - 实际分块大小取 MaxBlockSize 与 ECU 在 0x34 响应中允许长度的较小值；MaxBlockSize 为 0 时不再额外限制
-        - 擦除例程可按 ECU 规范选择携带或不携带 [ALFID][地址][长度] 参数
+        - 擦除例程可按 ECU 规范选择携带或不携带 [ALFID][地址][长度] 参数；映射范围模式始终携带完整范围参数
         - 块序号从 1 开始循环递增，到 0xFF 后回绕到 0x00
         - 单块传输失败时按 BlockRetryCount 重试，重试耗尽则步骤报错
         - ECU 返回否定响应、请求超时或固件文件解析失败时步骤报错

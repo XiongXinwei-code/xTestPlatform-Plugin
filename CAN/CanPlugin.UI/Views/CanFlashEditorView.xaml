@@ -267,7 +267,7 @@
                     <CheckBox IsChecked="{Binding EraseWithAddressAndLength}"
                               IsEnabled="{Binding EraseBeforeDownload}" VerticalAlignment="Center"/>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
-                               Text="勾选时发送 31 01 &lt;RID&gt; &lt;ALFID&gt; &lt;地址&gt; &lt;长度&gt;；对应 ZLG 的“带参数擦除”。未勾选时仅发送无参数擦除例程。"/>
+                               Text="勾选时发送 31 01 &lt;RID&gt; &lt;ALFID&gt; &lt;地址&gt; &lt;长度&gt;；对应 ZLG 的“带参数擦除”。启用映射范围时强制带参数，未启用映射时可取消勾选以发送无参数擦除例程。"/>
                 </StackPanel>
 
                 <TextBlock Grid.Row="12" Grid.Column="0" Text="下载前延时 (ms):" Style="{StaticResource LabelStyle}"/>
