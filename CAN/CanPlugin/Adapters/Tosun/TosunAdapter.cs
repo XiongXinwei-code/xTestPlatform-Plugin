@@ -35,6 +35,13 @@ public sealed class TosunAdapter : ICanAdapter
         if (!int.TryParse(config.Channel.Trim(), out _channelIndex) || _channelIndex < 0)
             throw new ArgumentException($"无效的 TOSUN 通道 '{config.Channel}'，应为通道索引（0、1、2…）");
 
+        if (Math.Abs(config.ArbitrationSamplePoint - 80d) > 0.01)
+        {
+            throw new InvalidOperationException(
+                $"当前插件使用的 libTSCAN tscan_config_*_by_baudrate 接口没有采样点参数，" +
+                $"不能可靠表达 {config.ArbitrationSamplePoint:F2}%；请设为 80%，或改用提供寄存器配置接口的 TSMaster SDK。");
+        }
+
         _isFd = config.Protocol == CanProtocolType.FD;
 
         TosunApi.InitializeLib(true, false); // 启用 FIFO 接收模式
@@ -55,13 +62,17 @@ public sealed class TosunAdapter : ICanAdapter
             TosunApi.CheckStatus(TosunApi.ConfigCanFdByBaudrate(
                 _deviceHandle, _channelIndex,
                 config.BaudRate / 1000.0, config.DataBitRate / 1000.0,
-                1, 0, 1), "配置 CANFD 波特率");
+                1, 0, config.EnableTermination ? 1u : 0u), "配置 CANFD 波特率");
         }
         else
         {
             TosunApi.CheckStatus(TosunApi.ConfigCanByBaudrate(
-                _deviceHandle, _channelIndex, config.BaudRate / 1000.0, 1), "配置 CAN 波特率");
+                _deviceHandle, _channelIndex, config.BaudRate / 1000.0,
+                config.EnableTermination ? 1u : 0u), "配置 CAN 波特率");
         }
+
+        config.AppliedArbitrationBitRate = config.BaudRate;
+        config.AppliedArbitrationSamplePoint = 80;
 
         _isConnected = true;
     }

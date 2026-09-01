@@ -123,6 +123,16 @@ internal static class VectorXlApi
         public uint reserved2;
     }
 
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct XLchipParams
+    {
+        public uint bitRate;
+        public byte sjw;
+        public byte tseg1;
+        public byte tseg2;
+        public byte sam;
+    }
+
     // ── API 函数 ──────────────────────────────────────────
     [DllImport(DllName, EntryPoint = "xlOpenDriver")]
     public static extern short OpenDriver();
@@ -148,6 +158,10 @@ internal static class VectorXlApi
 
     [DllImport(DllName, EntryPoint = "xlCanSetChannelBitrate")]
     public static extern short CanSetChannelBitrate(int portHandle, ulong accessMask, uint bitrate);
+
+    [DllImport(DllName, EntryPoint = "xlCanSetChannelParams")]
+    public static extern short CanSetChannelParams(
+        int portHandle, ulong accessMask, ref XLchipParams chipParams);
 
     [DllImport(DllName, EntryPoint = "xlCanFdSetConfiguration")]
     public static extern short CanFdSetConfiguration(int portHandle, ulong accessMask, ref XLcanFdConf conf);

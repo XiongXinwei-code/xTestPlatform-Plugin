@@ -40,6 +40,12 @@ public class CanAdapterConfig
     public int DataBitRate { get; set; } = 2_000_000;
     /// <summary>是否使能硬件内置终端电阻；由支持该能力的适配器处理。</summary>
     public bool EnableTermination { get; set; }
+    /// <summary>仲裁段目标采样点百分比；底层位时序由适配器换算。</summary>
+    public double ArbitrationSamplePoint { get; set; } = 80.0;
+    /// <summary>适配器成功初始化后回填的实际仲裁段波特率。</summary>
+    public double? AppliedArbitrationBitRate { get; set; }
+    /// <summary>适配器成功初始化后回填的实际仲裁段采样点。</summary>
+    public double? AppliedArbitrationSamplePoint { get; set; }
     /// <summary>仲裁段自定义位时序；null 表示使用驱动根据 BaudRate 选择的默认时序。</summary>
     public CanBitTimingConfig? ArbitrationBitTiming { get; set; }
     public string DatabasePath { get; set; } = "";

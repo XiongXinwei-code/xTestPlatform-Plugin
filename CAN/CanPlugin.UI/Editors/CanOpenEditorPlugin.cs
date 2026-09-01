@@ -44,16 +44,40 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         else if (s.RxQueueSize < 512)
             errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于默认值 512 帧，高负载总线下可能丢帧"));
 
-        if (s.AdapterType == CanAdapterType.NI && s.ArbitrationBitTimingMode != CanBitTimingMode.Automatic)
+        if (double.IsNaN(s.ArbitrationSamplePoint) || double.IsInfinity(s.ArbitrationSamplePoint) ||
+            s.ArbitrationSamplePoint < 7.5 || s.ArbitrationSamplePoint > 97.5)
+        {
+            errors.Add(StepSettingError.Error("CAN_007", "仲裁段采样点必须在 7.5%~97.5% 之间"));
+        }
+        else if (s.AdapterType == CanAdapterType.NI)
         {
             try
             {
-                _ = CanBitTimingCalculator.Resolve(s);
+                _ = CanBitTimingCalculator.Calculate(s.BaudRate, s.ArbitrationSamplePoint);
             }
             catch (Exception ex)
             {
-                errors.Add(StepSettingError.Error("CAN_007", $"NI-XNET 仲裁段位时序无效: {ex.Message}"));
+                errors.Add(StepSettingError.Error("CAN_007", $"NI-XNET 仲裁段采样点无效: {ex.Message}"));
             }
+        }
+        else if (s.AdapterType == CanAdapterType.TOSUN &&
+                 Math.Abs(s.ArbitrationSamplePoint - 80d) > 0.01)
+        {
+            errors.Add(StepSettingError.Error(
+                "CAN_008", "当前 libTSCAN 波特率接口仅能可靠使用 80% 仲裁段采样点"));
+        }
+        else if (s.AdapterType == CanAdapterType.ZLG && s.Protocol == CanProtocolType.FD &&
+                 Math.Abs(s.ArbitrationSamplePoint - 80d) > 0.01)
+        {
+            errors.Add(StepSettingError.Error(
+                "CAN_009", "当前内置 ZLGCAN 的 CAN FD 标准波特率接口仅支持 80% 仲裁段采样点"));
+        }
+
+        if (s.EnableTermination && s.AdapterType is
+            CanAdapterType.PEAK or CanAdapterType.Vector or CanAdapterType.Kvaser)
+        {
+            errors.Add(StepSettingError.Error(
+                "CAN_010", $"{s.AdapterType} 当前通用驱动接口不能控制内置终端电阻，请取消勾选并外接 120 Ω 电阻"));
         }
         return errors;
     }

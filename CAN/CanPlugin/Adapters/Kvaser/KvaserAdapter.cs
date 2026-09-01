@@ -1,3 +1,4 @@
+using CAN.Helpers;
 using CAN.Models;
 
 namespace CAN.Adapters.Kvaser;
@@ -28,6 +29,12 @@ public sealed class KvaserAdapter : ICanAdapter
 
     private void OpenInternal(CanAdapterConfig config)
     {
+        if (config.EnableTermination)
+        {
+            throw new InvalidOperationException(
+                "Kvaser CANlib 没有适用于所有设备的通用终端电阻开关；请取消勾选并外接 120 Ω 电阻。");
+        }
+
         // Channel 参数为 CANlib 通道索引（0、1、2…），在 Kvaser Hardware 工具中查看
         if (!int.TryParse(config.Channel.Trim(), out int channelIndex) || channelIndex < 0)
             throw new ArgumentException($"无效的 Kvaser 通道 '{config.Channel}'，应为通道索引（0、1、2…）");
@@ -43,8 +50,15 @@ public sealed class KvaserAdapter : ICanAdapter
         if (_handle < 0)
             KvaserApi.CheckStatus(_handle); // 句柄为负即错误码
 
-        // 仲裁段波特率（使用预定义常量，tseg/sjw 置 0 表示采用默认时序）
-        KvaserApi.CheckStatus(KvaserApi.SetBusParams(_handle, KvaserApi.ToBitrateConst(config.BaudRate), 0, 0, 0, 0, 0));
+        // 正波特率配合显式段长度，让 CANlib 按目标采样点选择设备预分频。
+        var arbitration = CanSamplePointCalculator.CalculateSegments(
+            config.BaudRate, config.ArbitrationSamplePoint,
+            maxTseg1: 16, maxTseg2: 8, maxSjw: 4, maxTotalTq: 25);
+        KvaserApi.CheckStatus(KvaserApi.SetBusParams(
+            _handle, config.BaudRate,
+            (uint)arbitration.Tseg1, (uint)arbitration.Tseg2, (uint)arbitration.Sjw, 1, 0));
+        config.AppliedArbitrationBitRate = config.BaudRate;
+        config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
 
         // FD 数据段波特率
         if (_isFd)

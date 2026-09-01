@@ -106,12 +106,9 @@
                 <syncfusion:IntegerTextBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                     Value="{Binding RxQueueSize, Mode=TwoWay}" MinValue="1"/>
 
-                <GroupBox Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Header="NI-XNET 总线参数" Margin="0,8,0,0"
-                          Visibility="{Binding ShowNiOptions, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <GroupBox Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Header="总线参数" Margin="0,8,0,0">
                     <Grid Margin="12,10,12,12">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -124,20 +121,10 @@
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="终端电阻:" VerticalAlignment="Center" Margin="0,0,8,10"/>
                         <CheckBox Grid.Row="0" Grid.Column="1" Content="使能设备内置 120 Ω 终端电阻"
                                   IsChecked="{Binding EnableTermination, Mode=TwoWay}" Margin="0,0,0,10"
-                                  ToolTip="仅部分 NI-XNET 高速 CAN 设备支持软件终端电阻。不支持时请取消勾选并外接 120 Ω 电阻。"/>
+                                  ToolTip="需要硬件及厂商驱动支持软件终端电阻；不支持时请取消勾选并外接 120 Ω 电阻。"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="仲裁段位时序:" VerticalAlignment="Center" Margin="0,0,8,10"/>
-                        <ComboBox Grid.Row="1" Grid.Column="1" Width="260" HorizontalAlignment="Left" Margin="0,0,0,10"
-                                  SelectedIndex="{Binding ArbitrationBitTimingMode, Converter={StaticResource EnumToIntConverter}}">
-                            <ComboBoxItem Content="自动（驱动默认采样点）"/>
-                            <ComboBoxItem Content="快捷（按采样点计算）"/>
-                            <ComboBoxItem Content="手动（四参数）"/>
-                        </ComboBox>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="目标采样点:" VerticalAlignment="Center" Margin="0,0,8,10"
-                                   Visibility="{Binding ShowSamplePoint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,10"
-                              Visibility="{Binding ShowSamplePoint, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="仲裁段采样点:" VerticalAlignment="Center" Margin="0,0,8,10"/>
+                        <Grid Grid.Row="1" Grid.Column="1" Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="360"/>
                                 <ColumnDefinition Width="90"/>
@@ -150,44 +137,10 @@
                             <TextBlock Grid.Column="2" Text="%" VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="寄存器参数:" VerticalAlignment="Top" Margin="0,4,8,10"
-                                   Visibility="{Binding ShowTimingRegisters, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                        <Grid Grid.Row="3" Grid.Column="1" Margin="0,0,0,10"
-                              Visibility="{Binding ShowTimingRegisters, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="110"/>
-                                <ColumnDefinition Width="24"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="110"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="BRP" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                            <syncfusion:IntegerTextBox Grid.Row="0" Grid.Column="1" Value="{Binding ArbitrationBrp, Mode=TwoWay}"
-                                                       MinValue="0" MaxValue="511" Margin="0,0,0,8"/>
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="SJW" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                            <syncfusion:IntegerTextBox Grid.Row="0" Grid.Column="4" Value="{Binding ArbitrationSjw, Mode=TwoWay}"
-                                                       MinValue="0" MaxValue="127" Margin="0,0,0,8"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="TSEG1" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <syncfusion:IntegerTextBox Grid.Row="1" Grid.Column="1" Value="{Binding ArbitrationTseg1, Mode=TwoWay}"
-                                                       MinValue="0" MaxValue="255"/>
-                            <TextBlock Grid.Row="1" Grid.Column="3" Text="TSEG2" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <syncfusion:IntegerTextBox Grid.Row="1" Grid.Column="4" Value="{Binding ArbitrationTseg2, Mode=TwoWay}"
-                                                       MinValue="0" MaxValue="127"/>
-                        </Grid>
-
-                        <Border Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Background="#FFF5F7FA"
+                        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Background="#FFF5F7FA"
                                 BorderBrush="#FFD9DEE7" BorderThickness="1" CornerRadius="4" Padding="10">
-                            <StackPanel>
-                                <TextBlock Text="最终位时序" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                                <TextBlock Text="{Binding TimingPreview}" TextWrapping="Wrap"/>
-                                <TextBlock Margin="0,5,0,0" Foreground="#FF5F6368" TextWrapping="Wrap"
-                                           Text="说明：自定义设置作用于仲裁段（包含经典 CAN 和 CAN FD 仲裁阶段）；CAN FD 数据段仍使用 DataBitRate。"/>
-                            </StackPanel>
+                            <TextBlock Foreground="#FF5F6368" TextWrapping="Wrap"
+                                       Text="只配置目标百分比，插件会按所选适配器转换为驱动位时序；实际采样点会受设备时钟和驱动能力限制。该设置作用于经典 CAN 和 CAN FD 仲裁段，CAN FD 数据段仍使用 DataBitRate。"/>
                         </Border>
                     </Grid>
                 </GroupBox>

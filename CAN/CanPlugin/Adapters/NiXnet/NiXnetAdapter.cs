@@ -149,6 +149,12 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         status = NiXnetApi.nxStart(_txSession, NiXnetApi.nxScope_Normal);
         NiXnetApi.CheckStatus(status);
 
+        if (config.ArbitrationBitTiming != null)
+        {
+            config.AppliedArbitrationBitRate = config.ArbitrationBitTiming.ActualBitRate;
+            config.AppliedArbitrationSamplePoint = config.ArbitrationBitTiming.SamplePoint;
+        }
+
         _isConnected = true;
     }
 

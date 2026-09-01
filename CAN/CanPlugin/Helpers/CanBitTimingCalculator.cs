@@ -15,23 +15,6 @@ public static class CanBitTimingCalculator
     private const int PreferredMaxTimeQuanta = 40;
     private const double MaxBitRateErrorRatio = 0.005;
 
-    public static CanBitTimingConfig? Resolve(CanOpenSetting setting)
-    {
-        return setting.ArbitrationBitTimingMode switch
-        {
-            CanBitTimingMode.Automatic => null,
-            CanBitTimingMode.SamplePoint => Calculate(setting.BaudRate, setting.ArbitrationSamplePoint),
-            CanBitTimingMode.Registers => FromRegisters(
-                setting.BaudRate,
-                setting.ArbitrationBrp,
-                setting.ArbitrationSjw,
-                setting.ArbitrationTseg1,
-                setting.ArbitrationTseg2),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(setting.ArbitrationBitTimingMode), setting.ArbitrationBitTimingMode, "未知的位时序配置方式")
-        };
-    }
-
     /// <summary>根据目标波特率和采样点选择最接近的 NI-XNET 寄存器组合。</summary>
     public static CanBitTimingConfig Calculate(int targetBitRate, double targetSamplePoint)
     {

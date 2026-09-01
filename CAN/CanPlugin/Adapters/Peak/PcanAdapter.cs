@@ -1,3 +1,4 @@
+using CAN.Helpers;
 using CAN.Models;
 
 namespace CAN.Adapters.Peak;
@@ -29,35 +30,43 @@ public sealed class PcanAdapter : ICanAdapter
 
     private void OpenInternal(CanAdapterConfig config)
     {
+        if (config.EnableTermination)
+        {
+            throw new InvalidOperationException(
+                "当前 PCAN-Basic 通用接口不能控制 PEAK 设备内置终端电阻；请取消勾选并外接 120 Ω 电阻。");
+        }
+
         _channel = PcanApi.ParseChannel(config.Channel);
         _isFd = config.Protocol == CanProtocolType.FD;
 
         if (_isFd)
         {
-            // FD 模式使用位速率字符串（f_clock 80 MHz，简化为常用采样点配置）
+            var arbitration = CanSamplePointCalculator.Calculate(
+                80_000_000, config.BaudRate, config.ArbitrationSamplePoint,
+                maxPrescaler: 1024, maxTseg1: 256, maxTseg2: 128, maxSjw: 128, maxTotalTq: 385);
+            var data = CanSamplePointCalculator.Calculate(
+                80_000_000, config.DataBitRate, 80,
+                maxPrescaler: 1024, maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 49);
+
+            // PCAN-Basic FD 使用 80 MHz 时钟的位速率字符串。
             var bitrateFd =
-                $"f_clock_mhz=80,nom_brp=2,nom_tseg1={CalcTseg1(80_000_000 / 2, config.BaudRate)},nom_tseg2={CalcTseg2(80_000_000 / 2, config.BaudRate)},nom_sjw=1," +
-                $"data_brp=2,data_tseg1={CalcTseg1(80_000_000 / 2, config.DataBitRate)},data_tseg2={CalcTseg2(80_000_000 / 2, config.DataBitRate)},data_sjw=1";
+                $"f_clock_mhz=80,nom_brp={arbitration.Prescaler},nom_tseg1={arbitration.Tseg1},nom_tseg2={arbitration.Tseg2},nom_sjw={arbitration.Sjw}," +
+                $"data_brp={data.Prescaler},data_tseg1={data.Tseg1},data_tseg2={data.Tseg2},data_sjw={data.Sjw}";
             PcanApi.CheckStatus(PcanApi.InitializeFD(_channel, bitrateFd));
+            config.AppliedArbitrationBitRate = arbitration.ActualBitRate;
+            config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
         }
         else
         {
-            PcanApi.CheckStatus(PcanApi.Initialize(_channel, PcanApi.ToBtr0Btr1(config.BaudRate), 0, 0, 0));
+            var arbitration = CanSamplePointCalculator.CalculateSja1000(
+                config.BaudRate, config.ArbitrationSamplePoint);
+            PcanApi.CheckStatus(PcanApi.Initialize(
+                _channel, CanSamplePointCalculator.ToSja1000Btr(arbitration), 0, 0, 0));
+            config.AppliedArbitrationBitRate = arbitration.ActualBitRate;
+            config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
         }
 
         _isConnected = true;
-    }
-
-    private static int CalcTseg1(int clock, int baudRate)
-    {
-        int tq = clock / baudRate; // 每位时间量子数
-        return Math.Max(1, tq - CalcTseg2(clock, baudRate) - 1); // 1 为同步段
-    }
-
-    private static int CalcTseg2(int clock, int baudRate)
-    {
-        int tq = clock / baudRate;
-        return Math.Max(1, tq / 5); // 采样点约 80%
     }
 
     public void Close()
