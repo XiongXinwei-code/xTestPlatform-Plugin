@@ -64,37 +64,20 @@ public sealed class ZlgAdapter : ICanAdapter
                 throw new InvalidOperationException($"ZLG 设备类型 {parts[0]} 不支持 CAN FD，请改用 USBCANFD 系列设备或将协议设为 Classic");
             }
 
-            // USBCANFD 系列要求在 InitCAN 前先指定 CAN FD 标准，再配置时序。
-            // 这是 ZLGCAN 官方示例的顺序；跳过标准设置时，部分驱动会拒绝后续波特率属性。
-            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_standard", "0"))
-            {
-                ZlgApi.CloseDevice(_deviceHandle);
-                _deviceHandle = IntPtr.Zero;
-                throw new InvalidOperationException(
-                    $"设置 ZLG 通道 {channelIndex} CAN FD ISO 标准失败，" +
-                    "请确认设备类型与实际硬件型号一致、通道索引有效，且 ZLGCAN 驱动与插件内置二次开发库版本匹配");
-            }
+            // 新版 ZLGCAN 使用属性接口配置 CAN FD；部分旧版 DLL / 固件会拒绝
+            // canfd_* 属性，但仍接受 InitCAN 结构体中的直接时序值（v1.0.19 的方式）。
+            // 因此属性设置只作为优先路径，失败时退回直接时序，不能在此提前中止打开过程。
+            bool fdPropertiesConfigured =
+                ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_standard", "0") &
+                ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
+                    config.BaudRate.ToString()) &
+                ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
+                    config.DataBitRate.ToString());
 
-            // 波特率必须在 InitCAN 之前通过设备属性设置；直接把 bps 填入
-            // abit_timing/dbit_timing 会得到无效时序，导致后续发送失败。
-            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
-                    config.BaudRate.ToString()))
+            if (!fdPropertiesConfigured)
             {
-                ZlgApi.CloseDevice(_deviceHandle);
-                _deviceHandle = IntPtr.Zero;
-                throw new InvalidOperationException(
-                    $"设置 ZLG 通道 {channelIndex} 仲裁段波特率 {config.BaudRate} bps 失败，" +
-                    "请确认设备类型与实际硬件型号一致、通道索引有效，且该波特率在设备时钟下受支持");
-            }
-
-            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
-                    config.DataBitRate.ToString()))
-            {
-                ZlgApi.CloseDevice(_deviceHandle);
-                _deviceHandle = IntPtr.Zero;
-                throw new InvalidOperationException(
-                    $"设置 ZLG 通道 {channelIndex} 数据段波特率 {config.DataBitRate} bps 失败，" +
-                    "请确认该波特率在设备时钟下受支持");
+                initConfig.canfd.abit_timing = (uint)config.BaudRate;
+                initConfig.canfd.dbit_timing = (uint)config.DataBitRate;
             }
 
             initConfig.canfd.acc_code = 0;
