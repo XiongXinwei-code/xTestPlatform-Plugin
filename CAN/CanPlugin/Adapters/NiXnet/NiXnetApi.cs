@@ -52,6 +52,13 @@ internal static class NiXnetApi
         ref uint value);
 
     [DllImport(DllName, EntryPoint = "nxSetProperty", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int nxSetPropertyUInt64(
+        uint sessionRef,
+        uint propertyId,
+        uint propertySize,
+        ref ulong value);
+
+    [DllImport(DllName, EntryPoint = "nxSetProperty", CallingConvention = CallingConvention.Cdecl)]
     public static extern int nxSetPropertyByte(
         uint sessionRef,
         uint propertyId,
@@ -107,8 +114,10 @@ internal static class NiXnetApi
 
     // 属性 ID（nixnet.h：nxClass_Session=0x00100000 | 属性编号）
     public const uint nxPropSession_IntfBaudRate = 0x00100016;        // 仲裁段波特率 (U32)
+    public const uint nxPropSession_IntfBaudRate64 = 0x09100016;      // 仲裁段波特率/自定义位时序 (U64)
     public const uint nxPropSession_QueueSize = 0x0010000C;          // 会话队列大小（字节，u32 --rw）
     public const uint nxPropSession_IntfCanFdBaudRate = 0x00100027;   // 数据段波特率 (U32)
+    public const uint nxPropSession_IntfCanTerm = 0x00100025;         // 内置 120 Ω 终端电阻 (U32)
     public const uint nxPropSession_IntfCanIoMode = 0x00100026;       // IO 模式 (U32)
     public const uint nxPropSession_IntfEchoTx = 0x02100010;          // 发送完成回显 (Bool/U8)
 

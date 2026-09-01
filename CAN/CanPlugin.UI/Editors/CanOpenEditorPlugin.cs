@@ -1,4 +1,5 @@
 using System.Windows;
+using CAN.Helpers;
 using CAN.Models;
 using CAN.UI.Views;
 using StepEditor.Abstractions;
@@ -42,6 +43,18 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_006", "接收缓冲区大小必须大于 0"));
         else if (s.RxQueueSize < 512)
             errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于默认值 512 帧，高负载总线下可能丢帧"));
+
+        if (s.AdapterType == CanAdapterType.NI && s.ArbitrationBitTimingMode != CanBitTimingMode.Automatic)
+        {
+            try
+            {
+                _ = CanBitTimingCalculator.Resolve(s);
+            }
+            catch (Exception ex)
+            {
+                errors.Add(StepSettingError.Error("CAN_007", $"NI-XNET 仲裁段位时序无效: {ex.Message}"));
+            }
+        }
         return errors;
     }
 }

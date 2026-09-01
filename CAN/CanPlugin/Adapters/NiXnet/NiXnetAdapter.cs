@@ -70,15 +70,46 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             out _txSession);
         NiXnetApi.CheckStatus(status);
 
-        // 设置波特率
-        uint baudRate = (uint)config.BaudRate;
-        status = NiXnetApi.nxSetProperty(_rxSession,
-            NiXnetApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
-        NiXnetApi.CheckStatus(status);
+        // 设置仲裁段波特率。自定义位时序必须使用 U64 属性；普通模式保留原 U32
+        // 写法作为兼容回退，避免改变既有序列在旧硬件/旧驱动上的行为。
+        if (config.ArbitrationBitTiming != null)
+        {
+            ulong customBaudRate = config.ArbitrationBitTiming.NiXnetBaudRate64;
+            status = NiXnetApi.nxSetPropertyUInt64(_rxSession,
+                NiXnetApi.nxPropSession_IntfBaudRate64, 8, ref customBaudRate);
+            NiXnetApi.CheckStatus(status);
 
-        status = NiXnetApi.nxSetProperty(_txSession,
-            NiXnetApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
-        NiXnetApi.CheckStatus(status);
+            status = NiXnetApi.nxSetPropertyUInt64(_txSession,
+                NiXnetApi.nxPropSession_IntfBaudRate64, 8, ref customBaudRate);
+            NiXnetApi.CheckStatus(status);
+        }
+        else
+        {
+            uint baudRate = (uint)config.BaudRate;
+            status = NiXnetApi.nxSetProperty(_rxSession,
+                NiXnetApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
+            NiXnetApi.CheckStatus(status);
+
+            status = NiXnetApi.nxSetProperty(_txSession,
+                NiXnetApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
+            NiXnetApi.CheckStatus(status);
+        }
+
+        // 仅在用户主动使能时写入，未勾选则沿用驱动默认关闭状态；这样不具备软件终端
+        // 电阻能力的 NI 设备仍可使用。支持的硬件会在 CAN_H/CAN_L 间接入 120 Ω。
+        if (config.EnableTermination)
+        {
+            uint termination = 1;
+            status = NiXnetApi.nxSetProperty(_rxSession,
+                NiXnetApi.nxPropSession_IntfCanTerm, 4, ref termination);
+            if (status < 0)
+                ThrowTerminationError(status);
+
+            status = NiXnetApi.nxSetProperty(_txSession,
+                NiXnetApi.nxPropSession_IntfCanTerm, 4, ref termination);
+            if (status < 0)
+                ThrowTerminationError(status);
+        }
 
         // CAN FD 数据段波特率
         if (config.Protocol == CanProtocolType.FD)
@@ -119,6 +150,20 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         NiXnetApi.CheckStatus(status);
 
         _isConnected = true;
+    }
+
+    private static void ThrowTerminationError(int status)
+    {
+        try
+        {
+            NiXnetApi.CheckStatus(status);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "启用 NI-XNET 内置 120 Ω 终端电阻失败。请确认当前设备支持软件终端电阻；" +
+                "不支持时请取消勾选并在总线两端外接 120 Ω 电阻。", ex);
+        }
     }
 
     public void Close()

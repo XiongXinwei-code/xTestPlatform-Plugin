@@ -29,6 +29,10 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | BaudRate | int | 是 | — | 仲裁段波特率 |
         | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD |
         | DataBitRate | int | FD 时 | — | 数据段波特率 |
+        | EnableTermination | bool | 否 | false | NI-XNET：使能设备内置 120 Ω 终端电阻（硬件须支持） |
+        | ArbitrationBitTimingMode | 枚举 | 否 | Automatic | NI-XNET 仲裁段位时序：驱动自动、按采样点快捷计算或手动四参数 |
+        | ArbitrationSamplePoint | double | 快捷模式 | 80.0 | 仲裁段目标采样点百分比，范围 7.5%~97.5% |
+        | ArbitrationBrp/Sjw/Tseg1/Tseg2 | int | 手动模式 | 1/4/30/7 | NI-XNET 自定义波特率窗口所显示的四个寄存器值 |
         | RxQueueSize | int | 否 | 512 | 接收缓冲区大小（帧数），驱动层接收队列容量，两次读取之间到达的帧缓存在此，队列满后新帧丢弃 |
         | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一 |
 
@@ -49,6 +53,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
 
         - 硬件不存在、通道被占用或同名连接已存在时步骤报错
         - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
+        - NI-XNET 自定义位时序使用 40 MHz 控制器时钟编码为 Interface:64bit Baud Rate；运行日志会输出实际波特率、采样点、四参数和 64 位值
+        - 快捷采样点模式自动计算仲裁段四参数；手动模式校验参数组合所得波特率与 BaudRate 的偏差不超过 0.5%
+        - 自定义位时序只作用于经典 CAN / CAN FD 的仲裁段，CAN FD 数据段仍由 DataBitRate 配置
 
         ## 检索关键词
 
@@ -71,6 +78,10 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
     {
         var s = DeserializeSetting(setting);
         var proto = s.Protocol == CanProtocolType.FD ? "FD" : "Classic";
-        return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps)";
+        var timing = s.AdapterType == CanAdapterType.NI && s.ArbitrationBitTimingMode != CanBitTimingMode.Automatic
+            ? $", {s.ArbitrationBitTimingMode}"
+            : "";
+        var termination = s.AdapterType == CanAdapterType.NI && s.EnableTermination ? ", 120Ω" : "";
+        return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps{timing}{termination})";
     }
 }

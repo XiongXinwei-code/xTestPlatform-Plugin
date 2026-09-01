@@ -24,6 +24,18 @@ public enum CanAdapterType
     TOSUN = 5
 }
 
+/// <summary>仲裁段位时序配置方式（当前由 NI-XNET 适配器实现）</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CanBitTimingMode
+{
+    /// <summary>按波特率使用驱动默认位时序</summary>
+    Automatic = 0,
+    /// <summary>按目标采样点自动计算 BRP/SJW/TSEG1/TSEG2</summary>
+    SamplePoint = 1,
+    /// <summary>手动指定 BRP/SJW/TSEG1/TSEG2</summary>
+    Registers = 2
+}
+
 /// <summary>CAN 帧类型</summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CanFrameType
