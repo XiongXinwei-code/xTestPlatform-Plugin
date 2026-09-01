@@ -31,7 +31,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | DataBitRate | int | FD 时 | — | 数据段波特率 |
         | EnableTermination | bool | 否 | false | 使能设备内置 120 Ω 终端电阻；需要硬件及厂商驱动支持 |
         | ArbitrationSamplePoint | double | 否 | 80.0 | 仲裁段目标采样点百分比，范围 7.5%~97.5%；插件在适配器内部转换为驱动位时序 |
-        | RxQueueSize | int | 否 | 512 | 接收缓冲区大小（帧数），驱动层接收队列容量，两次读取之间到达的帧缓存在此，队列满后新帧丢弃 |
+        | RxQueueSize | int | 否 | 8192 | 接收缓冲区大小（帧数）；NI-XNET 同时由后台接收泵持续排空驱动队列 |
         | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一 |
 
         ## 通道命名规则
@@ -56,6 +56,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - 采样点只作用于经典 CAN / CAN FD 的仲裁段，CAN FD 数据段仍由 DataBitRate 配置
         - NI、PEAK、Vector、Kvaser 与 ZLG Classic 支持按百分比换算；当前 libTSCAN 及 ZLG CAN FD 标准波特率接口使用 80% 仲裁段采样点
         - 软件终端电阻当前接入 NI-XNET、ZLGCAN 与 libTSCAN；PEAK、Vector、Kvaser 请使用外置 120 Ω 电阻
+        - NI-XNET 接收会话启动后由后台接收泵持续抽取总线帧，UDS/普通读取仅从内存队列取帧；后台泵异常或队列丢帧会立即中止本次读取
 
         ## 检索关键词
 

@@ -30,7 +30,7 @@ public class CanOpenSetting
     public double ArbitrationSamplePoint { get; set; } = 80.0;
 
     /// <summary>接收缓冲区大小（帧数，驱动层接收队列容量）</summary>
-    public int RxQueueSize { get; set; } = 512;
+    public int RxQueueSize { get; set; } = 8192;
 
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
     [ExpressionField]

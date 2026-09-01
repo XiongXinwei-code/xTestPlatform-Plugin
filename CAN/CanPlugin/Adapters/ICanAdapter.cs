@@ -50,7 +50,7 @@ public class CanAdapterConfig
     public CanBitTimingConfig? ArbitrationBitTiming { get; set; }
     public string DatabasePath { get; set; } = "";
     /// <summary>接收缓冲区大小（帧数）</summary>
-    public int RxQueueSize { get; set; } = 512;
+    public int RxQueueSize { get; set; } = 8192;
 }
 
 /// <summary>已经解析并验证的 CAN 仲裁段位时序。</summary>

@@ -41,8 +41,8 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Warning("CAN_W01", "数据段波特率通常应大于等于仲裁段波特率"));
         if (s.RxQueueSize <= 0)
             errors.Add(StepSettingError.Error("CAN_006", "接收缓冲区大小必须大于 0"));
-        else if (s.RxQueueSize < 512)
-            errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于默认值 512 帧，高负载总线下可能丢帧"));
+        else if (s.RxQueueSize < 8192)
+            errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于 NI-XNET 建议值 8192 帧，高负载总线下可能丢帧"));
 
         if (double.IsNaN(s.ArbitrationSamplePoint) || double.IsInfinity(s.ArbitrationSamplePoint) ||
             s.ArbitrationSamplePoint < 7.5 || s.ArbitrationSamplePoint > 97.5)

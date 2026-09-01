@@ -8,6 +8,8 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 {
     // nxFrameVar_t 的最大长度：16 字节头 + 64 字节 CAN FD 数据。
     private const int MaxRawFrameSize = 80;
+    private const int DefaultRxQueueFrames = 8192;
+    private const int PumpBufferSize = MaxRawFrameSize * 1024;
 
     private uint _rxSession;
     private uint _txSession;
@@ -15,6 +17,14 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     private CanProtocolType _protocol = CanProtocolType.Classic;
     private readonly object _lock = new();
     private readonly Queue<CanMessage> _pendingFrames = new();
+    private CancellationTokenSource? _receivePumpCts;
+    private Task? _receivePumpTask;
+    private Exception? _receivePumpError;
+    private int _maxPendingFrames;
+    private long _pumpReadCalls;
+    private long _pumpBytesRead;
+    private long _pumpParsedFrames;
+    private long _pumpDroppedFrames;
     private string _lastReceiveDiagnostics = "尚未执行 NI-XNET 接收";
     private bool _echoTxEnabled;
     private int _echoTxConfigStatus;
@@ -38,6 +48,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         catch
         {
             // 中途失败时清理已创建的会话，避免接口被占用
+            StopReceivePump();
             if (_rxSession != 0) { NiXnetApi.nxClear(_rxSession); _rxSession = 0; }
             if (_txSession != 0) { NiXnetApi.nxClear(_txSession); _txSession = 0; }
             throw;
@@ -124,16 +135,15 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             NiXnetApi.CheckStatus(status);
         }
 
-        // 设置接收队列大小（QueueSize 单位为字节；每帧按 nxFrameVar_t 最大 24 字节估算，
-        // CAN FD 按 16+64=80 字节；防止两次 Read 步骤之间驱动队列溢出丢帧）
-        if (config.RxQueueSize > 0)
-        {
-            int bytesPerFrame = config.Protocol == CanProtocolType.FD ? 80 : 24;
-            uint queueBytes = (uint)(config.RxQueueSize * bytesPerFrame);
-            status = NiXnetApi.nxSetProperty(_rxSession,
-                NiXnetApi.nxPropSession_QueueSize, 4, ref queueBytes);
-            NiXnetApi.CheckStatus(status);
-        }
+        // QueueSize 单位为字节。旧序列可能保存较小值，NI 最低按 8192 帧配置；
+        // 后台接收泵持续抽取驱动队列，内存队列再按适配器读取需求缓存。
+        long configuredQueueFrames = Math.Max((long)config.RxQueueSize, DefaultRxQueueFrames);
+        _maxPendingFrames = (int)Math.Clamp(configuredQueueFrames * 4, 16_384L, 131_072L);
+        int bytesPerFrame = config.Protocol == CanProtocolType.FD ? 80 : 24;
+        uint queueBytes = (uint)Math.Min(uint.MaxValue, configuredQueueFrames * bytesPerFrame);
+        status = NiXnetApi.nxSetProperty(_rxSession,
+            NiXnetApi.nxPropSession_QueueSize, 4, ref queueBytes);
+        NiXnetApi.CheckStatus(status);
 
         // 发送完成回显用于区分“nxWriteFrame 已入队”和“报文已在总线上发送完成”。
         // 某些旧驱动/硬件可能不支持该属性，诊断能力降级但不阻止通道打开。
@@ -156,6 +166,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         }
 
         _isConnected = true;
+        StartReceivePump();
     }
 
     private static void ThrowTerminationError(int status)
@@ -174,12 +185,15 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 
     public void Close()
     {
-        if (!_isConnected) return;
+        if (!_isConnected && _receivePumpTask == null && _rxSession == 0 && _txSession == 0)
+            return;
 
-        NiXnetApi.nxStop(_rxSession, NiXnetApi.nxScope_Normal);
-        NiXnetApi.nxStop(_txSession, NiXnetApi.nxScope_Normal);
-        NiXnetApi.nxClear(_rxSession);
-        NiXnetApi.nxClear(_txSession);
+        StopReceivePump();
+
+        if (_rxSession != 0) NiXnetApi.nxStop(_rxSession, NiXnetApi.nxScope_Normal);
+        if (_txSession != 0) NiXnetApi.nxStop(_txSession, NiXnetApi.nxScope_Normal);
+        if (_rxSession != 0) NiXnetApi.nxClear(_rxSession);
+        if (_txSession != 0) NiXnetApi.nxClear(_txSession);
         _rxSession = 0;
         _txSession = 0;
         _protocol = CanProtocolType.Classic;
@@ -188,6 +202,11 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         lock (_lock)
         {
             _pendingFrames.Clear();
+            _receivePumpError = null;
+            _pumpReadCalls = 0;
+            _pumpBytesRead = 0;
+            _pumpParsedFrames = 0;
+            _pumpDroppedFrames = 0;
             _lastReceiveDiagnostics = "NI-XNET 通道已关闭";
         }
 
@@ -201,6 +220,117 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         var frameBytes = BuildFrameBytes(message);
         var status = NiXnetApi.nxWriteFrame(_txSession, frameBytes, (uint)frameBytes.Length, 1.0);
         NiXnetApi.CheckStatus(status);
+    }
+
+    private void StartReceivePump()
+    {
+        lock (_lock)
+        {
+            _receivePumpError = null;
+            _pumpReadCalls = 0;
+            _pumpBytesRead = 0;
+            _pumpParsedFrames = 0;
+            _pumpDroppedFrames = 0;
+            _pendingFrames.Clear();
+        }
+
+        var cts = new CancellationTokenSource();
+        _receivePumpCts = cts;
+        _receivePumpTask = Task.Run(() => ReceivePumpLoop(cts.Token), cts.Token);
+    }
+
+    private void StopReceivePump()
+    {
+        var cts = _receivePumpCts;
+        var task = _receivePumpTask;
+        _receivePumpCts = null;
+        _receivePumpTask = null;
+
+        if (cts == null) return;
+        cts.Cancel();
+        if (task != null && task.Id != Task.CurrentId)
+        {
+            try { task.Wait(1000); }
+            catch (AggregateException) { }
+        }
+        cts.Dispose();
+    }
+
+    private void ReceivePumpLoop(CancellationToken ct)
+    {
+        var buffer = new byte[PumpBufferSize];
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                int status = NiXnetApi.nxReadFrame(
+                    _rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
+                lock (_lock)
+                {
+                    _pumpReadCalls++;
+                    _pumpBytesRead += bytesRead;
+                }
+
+                if (status != NiXnetApi.nxErrEventTimeout)
+                    NiXnetApi.CheckStatus(status);
+
+                if (bytesRead == 0)
+                {
+                    Thread.Sleep(1);
+                    continue;
+                }
+
+                foreach (var frame in ParseFrames(buffer, (int)bytesRead))
+                {
+                    if (frame.IsTransmitEcho) continue;
+
+                    lock (_lock)
+                    {
+                        _pumpParsedFrames++;
+                        if (_pendingFrames.Count >= _maxPendingFrames)
+                        {
+                            _pendingFrames.Dequeue();
+                            _pumpDroppedFrames++;
+                        }
+                        _pendingFrames.Enqueue(frame);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            lock (_lock)
+            {
+                if (!ct.IsCancellationRequested)
+                    _receivePumpError = ex;
+            }
+        }
+    }
+
+    private void ThrowIfReceivePumpFailed()
+    {
+        Exception? error;
+        long calls;
+        long bytes;
+        long parsed;
+        long dropped;
+        lock (_lock)
+        {
+            error = _receivePumpError;
+            calls = _pumpReadCalls;
+            bytes = _pumpBytesRead;
+            parsed = _pumpParsedFrames;
+            dropped = _pumpDroppedFrames;
+        }
+
+        if (error == null) return;
+        throw new InvalidOperationException(
+            $"NI-XNET 后台接收泵停止：读取调用={calls}，驱动返回={bytes}字节，" +
+            $"解析={parsed}帧，内存队列丢弃={dropped}帧。请降低总线流量或增大 CAN_Open 接收缓冲区后重新打开通道。" +
+            $" 原始错误：{error.Message}", error);
     }
 
     public CanMessage? Read(int timeoutMs, CancellationToken ct = default)
@@ -217,22 +347,13 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     {
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
-        // 一次读取最多一个最大 CAN FD Raw Frame。NI-XNET 不会返回半帧；相比 8192 字节
-        // 大缓冲区，这能避免驱动等待“填满缓冲区”的语义干扰单帧 UDS 响应读取。
-        var buffer = new byte[MaxRawFrameSize];
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        int readCalls = 0;
-        long totalBytesRead = 0;
-        int parsedFrames = 0;
         int filteredFrames = 0;
-        int transmitEchoFrames = 0;
-        int lastStatus = 0;
-        string lastRawHeader = "";
-        var observedIds = new List<uint>(8);
-        var transmitEchoIds = new List<uint>(4);
 
         while (!ct.IsCancellationRequested)
         {
+            ThrowIfReceivePumpFailed();
+
             // 先从缓存队列中查找匹配帧
             lock (_lock)
             {
@@ -242,9 +363,9 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                     if (filterId == null || pending.Id == filterId.Value)
                     {
                         SetReceiveDiagnostics(BuildReceiveDiagnostics(
-                            filterId, timeoutMs, readCalls, totalBytesRead, parsedFrames,
-                            filteredFrames, transmitEchoFrames, lastStatus, observedIds,
-                            transmitEchoIds, lastRawHeader, "", true));
+                            filterId, timeoutMs, 0, 0, (int)_pumpParsedFrames,
+                            filteredFrames, 0, 0, Array.Empty<uint>(),
+                            Array.Empty<uint>(), "", GetPumpDiagnostics(), true));
                         return pending;
                     }
 
@@ -253,53 +374,15 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             }
 
             if (DateTime.UtcNow >= deadline) break;
-
-            // 注意：nxReadFrame 的 timeout 语义是"等待直到填满整个缓冲区"，
-            // 未填满时返回 nxErrEventTimeout，但已收到的帧仍通过 bytesRead 返回。
-            // 因此这里使用 timeout=0（立即返回当前已有帧）+ 轮询模式，
-            // 且无论状态如何，只要 bytesRead > 0 都必须解析，否则会丢帧。
-            var status = NiXnetApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
-            readCalls++;
-            lastStatus = status;
-            totalBytesRead += bytesRead;
-
-            if (status != NiXnetApi.nxErrEventTimeout)
-                NiXnetApi.CheckStatus(status); // 其他错误直接抛出，警告忽略
-
-            if (bytesRead == 0)
-            {
-                Thread.Sleep(5); // 无数据时短暂让出 CPU，由 deadline 控制退出
-                continue;
-            }
-
-            lastRawHeader = Convert.ToHexString(buffer.AsSpan(0, Math.Min((int)bytesRead, 24)));
-
-            // nxReadFrame 一次可能返回多帧，全部解析入队，避免丢帧
-            lock (_lock)
-            {
-                foreach (var frame in ParseFrames(buffer, (int)bytesRead))
-                {
-                    parsedFrames++;
-                    if (frame.IsTransmitEcho)
-                    {
-                        transmitEchoFrames++;
-                        if (transmitEchoIds.Count < 4 && !transmitEchoIds.Contains(frame.Id))
-                            transmitEchoIds.Add(frame.Id);
-                        continue;
-                    }
-
-                    _pendingFrames.Enqueue(frame);
-                    if (observedIds.Count < 8 && !observedIds.Contains(frame.Id))
-                        observedIds.Add(frame.Id);
-                }
-            }
+            Thread.Sleep(1);
         }
 
+        ThrowIfReceivePumpFailed();
         string canComm = GetCanCommDiagnostics();
         SetReceiveDiagnostics(BuildReceiveDiagnostics(
-            filterId, timeoutMs, readCalls, totalBytesRead, parsedFrames,
-            filteredFrames, transmitEchoFrames, lastStatus, observedIds,
-            transmitEchoIds, lastRawHeader, canComm, false));
+            filterId, timeoutMs, 0, 0, (int)_pumpParsedFrames,
+            filteredFrames, 0, 0, Array.Empty<uint>(),
+            Array.Empty<uint>(), "", GetPumpDiagnostics() + (string.IsNullOrWhiteSpace(canComm) ? "" : $"，{canComm}"), false));
         return null;
     }
 
@@ -311,6 +394,16 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     private void SetReceiveDiagnostics(string diagnostics)
     {
         lock (_lock) _lastReceiveDiagnostics = diagnostics;
+    }
+
+    private string GetPumpDiagnostics()
+    {
+        lock (_lock)
+        {
+            string state = _receivePumpError == null ? "运行中" : "已停止";
+            return $"后台接收泵={state}，读取调用={_pumpReadCalls}，驱动返回={_pumpBytesRead}字节，" +
+                   $"解析={_pumpParsedFrames}帧，内存队列丢弃={_pumpDroppedFrames}帧";
+        }
     }
 
     private string BuildReceiveDiagnostics(
