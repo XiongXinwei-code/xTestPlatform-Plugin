@@ -9,6 +9,7 @@ public sealed class NiXnetAdapter : ICanAdapter
     private uint _rxSession;
     private uint _txSession;
     private bool _isConnected;
+    private CanProtocolType _protocol = CanProtocolType.Classic;
     private readonly object _lock = new();
     private readonly Queue<CanMessage> _pendingFrames = new();
 
@@ -40,6 +41,7 @@ public sealed class NiXnetAdapter : ICanAdapter
     private void OpenInternal(CanAdapterConfig config)
     {
         var interfaceName = config.Channel; // 如 "CAN1"
+        _protocol = config.Protocol;
 
         // IO 模式通过特殊内存数据库名选择（Interface:CAN:I/O Mode 属性是只读的，不能直接写）
         string database = config.Protocol switch
@@ -116,6 +118,7 @@ public sealed class NiXnetAdapter : ICanAdapter
         NiXnetApi.nxClear(_txSession);
         _rxSession = 0;
         _txSession = 0;
+        _protocol = CanProtocolType.Classic;
         lock (_lock) _pendingFrames.Clear();
 
         _isConnected = false;
@@ -205,6 +208,10 @@ public sealed class NiXnetAdapter : ICanAdapter
         int paddedPayload = Math.Max(8, (txLen + 7) & ~7);
         var frame = new byte[16 + paddedPayload];
 
+        if (message.IsFd && _protocol != CanProtocolType.FD)
+            throw new InvalidOperationException(
+                "NI-XNET 当前通道以 Classic 模式打开，不能发送 CAN FD 报文；请将 CAN_Open 的 Protocol 设为 FD");
+
         // Timestamp = 0 (for TX)
         // ID（扩展帧在 Identifier 的 bit29 置位）
         uint id = message.Id;
@@ -212,10 +219,14 @@ public sealed class NiXnetAdapter : ICanAdapter
             id |= NiXnetApi.nxFrameId_CAN_IsExtended;
         BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(8), id);
 
-        // Type
+        // Type：FD+BRS 会话内发送经典 CAN 报文时，NI-XNET 必须使用
+        // CAN20_Data (0x08)，不能使用 Classic 会话中的 CAN_Data (0x00)。
+        // 否则 nxWriteFrame 可能不报错，但总线上不会形成 ECU 可响应的经典 CAN 请求。
         frame[12] = message.IsFd
             ? NiXnetApi.nxFrameType_CANFDBRS_Data
-            : NiXnetApi.nxFrameType_CAN_Data;
+            : _protocol == CanProtocolType.FD
+                ? NiXnetApi.nxFrameType_CAN20_Data
+                : NiXnetApi.nxFrameType_CAN_Data;
 
         // Payload length（必须为合法 CAN/CAN FD 长度，不足部分已由零字节填充）
         frame[15] = (byte)txLen;

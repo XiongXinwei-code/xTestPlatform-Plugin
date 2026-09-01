@@ -48,6 +48,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         ## 行为
 
         - 硬件不存在、通道被占用或同名连接已存在时步骤报错
+        - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
 
         ## 检索关键词
 
