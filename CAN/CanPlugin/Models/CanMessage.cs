@@ -18,6 +18,9 @@ public class CanMessage
     /// <summary>接收时间戳（纳秒）</summary>
     public long TimestampNs { get; set; }
 
+    /// <summary>是否为 NI-XNET 在发送成功后生成的发送回显。</summary>
+    public bool IsTransmitEcho { get; set; }
+
     /// <summary>数据长度码 DLC</summary>
     public int Dlc => Data.Length;
 }

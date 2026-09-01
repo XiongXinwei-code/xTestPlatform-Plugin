@@ -16,6 +16,8 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     private readonly object _lock = new();
     private readonly Queue<CanMessage> _pendingFrames = new();
     private string _lastReceiveDiagnostics = "尚未执行 NI-XNET 接收";
+    private bool _echoTxEnabled;
+    private int _echoTxConfigStatus;
 
     public bool IsConnected => _isConnected;
 
@@ -102,6 +104,13 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             NiXnetApi.CheckStatus(status);
         }
 
+        // 发送完成回显用于区分“nxWriteFrame 已入队”和“报文已在总线上发送完成”。
+        // 某些旧驱动/硬件可能不支持该属性，诊断能力降级但不阻止通道打开。
+        byte echoTx = 1;
+        _echoTxConfigStatus = NiXnetApi.nxSetPropertyByte(
+            _rxSession, NiXnetApi.nxPropSession_IntfEchoTx, 1, ref echoTx);
+        _echoTxEnabled = _echoTxConfigStatus >= 0;
+
         // 启动会话
         status = NiXnetApi.nxStart(_rxSession, NiXnetApi.nxScope_Normal);
         NiXnetApi.CheckStatus(status);
@@ -123,6 +132,8 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         _rxSession = 0;
         _txSession = 0;
         _protocol = CanProtocolType.Classic;
+        _echoTxEnabled = false;
+        _echoTxConfigStatus = 0;
         lock (_lock)
         {
             _pendingFrames.Clear();
@@ -163,9 +174,11 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         long totalBytesRead = 0;
         int parsedFrames = 0;
         int filteredFrames = 0;
+        int transmitEchoFrames = 0;
         int lastStatus = 0;
         string lastRawHeader = "";
         var observedIds = new List<uint>(8);
+        var transmitEchoIds = new List<uint>(4);
 
         while (!ct.IsCancellationRequested)
         {
@@ -179,7 +192,8 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                     {
                         SetReceiveDiagnostics(BuildReceiveDiagnostics(
                             filterId, timeoutMs, readCalls, totalBytesRead, parsedFrames,
-                            filteredFrames, lastStatus, observedIds, lastRawHeader, true));
+                            filteredFrames, transmitEchoFrames, lastStatus, observedIds,
+                            transmitEchoIds, lastRawHeader, "", true));
                         return pending;
                     }
 
@@ -214,17 +228,27 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             {
                 foreach (var frame in ParseFrames(buffer, (int)bytesRead))
                 {
-                    _pendingFrames.Enqueue(frame);
                     parsedFrames++;
+                    if (frame.IsTransmitEcho)
+                    {
+                        transmitEchoFrames++;
+                        if (transmitEchoIds.Count < 4 && !transmitEchoIds.Contains(frame.Id))
+                            transmitEchoIds.Add(frame.Id);
+                        continue;
+                    }
+
+                    _pendingFrames.Enqueue(frame);
                     if (observedIds.Count < 8 && !observedIds.Contains(frame.Id))
                         observedIds.Add(frame.Id);
                 }
             }
         }
 
+        string canComm = GetCanCommDiagnostics();
         SetReceiveDiagnostics(BuildReceiveDiagnostics(
             filterId, timeoutMs, readCalls, totalBytesRead, parsedFrames,
-            filteredFrames, lastStatus, observedIds, lastRawHeader, false));
+            filteredFrames, transmitEchoFrames, lastStatus, observedIds,
+            transmitEchoIds, lastRawHeader, canComm, false));
         return null;
     }
 
@@ -238,33 +262,98 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         lock (_lock) _lastReceiveDiagnostics = diagnostics;
     }
 
-    private static string BuildReceiveDiagnostics(
+    private string BuildReceiveDiagnostics(
         uint? filterId,
         int timeoutMs,
         int readCalls,
         long totalBytesRead,
         int parsedFrames,
         int filteredFrames,
+        int transmitEchoFrames,
         int lastStatus,
         IReadOnlyCollection<uint> observedIds,
+        IReadOnlyCollection<uint> transmitEchoIds,
         string lastRawHeader,
+        string canComm,
         bool matched)
     {
         string target = filterId.HasValue ? $"0x{filterId.Value:X}" : "任意";
         string ids = observedIds.Count == 0
             ? "无"
             : string.Join(",", observedIds.Select(id => $"0x{id:X}"));
+        string echoIds = transmitEchoIds.Count == 0
+            ? "无"
+            : string.Join(",", transmitEchoIds.Select(id => $"0x{id:X}"));
         string result = matched ? "已匹配" : $"{timeoutMs} ms 超时";
         string diagnostics =
             $"NI-XNET接收{result}：目标ID={target}，读取调用={readCalls}，" +
             $"驱动返回={totalBytesRead}字节，解析={parsedFrames}帧，过滤={filteredFrames}帧，" +
-            $"已见ID={ids}，最后状态=0x{unchecked((uint)lastStatus):X8}";
+            $"接收ID={ids}，发送完成回显={transmitEchoFrames}帧({echoIds})，" +
+            $"回显监控={GetEchoMonitorDescription()}，最后状态=0x{unchecked((uint)lastStatus):X8}";
+
+        if (!string.IsNullOrWhiteSpace(canComm))
+            diagnostics += $"，{canComm}";
 
         if (!matched && totalBytesRead > 0 && parsedFrames == 0 && !string.IsNullOrEmpty(lastRawHeader))
             diagnostics += $"，原始头={lastRawHeader}";
 
         return diagnostics;
     }
+
+    private string GetEchoMonitorDescription() => _echoTxEnabled
+        ? "已启用"
+        : $"不可用(0x{unchecked((uint)_echoTxConfigStatus):X8})";
+
+    private string GetCanCommDiagnostics()
+    {
+        try
+        {
+            int status = NiXnetApi.nxReadState(
+                _rxSession, NiXnetApi.nxState_CANComm, 4, out uint stateValue, out int fault);
+            if (status < 0)
+                return $"CAN通信状态读取失败=0x{unchecked((uint)status):X8}";
+
+            int state = (int)(stateValue & 0x0F);
+            int lastError = (int)((stateValue >> 8) & 0x0F);
+            int txErrorCount = (int)((stateValue >> 16) & 0xFF);
+            int rxErrorCount = (int)((stateValue >> 24) & 0xFF);
+            bool transceiverError = ((stateValue >> 4) & 0x01) != 0;
+            bool sleep = ((stateValue >> 5) & 0x01) != 0;
+
+            string result =
+                $"CAN状态={GetCanStateDescription(state)}，最后总线错误={GetCanErrorDescription(lastError)}，" +
+                $"Tx错误计数={txErrorCount}，Rx错误计数={rxErrorCount}，" +
+                $"收发器错误={transceiverError}，休眠={sleep}";
+            if (fault != 0)
+                result += $"，异步故障=0x{unchecked((uint)fault):X8}";
+            return result;
+        }
+        catch (Exception ex)
+        {
+            return $"CAN通信状态读取异常={ex.Message}";
+        }
+    }
+
+    private static string GetCanStateDescription(int state) => state switch
+    {
+        0 => "ErrorActive",
+        1 => "ErrorPassive",
+        2 => "BusOff",
+        3 => "Init",
+        _ => $"未知({state})"
+    };
+
+    private static string GetCanErrorDescription(int error) => error switch
+    {
+        0 => "None",
+        1 => "Stuff",
+        2 => "Form",
+        3 => "ACK",
+        4 => "Bit1",
+        5 => "Bit0",
+        6 => "CRC",
+        _ => $"未知({error})"
+    };
 
     /// <summary>构建 NI-XNET 帧字节（Raw Frame 格式，nxFrameVar_t）</summary>
     private byte[] BuildFrameBytes(CanMessage message)
@@ -369,6 +458,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 
                 msg.IsFd = frameType is NiXnetApi.nxFrameType_CANFD_Data
                     or NiXnetApi.nxFrameType_CANFDBRS_Data;
+                msg.IsTransmitEcho = (buffer[offset + 13] & NiXnetApi.nxFrameFlags_TransmitEcho) != 0;
 
                 int dataLen = Math.Min(payloadLen, length - offset - 16);
                 msg.Data = new byte[dataLen];
