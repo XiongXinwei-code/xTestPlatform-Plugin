@@ -39,7 +39,19 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     public bool UseMappedRange
     {
         get => Setting?.UseMappedRange ?? false;
-        set { if (Setting == null || Setting.UseMappedRange == value) return; Setting.UseMappedRange = value; OnPropertyChanged(); QueueSave(); }
+        set
+        {
+            if (Setting == null || Setting.UseMappedRange == value) return;
+            Setting.UseMappedRange = value;
+            // ZLG 的映射范围配置对应带参数擦除；用户随后仍可在擦除页明确改为无参数模式。
+            if (value)
+            {
+                Setting.EraseWithAddressAndLength = true;
+                OnPropertyChanged(nameof(EraseWithAddressAndLength));
+            }
+            OnPropertyChanged();
+            QueueSave();
+        }
     }
 
     public string MappedStartAddress
@@ -284,7 +296,7 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
             DataFormatId = Setting.DataFormatId,
             EraseBeforeDownload = Setting.EraseBeforeDownload,
             EraseRoutineId = Setting.EraseRoutineId,
-            EraseWithAddressAndLength = Setting.EraseWithAddressAndLength,
+            EraseWithAddressAndLength = Setting.EraseWithAddressAndLength ?? true,
             EraseTimeoutMs = Setting.EraseTimeoutMs,
             MaxBlockSize = Setting.MaxBlockSize,
             PreDownloadDelayMs = Setting.PreDownloadDelayMs,

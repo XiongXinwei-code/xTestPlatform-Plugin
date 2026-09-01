@@ -62,7 +62,9 @@ public class CanFlashSetting : UdsCommonSetting
     /// 擦除例程是否携带地址和长度参数。true 时发送
     /// [ALFID][Address][Length]，false 时仅发送 0x31/子功能/RoutineId。
     /// </summary>
-    public bool EraseWithAddressAndLength { get; set; } = true;
+    // 可空值用于区分历史序列中“未保存该字段”和用户明确选择无参数擦除：
+    // null 与 true 都按带参数擦除处理，只有 false 才发送无参数擦除。
+    public bool? EraseWithAddressAndLength { get; set; }
 
     /// <summary>擦除操作超时（ms），擦除耗时通常远长于普通请求</summary>
     public int EraseTimeoutMs { get; set; } = 30000;

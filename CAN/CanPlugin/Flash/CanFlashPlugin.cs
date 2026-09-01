@@ -107,7 +107,11 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
     protected override CanFlashSetting MigrateSetting(byte[] data, int fromVersion)
     {
         if (fromVersion == 1)
-            return MessagePackSerializer.Deserialize<CanFlashSetting>(data, SerializerOptions);
+        {
+            var migrated = MessagePackSerializer.Deserialize<CanFlashSetting>(data, SerializerOptions);
+            migrated.EraseWithAddressAndLength ??= true;
+            return migrated;
+        }
 
         return base.MigrateSetting(data, fromVersion);
     }

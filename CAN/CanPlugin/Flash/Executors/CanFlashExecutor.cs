@@ -105,7 +105,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                         0x31, 0x01,
                         (byte)(eraseRoutineId >> 8), (byte)eraseRoutineId
                     };
-                    if (setting.EraseWithAddressAndLength)
+                    if (setting.EraseWithAddressAndLength != false)
                     {
                         // 带参数擦除的 option record：
                         // [addressAndLengthFormatId][memoryAddress][memorySize]。
