@@ -192,6 +192,7 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="9" Grid.ColumnSpan="2" Text="ECU 刷写规范预设" FontWeight="Bold" Margin="0,16,0,8"/>
