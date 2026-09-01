@@ -54,12 +54,19 @@ public sealed class ZlgAdapter : ICanAdapter
             can_type = _isFd ? ZlgApi.ZCAN_TYPE_CANFD : ZlgApi.ZCAN_TYPE_CAN
         };
 
-        if (ZlgApi.IsCanFdDevice(deviceType))
+        if (_isFd)
         {
+            if (!ZlgApi.IsCanFdDevice(deviceType))
+            {
+                // 非 USBCANFD 系列不支持 CAN FD
+                ZlgApi.CloseDevice(_deviceHandle);
+                _deviceHandle = IntPtr.Zero;
+                throw new InvalidOperationException($"ZLG 设备类型 {parts[0]} 不支持 CAN FD，请改用 USBCANFD 系列设备或将协议设为 Classic");
+            }
+
             // USBCANFD 系列：波特率必须在 InitCAN 之前通过设备属性设置，
             // 直接把 bps 填入 abit_timing/dbit_timing 会得到无效时序，导致后续发送失败。
-            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
-                    config.BaudRate.ToString()))
+            if (!ZlgApi.TrySetCanFdArbitrationBaud(_deviceHandle, channelIndex, config.BaudRate))
             {
                 ZlgApi.CloseDevice(_deviceHandle);
                 _deviceHandle = IntPtr.Zero;
@@ -68,14 +75,12 @@ public sealed class ZlgAdapter : ICanAdapter
                     "请确认设备类型与实际硬件型号一致、通道索引有效，且该波特率在设备时钟下受支持");
             }
 
-            int dataBitRate = _isFd ? config.DataBitRate : config.BaudRate;
-            if (!ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
-                    dataBitRate.ToString()))
+            if (!ZlgApi.TrySetCanFdDataBaud(_deviceHandle, channelIndex, config.DataBitRate))
             {
                 ZlgApi.CloseDevice(_deviceHandle);
                 _deviceHandle = IntPtr.Zero;
                 throw new InvalidOperationException(
-                    $"设置 ZLG 通道 {channelIndex} 数据段波特率 {dataBitRate} bps 失败，" +
+                    $"设置 ZLG 通道 {channelIndex} 数据段波特率 {config.DataBitRate} bps 失败，" +
                     "请确认该波特率在设备时钟下受支持");
             }
 
@@ -84,15 +89,11 @@ public sealed class ZlgAdapter : ICanAdapter
             initConfig.canfd.filter = 0;
             initConfig.canfd.mode = 0;
         }
-        else if (_isFd)
-        {
-            // 非 USBCANFD 系列不支持 CAN FD
-            ZlgApi.CloseDevice(_deviceHandle);
-            _deviceHandle = IntPtr.Zero;
-            throw new InvalidOperationException($"ZLG 设备类型 {parts[0]} 不支持 CAN FD，请改用 USBCANFD 系列设备或将协议设为 Classic");
-        }
         else
         {
+            // Classic CAN（包括 USBCANFD 硬件上的 CANopen）：使用 CAN 配置联合体。
+            // 不设置 canfd_* 属性；旧版 ZLGCAN DLL 可能不支持该属性路径，而 Classic
+            // 模式只需要 BTR0/BTR1 时序参数。
             initConfig.can.acc_code = 0;
             initConfig.can.acc_mask = 0xFFFFFFFF;
             initConfig.can.filter = 0;
