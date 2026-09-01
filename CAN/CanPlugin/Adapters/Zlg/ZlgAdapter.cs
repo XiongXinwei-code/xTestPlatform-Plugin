@@ -73,6 +73,14 @@ public sealed class ZlgAdapter : ICanAdapter
                     $"当前内置 ZLGCAN 的 CAN FD 标准波特率接口固定使用 80% 仲裁段采样点，" +
                     $"不能可靠表达 {config.ArbitrationSamplePoint:F2}%；请设为 80%，或提供当前设备型号对应的 ZLG 自定义波特率字符串规则。");
             }
+            if (Math.Abs(config.DataSamplePoint - 80d) > 0.01)
+            {
+                ZlgApi.CloseDevice(_deviceHandle);
+                _deviceHandle = IntPtr.Zero;
+                throw new InvalidOperationException(
+                    $"当前内置 ZLGCAN 的 CAN FD 标准波特率接口固定使用 80% 数据段采样点，" +
+                    $"不能可靠表达 {config.DataSamplePoint:F2}%；请设为 80%，或提供当前设备型号对应的 ZLG 自定义波特率字符串规则。");
+            }
 
             // 新版 ZLGCAN 使用属性接口配置 CAN FD；部分旧版 DLL / 固件会拒绝
             // canfd_* 属性，但仍接受 InitCAN 结构体中的直接时序值（v1.0.19 的方式）。
@@ -142,6 +150,8 @@ public sealed class ZlgAdapter : ICanAdapter
         {
             config.AppliedArbitrationBitRate = config.BaudRate;
             config.AppliedArbitrationSamplePoint = 80;
+            config.AppliedDataBitRate = config.DataBitRate;
+            config.AppliedDataSamplePoint = 80;
         }
         else
         {

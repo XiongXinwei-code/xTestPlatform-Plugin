@@ -23,6 +23,9 @@ public class CanOpenSetting
     /// <summary>数据段波特率（CAN FD 有效）</summary>
     public int DataBitRate { get; set; } = 2_000_000;
 
+    /// <summary>数据段目标采样点（百分比，仅 CAN FD 有效）；底层寄存器由适配器自动换算</summary>
+    public double DataSamplePoint { get; set; } = 80.0;
+
     /// <summary>使能硬件内置 120 Ω 终端电阻（硬件及厂商 API 须支持）</summary>
     public bool EnableTermination { get; set; }
 

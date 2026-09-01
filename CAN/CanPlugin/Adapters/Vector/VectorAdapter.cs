@@ -65,11 +65,16 @@ public sealed class VectorAdapter : ICanAdapter
             var arbitration = CanSamplePointCalculator.CalculateSegments(
                 config.BaudRate, config.ArbitrationSamplePoint,
                 maxTseg1: 256, maxTseg2: 128, maxSjw: 128, maxTotalTq: 40);
+            var data = CanSamplePointCalculator.CalculateSegments(
+                config.DataBitRate, config.DataSamplePoint,
+                maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 20);
             var conf = BuildFdConf(
-                (uint)config.BaudRate, (uint)config.DataBitRate, arbitration);
+                (uint)config.BaudRate, (uint)config.DataBitRate, arbitration, data);
             VectorXlApi.CheckStatus(VectorXlApi.CanFdSetConfiguration(_portHandle, _accessMask, ref conf));
             config.AppliedArbitrationBitRate = config.BaudRate;
             config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
+            config.AppliedDataBitRate = config.DataBitRate;
+            config.AppliedDataSamplePoint = data.SamplePoint;
         }
         else
         {
@@ -98,11 +103,8 @@ public sealed class VectorAdapter : ICanAdapter
 
     /// <summary>构建 CAN FD 位时序配置。</summary>
     private static VectorXlApi.XLcanFdConf BuildFdConf(
-        uint arbBitRate, uint dataBitRate, CanControllerTiming arbitration)
+        uint arbBitRate, uint dataBitRate, CanControllerTiming arbitration, CanControllerTiming data)
     {
-        var data = CanSamplePointCalculator.CalculateSegments(
-            (int)dataBitRate, 80,
-            maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 20);
         return new VectorXlApi.XLcanFdConf
         {
             arbitrationBitRate = arbBitRate,

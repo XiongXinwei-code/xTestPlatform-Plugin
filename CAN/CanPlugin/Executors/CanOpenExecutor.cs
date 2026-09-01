@@ -25,10 +25,13 @@ public sealed class CanOpenExecutor : IStepExecutor
 
             var key = CanHelper.GetAdapterKey(connName);
 
-            // 用户只配置厂商无关的采样点百分比。NI-XNET 需要预先编码为 U64，
+            // 用户只配置厂商无关的 Nominal/Data 采样点百分比。NI-XNET 需要分别预先编码为 U64，
             // 其他适配器在各自 Open 实现内转换为对应的位时序表示。
             var arbitrationTiming = setting.AdapterType == CanAdapterType.NI
                 ? CanBitTimingCalculator.Calculate(setting.BaudRate, setting.ArbitrationSamplePoint)
+                : null;
+            var dataTiming = setting.AdapterType == CanAdapterType.NI && setting.Protocol == CanProtocolType.FD
+                ? CanBitTimingCalculator.CalculateData(setting.DataBitRate, setting.DataSamplePoint)
                 : null;
 
             var adapter = CanAdapterFactory.Create(setting.AdapterType);
@@ -40,7 +43,9 @@ public sealed class CanOpenExecutor : IStepExecutor
                 DataBitRate = setting.DataBitRate,
                 EnableTermination = setting.EnableTermination,
                 ArbitrationSamplePoint = setting.ArbitrationSamplePoint,
+                DataSamplePoint = setting.DataSamplePoint,
                 ArbitrationBitTiming = arbitrationTiming,
+                DataBitTiming = dataTiming,
                 RxQueueSize = setting.RxQueueSize
             };
             adapter.Open(adapterConfig);
@@ -65,6 +70,15 @@ public sealed class CanOpenExecutor : IStepExecutor
             {
                 timingDetails =
                     $"仲裁段={setting.BaudRate} bps, 目标采样点={setting.ArbitrationSamplePoint:F2}%";
+            }
+            if (setting.Protocol == CanProtocolType.FD)
+            {
+                string dataDetails = dataTiming != null
+                    ? $"数据段: {CanBitTimingCalculator.Describe(dataTiming)}"
+                    : adapterConfig.AppliedDataBitRate.HasValue && adapterConfig.AppliedDataSamplePoint.HasValue
+                        ? $"数据段={adapterConfig.AppliedDataBitRate:F0} bps, 目标采样点={setting.DataSamplePoint:F2}%, 实际采样点={adapterConfig.AppliedDataSamplePoint:F2}%"
+                        : $"数据段={setting.DataBitRate} bps, 目标采样点={setting.DataSamplePoint:F2}%";
+                timingDetails += $"; {dataDetails}";
             }
             string terminationDetails = $"内置终端电阻={(setting.EnableTermination ? "已使能" : "未使能")}";
             context.LogAction?.Invoke(

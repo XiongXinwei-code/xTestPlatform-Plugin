@@ -55,6 +55,52 @@ public static class CanBitTimingCalculator
         return Create(value.Brp, value.Sjw, value.Tseg1, value.Tseg2, value.ActualBitRate, value.SamplePoint);
     }
 
+    /// <summary>计算 NI-XNET CAN FD 数据段自定义波特率（Interface:CAN:64bit FD Baud Rate）。</summary>
+    public static CanBitTimingConfig CalculateData(int targetBitRate, double targetSamplePoint)
+    {
+        ValidateTarget(targetBitRate, targetSamplePoint);
+
+        Candidate? best = null;
+        for (int brp = 0; brp <= 511; brp++)
+        {
+            for (int totalTq = 3; totalTq <= PreferredMaxTimeQuanta; totalTq++)
+            {
+                double actualBitRate = CanClockHz / ((brp + 1d) * totalTq);
+                double bitRateErrorRatio = Math.Abs(actualBitRate - targetBitRate) / targetBitRate;
+                int tseg1 = (int)Math.Round(targetSamplePoint / 100d * totalTq - 2d,
+                    MidpointRounding.AwayFromZero);
+                int tseg2 = totalTq - tseg1 - 3;
+                // FD 数据段自定义编码的字段分别占 6/4/4 位（TSEG1/TSEG2/SJW）。
+                if (tseg1 is < 0 or > 63 || tseg2 is < 0 or > 15)
+                    continue;
+
+                double samplePoint = GetSamplePoint(tseg1, tseg2);
+                var candidate = new Candidate(
+                    brp, Math.Min(15, tseg2), tseg1, tseg2,
+                    actualBitRate, samplePoint, bitRateErrorRatio,
+                    Math.Abs(samplePoint - targetSamplePoint), totalTq);
+                if (best == null || candidate.IsBetterThan(best.Value))
+                    best = candidate;
+            }
+        }
+
+        if (best == null || best.Value.BitRateErrorRatio > MaxBitRateErrorRatio)
+            throw new ArgumentException(
+                $"NI-XNET 无法在 40 MHz 时钟下生成 {targetBitRate} bps、{targetSamplePoint:F2}% 的 CAN FD 数据段位时序");
+
+        var value = best.Value;
+        ulong timeQuantumNs = (ulong)((value.Brp + 1) * TimeQuantumNanoseconds);
+        // FD 数据段编码：时间量子位于 bit 13 起，TSEG1/TSEG2/SJW 分别位于 8/4/0 起。
+        ulong customDataBaudRate =
+            (timeQuantumNs << 13) |
+            0xA0000000UL |
+            ((ulong)(uint)value.Tseg1 << 8) |
+            ((ulong)(uint)value.Tseg2 << 4) |
+            (uint)value.Sjw;
+        return Create(value.Brp, value.Sjw, value.Tseg1, value.Tseg2,
+            value.ActualBitRate, value.SamplePoint, customDataBaudRate);
+    }
+
     /// <summary>验证手动寄存器值并生成 NI-XNET 64 位自定义波特率。</summary>
     public static CanBitTimingConfig FromRegisters(
         int targetBitRate, int brp, int sjw, int tseg1, int tseg2)
@@ -103,15 +149,17 @@ public static class CanBitTimingCalculator
 
     private static CanBitTimingConfig Create(
         int brp, int sjw, int tseg1, int tseg2, double actualBitRate, double samplePoint)
-    {
-        ulong tqNanoseconds = (ulong)((brp + 1) * TimeQuantumNanoseconds);
-        ulong customBaudRate =
-            (tqNanoseconds << 32) |
-            0xA0000000UL |
-            ((ulong)(uint)sjw << 16) |
-            ((ulong)(uint)tseg1 << 8) |
-            (uint)tseg2;
+        => Create(brp, sjw, tseg1, tseg2, actualBitRate, samplePoint,
+            (ulong)(((ulong)((brp + 1) * TimeQuantumNanoseconds) << 32) |
+                    0xA0000000UL |
+                    ((ulong)(uint)sjw << 16) |
+                    ((ulong)(uint)tseg1 << 8) |
+                    (uint)tseg2));
 
+    private static CanBitTimingConfig Create(
+        int brp, int sjw, int tseg1, int tseg2, double actualBitRate, double samplePoint,
+        ulong customBaudRate)
+    {
         return new CanBitTimingConfig
         {
             Brp = brp,

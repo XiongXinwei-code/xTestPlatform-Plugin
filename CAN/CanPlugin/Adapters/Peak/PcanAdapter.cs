@@ -45,7 +45,7 @@ public sealed class PcanAdapter : ICanAdapter
                 80_000_000, config.BaudRate, config.ArbitrationSamplePoint,
                 maxPrescaler: 1024, maxTseg1: 256, maxTseg2: 128, maxSjw: 128, maxTotalTq: 385);
             var data = CanSamplePointCalculator.Calculate(
-                80_000_000, config.DataBitRate, 80,
+                80_000_000, config.DataBitRate, config.DataSamplePoint,
                 maxPrescaler: 1024, maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 49);
 
             // PCAN-Basic FD 使用 80 MHz 时钟的位速率字符串。
@@ -55,6 +55,8 @@ public sealed class PcanAdapter : ICanAdapter
             PcanApi.CheckStatus(PcanApi.InitializeFD(_channel, bitrateFd));
             config.AppliedArbitrationBitRate = arbitration.ActualBitRate;
             config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
+            config.AppliedDataBitRate = data.ActualBitRate;
+            config.AppliedDataSamplePoint = data.SamplePoint;
         }
         else
         {

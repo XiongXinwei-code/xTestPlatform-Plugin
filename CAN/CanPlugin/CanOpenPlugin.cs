@@ -28,9 +28,10 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | Channel | string([ExpressionField]) | 是 | — | 通道名称 |
         | BaudRate | int | 是 | — | 仲裁段波特率 |
         | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD |
-        | DataBitRate | int | FD 时 | — | 数据段波特率 |
+        | DataBitRate | int | FD 时 | 2000000 | 数据段波特率 |
         | EnableTermination | bool | 否 | false | 使能设备内置 120 Ω 终端电阻；需要硬件及厂商驱动支持 |
         | ArbitrationSamplePoint | double | 否 | 80.0 | 仲裁段目标采样点百分比，范围 7.5%~97.5%；插件在适配器内部转换为驱动位时序 |
+        | DataSamplePoint | double | FD 时 | 80.0 | 数据段目标采样点百分比，范围 7.5%~97.5%；与仲裁段采样点独立配置 |
         | RxQueueSize | int | 否 | 8192 | 接收缓冲区大小（帧数）；NI-XNET 同时由后台接收泵持续排空驱动队列 |
         | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一 |
 
@@ -52,9 +53,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - 硬件不存在、通道被占用或同名连接已存在时步骤报错
         - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
         - 界面只配置采样点百分比，不暴露厂商专用的 BRP/SJW/TSEG1/TSEG2；适配器内部根据设备时钟与驱动能力换算
-        - 运行日志会输出目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略
-        - 采样点只作用于经典 CAN / CAN FD 的仲裁段，CAN FD 数据段仍由 DataBitRate 配置
-        - NI、PEAK、Vector、Kvaser 与 ZLG Classic 支持按百分比换算；当前 libTSCAN 及 ZLG CAN FD 标准波特率接口使用 80% 仲裁段采样点
+        - 运行日志会分别输出 Nominal/Data 两段的目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略
+        - 经典 CAN 仅使用仲裁段采样点；CAN FD 的仲裁段（Nominal Bit Rate）和数据段（Data Bit Rate）分别使用 ArbitrationSamplePoint 与 DataSamplePoint
+        - NI、PEAK、Vector、Kvaser 支持分别按百分比换算仲裁段与 CAN FD 数据段；当前 libTSCAN 及 ZLG CAN FD 标准波特率接口使用 80% 仲裁段和 80% 数据段采样点
         - 软件终端电阻当前接入 NI-XNET、ZLGCAN 与 libTSCAN；PEAK、Vector、Kvaser 请使用外置 120 Ω 电阻
         - NI-XNET 接收会话启动后由后台接收泵持续抽取总线帧，UDS/普通读取按目标 ID 从内存队列路由取帧，未匹配 ID 的帧会保留给后续读取；后台泵异常或队列达到上限丢帧会立即记录诊断
 
@@ -80,6 +81,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         var s = DeserializeSetting(setting);
         var proto = s.Protocol == CanProtocolType.FD ? "FD" : "Classic";
         var termination = s.EnableTermination ? ", 120Ω" : "";
-        return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps, SP={s.ArbitrationSamplePoint:F1}%{termination})";
+        string samplePoint = s.Protocol == CanProtocolType.FD
+            ? $"NominalSP={s.ArbitrationSamplePoint:F1}%, DataSP={s.DataSamplePoint:F1}%"
+            : $"SP={s.ArbitrationSamplePoint:F1}%";
+        return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps, {samplePoint}{termination})";
     }
 }

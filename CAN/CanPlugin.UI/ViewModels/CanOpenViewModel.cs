@@ -43,8 +43,9 @@ public class CanOpenViewModel : INotifyPropertyChanged
     public int AdapterType { get => (int)(_setting?.AdapterType ?? CanAdapterType.NI); set { if (_setting == null) return; _setting.AdapterType = (CanAdapterType)value; OnPropertyChanged(); QueueSave(); } }
     public string Channel { get => _setting?.Channel ?? ""; set { if (_setting == null || _setting.Channel == value) return; _setting.Channel = value; OnPropertyChanged(); QueueSave(); } }
     public int BaudRate { get => _setting?.BaudRate ?? 500000; set { if (_setting == null || _setting.BaudRate == value) return; _setting.BaudRate = value; OnPropertyChanged(); QueueSave(); } }
-    public int Protocol { get => (int)(_setting?.Protocol ?? CanProtocolType.Classic); set { if (_setting == null) return; _setting.Protocol = (CanProtocolType)value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowDataBitRate)); QueueSave(); } }
+    public int Protocol { get => (int)(_setting?.Protocol ?? CanProtocolType.Classic); set { if (_setting == null) return; _setting.Protocol = (CanProtocolType)value; OnPropertyChanged(); OnPropertyChanged(nameof(ShowDataBitRate)); OnPropertyChanged(nameof(ShowDataSamplePoint)); QueueSave(); } }
     public int DataBitRate { get => _setting?.DataBitRate ?? 2000000; set { if (_setting == null || _setting.DataBitRate == value) return; _setting.DataBitRate = value; OnPropertyChanged(); QueueSave(); } }
+    public double DataSamplePoint { get => _setting?.DataSamplePoint ?? 80d; set { if (_setting == null || Math.Abs(_setting.DataSamplePoint - value) < 0.0001) return; _setting.DataSamplePoint = value; OnPropertyChanged(); QueueSave(); } }
     public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
     public int RxQueueSize { get => _setting?.RxQueueSize ?? 8192; set { if (_setting == null || _setting.RxQueueSize == value) return; _setting.RxQueueSize = value; OnPropertyChanged(); QueueSave(); } }
 
@@ -52,6 +53,7 @@ public class CanOpenViewModel : INotifyPropertyChanged
     public double ArbitrationSamplePoint { get => _setting?.ArbitrationSamplePoint ?? 80d; set { if (_setting == null || Math.Abs(_setting.ArbitrationSamplePoint - value) < 0.0001) return; _setting.ArbitrationSamplePoint = value; OnPropertyChanged(); QueueSave(); } }
 
     public bool ShowDataBitRate => (_setting?.Protocol ?? CanProtocolType.Classic) != CanProtocolType.Classic;
+    public bool ShowDataSamplePoint => ShowDataBitRate;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

@@ -135,6 +135,17 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             status = NiXnetApi.nxSetProperty(_txSession,
                 NiXnetApi.nxPropSession_IntfCanFdBaudRate, 4, ref dataBaudRate);
             NiXnetApi.CheckStatus(status);
+
+            if (config.DataBitTiming != null)
+            {
+                ulong customDataBaudRate = config.DataBitTiming.NiXnetBaudRate64;
+                status = NiXnetApi.nxSetPropertyUInt64(_rxSession,
+                    NiXnetApi.nxPropSession_IntfCanFdBaudRate64, 8, ref customDataBaudRate);
+                NiXnetApi.CheckStatus(status);
+                status = NiXnetApi.nxSetPropertyUInt64(_txSession,
+                    NiXnetApi.nxPropSession_IntfCanFdBaudRate64, 8, ref customDataBaudRate);
+                NiXnetApi.CheckStatus(status);
+            }
         }
 
         // QueueSize 单位为字节。旧序列可能保存较小值，NI 最低按 8192 帧配置；
@@ -165,6 +176,11 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         {
             config.AppliedArbitrationBitRate = config.ArbitrationBitTiming.ActualBitRate;
             config.AppliedArbitrationSamplePoint = config.ArbitrationBitTiming.SamplePoint;
+        }
+        if (config.DataBitTiming != null)
+        {
+            config.AppliedDataBitRate = config.DataBitTiming.ActualBitRate;
+            config.AppliedDataSamplePoint = config.DataBitTiming.SamplePoint;
         }
 
         _isConnected = true;

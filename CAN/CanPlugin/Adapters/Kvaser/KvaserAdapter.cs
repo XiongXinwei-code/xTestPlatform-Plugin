@@ -60,9 +60,18 @@ public sealed class KvaserAdapter : ICanAdapter
         config.AppliedArbitrationBitRate = config.BaudRate;
         config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
 
-        // FD 数据段波特率
+        // FD 数据段波特率及采样点
         if (_isFd)
-            KvaserApi.CheckStatus(KvaserApi.SetBusParamsFd(_handle, KvaserApi.ToFdDataBitrateConst(config.DataBitRate), 0, 0, 0));
+        {
+            var data = CanSamplePointCalculator.CalculateSegments(
+                config.DataBitRate, config.DataSamplePoint,
+                maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 20);
+            KvaserApi.CheckStatus(KvaserApi.SetBusParamsFd(
+                _handle, KvaserApi.ToFdDataBitrateConst(config.DataBitRate),
+                (uint)data.Tseg1, (uint)data.Tseg2, (uint)data.Sjw));
+            config.AppliedDataBitRate = config.DataBitRate;
+            config.AppliedDataSamplePoint = data.SamplePoint;
+        }
 
         KvaserApi.CheckStatus(KvaserApi.BusOn(_handle));
         _isConnected = true;

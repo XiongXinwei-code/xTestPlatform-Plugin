@@ -42,12 +42,20 @@ public class CanAdapterConfig
     public bool EnableTermination { get; set; }
     /// <summary>仲裁段目标采样点百分比；底层位时序由适配器换算。</summary>
     public double ArbitrationSamplePoint { get; set; } = 80.0;
+    /// <summary>CAN FD 数据段目标采样点百分比；经典 CAN 忽略。</summary>
+    public double DataSamplePoint { get; set; } = 80.0;
     /// <summary>适配器成功初始化后回填的实际仲裁段波特率。</summary>
     public double? AppliedArbitrationBitRate { get; set; }
     /// <summary>适配器成功初始化后回填的实际仲裁段采样点。</summary>
     public double? AppliedArbitrationSamplePoint { get; set; }
     /// <summary>仲裁段自定义位时序；null 表示使用驱动根据 BaudRate 选择的默认时序。</summary>
     public CanBitTimingConfig? ArbitrationBitTiming { get; set; }
+    /// <summary>CAN FD 数据段自定义位时序；null 表示使用驱动默认时序。</summary>
+    public CanBitTimingConfig? DataBitTiming { get; set; }
+    /// <summary>适配器成功初始化后回填的实际数据段波特率。</summary>
+    public double? AppliedDataBitRate { get; set; }
+    /// <summary>适配器成功初始化后回填的实际数据段采样点。</summary>
+    public double? AppliedDataSamplePoint { get; set; }
     public string DatabasePath { get; set; } = "";
     /// <summary>接收缓冲区大小（帧数）</summary>
     public int RxQueueSize { get; set; } = 8192;

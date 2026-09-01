@@ -41,6 +41,12 @@ public sealed class TosunAdapter : ICanAdapter
                 $"当前插件使用的 libTSCAN tscan_config_*_by_baudrate 接口没有采样点参数，" +
                 $"不能可靠表达 {config.ArbitrationSamplePoint:F2}%；请设为 80%，或改用提供寄存器配置接口的 TSMaster SDK。");
         }
+        if (config.Protocol == CanProtocolType.FD && Math.Abs(config.DataSamplePoint - 80d) > 0.01)
+        {
+            throw new InvalidOperationException(
+                $"当前 libTSCAN CAN FD 波特率接口没有数据段采样点参数，不能可靠表达 {config.DataSamplePoint:F2}%；" +
+                "请设为 80%，或改用提供寄存器配置接口的 TSMaster SDK。");
+        }
 
         _isFd = config.Protocol == CanProtocolType.FD;
 
@@ -73,6 +79,11 @@ public sealed class TosunAdapter : ICanAdapter
 
         config.AppliedArbitrationBitRate = config.BaudRate;
         config.AppliedArbitrationSamplePoint = 80;
+        if (_isFd)
+        {
+            config.AppliedDataBitRate = config.DataBitRate;
+            config.AppliedDataSamplePoint = 80;
+        }
 
         _isConnected = true;
     }

@@ -21,7 +21,7 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="190"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -90,7 +90,7 @@
                     <ComboBoxItem Content="CAN FD"/>
                 </ComboBox>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="DataBitRate:" VerticalAlignment="Center" Margin="0,0,8,8"
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="DataBitRate (数据段):" VerticalAlignment="Center" Margin="0,0,8,8"
                            Visibility="{Binding ShowDataBitRate, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 <ComboBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           IsEditable="True"
@@ -112,9 +112,10 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="130"/>
+                            <ColumnDefinition Width="190"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
@@ -123,7 +124,7 @@
                                   IsChecked="{Binding EnableTermination, Mode=TwoWay}" Margin="0,0,0,10"
                                   ToolTip="需要硬件及厂商驱动支持软件终端电阻；不支持时请取消勾选并外接 120 Ω 电阻。"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="仲裁段采样点:" VerticalAlignment="Center" Margin="0,0,8,10"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="仲裁段采样点 (Nominal):" VerticalAlignment="Center" Margin="0,0,8,10"/>
                         <Grid Grid.Row="1" Grid.Column="1" Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="360"/>
@@ -137,10 +138,26 @@
                             <TextBlock Grid.Column="2" Text="%" VerticalAlignment="Center"/>
                         </Grid>
 
-                        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Background="#FFF5F7FA"
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="数据段采样点 (Data):" VerticalAlignment="Center" Margin="0,0,8,10"
+                                   Visibility="{Binding ShowDataSamplePoint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,10"
+                              Visibility="{Binding ShowDataSamplePoint, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="360"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Minimum="7.5" Maximum="97.5" TickFrequency="0.5"
+                                    IsSnapToTickEnabled="True" Value="{Binding DataSamplePoint, Mode=TwoWay}"/>
+                            <TextBox Grid.Column="1" Margin="12,0,6,0" VerticalContentAlignment="Center"
+                                     Text="{Binding DataSamplePoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}"/>
+                            <TextBlock Grid.Column="2" Text="%" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Background="#FFF5F7FA"
                                 BorderBrush="#FFD9DEE7" BorderThickness="1" CornerRadius="4" Padding="10">
                             <TextBlock Foreground="#FF5F6368" TextWrapping="Wrap"
-                                       Text="只配置目标百分比，插件会按所选适配器转换为驱动位时序；实际采样点会受设备时钟和驱动能力限制。该设置作用于经典 CAN 和 CAN FD 仲裁段，CAN FD 数据段仍使用 DataBitRate。"/>
+                                       Text="只配置目标百分比，插件会按所选适配器转换为驱动位时序；实际采样点会受设备时钟和驱动能力限制。标称比特率采样点作用于经典 CAN 和 CAN FD 仲裁段；CAN FD 数据比特率使用单独的数据段采样点。"/>
                         </Border>
                     </Grid>
                 </GroupBox>

@@ -39,6 +39,12 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("CAN_005", "CAN FD 模式下数据段波特率必须大于 0"));
         else if (s.Protocol != CanProtocolType.Classic && s.DataBitRate < s.BaudRate)
             errors.Add(StepSettingError.Warning("CAN_W01", "数据段波特率通常应大于等于仲裁段波特率"));
+        if (s.Protocol == CanProtocolType.FD &&
+            (double.IsNaN(s.DataSamplePoint) || double.IsInfinity(s.DataSamplePoint) ||
+             s.DataSamplePoint < 7.5 || s.DataSamplePoint > 97.5))
+        {
+            errors.Add(StepSettingError.Error("CAN_011", "数据段采样点必须在 7.5%~97.5% 之间"));
+        }
         if (s.RxQueueSize <= 0)
             errors.Add(StepSettingError.Error("CAN_006", "接收缓冲区大小必须大于 0"));
         else if (s.RxQueueSize < 8192)
@@ -59,6 +65,17 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             {
                 errors.Add(StepSettingError.Error("CAN_007", $"NI-XNET 仲裁段采样点无效: {ex.Message}"));
             }
+            if (s.Protocol == CanProtocolType.FD)
+            {
+                try
+                {
+                    _ = CanBitTimingCalculator.CalculateData(s.DataBitRate, s.DataSamplePoint);
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(StepSettingError.Error("CAN_011", $"NI-XNET 数据段采样点无效: {ex.Message}"));
+                }
+            }
         }
         else if (s.AdapterType == CanAdapterType.TOSUN &&
                  Math.Abs(s.ArbitrationSamplePoint - 80d) > 0.01)
@@ -71,6 +88,13 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         {
             errors.Add(StepSettingError.Error(
                 "CAN_009", "当前内置 ZLGCAN 的 CAN FD 标准波特率接口仅支持 80% 仲裁段采样点"));
+        }
+        if (s.Protocol == CanProtocolType.FD &&
+            (s.AdapterType is CanAdapterType.TOSUN or CanAdapterType.ZLG) &&
+            Math.Abs(s.DataSamplePoint - 80d) > 0.01)
+        {
+            errors.Add(StepSettingError.Error(
+                "CAN_012", $"当前 {s.AdapterType} 的通用 CAN FD 波特率接口仅能可靠使用 80% 数据段采样点"));
         }
 
         if (s.EnableTermination && s.AdapterType is
