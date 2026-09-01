@@ -91,6 +91,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 return Error($"地址与长度格式标识 0x{alfid:X2} 非法，地址与长度字节数均须在 1~4 之间");
 
             int writtenBytes = 0;
+            int lastLoggedProgress = -1;
 
             // ── 逐段烧录 ─────────────────────────────────────────────────
             foreach (var segment in segments)
@@ -155,6 +156,7 @@ public sealed class CanFlashExecutor : IStepExecutor
 
                 if (setting.EnableLog)
                     context.LogAction?.Invoke($"UDS Flash: 开始传输 0x{segment.StartAddress:X8}，分块大小 {blockSize} 字节");
+                ReportProgress(context, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
 
                 // 分块传输 (0x36)
                 byte blockCounter = 1;
@@ -190,7 +192,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     writtenBytes += chunkLength;
                     blockCounter = (byte)(blockCounter + 1); // 到 0xFF 后自动回绕到 0x00
 
-                    ReportProgress(context, setting, writtenBytes, totalBytes);
+                    ReportProgress(context, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
 
                     if (setting.InterBlockDelayMs > 0)
                         await Task.Delay(setting.InterBlockDelayMs, cancellationToken);
@@ -246,6 +248,10 @@ public sealed class CanFlashExecutor : IStepExecutor
                         $"TX=[{UdsExecutorHelper.ToHex(checkRequest.ToArray())}]; " +
                         $"RX=[{UdsExecutorHelper.ToHex(checkResponse.RawBytes)}]");
                 }
+
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke(
+                        $"UDS Flash: {setting.CheckMode} 校验通过，校验值=0x{checkValue:X8}");
             }
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
@@ -366,13 +372,28 @@ public sealed class CanFlashExecutor : IStepExecutor
         ];
     }
 
-    private static void ReportProgress(IExecutionContext context, CanFlashSetting setting, int written, int total)
+    private static void ReportProgress(
+        IExecutionContext context,
+        CanFlashSetting setting,
+        int written,
+        int total,
+        ref int lastLoggedPercent)
     {
-        if (string.IsNullOrWhiteSpace(setting.ProgressVariable) || total <= 0)
+        if (total <= 0)
             return;
 
         int percent = (int)((long)written * 100 / total);
-        context.SetVariable(setting.ProgressVariable, percent);
+        if (!string.IsNullOrWhiteSpace(setting.ProgressVariable))
+            context.SetVariable(setting.ProgressVariable, percent);
+
+        // 大文件可能包含数千个 0x36 块；只在整数百分比变化时记录，既能看到
+        // 实时进度，也避免每个数据块都写日志造成明显额外开销。
+        if (setting.EnableLog && percent != lastLoggedPercent)
+        {
+            context.LogAction?.Invoke(
+                $"UDS Flash: 下载进度 {percent}% ({written:N0}/{total:N0} 字节)");
+            lastLoggedPercent = percent;
+        }
     }
 
     private static ExecutionResult Error(string message) => new()

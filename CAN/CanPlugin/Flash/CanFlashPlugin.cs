@@ -68,6 +68,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - 擦除例程可按 ECU 规范选择携带或不携带 [ALFID][地址][长度] 参数；映射范围模式始终携带完整范围参数
         - 块序号从 1 开始循环递增，到 0xFF 后回绕到 0x00
         - 单块传输失败时按 BlockRetryCount 重试，重试耗尽则步骤报错
+        - 启用日志时按整数百分比输出下载进度，并在校验成功后明确输出校验方式与校验值
         - ECU 返回否定响应、请求超时或固件文件解析失败时步骤报错
         - 用户主动取消时立即停止传输并返回中止状态
 
