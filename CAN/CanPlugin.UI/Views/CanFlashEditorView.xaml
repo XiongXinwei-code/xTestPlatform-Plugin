@@ -39,6 +39,7 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="连接名称:" Style="{StaticResource LabelStyle}"/>
@@ -59,14 +60,28 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="响应超时 (ms):" Style="{StaticResource LabelStyle}"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="CAN ID 类型:" Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                          SelectedIndex="{Binding FrameType}">
+                    <ComboBoxItem Content="标准帧 (11-bit)"/>
+                    <ComboBoxItem Content="扩展帧 (29-bit)"/>
+                </ComboBox>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="使用 CAN FD 帧:" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,8">
+                    <CheckBox IsChecked="{Binding UseFdFrame}" VerticalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
+                               Text="CAN_Open 使用 FD 且 ECU 刷写流程使用 CAN FD/BRS 时必须勾选；多帧传输将使用最大 64 字节数据区。"/>
+                </StackPanel>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="响应超时 (ms):" Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <Separator Grid.Row="4" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
+                <Separator Grid.Row="6" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="固件文件:" Style="{StaticResource LabelStyle}"/>
-                <Grid Grid.Row="5" Grid.Column="1" Margin="0,0,0,8">
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="固件文件:" Style="{StaticResource LabelStyle}"/>
+                <Grid Grid.Row="7" Grid.Column="1" Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -78,8 +93,8 @@
                     <Button Grid.Column="1" Content="浏览..." Width="70" Margin="8,0,0,0" Click="OnBrowseFile"/>
                 </Grid>
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="文件格式:" Style="{StaticResource LabelStyle}"/>
-                <ComboBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="文件格式:" Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding FormatIndex}">
                     <ComboBoxItem Content="自动识别（按扩展名）"/>
                     <ComboBoxItem Content="Intel HEX"/>
@@ -87,17 +102,17 @@
                     <ComboBoxItem Content="原始二进制 BIN"/>
                 </ComboBox>
 
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="基地址:" Style="{StaticResource LabelStyle}"
+                <TextBlock Grid.Row="9" Grid.Column="0" Text="基地址:" Style="{StaticResource LabelStyle}"
                            Visibility="{Binding IsBinaryFormat, Converter={StaticResource BoolToVis}}"/>
-                <expr:ExpressionTextBox Grid.Row="7" Grid.Column="1" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="9" Grid.Column="1" Margin="0,0,0,8"
                     Visibility="{Binding IsBinaryFormat, Converter={StaticResource BoolToVis}}"
                     ScriptText="{Binding BaseAddress, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <Separator Grid.Row="8" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
+                <Separator Grid.Row="10" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
 
-                <StackPanel Grid.Row="9" Grid.ColumnSpan="2">
+                <StackPanel Grid.Row="11" Grid.ColumnSpan="2">
                     <TextBlock Text="固件分析" FontWeight="Bold" Margin="0,0,0,8"/>
 
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">

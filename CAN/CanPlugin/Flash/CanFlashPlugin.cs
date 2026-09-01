@@ -54,6 +54,8 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
         | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
         | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
+        | FrameType | 枚举 | 否 | Standard | CAN ID 类型：Standard（11-bit）或 Extended（29-bit） |
+        | UseFdFrame | bool | 否 | false | 是否按 CAN FD/BRS 发送 ISO-TP；启用后分段帧最大使用 64 字节数据区 |
         | ResponseTimeoutMs | int | 否 | 5000 | 普通请求的响应超时毫秒数 |
 
         ## 行为
@@ -62,6 +64,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - 烧录期间不要再次发送 0x10 服务，否则会清除已有的安全解锁状态
         - 默认将固件解析为多个地址连续的数据段，逐段执行 0x34 → 0x36 循环 → 0x37；启用映射范围后，所有数据段会按指定范围合并，地址空洞使用填充字节补齐
         - 实际分块大小取 MaxBlockSize 与 ECU 在 0x34 响应中允许长度的较小值；MaxBlockSize 为 0 时不再额外限制
+        - CAN_Open 选择 CAN FD 并不自动改变 UDS 帧格式；ECU 刷写流程使用 CAN FD/BRS 时，还必须在本步骤启用 UseFdFrame
         - 擦除例程可按 ECU 规范选择携带或不携带 [ALFID][地址][长度] 参数；映射范围模式始终携带完整范围参数
         - 块序号从 1 开始循环递增，到 0xFF 后回绕到 0x00
         - 单块传输失败时按 BlockRetryCount 重试，重试耗尽则步骤报错
@@ -75,6 +78,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
           "ConnectionName": "\"CAN1\"",
           "TxId": "\"0x7E0\"",
           "RxId": "\"0x7E8\"",
+          "UseFdFrame": true,
           "FilePath": "\"D:\\\\firmware\\\\app.hex\"",
           "Format": "IntelHex",
           "UseMappedRange": true,

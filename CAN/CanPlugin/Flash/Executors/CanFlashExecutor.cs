@@ -52,6 +52,9 @@ public sealed class CanFlashExecutor : IStepExecutor
             {
                 context.LogAction?.Invoke($"UDS Flash: 固件 {filePath}");
                 context.LogAction?.Invoke($"UDS Flash: 共 {segments.Count} 个数据段，合计 {totalBytes} 字节");
+                context.LogAction?.Invoke(setting.UseFdFrame
+                    ? "UDS Flash: ISO-TP 使用 CAN FD/BRS，分段帧最大 64 字节"
+                    : "UDS Flash: ISO-TP 使用 Classic CAN，分段帧最大 8 字节");
                 foreach (var seg in segments)
                     context.LogAction?.Invoke($"UDS Flash: 数据段 {seg}");
             }
@@ -230,6 +233,19 @@ public sealed class CanFlashExecutor : IStepExecutor
                 if (!checkResponse.IsPositive)
                     return Failed($"固件校验失败: {checkResponse.GetNrcDescription()}",
                         $"NRC=0x{checkResponse.NegativeResponseCode:X2}");
+
+                // 本项目 ECU 的 0x0202 校验例程在正响应最后附带厂商结果码：
+                // 71 01 02 02 00 表示校验成功，非 00 表示例程执行未成功。仅判断 0x71
+                // 会把 71 01 02 02 01 误判为成功，并导致下一步擦除返回 NRC 0x22。
+                if (checkResponse.Data.Length >= 4 && checkResponse.Data[^1] != 0x00)
+                {
+                    byte routineResult = checkResponse.Data[^1];
+                    return Failed(
+                        $"固件校验例程返回失败状态 0x{routineResult:X2}",
+                        $"RoutineResult=0x{routineResult:X2}; " +
+                        $"TX=[{UdsExecutorHelper.ToHex(checkRequest.ToArray())}]; " +
+                        $"RX=[{UdsExecutorHelper.ToHex(checkResponse.RawBytes)}]");
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
