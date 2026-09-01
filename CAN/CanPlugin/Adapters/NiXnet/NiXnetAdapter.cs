@@ -16,7 +16,9 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     private bool _isConnected;
     private CanProtocolType _protocol = CanProtocolType.Classic;
     private readonly object _lock = new();
-    private readonly Queue<CanMessage> _pendingFrames = new();
+    // 全局链表保留总线到达顺序；按 ID 建索引，Read(id) 不需要丢弃其他 ID 的帧。
+    private readonly LinkedList<CanMessage> _pendingFrames = new();
+    private readonly Dictionary<uint, Queue<LinkedListNode<CanMessage>>> _pendingFramesById = new();
     private CancellationTokenSource? _receivePumpCts;
     private Task? _receivePumpTask;
     private Exception? _receivePumpError;
@@ -202,6 +204,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         lock (_lock)
         {
             _pendingFrames.Clear();
+            _pendingFramesById.Clear();
             _receivePumpError = null;
             _pumpReadCalls = 0;
             _pumpBytesRead = 0;
@@ -232,6 +235,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             _pumpParsedFrames = 0;
             _pumpDroppedFrames = 0;
             _pendingFrames.Clear();
+            _pendingFramesById.Clear();
         }
 
         var cts = new CancellationTokenSource();
@@ -289,10 +293,17 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                         _pumpParsedFrames++;
                         if (_pendingFrames.Count >= _maxPendingFrames)
                         {
-                            _pendingFrames.Dequeue();
+                            RemovePendingNode(_pendingFrames.First!);
                             _pumpDroppedFrames++;
                         }
-                        _pendingFrames.Enqueue(frame);
+
+                        var node = _pendingFrames.AddLast(frame);
+                        if (!_pendingFramesById.TryGetValue(frame.Id, out var idQueue))
+                        {
+                            idQueue = new Queue<LinkedListNode<CanMessage>>();
+                            _pendingFramesById.Add(frame.Id, idQueue);
+                        }
+                        idQueue.Enqueue(node);
                     }
                 }
             }
@@ -354,23 +365,36 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         {
             ThrowIfReceivePumpFailed();
 
-            // 先从缓存队列中查找匹配帧
+            CanMessage? pending = null;
             lock (_lock)
             {
-                while (_pendingFrames.Count > 0)
+                LinkedListNode<CanMessage>? node = null;
+                if (filterId.HasValue)
                 {
-                    var pending = _pendingFrames.Dequeue();
-                    if (filterId == null || pending.Id == filterId.Value)
+                    if (_pendingFramesById.TryGetValue(filterId.Value, out var idQueue) && idQueue.Count > 0)
                     {
-                        SetReceiveDiagnostics(BuildReceiveDiagnostics(
-                            filterId, timeoutMs, 0, 0, (int)_pumpParsedFrames,
-                            filteredFrames, 0, 0, Array.Empty<uint>(),
-                            Array.Empty<uint>(), "", GetPumpDiagnostics(), true));
-                        return pending;
+                        node = idQueue.Peek();
                     }
-
-                    filteredFrames++;
                 }
+                else
+                {
+                    node = _pendingFrames.First;
+                }
+
+                if (node != null)
+                {
+                    pending = node.Value;
+                    RemovePendingNode(node);
+                }
+            }
+
+            if (pending != null)
+            {
+                SetReceiveDiagnostics(BuildReceiveDiagnostics(
+                    filterId, timeoutMs, 0, 0, (int)_pumpParsedFrames,
+                    filteredFrames, 0, 0, Array.Empty<uint>(),
+                    Array.Empty<uint>(), "", GetPumpDiagnostics(), true));
+                return pending;
             }
 
             if (DateTime.UtcNow >= deadline) break;
@@ -404,6 +428,35 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             return $"后台接收泵={state}，读取调用={_pumpReadCalls}，驱动返回={_pumpBytesRead}字节，" +
                    $"解析={_pumpParsedFrames}帧，内存队列丢弃={_pumpDroppedFrames}帧";
         }
+    }
+
+    /// <summary>从全局队列和 ID 索引中同步移除同一个节点。</summary>
+    private void RemovePendingNode(LinkedListNode<CanMessage> node)
+    {
+        _pendingFrames.Remove(node);
+        if (!_pendingFramesById.TryGetValue(node.Value.Id, out var idQueue) || idQueue.Count == 0)
+            return;
+
+        // 全局最老节点或指定 ID 队列的队首都应对应同一个节点；保留兜底搜索避免状态损坏后死循环。
+        if (ReferenceEquals(idQueue.Peek(), node))
+        {
+            idQueue.Dequeue();
+        }
+        else
+        {
+            var retained = new Queue<LinkedListNode<CanMessage>>(idQueue.Count);
+            while (idQueue.Count > 0)
+            {
+                var candidate = idQueue.Dequeue();
+                if (!ReferenceEquals(candidate, node))
+                    retained.Enqueue(candidate);
+            }
+            while (retained.Count > 0)
+                idQueue.Enqueue(retained.Dequeue());
+        }
+
+        if (idQueue.Count == 0)
+            _pendingFramesById.Remove(node.Value.Id);
     }
 
     private string BuildReceiveDiagnostics(

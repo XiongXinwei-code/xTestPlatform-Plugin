@@ -56,7 +56,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - 采样点只作用于经典 CAN / CAN FD 的仲裁段，CAN FD 数据段仍由 DataBitRate 配置
         - NI、PEAK、Vector、Kvaser 与 ZLG Classic 支持按百分比换算；当前 libTSCAN 及 ZLG CAN FD 标准波特率接口使用 80% 仲裁段采样点
         - 软件终端电阻当前接入 NI-XNET、ZLGCAN 与 libTSCAN；PEAK、Vector、Kvaser 请使用外置 120 Ω 电阻
-        - NI-XNET 接收会话启动后由后台接收泵持续抽取总线帧，UDS/普通读取仅从内存队列取帧；后台泵异常或队列丢帧会立即中止本次读取
+        - NI-XNET 接收会话启动后由后台接收泵持续抽取总线帧，UDS/普通读取按目标 ID 从内存队列路由取帧，未匹配 ID 的帧会保留给后续读取；后台泵异常或队列达到上限丢帧会立即记录诊断
 
         ## 检索关键词
 
