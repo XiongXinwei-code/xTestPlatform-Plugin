@@ -31,7 +31,7 @@ internal static class NiXnetApi
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     public static extern int nxReadFrame(
         uint sessionRef,
-        byte[] buffer,
+        [Out] byte[] buffer,
         uint sizeOfBuffer,
         double timeout,
         out uint numberOfBytesReturned);
@@ -39,7 +39,7 @@ internal static class NiXnetApi
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     public static extern int nxWriteFrame(
         uint sessionRef,
-        byte[] buffer,
+        [In] byte[] buffer,
         uint numberOfBytesToWrite,
         double timeout);
 

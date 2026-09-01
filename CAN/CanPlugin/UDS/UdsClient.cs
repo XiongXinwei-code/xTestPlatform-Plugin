@@ -7,6 +7,12 @@ namespace CAN.UDS;
 /// <summary>UDS 响应结构</summary>
 public class UdsResponse
 {
+    /// <summary>是否因等待 ECU 响应超时而生成。</summary>
+    public bool IsTimeout { get; set; }
+
+    /// <summary>适配器提供的接收诊断信息。</summary>
+    public string DiagnosticMessage { get; set; } = "";
+
     /// <summary>服务 ID（正响应 = 请求 SID + 0x40）</summary>
     public byte ServiceId { get; set; }
 
@@ -26,32 +32,45 @@ public class UdsResponse
     public byte NegativeResponseCode => IsPositive ? (byte)0 : (Data.Length > 0 ? Data[0] : (byte)0);
 
     /// <summary>获取 NRC 描述</summary>
-    public string GetNrcDescription() => NegativeResponseCode switch
+    public string GetNrcDescription()
     {
-        0x10 => "General Reject",
-        0x11 => "Service Not Supported",
-        0x12 => "Sub-Function Not Supported",
-        0x13 => "Incorrect Message Length Or Invalid Format",
-        0x14 => "Response Too Long",
-        0x21 => "Busy Repeat Request",
-        0x22 => "Conditions Not Correct",
-        0x24 => "Request Sequence Error",
-        0x25 => "No Response From Sub-Net Component",
-        0x26 => "Failure Prevents Execution Of Requested Action",
-        0x31 => "Request Out Of Range",
-        0x33 => "Security Access Denied",
-        0x35 => "Invalid Key",
-        0x36 => "Exceeded Number Of Attempts",
-        0x37 => "Required Time Delay Not Expired",
-        0x70 => "Upload/Download Not Accepted",
-        0x71 => "Transfer Data Suspended",
-        0x72 => "General Programming Failure",
-        0x73 => "Wrong Block Sequence Counter",
-        0x78 => "Request Correctly Received - Response Pending",
-        0x7E => "Sub-Function Not Supported In Active Session",
-        0x7F => "Service Not Supported In Active Session",
-        _ => $"Unknown NRC (0x{NegativeResponseCode:X2})"
-    };
+        if (IsTimeout)
+            return string.IsNullOrWhiteSpace(DiagnosticMessage)
+                ? "等待 ECU 响应超时"
+                : $"等待 ECU 响应超时；{DiagnosticMessage}";
+
+        return NegativeResponseCode switch
+        {
+            0x10 => "General Reject",
+            0x11 => "Service Not Supported",
+            0x12 => "Sub-Function Not Supported",
+            0x13 => "Incorrect Message Length Or Invalid Format",
+            0x14 => "Response Too Long",
+            0x21 => "Busy Repeat Request",
+            0x22 => "Conditions Not Correct",
+            0x24 => "Request Sequence Error",
+            0x25 => "No Response From Sub-Net Component",
+            0x26 => "Failure Prevents Execution Of Requested Action",
+            0x31 => "Request Out Of Range",
+            0x33 => "Security Access Denied",
+            0x35 => "Invalid Key",
+            0x36 => "Exceeded Number Of Attempts",
+            0x37 => "Required Time Delay Not Expired",
+            0x70 => "Upload/Download Not Accepted",
+            0x71 => "Transfer Data Suspended",
+            0x72 => "General Programming Failure",
+            0x73 => "Wrong Block Sequence Counter",
+            0x78 => "Request Correctly Received - Response Pending",
+            0x7E => "Sub-Function Not Supported In Active Session",
+            0x7F => "Service Not Supported In Active Session",
+            _ => $"Unknown NRC (0x{NegativeResponseCode:X2})"
+        };
+    }
+
+    /// <summary>用于步骤结果 Value，避免把本地超时误报为 ECU 返回 NRC 0x10。</summary>
+    public string GetFailureValue() => IsTimeout
+        ? $"Timeout; {DiagnosticMessage}"
+        : $"NRC=0x{NegativeResponseCode:X2}";
 }
 
 /// <summary>
@@ -59,6 +78,7 @@ public class UdsResponse
 /// </summary>
 public sealed class UdsClient
 {
+    private readonly ICanAdapter _adapter;
     private readonly IsoTpTransport _transport;
     private readonly int _responseTimeoutMs;
     private readonly int _p2StarTimeoutMs; // NRC 0x78 后的扩展超时
@@ -67,6 +87,7 @@ public sealed class UdsClient
         int responseTimeoutMs = 5000, int p2StarTimeoutMs = 10000,
         CanFrameType frameType = CanFrameType.Standard, bool useFd = false)
     {
+        _adapter = adapter;
         _transport = new IsoTpTransport(adapter, txId, rxId, frameType, useFd);
         _responseTimeoutMs = responseTimeoutMs;
         _p2StarTimeoutMs = p2StarTimeoutMs;
@@ -94,12 +115,7 @@ public sealed class UdsClient
             var raw = await _transport.ReceiveAsync(timeout, ct);
             if (raw == null || raw.Length == 0)
             {
-                return new UdsResponse
-                {
-                    ServiceId = 0x7F,
-                    Data = [(byte)requestSid, 0x10], // General Reject as timeout
-                    RawBytes = []
-                };
+                return CreateTimeoutResponse(requestSid);
             }
 
             var response = ParseResponse(raw);
@@ -114,10 +130,22 @@ public sealed class UdsClient
             return response;
         }
 
+        return CreateTimeoutResponse(requestSid);
+    }
+
+    private UdsResponse CreateTimeoutResponse(byte requestSid)
+    {
+        string diagnostics = _adapter is ICanAdapterDiagnostics provider
+            ? provider.GetReceiveDiagnostics()
+            : $"适配器未提供接收诊断，等待时间={_responseTimeoutMs} ms";
+
         return new UdsResponse
         {
+            IsTimeout = true,
+            DiagnosticMessage = diagnostics,
             ServiceId = 0x7F,
-            Data = [(byte)requestSid, 0x10],
+            SubFunction = requestSid,
+            Data = [],
             RawBytes = []
         };
     }

@@ -24,6 +24,13 @@ public interface ICanAdapter : IDisposable
     bool IsConnected { get; }
 }
 
+/// <summary>为协议层提供适配器最近一次接收过程的诊断信息。</summary>
+public interface ICanAdapterDiagnostics
+{
+    /// <summary>返回最近一次 Read 调用的接收统计，供超时错误定位使用。</summary>
+    string GetReceiveDiagnostics();
+}
+
 /// <summary>CAN 适配器配置</summary>
 public class CanAdapterConfig
 {

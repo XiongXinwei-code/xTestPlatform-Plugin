@@ -4,14 +4,18 @@ using CAN.Models;
 namespace CAN.Adapters.NiXnet;
 
 /// <summary>NI-XNET CAN 适配器实现</summary>
-public sealed class NiXnetAdapter : ICanAdapter
+public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 {
+    // nxFrameVar_t 的最大长度：16 字节头 + 64 字节 CAN FD 数据。
+    private const int MaxRawFrameSize = 80;
+
     private uint _rxSession;
     private uint _txSession;
     private bool _isConnected;
     private CanProtocolType _protocol = CanProtocolType.Classic;
     private readonly object _lock = new();
     private readonly Queue<CanMessage> _pendingFrames = new();
+    private string _lastReceiveDiagnostics = "尚未执行 NI-XNET 接收";
 
     public bool IsConnected => _isConnected;
 
@@ -119,7 +123,11 @@ public sealed class NiXnetAdapter : ICanAdapter
         _rxSession = 0;
         _txSession = 0;
         _protocol = CanProtocolType.Classic;
-        lock (_lock) _pendingFrames.Clear();
+        lock (_lock)
+        {
+            _pendingFrames.Clear();
+            _lastReceiveDiagnostics = "NI-XNET 通道已关闭";
+        }
 
         _isConnected = false;
     }
@@ -147,8 +155,17 @@ public sealed class NiXnetAdapter : ICanAdapter
     {
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
-        var buffer = new byte[8192]; // NI-XNET 帧缓冲区
+        // 一次读取最多一个最大 CAN FD Raw Frame。NI-XNET 不会返回半帧；相比 8192 字节
+        // 大缓冲区，这能避免驱动等待“填满缓冲区”的语义干扰单帧 UDS 响应读取。
+        var buffer = new byte[MaxRawFrameSize];
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        int readCalls = 0;
+        long totalBytesRead = 0;
+        int parsedFrames = 0;
+        int filteredFrames = 0;
+        int lastStatus = 0;
+        string lastRawHeader = "";
+        var observedIds = new List<uint>(8);
 
         while (!ct.IsCancellationRequested)
         {
@@ -159,7 +176,14 @@ public sealed class NiXnetAdapter : ICanAdapter
                 {
                     var pending = _pendingFrames.Dequeue();
                     if (filterId == null || pending.Id == filterId.Value)
+                    {
+                        SetReceiveDiagnostics(BuildReceiveDiagnostics(
+                            filterId, timeoutMs, readCalls, totalBytesRead, parsedFrames,
+                            filteredFrames, lastStatus, observedIds, lastRawHeader, true));
                         return pending;
+                    }
+
+                    filteredFrames++;
                 }
             }
 
@@ -170,6 +194,9 @@ public sealed class NiXnetAdapter : ICanAdapter
             // 因此这里使用 timeout=0（立即返回当前已有帧）+ 轮询模式，
             // 且无论状态如何，只要 bytesRead > 0 都必须解析，否则会丢帧。
             var status = NiXnetApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
+            readCalls++;
+            lastStatus = status;
+            totalBytesRead += bytesRead;
 
             if (status != NiXnetApi.nxErrEventTimeout)
                 NiXnetApi.CheckStatus(status); // 其他错误直接抛出，警告忽略
@@ -180,15 +207,63 @@ public sealed class NiXnetAdapter : ICanAdapter
                 continue;
             }
 
+            lastRawHeader = Convert.ToHexString(buffer.AsSpan(0, Math.Min((int)bytesRead, 24)));
+
             // nxReadFrame 一次可能返回多帧，全部解析入队，避免丢帧
             lock (_lock)
             {
                 foreach (var frame in ParseFrames(buffer, (int)bytesRead))
+                {
                     _pendingFrames.Enqueue(frame);
+                    parsedFrames++;
+                    if (observedIds.Count < 8 && !observedIds.Contains(frame.Id))
+                        observedIds.Add(frame.Id);
+                }
             }
         }
 
+        SetReceiveDiagnostics(BuildReceiveDiagnostics(
+            filterId, timeoutMs, readCalls, totalBytesRead, parsedFrames,
+            filteredFrames, lastStatus, observedIds, lastRawHeader, false));
         return null;
+    }
+
+    public string GetReceiveDiagnostics()
+    {
+        lock (_lock) return _lastReceiveDiagnostics;
+    }
+
+    private void SetReceiveDiagnostics(string diagnostics)
+    {
+        lock (_lock) _lastReceiveDiagnostics = diagnostics;
+    }
+
+    private static string BuildReceiveDiagnostics(
+        uint? filterId,
+        int timeoutMs,
+        int readCalls,
+        long totalBytesRead,
+        int parsedFrames,
+        int filteredFrames,
+        int lastStatus,
+        IReadOnlyCollection<uint> observedIds,
+        string lastRawHeader,
+        bool matched)
+    {
+        string target = filterId.HasValue ? $"0x{filterId.Value:X}" : "任意";
+        string ids = observedIds.Count == 0
+            ? "无"
+            : string.Join(",", observedIds.Select(id => $"0x{id:X}"));
+        string result = matched ? "已匹配" : $"{timeoutMs} ms 超时";
+        string diagnostics =
+            $"NI-XNET接收{result}：目标ID={target}，读取调用={readCalls}，" +
+            $"驱动返回={totalBytesRead}字节，解析={parsedFrames}帧，过滤={filteredFrames}帧，" +
+            $"已见ID={ids}，最后状态=0x{unchecked((uint)lastStatus):X8}";
+
+        if (!matched && totalBytesRead > 0 && parsedFrames == 0 && !string.IsNullOrEmpty(lastRawHeader))
+            diagnostics += $"，原始头={lastRawHeader}";
+
+        return diagnostics;
     }
 
     /// <summary>构建 NI-XNET 帧字节（Raw Frame 格式，nxFrameVar_t）</summary>

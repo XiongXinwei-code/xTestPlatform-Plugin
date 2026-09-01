@@ -130,7 +130,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                         context.LogAction?.Invoke($"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                     if (!eraseResponse.IsPositive)
                         return Failed($"擦除失败: {eraseResponse.GetNrcDescription()}",
-                            $"NRC=0x{eraseResponse.NegativeResponseCode:X2}; " +
+                            $"{eraseResponse.GetFailureValue()}; " +
                             $"TX=[{UdsExecutorHelper.ToHex(eraseRequest.ToArray())}]; " +
                             $"RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                 }
@@ -148,7 +148,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     context.LogAction?.Invoke($"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
                 if (!downloadResponse.IsPositive)
                     return Failed($"请求下载失败: {downloadResponse.GetNrcDescription()}",
-                        $"NRC=0x{downloadResponse.NegativeResponseCode:X2}");
+                        downloadResponse.GetFailureValue());
 
                 int blockSize = ResolveBlockSize(downloadResponse.Data, setting.MaxBlockSize);
                 if (blockSize <= 0)
@@ -186,7 +186,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     if (transferResponse is null || !transferResponse.IsPositive)
                         return Failed(
                             $"数据传输失败于地址 0x{segment.StartAddress + (uint)offset:X8}: {transferResponse?.GetNrcDescription()}",
-                            $"NRC=0x{transferResponse?.NegativeResponseCode:X2}");
+                            transferResponse?.GetFailureValue() ?? "未获得 UDS 响应");
 
                     offset += chunkLength;
                     writtenBytes += chunkLength;
@@ -202,7 +202,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 var exitResponse = await client.RequestAsync([0x37], cancellationToken);
                 if (!exitResponse.IsPositive)
                     return Failed($"结束传输失败: {exitResponse.GetNrcDescription()}",
-                        $"NRC=0x{exitResponse.NegativeResponseCode:X2}");
+                        exitResponse.GetFailureValue());
 
                 if (setting.EnableLog)
                     context.LogAction?.Invoke($"UDS Flash: 数据段 0x{segment.StartAddress:X8} 传输完成");
@@ -234,7 +234,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     context.LogAction?.Invoke($"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
                 if (!checkResponse.IsPositive)
                     return Failed($"固件校验失败: {checkResponse.GetNrcDescription()}",
-                        $"NRC=0x{checkResponse.NegativeResponseCode:X2}");
+                        checkResponse.GetFailureValue());
 
                 // 本项目 ECU 的 0x0202 校验例程在正响应最后附带厂商结果码：
                 // 71 01 02 02 00 表示校验成功，非 00 表示例程执行未成功。仅判断 0x71
