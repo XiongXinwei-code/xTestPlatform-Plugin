@@ -72,8 +72,8 @@ public sealed class CanFlashEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.DataFormatId, context.ExecutionContext, out var dfidErr))
             errors.Add(StepSettingError.Error("UDS_F004E", $"数据格式标识表达式无效: {dfidErr}"));
 
-        if (s.MaxBlockSize <= 0)
-            errors.Add(StepSettingError.Error("UDS_F005", "单块最大字节数必须大于 0"));
+        if (s.MaxBlockSize < 0)
+            errors.Add(StepSettingError.Error("UDS_F005", "单块最大字节数不能为负数；0 表示采用 ECU 返回的最大块长度"));
         else if (s.MaxBlockSize > 4095)
             errors.Add(StepSettingError.Warning("UDS_F006", "单块最大字节数超过 4095，多数 ISO-TP 实现无法承载，建议减小"));
 
@@ -82,6 +82,17 @@ public sealed class CanFlashEditorPlugin : IStepEditorPlugin
 
         if (s.InterBlockDelayMs < 0)
             errors.Add(StepSettingError.Error("UDS_F008", "块间延时不能为负数"));
+
+        if (s.PreDownloadDelayMs < 0)
+            errors.Add(StepSettingError.Error("UDS_F008A", "下载前延时不能为负数"));
+
+        // ── 映射与填充 ──────────────────────────────────────────────
+        if (s.UseMappedRange)
+        {
+            ValidateExpression(s.MappedStartAddress, "UDS_F014", "启用映射范围时必须指定映射起始地址", "映射起始地址表达式无效", context, errors);
+            ValidateExpression(s.MappedEndAddress, "UDS_F015", "启用映射范围时必须指定映射结束地址", "映射结束地址表达式无效", context, errors);
+            ValidateExpression(s.GapFillByte, "UDS_F016", "映射填充字节不能为空", "映射填充字节表达式无效", context, errors);
+        }
 
         // ── 擦除 ────────────────────────────────────────────────────
         if (s.EraseBeforeDownload)
@@ -111,6 +122,20 @@ public sealed class CanFlashEditorPlugin : IStepEditorPlugin
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
 
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+    }
+
+    private static void ValidateExpression(
+        string expression,
+        string errorCode,
+        string emptyMessage,
+        string invalidMessage,
+        StepEditorValidationContext context,
+        List<StepSettingError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(expression))
+            errors.Add(StepSettingError.Error(errorCode, emptyMessage));
+        else if (!context.Evaluator.ValidateExpression(expression, context.ExecutionContext, out var error))
+            errors.Add(StepSettingError.Error($"{errorCode}E", $"{invalidMessage}: {error}"));
     }
 
     private static void ValidateIntVariable(

@@ -24,10 +24,12 @@ public sealed class CanFlashExecutor : IStepExecutor
             // ── 执行器内部校验 ───────────────────────────────────────────
             if (string.IsNullOrWhiteSpace(setting.FilePath))
                 return Error("固件文件路径未配置");
-            if (setting.MaxBlockSize <= 0)
-                return Error("单块最大字节数必须大于 0");
+            if (setting.MaxBlockSize < 0)
+                return Error("单块最大字节数不能为负数；设为 0 表示采用 ECU 返回的最大块长度");
             if (setting.BlockRetryCount < 0)
                 return Error("重试次数不能为负数");
+            if (setting.PreDownloadDelayMs < 0)
+                return Error("下载前延时不能为负数");
 
             var filePath = await Evaluator.EvalStringAsync(setting.FilePath, context);
             if (!File.Exists(filePath))
@@ -39,7 +41,8 @@ public sealed class CanFlashExecutor : IStepExecutor
 
             var content = await File.ReadAllBytesAsync(filePath, cancellationToken);
             var parser = FirmwareParserFactory.Create(setting.Format, filePath);
-            var segments = parser.Parse(content, baseAddress);
+            var parsedSegments = parser.Parse(content, baseAddress);
+            var segments = await ApplyMappedRangeAsync(parsedSegments, setting, context);
 
             int totalBytes = segments.Sum(s => s.Length);
             if (totalBytes == 0)
@@ -51,6 +54,13 @@ public sealed class CanFlashExecutor : IStepExecutor
                 context.LogAction?.Invoke($"UDS Flash: 共 {segments.Count} 个数据段，合计 {totalBytes} 字节");
                 foreach (var seg in segments)
                     context.LogAction?.Invoke($"UDS Flash: 数据段 {seg}");
+            }
+
+            if (setting.PreDownloadDelayMs > 0)
+            {
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS Flash: 下载前等待 {setting.PreDownloadDelayMs} ms");
+                await Task.Delay(setting.PreDownloadDelayMs, cancellationToken);
             }
 
             // ── 创建 UDS 客户端 ──────────────────────────────────────────
@@ -95,20 +105,28 @@ public sealed class CanFlashExecutor : IStepExecutor
                         0x31, 0x01,
                         (byte)(eraseRoutineId >> 8), (byte)eraseRoutineId
                     };
-                    // 擦除例程的 option record 与 RequestDownload 一样以 ALFID 开头：
-                    // [addressAndLengthFormatId][memoryAddress][memorySize]。
-                    // 缺少 ALFID 会使常见的 FF00 擦除例程以 NRC 0x13 拒绝请求。
-                    eraseRequest.Add(alfid);
-                    eraseRequest.AddRange(EncodeValue(segment.StartAddress, addressBytes));
-                    eraseRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
+                    if (setting.EraseWithAddressAndLength)
+                    {
+                        // 带参数擦除的 option record：
+                        // [addressAndLengthFormatId][memoryAddress][memorySize]。
+                        eraseRequest.Add(alfid);
+                        eraseRequest.AddRange(EncodeValue(segment.StartAddress, addressBytes));
+                        eraseRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
+                    }
 
                     if (setting.EnableLog)
-                        context.LogAction?.Invoke($"UDS Flash: 擦除 0x{segment.StartAddress:X8}，长度 {segment.Length} 字节");
+                        context.LogAction?.Invoke(
+                            $"UDS Flash: 擦除 0x{segment.StartAddress:X8}，长度 {segment.Length} 字节，" +
+                            $"TX=[{UdsExecutorHelper.ToHex(eraseRequest.ToArray())}]");
 
                     var eraseResponse = await eraseClient.RequestAsync(eraseRequest.ToArray(), cancellationToken);
+                    if (setting.EnableLog)
+                        context.LogAction?.Invoke($"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                     if (!eraseResponse.IsPositive)
                         return Failed($"擦除失败: {eraseResponse.GetNrcDescription()}",
-                            $"NRC=0x{eraseResponse.NegativeResponseCode:X2}");
+                            $"NRC=0x{eraseResponse.NegativeResponseCode:X2}; " +
+                            $"TX=[{UdsExecutorHelper.ToHex(eraseRequest.ToArray())}]; " +
+                            $"RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                 }
 
                 // 请求下载 (0x34)
@@ -116,7 +134,12 @@ public sealed class CanFlashExecutor : IStepExecutor
                 downloadRequest.AddRange(EncodeValue(segment.StartAddress, addressBytes));
                 downloadRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
 
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS Flash: 请求下载 TX=[{UdsExecutorHelper.ToHex(downloadRequest.ToArray())}]");
+
                 var downloadResponse = await client.RequestAsync(downloadRequest.ToArray(), cancellationToken);
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
                 if (!downloadResponse.IsPositive)
                     return Failed($"请求下载失败: {downloadResponse.GetNrcDescription()}",
                         $"NRC=0x{downloadResponse.NegativeResponseCode:X2}");
@@ -200,6 +223,8 @@ public sealed class CanFlashExecutor : IStepExecutor
                     context.LogAction?.Invoke($"UDS Flash: 校验 {setting.CheckMode}=0x{checkValue:X8}");
 
                 var checkResponse = await eraseClient.RequestAsync(checkRequest.ToArray(), cancellationToken);
+                if (setting.EnableLog)
+                    context.LogAction?.Invoke($"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
                 if (!checkResponse.IsPositive)
                     return Failed($"固件校验失败: {checkResponse.GetNrcDescription()}",
                         $"NRC=0x{checkResponse.NegativeResponseCode:X2}");
@@ -260,7 +285,67 @@ public sealed class CanFlashExecutor : IStepExecutor
         if (usable <= 0)
             return configuredMax;
 
-        return (int)Math.Min(usable, configuredMax);
+        int ecuMax = (int)Math.Min(usable, int.MaxValue);
+        return configuredMax == 0 ? ecuMax : Math.Min(ecuMax, configuredMax);
+    }
+
+    /// <summary>
+    /// 将离散固件段投影到用户指定的连续地址范围。该模式用于与部分刷写工具的
+    /// “映射地址/映射结束地址/填充字节”配置对齐，保证擦除、0x34 和 CRC 使用同一范围。
+    /// </summary>
+    private static async Task<IReadOnlyList<FlashSegment>> ApplyMappedRangeAsync(
+        IReadOnlyList<FlashSegment> sourceSegments,
+        CanFlashSetting setting,
+        IExecutionContext context)
+    {
+        if (!setting.UseMappedRange)
+            return sourceSegments;
+
+        if (string.IsNullOrWhiteSpace(setting.MappedStartAddress) ||
+            string.IsNullOrWhiteSpace(setting.MappedEndAddress))
+            throw new InvalidDataException("启用固件映射范围时必须配置映射起始地址和结束地址");
+
+        uint startAddress = UdsExecutorHelper.ParseId(
+            await Evaluator.EvalStringAsync(setting.MappedStartAddress, context));
+        uint endAddress = UdsExecutorHelper.ParseId(
+            await Evaluator.EvalStringAsync(setting.MappedEndAddress, context));
+        int fillValue = (int)UdsExecutorHelper.ParseId(
+            await Evaluator.EvalStringAsync(setting.GapFillByte, context));
+
+        if (endAddress < startAddress)
+            throw new InvalidDataException("映射结束地址不能小于映射起始地址");
+        if (fillValue is < byte.MinValue or > byte.MaxValue)
+            throw new InvalidDataException("映射填充字节必须在 0x00~0xFF 之间");
+
+        ulong mappedLength = (ulong)endAddress - startAddress + 1;
+        if (mappedLength > int.MaxValue)
+            throw new InvalidDataException("映射范围超过当前插件可处理的最大大小（2 GB）");
+
+        var mappedData = new byte[(int)mappedLength];
+        Array.Fill(mappedData, (byte)fillValue);
+
+        ulong mappedStart = startAddress;
+        ulong mappedEndExclusive = (ulong)endAddress + 1;
+        foreach (var segment in sourceSegments)
+        {
+            ulong segmentStart = segment.StartAddress;
+            ulong segmentEndExclusive = segmentStart + (uint)segment.Length;
+            if (segmentStart < mappedStart || segmentEndExclusive > mappedEndExclusive)
+                throw new InvalidDataException(
+                    $"固件数据段 0x{segment.StartAddress:X8}-0x{segment.EndAddress:X8} 超出映射范围 " +
+                    $"0x{startAddress:X8}-0x{endAddress:X8}");
+
+            Buffer.BlockCopy(segment.Data, 0, mappedData, (int)(segmentStart - mappedStart), segment.Length);
+        }
+
+        return
+        [
+            new FlashSegment
+            {
+                StartAddress = startAddress,
+                Data = mappedData
+            }
+        ];
     }
 
     private static void ReportProgress(IExecutionContext context, CanFlashSetting setting, int written, int total)

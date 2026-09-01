@@ -23,6 +23,24 @@ public class CanFlashSetting : UdsCommonSetting
     public string BaseAddress { get; set; } = "\"0x08000000\"";
 
     /// <summary>
+    /// 是否将固件映射为指定的连续地址范围。启用后，固件中的地址空洞以 GapFillByte 补齐，
+    /// 擦除、请求下载、传输与 CRC 均针对完整映射范围执行。
+    /// </summary>
+    public bool UseMappedRange { get; set; }
+
+    /// <summary>映射范围起始地址。仅 UseMappedRange=true 时使用。</summary>
+    [ExpressionField]
+    public string MappedStartAddress { get; set; } = string.Empty;
+
+    /// <summary>映射范围结束地址（含）。仅 UseMappedRange=true 时使用。</summary>
+    [ExpressionField]
+    public string MappedEndAddress { get; set; } = string.Empty;
+
+    /// <summary>映射范围内固件地址空洞的填充字节。仅 UseMappedRange=true 时使用。</summary>
+    [ExpressionField]
+    public string GapFillByte { get; set; } = "0";
+
+    /// <summary>
     /// 地址与长度格式标识符（0x44 表示 4 字节地址 + 4 字节长度）。
     /// 用于擦除例程的 option record 与 0x34 RequestDownload。
     /// </summary>
@@ -40,11 +58,23 @@ public class CanFlashSetting : UdsCommonSetting
     [ExpressionField]
     public string EraseRoutineId { get; set; } = "\"0xFF00\"";
 
+    /// <summary>
+    /// 擦除例程是否携带地址和长度参数。true 时发送
+    /// [ALFID][Address][Length]，false 时仅发送 0x31/子功能/RoutineId。
+    /// </summary>
+    public bool EraseWithAddressAndLength { get; set; } = true;
+
     /// <summary>擦除操作超时（ms），擦除耗时通常远长于普通请求</summary>
     public int EraseTimeoutMs { get; set; } = 30000;
 
-    /// <summary>单块最大传输字节数，实际取值不超过 ECU 在 0x34 响应中允许的长度</summary>
+    /// <summary>
+    /// 单块最大传输字节数，实际取值不超过 ECU 在 0x34 响应中允许的长度。
+    /// 设为 0 表示完全采用 ECU 在 0x34 正响应中返回的最大长度。
+    /// </summary>
     public int MaxBlockSize { get; set; } = 512;
+
+    /// <summary>开始擦除与下载前的等待时间（ms），用于等待 FlashDriver 激活。</summary>
+    public int PreDownloadDelayMs { get; set; }
 
     /// <summary>烧录完成后的校验方式</summary>
     public FlashCheckMode CheckMode { get; set; } = FlashCheckMode.Crc32;

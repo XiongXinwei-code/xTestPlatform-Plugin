@@ -35,6 +35,31 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         set { if (Setting == null || Setting.BaseAddress == value) return; Setting.BaseAddress = value; OnPropertyChanged(); QueueSave(); }
     }
 
+    // ── 映射与填充 ─────────────────────────────────────────────────
+    public bool UseMappedRange
+    {
+        get => Setting?.UseMappedRange ?? false;
+        set { if (Setting == null || Setting.UseMappedRange == value) return; Setting.UseMappedRange = value; OnPropertyChanged(); QueueSave(); }
+    }
+
+    public string MappedStartAddress
+    {
+        get => Setting?.MappedStartAddress ?? "";
+        set { if (Setting == null || Setting.MappedStartAddress == value) return; Setting.MappedStartAddress = value; OnPropertyChanged(); QueueSave(); }
+    }
+
+    public string MappedEndAddress
+    {
+        get => Setting?.MappedEndAddress ?? "";
+        set { if (Setting == null || Setting.MappedEndAddress == value) return; Setting.MappedEndAddress = value; OnPropertyChanged(); QueueSave(); }
+    }
+
+    public string GapFillByte
+    {
+        get => Setting?.GapFillByte ?? "0";
+        set { if (Setting == null || Setting.GapFillByte == value) return; Setting.GapFillByte = value; OnPropertyChanged(); QueueSave(); }
+    }
+
     // ── 下载参数 ────────────────────────────────────────────────────
     public string AddressAndLengthFormatId
     {
@@ -52,6 +77,12 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     {
         get => Setting?.MaxBlockSize ?? 512;
         set { if (Setting == null || Setting.MaxBlockSize == value) return; Setting.MaxBlockSize = value; OnPropertyChanged(); QueueSave(); }
+    }
+
+    public int PreDownloadDelayMs
+    {
+        get => Setting?.PreDownloadDelayMs ?? 0;
+        set { if (Setting == null || Setting.PreDownloadDelayMs == value) return; Setting.PreDownloadDelayMs = value; OnPropertyChanged(); QueueSave(); }
     }
 
     public int BlockRetryCount
@@ -77,6 +108,12 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     {
         get => Setting?.EraseRoutineId ?? "";
         set { if (Setting == null || Setting.EraseRoutineId == value) return; Setting.EraseRoutineId = value; OnPropertyChanged(); QueueSave(); }
+    }
+
+    public bool EraseWithAddressAndLength
+    {
+        get => Setting?.EraseWithAddressAndLength ?? true;
+        set { if (Setting == null || Setting.EraseWithAddressAndLength == value) return; Setting.EraseWithAddressAndLength = value; OnPropertyChanged(); QueueSave(); }
     }
 
     public int EraseTimeoutMs
@@ -223,8 +260,10 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         DataFormatId = preset.DataFormatId;
         EraseBeforeDownload = preset.EraseBeforeDownload;
         EraseRoutineId = preset.EraseRoutineId;
+        EraseWithAddressAndLength = preset.EraseWithAddressAndLength;
         EraseTimeoutMs = preset.EraseTimeoutMs;
         MaxBlockSize = preset.MaxBlockSize;
+        PreDownloadDelayMs = preset.PreDownloadDelayMs;
         BlockRetryCount = preset.BlockRetryCount;
         InterBlockDelayMs = preset.InterBlockDelayMs;
         CheckModeIndex = (int)preset.CheckMode;
@@ -245,8 +284,10 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
             DataFormatId = Setting.DataFormatId,
             EraseBeforeDownload = Setting.EraseBeforeDownload,
             EraseRoutineId = Setting.EraseRoutineId,
+            EraseWithAddressAndLength = Setting.EraseWithAddressAndLength,
             EraseTimeoutMs = Setting.EraseTimeoutMs,
             MaxBlockSize = Setting.MaxBlockSize,
+            PreDownloadDelayMs = Setting.PreDownloadDelayMs,
             BlockRetryCount = Setting.BlockRetryCount,
             InterBlockDelayMs = Setting.InterBlockDelayMs,
             CheckMode = Setting.CheckMode,
