@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<Version>1.0.28</Version>
+
+	<Version>1.2.12</Version>
+
 	<TargetFramework>net8.0-windows</TargetFramework>
 	<Nullable>enable</Nullable>
 	<UseWPF>true</UseWPF>
@@ -22,7 +24,7 @@
   <ItemGroup>
 	<ProjectReference Include="..\CanPlugin\CanPlugin.csproj" />
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.2.3" />
-	<PackageReference Include="MessagePack" Version="3.1.7" />
+	<PackageReference Include="MessagePack" Version="3.1.8" />
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 	<PackageReference Include="AvalonEdit" Version="6.3.0.90" />
 	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />

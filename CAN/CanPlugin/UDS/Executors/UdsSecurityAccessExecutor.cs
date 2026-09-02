@@ -35,7 +35,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                     {
                         Status = TestStatus.Failed,
                         Error = new ErrorInfo { Message = $"Request Seed 失败: {seedResponse.GetNrcDescription()}" },
-                        Value = $"NRC=0x{seedResponse.NegativeResponseCode:X2}"
+                        Value = seedResponse.GetFailureValue()
                     }
                 };
             }
@@ -103,7 +103,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                     {
                         Status = TestStatus.Failed,
                         Error = new ErrorInfo { Message = $"Send Key 失败: {keyResponse.GetNrcDescription()}" },
-                        Value = $"NRC=0x{keyResponse.NegativeResponseCode:X2}"
+                        Value = keyResponse.GetFailureValue()
                     }
                 };
             }

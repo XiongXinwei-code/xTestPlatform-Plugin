@@ -18,12 +18,14 @@
         <syncfusion:TabItemExt Header="CAN Open"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
                                            ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130"/>
+                    <ColumnDefinition Width="190"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -88,7 +90,7 @@
                     <ComboBoxItem Content="CAN FD"/>
                 </ComboBox>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="DataBitRate:" VerticalAlignment="Center" Margin="0,0,8,8"
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="DataBitRate (数据段):" VerticalAlignment="Center" Margin="0,0,8,8"
                            Visibility="{Binding ShowDataBitRate, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                 <ComboBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           IsEditable="True"
@@ -103,7 +105,64 @@
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="接收缓冲区(帧数):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <syncfusion:IntegerTextBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                     Value="{Binding RxQueueSize, Mode=TwoWay}" MinValue="1"/>
+
+                <GroupBox Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Header="总线参数" Margin="0,8,0,0">
+                    <Grid Margin="12,10,12,12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="终端电阻:" VerticalAlignment="Center" Margin="0,0,8,10"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1" Content="使能设备内置 120 Ω 终端电阻"
+                                  IsChecked="{Binding EnableTermination, Mode=TwoWay}" Margin="0,0,0,10"
+                                  ToolTip="需要硬件及厂商驱动支持软件终端电阻；不支持时请取消勾选并外接 120 Ω 电阻。"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="仲裁段采样点 (Nominal):" VerticalAlignment="Center" Margin="0,0,8,10"/>
+                        <Grid Grid.Row="1" Grid.Column="1" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="360"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Minimum="7.5" Maximum="97.5" TickFrequency="0.5"
+                                    IsSnapToTickEnabled="True" Value="{Binding ArbitrationSamplePoint, Mode=TwoWay}"/>
+                            <TextBox Grid.Column="1" Margin="12,0,6,0" VerticalContentAlignment="Center"
+                                     Text="{Binding ArbitrationSamplePoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}"/>
+                            <TextBlock Grid.Column="2" Text="%" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="数据段采样点 (Data):" VerticalAlignment="Center" Margin="0,0,8,10"
+                                   Visibility="{Binding ShowDataSamplePoint, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        <Grid Grid.Row="2" Grid.Column="1" Margin="0,0,0,10"
+                              Visibility="{Binding ShowDataSamplePoint, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="360"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" Minimum="7.5" Maximum="97.5" TickFrequency="0.5"
+                                    IsSnapToTickEnabled="True" Value="{Binding DataSamplePoint, Mode=TwoWay}"/>
+                            <TextBox Grid.Column="1" Margin="12,0,6,0" VerticalContentAlignment="Center"
+                                     Text="{Binding DataSamplePoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=F1}"/>
+                            <TextBlock Grid.Column="2" Text="%" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Background="#FFF5F7FA"
+                                BorderBrush="#FFD9DEE7" BorderThickness="1" CornerRadius="4" Padding="10">
+                            <TextBlock Foreground="#FF5F6368" TextWrapping="Wrap"
+                                       Text="只配置目标百分比，插件会按所选适配器转换为驱动位时序；实际采样点会受设备时钟和驱动能力限制。标称比特率采样点作用于经典 CAN 和 CAN FD 仲裁段；CAN FD 数据比特率使用单独的数据段采样点。"/>
+                        </Border>
+                    </Grid>
+                </GroupBox>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

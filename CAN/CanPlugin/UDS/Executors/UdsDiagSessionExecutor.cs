@@ -43,13 +43,21 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
             }
             else
             {
+                if (setting.EnableLog && response.IsTimeout)
+                    context.LogAction?.Invoke($"UDS DiagSession 接收超时: {response.DiagnosticMessage}");
+
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
                     {
                         Status = TestStatus.Failed,
-                        Error = new ErrorInfo { Message = $"否定响应: {response.GetNrcDescription()}" },
-                        Value = $"NRC=0x{response.NegativeResponseCode:X2}"
+                        Error = new ErrorInfo
+                        {
+                            Message = response.IsTimeout
+                                ? response.GetNrcDescription()
+                                : $"否定响应: {response.GetNrcDescription()}"
+                        },
+                        Value = response.GetFailureValue()
                     }
                 };
             }

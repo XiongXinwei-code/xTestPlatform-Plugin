@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using CAN.Helpers;
 
 namespace CAN.Adapters.Peak;
 
@@ -110,19 +111,7 @@ internal static class PcanApi
         throw new ArgumentException($"无效的 PEAK 通道名 '{channel}'，应为 PCAN_USBBUS1~PCAN_USBBUS16 或数字 1~16");
     }
 
-    /// <summary>Classic 波特率（bps）转 BTR0BTR1 编码</summary>
-    public static ushort ToBtr0Btr1(int baudRate) => baudRate switch
-    {
-        1_000_000 => PCAN_BAUD_1M,
-        800_000 => PCAN_BAUD_800K,
-        500_000 => PCAN_BAUD_500K,
-        250_000 => PCAN_BAUD_250K,
-        125_000 => PCAN_BAUD_125K,
-        100_000 => PCAN_BAUD_100K,
-        50_000 => PCAN_BAUD_50K,
-        20_000 => PCAN_BAUD_20K,
-        10_000 => PCAN_BAUD_10K,
-        5_000 => PCAN_BAUD_5K,
-        _ => throw new ArgumentException($"PEAK 不支持的波特率 {baudRate} bps")
-    };
+    /// <summary>Classic 波特率和目标采样点转 SJA1000 BTR0BTR1 编码。</summary>
+    public static ushort ToBtr0Btr1(int baudRate, double samplePoint) =>
+        CanSamplePointCalculator.ToSja1000Btr(baudRate, samplePoint);
 }
