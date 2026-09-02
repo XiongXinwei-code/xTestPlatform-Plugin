@@ -367,51 +367,5 @@ jobs:
           }
           Write-Host "✅ 历史发布和标签已清理完毕（保留最近 3 个版本）"
 
-      # ── 10. 更新版本清单
-      - name: 更新版本清单
-        shell: pwsh
-        run: |
-          $tag         = "${{ steps.bump_version.outputs.new_tag }}"
-          $version     = "${{ steps.bump_version.outputs.new_version }}"
-          $zipName     = $env:ZIP_NAME
-          $zipFile     = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
-          $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$zipName"
-
-          $manifest = [ordered]@{
-            version      = $version
-            releaseName  = "xTestPlatform-Plugins $tag"
-            releaseNotes = "请访问 GitHub Release 页面查看完整更新说明。"
-            htmlUrl      = "https://github.com/${{ github.repository }}/releases/tag/$tag"
-            assets       = @(
-              [ordered]@{
-                name        = $zipName
-                downloadUrl = $downloadUrl
-                size        = $zipFile.Length
-              }
-            )
-          }
-
-          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\docs" | Out-Null
-          $manifest | ConvertTo-Json -Depth 5 |
-            Set-Content "$env:GITHUB_WORKSPACE\docs\version.json" -Encoding UTF8
-
-          Write-Host "✅ version.json 已生成"
-          Write-Host "   版本:  $version"
-          Write-Host "   文件:  $zipName"
-          Write-Host "   大小:  $([math]::Round($zipFile.Length/1MB,2)) MB"
-          Write-Host "   下载:  $downloadUrl"
-
-      # ── 11. 将 version.json 提交回 master 分支 ────────────────────────
-      - name: 提交版本清单到 master
-        shell: pwsh
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/version.json
-          git diff --staged --quiet
-          if ($LASTEXITCODE -eq 0) {
-            Write-Host "version.json 无变化，跳过提交"
-          } else {
-            git commit -m "chore: 更新版本清单至 ${{ steps.bump_version.outputs.new_tag }} [skip ci]"
-            git push origin HEAD:master
-          }
+      # 客户端 xTestPluginManager 固定从 releases/latest/download/manifest.json
+      # 获取插件清单，不读取 docs/version.json，因此流水线无需向 master 写回文件。
