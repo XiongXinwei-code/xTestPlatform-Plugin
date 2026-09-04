@@ -27,22 +27,22 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="MessagePack" Version="3.1.7" />
-    <PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
-    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" Version="32.1.25" />
-    <PackageReference Include="Syncfusion.SfBusyIndicator.WPF" Version="32.2.3" />
-    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="32.1.25" />
-    <PackageReference Include="Syncfusion.Tools.WPF" Version="32.1.25" />
-	<PackageReference Include="Syncfusion.GridCommon.Wpf" Version="32.1.25" />
-    <PackageReference Include="Syncfusion.SfGrid.WPF" Version="32.1.25" />
-	<PackageReference Include="Syncfusion.SfInput.WPF" Version="32.1.25" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="MaterialDesignThemes" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" />
+    <PackageReference Include="Syncfusion.SfBusyIndicator.WPF" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" />
+    <PackageReference Include="Syncfusion.Tools.WPF" />
+	<PackageReference Include="Syncfusion.GridCommon.Wpf" />
+    <PackageReference Include="Syncfusion.SfGrid.WPF" />
+	<PackageReference Include="Syncfusion.SfInput.WPF" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- 核心执行器（无WPF，LabVIEW可直接加载） -->
     <ProjectReference Include="..\LabVIEWCallPlugin\LabVIEWCallPlugin.csproj" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.2.3" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
   </ItemGroup>
 
   <ItemGroup>

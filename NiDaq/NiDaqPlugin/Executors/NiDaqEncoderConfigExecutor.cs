@@ -31,7 +31,7 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
                 return ErrorResult("Counter 通道不能为空");
 
             // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
-            var existingTask = context.GetVariable(taskName);
+            var existingTask = NiDaqTaskRegistry.Remove(taskName);
             if (existingTask is DaqTask oldTask)
             {
                 try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
@@ -54,10 +54,10 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
                 setting.PulsesPerRevolution, 0,
                 CIAngularEncoderUnits.Ticks);
 
-            context.SetVariable(taskName, task);
+            NiDaqTaskRegistry.Set(taskName, task);
             // 存储转换参数供 Read 使用
-            context.SetVariable($"{taskName}_DistancePerPulse", setting.DistancePerPulse);
-            context.SetVariable($"{taskName}_Unit", setting.Unit);
+            NiDaqTaskRegistry.SetMetadata(taskName, "DistancePerPulse", setting.DistancePerPulse);
+            NiDaqTaskRegistry.SetMetadata(taskName, "Unit", setting.Unit);
 
             return new ExecutionResult
             {

@@ -26,13 +26,12 @@ public sealed class NiDaqTaskStopExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var taskObj = context.GetVariable(taskName);
+            var taskObj = NiDaqTaskRegistry.Remove(taskName);
             if (taskObj is not DaqTask task)
                 return ErrorResult($"未找到任务 '{taskName}'");
 
             task.Stop();
             task.Dispose();
-            context.SetVariable(taskName, null);
 
             return new ExecutionResult
             {
