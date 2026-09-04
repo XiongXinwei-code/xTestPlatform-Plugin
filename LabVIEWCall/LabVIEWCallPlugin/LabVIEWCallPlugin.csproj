@@ -19,11 +19,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MessagePack" Version="3.1.7" />
+		<PackageReference Include="MessagePack" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.2.3" />
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" />
 	</ItemGroup>
 
 	<!-- �?补上：lvLib.dll 需要随插件输出 -->

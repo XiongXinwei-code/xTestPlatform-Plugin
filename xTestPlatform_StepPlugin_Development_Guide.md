@@ -121,6 +121,7 @@
 - [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
 - [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
 - [ ] 所有作为"结果写入目标"的 string 字段已标记 `[VariablePathField]`（判断依据：Executor 中该字段被传给 `ctx.SetVariable`），且默认值/示例使用带作用域前缀的完整路径（如 `Locals.rxData`）（§12.3）
+- [ ] 插件只读写变量列表中已声明、且由用户明确配置的完整变量路径；禁止硬编码变量路径，禁止通过拼接前后缀等方式构造隐式变量路径，禁止将表达式求值得到的普通字符串值再次作为变量路径（§12.3）
 - [ ] `[ExpressionField]` 与 `[VariablePathField]` 未同时标记在同一属性上；`Description` 参数表格中类型列已相应写成 `string([ExpressionField])` 或 `string(变量路径)`（§12.3）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
@@ -1758,6 +1759,30 @@ Setting 中的 `string` 属性一共有三种语义，**必须**用特性区分�
 
 > ⚠️ 两个特性**互斥**，同一属性不能同时标记。表达式字段是"读取并计算"，变量路径字段是"写入目标"。
 
+#### 变量路径必须由用户明确配置（强制）
+
+插件只能读写变量列表中**已经声明**的变量，并且变量路径必须由用户在对应的变量路径字段中明确配置。执行器不得自行决定、派生或创建变量路径。
+
+- 必须使用带作用域前缀的完整路径，例如 `Locals.rxData`、`Globals.deviceState`。
+- 禁止硬编码业务变量路径。
+- 禁止通过字符串拼接、插值、添加前后缀等方式构造隐式变量路径。
+- 禁止将 `[ExpressionField]` 的求值结果当作变量路径再次传给 `GetVariable` 或 `SetVariable`。表达式求值得到的是业务值，不是变量路径。
+- 一个步骤需要输出多个结果时，必须为每个结果提供独立的 `[VariablePathField]` 配置；可选结果的路径为空时应跳过写入，不能根据另一个变量路径自动生成。
+- 自定义集合或树形编辑器中的变量路径无法直接标记 `[VariablePathField]` 时，也必须由用户逐项明确选择或填写，并在保存前验证变量已存在。
+
+```csharp
+// ✅ 正确：只写入用户明确配置且已声明的变量
+if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
+    ctx.SetVariable(setting.ResultVariable, data);
+
+// ❌ 错误：擅自派生一个用户未配置、可能未声明的变量
+ctx.SetVariable($"{setting.ResultVariable}_Status", status);
+
+// ❌ 错误：表达式求值得到的是业务字符串，不是变量路径
+var taskName = await evaluator.EvalStringAsync(setting.TaskName, ctx);
+ctx.SetVariable(taskName, task);
+```
+
 #### 判断方法
 
 判断依据只有一条：**看 Executor 里这个字段的值是怎么用的**。
@@ -1775,7 +1800,7 @@ result.Title = setting.Title;
 
 常见的变量路径字段命名：`ResultVariable`、`ReturnVariable`、`TargetVariable`、`StdOutVariable`、`StdErrVariable`、`ExitCodeVariable`、`LoopVariable`。
 
-> ⚠️ **完整路径与裸变量名**：运行时 `SetVariable("engStatus", ...)` 会默认归到 `Locals` 作用域，所以裸名也能跑通。但**文档、默认值、示例 JSON 中一律使用带前缀的完整路径**（`Locals.engStatus`），避免 AI 学到裸名写法后在非 Locals 作用域下出错。
+> ⚠️ **完整路径与变量声明**：变量路径必须使用 `Scope.Name` 形式（如 `Locals.engStatus`），并且该变量必须已存在于变量列表中。即使部分运行时版本可能兼容裸变量名，插件也不得依赖这种隐式行为。
 
 #### 同步要求
 
@@ -2111,6 +2136,8 @@ DelayCheck/
 </Project>
 ```
 
+> ⚠️ 本仓库已启用**中央包管理**（根目录 `Directory.Packages.props`）。实际的 `.csproj` 中 `PackageReference` **不写 `Version` 属性**，版本统一在 `Directory.Packages.props` 的 `PackageVersion` 中声明；新增包时先在该文件添加一行 `PackageVersion`。上面示例中的版本号仅用于说明依赖项。  
+>
 > 💡 `xTestPlatform.StepEditor.SDK` NuGet 包包含了 `xTestPlatform.Core` 和 `StepEditor.Abstractions` 的所有接口和基类。  
 > `CommunityToolkit.Mvvm` 可用于简化 ViewModel 的 `INotifyPropertyChanged` 实现（可选）。  
 > Syncfusion 版本应与主程序保持一致，当前为 **32.1.25**。

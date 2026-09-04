@@ -28,7 +28,7 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var taskObj = context.GetVariable(taskName);
+            var taskObj = NiDaqTaskRegistry.Get(taskName);
             if (taskObj is not DaqTask task)
                 return ErrorResult($"未找到任务 '{taskName}'");
 
@@ -75,7 +75,6 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(resultVar))
             {
                 context.SetVariable(resultVar, waveform);
-                context.SetVariable($"{resultVar}_Encoder", encoderValue);
             }
 
             // 存盘逻辑：将位置(编码器)与模拟量数据合并写入同一文件

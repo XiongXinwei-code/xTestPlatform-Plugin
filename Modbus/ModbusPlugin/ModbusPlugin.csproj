@@ -16,10 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="MessagePack" Version="3.1.7" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.2.3" />
-	<PackageReference Include="NModbus" Version="3.0.81" />
-	<PackageReference Include="System.IO.Ports" Version="8.0.0" />
+	<PackageReference Include="MessagePack" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+	<PackageReference Include="NModbus" />
+	<PackageReference Include="System.IO.Ports" />
   </ItemGroup>
 
 </Project>

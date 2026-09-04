@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<PackageReference Include="MessagePack" Version="3.1.7" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" Version="1.2.3" />
+	<PackageReference Include="MessagePack" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
   </ItemGroup>
 
   <!-- ������ ZLGCAN ԭ���⣨x64�������� kerneldlls ��Ŀ¼�ṹ���Ƶ� ���Ŀ¼\Native\Zlg\ -->

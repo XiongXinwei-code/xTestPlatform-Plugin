@@ -32,7 +32,7 @@ public sealed class NiDaqSyncConfigExecutor : IStepExecutor
                 return ErrorResult("编码器通道列表为空");
 
             // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
-            var existingTask = context.GetVariable(taskName);
+            var existingTask = NiDaqTaskRegistry.Remove(taskName);
             if (existingTask is DaqTask oldTask)
             {
                 try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
@@ -91,7 +91,7 @@ public sealed class NiDaqSyncConfigExecutor : IStepExecutor
                 task.Triggers.StartTrigger.ConfigureDigitalEdgeTrigger(setting.TriggerSource, edge);
             }
 
-            context.SetVariable(taskName, task);
+            NiDaqTaskRegistry.Set(taskName, task);
 
             return new ExecutionResult
             {
