@@ -1,3 +1,4 @@
+using CAN.Helpers;
 using CAN.Models;
 
 namespace CAN.Adapters.Vector;
@@ -33,6 +34,12 @@ public sealed class VectorAdapter : ICanAdapter
 
     private void OpenInternal(CanAdapterConfig config)
     {
+        if (config.EnableTermination)
+        {
+            throw new InvalidOperationException(
+                "Vector XL Driver Library 没有适用于所有 Vector 设备的通用终端电阻开关；请取消勾选并外接 120 Ω 电阻。");
+        }
+
         // Channel 参数为全局通道索引（0、1、2…），在 Vector Hardware Config 中查看
         if (!int.TryParse(config.Channel.Trim(), out int channelIndex) || channelIndex < 0)
             throw new ArgumentException($"无效的 Vector 通道 '{config.Channel}'，应为通道索引（0、1、2…）");
@@ -55,12 +62,37 @@ public sealed class VectorAdapter : ICanAdapter
 
         if (_isFd)
         {
-            var conf = BuildFdConf((uint)config.BaudRate, (uint)config.DataBitRate);
+            var arbitration = CanSamplePointCalculator.CalculateSegments(
+                config.BaudRate, config.ArbitrationSamplePoint,
+                maxTseg1: 256, maxTseg2: 128, maxSjw: 128, maxTotalTq: 40);
+            var data = CanSamplePointCalculator.CalculateSegments(
+                config.DataBitRate, config.DataSamplePoint,
+                maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 20);
+            var conf = BuildFdConf(
+                (uint)config.BaudRate, (uint)config.DataBitRate, arbitration, data);
             VectorXlApi.CheckStatus(VectorXlApi.CanFdSetConfiguration(_portHandle, _accessMask, ref conf));
+            config.AppliedArbitrationBitRate = config.BaudRate;
+            config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
+            config.AppliedDataBitRate = config.DataBitRate;
+            config.AppliedDataSamplePoint = data.SamplePoint;
         }
         else
         {
-            VectorXlApi.CheckStatus(VectorXlApi.CanSetChannelBitrate(_portHandle, _accessMask, (uint)config.BaudRate));
+            var timing = CanSamplePointCalculator.CalculateSegments(
+                config.BaudRate, config.ArbitrationSamplePoint,
+                maxTseg1: 16, maxTseg2: 8, maxSjw: 4, maxTotalTq: 25);
+            var chipParams = new VectorXlApi.XLchipParams
+            {
+                bitRate = (uint)config.BaudRate,
+                sjw = (byte)timing.Sjw,
+                tseg1 = (byte)timing.Tseg1,
+                tseg2 = (byte)timing.Tseg2,
+                sam = 1
+            };
+            VectorXlApi.CheckStatus(
+                VectorXlApi.CanSetChannelParams(_portHandle, _accessMask, ref chipParams));
+            config.AppliedArbitrationBitRate = config.BaudRate;
+            config.AppliedArbitrationSamplePoint = timing.SamplePoint;
         }
 
         VectorXlApi.CheckStatus(VectorXlApi.ActivateChannel(
@@ -69,33 +101,22 @@ public sealed class VectorAdapter : ICanAdapter
         _isConnected = true;
     }
 
-    /// <summary>构建 CAN FD 位时序配置（采样点约 80%，时钟 80 MHz）</summary>
-    private static VectorXlApi.XLcanFdConf BuildFdConf(uint arbBitRate, uint dataBitRate)
+    /// <summary>构建 CAN FD 位时序配置。</summary>
+    private static VectorXlApi.XLcanFdConf BuildFdConf(
+        uint arbBitRate, uint dataBitRate, CanControllerTiming arbitration, CanControllerTiming data)
     {
         return new VectorXlApi.XLcanFdConf
         {
             arbitrationBitRate = arbBitRate,
-            sjwAbr = 1,
-            tseg1Abr = CalcTseg1(arbBitRate),
-            tseg2Abr = CalcTseg2(arbBitRate),
+            sjwAbr = (uint)arbitration.Sjw,
+            tseg1Abr = (uint)arbitration.Tseg1,
+            tseg2Abr = (uint)arbitration.Tseg2,
             dataBitRate = dataBitRate,
-            sjwDbr = 1,
-            tseg1Dbr = CalcTseg1(dataBitRate),
-            tseg2Dbr = CalcTseg2(dataBitRate),
+            sjwDbr = (uint)data.Sjw,
+            tseg1Dbr = (uint)data.Tseg1,
+            tseg2Dbr = (uint)data.Tseg2,
             reserved1 = new byte[2]
         };
-    }
-
-    private static uint CalcTseg1(uint baudRate)
-    {
-        uint tq = 80_000_000 / baudRate; // 80 MHz CAN 时钟
-        return Math.Max(1, tq - CalcTseg2(baudRate) - 1);
-    }
-
-    private static uint CalcTseg2(uint baudRate)
-    {
-        uint tq = 80_000_000 / baudRate;
-        return Math.Max(1, tq / 5); // 采样点约 80%
     }
 
     public void Close()

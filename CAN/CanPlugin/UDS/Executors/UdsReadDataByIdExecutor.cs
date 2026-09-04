@@ -45,7 +45,7 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
             {
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() }, Value = $"NRC=0x{response.NegativeResponseCode:X2}" }
+                    StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() }, Value = response.GetFailureValue() }
                 };
             }
         }

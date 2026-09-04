@@ -39,6 +39,7 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="连接名称:" Style="{StaticResource LabelStyle}"/>
@@ -59,14 +60,28 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="响应超时 (ms):" Style="{StaticResource LabelStyle}"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="CAN ID 类型:" Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                          SelectedIndex="{Binding FrameType}">
+                    <ComboBoxItem Content="标准帧 (11-bit)"/>
+                    <ComboBoxItem Content="扩展帧 (29-bit)"/>
+                </ComboBox>
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="使用 CAN FD 帧:" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,8">
+                    <CheckBox IsChecked="{Binding UseFdFrame}" VerticalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
+                               Text="CAN_Open 使用 FD 且 ECU 刷写流程使用 CAN FD/BRS 时必须勾选；多帧传输将使用最大 64 字节数据区。"/>
+                </StackPanel>
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="响应超时 (ms):" Style="{StaticResource LabelStyle}"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <Separator Grid.Row="4" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
+                <Separator Grid.Row="6" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
 
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="固件文件:" Style="{StaticResource LabelStyle}"/>
-                <Grid Grid.Row="5" Grid.Column="1" Margin="0,0,0,8">
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="固件文件:" Style="{StaticResource LabelStyle}"/>
+                <Grid Grid.Row="7" Grid.Column="1" Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -78,8 +93,8 @@
                     <Button Grid.Column="1" Content="浏览..." Width="70" Margin="8,0,0,0" Click="OnBrowseFile"/>
                 </Grid>
 
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="文件格式:" Style="{StaticResource LabelStyle}"/>
-                <ComboBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="文件格式:" Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                           SelectedIndex="{Binding FormatIndex}">
                     <ComboBoxItem Content="自动识别（按扩展名）"/>
                     <ComboBoxItem Content="Intel HEX"/>
@@ -87,17 +102,17 @@
                     <ComboBoxItem Content="原始二进制 BIN"/>
                 </ComboBox>
 
-                <TextBlock Grid.Row="7" Grid.Column="0" Text="基地址:" Style="{StaticResource LabelStyle}"
+                <TextBlock Grid.Row="9" Grid.Column="0" Text="基地址:" Style="{StaticResource LabelStyle}"
                            Visibility="{Binding IsBinaryFormat, Converter={StaticResource BoolToVis}}"/>
-                <expr:ExpressionTextBox Grid.Row="7" Grid.Column="1" Margin="0,0,0,8"
+                <expr:ExpressionTextBox Grid.Row="9" Grid.Column="1" Margin="0,0,0,8"
                     Visibility="{Binding IsBinaryFormat, Converter={StaticResource BoolToVis}}"
                     ScriptText="{Binding BaseAddress, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <Separator Grid.Row="8" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
+                <Separator Grid.Row="10" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
 
-                <StackPanel Grid.Row="9" Grid.ColumnSpan="2">
+                <StackPanel Grid.Row="11" Grid.ColumnSpan="2">
                     <TextBlock Text="固件分析" FontWeight="Bold" Margin="0,0,0,8"/>
 
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -127,7 +142,57 @@
             </ScrollViewer>
         </syncfusion:TabItemExt>
 
-        <!-- 页签二：擦除与下载 -->
+        <!-- 页签二：映射与填充 -->
+        <syncfusion:TabItemExt Header="映射与填充"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="使用映射范围:" Style="{StaticResource LabelStyle}"/>
+                <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding UseMappedRange}"
+                          VerticalAlignment="Center" Margin="0,0,0,8"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource HintStyle}"
+                           Text="启用后，将固件映射为一个连续区间。地址空洞以填充字节补齐，擦除、0x34、传输和 CRC 都使用该完整区间；适用于 ZLG 文件下载中的“映射地址/映射结束地址/填充字节”配置。"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="映射起始地址:" Style="{StaticResource LabelStyle}"/>
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
+                    IsEnabled="{Binding UseMappedRange}"
+                    ScriptText="{Binding MappedStartAddress, Mode=TwoWay}" ExpectedResultType="String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="映射结束地址 (含):" Style="{StaticResource LabelStyle}"/>
+                <expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
+                    IsEnabled="{Binding UseMappedRange}"
+                    ScriptText="{Binding MappedEndAddress, Mode=TwoWay}" ExpectedResultType="String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="空洞填充字节:" Style="{StaticResource LabelStyle}"/>
+                <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+                    IsEnabled="{Binding UseMappedRange}"
+                    ScriptText="{Binding GapFillByte, Mode=TwoWay}" ExpectedResultType="String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource HintStyle}"
+                           Text="示例：映射起始地址 &quot;0x02000000&quot;，映射结束地址 &quot;0x0237FFFF&quot;，填充字节 &quot;0x00&quot;。映射范围必须完整覆盖固件中的所有数据段。"/>
+            </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+
+        <!-- 页签三：擦除与下载 -->
         <syncfusion:TabItemExt Header="擦除与下载">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
@@ -142,6 +207,7 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="9" Grid.ColumnSpan="2" Text="ECU 刷写规范预设" FontWeight="Bold" Margin="0,16,0,8"/>
@@ -196,7 +262,7 @@
                     <TextBox Width="200" HorizontalAlignment="Left"
                              Text="{Binding MaxBlockSize, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
-                               Text="实际取值不会超过 ECU 在请求下载响应中允许的块长度。"/>
+                               Text="实际取值不会超过 ECU 在请求下载响应中允许的块长度；设为 0 表示不额外限制，完全采用 ECU 返回值。"/>
                 </StackPanel>
 
                 <TextBlock Grid.Row="7" Grid.Column="0" Text="块重试次数:" Style="{StaticResource LabelStyle}"/>
@@ -210,11 +276,27 @@
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                Text="用于适配处理速度较慢的 Bootloader，通常保持 0 即可。"/>
                 </StackPanel>
+
+                <TextBlock Grid.Row="11" Grid.Column="0" Text="擦除携带地址和长度:" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="11" Grid.Column="1" Margin="0,0,0,8">
+                    <CheckBox IsChecked="{Binding EraseWithAddressAndLength}"
+                              IsEnabled="{Binding EraseBeforeDownload}" VerticalAlignment="Center"/>
+                    <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
+                               Text="勾选时发送 31 01 &lt;RID&gt; &lt;ALFID&gt; &lt;地址&gt; &lt;长度&gt;；对应 ZLG 的“带参数擦除”。启用映射范围时强制带参数，未启用映射时可取消勾选以发送无参数擦除例程。"/>
+                </StackPanel>
+
+                <TextBlock Grid.Row="12" Grid.Column="0" Text="下载前延时 (ms):" Style="{StaticResource LabelStyle}"/>
+                <StackPanel Grid.Row="12" Grid.Column="1" Margin="0,0,0,8">
+                    <TextBox Width="200" HorizontalAlignment="Left"
+                             Text="{Binding PreDownloadDelayMs, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
+                               Text="在执行本步骤的擦除与下载前等待。APP 需等待 FlashDriver 激活时，可设置为 500 ms。"/>
+                </StackPanel>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>
 
-        <!-- 页签三：校验与输出 -->
+        <!-- 页签四：校验与输出 -->
         <syncfusion:TabItemExt Header="校验与输出">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">

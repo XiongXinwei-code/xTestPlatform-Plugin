@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	<Version>1.0.28</Version>
+
+	<Version>1.0.29</Version>
+
 	<TargetFramework>net8.0-windows</TargetFramework>
 	<Nullable>enable</Nullable>
 	<UseWPF>true</UseWPF>
@@ -21,6 +23,7 @@
 
   <ItemGroup>
 	<ProjectReference Include="..\CanPlugin\CanPlugin.csproj" />
+
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
 	<PackageReference Include="MessagePack" />
 	<PackageReference Include="CommunityToolkit.Mvvm" />
@@ -28,6 +31,7 @@
 	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" />
 	<PackageReference Include="Syncfusion.SfSkinManager.WPF" />
 	<PackageReference Include="Syncfusion.Tools.WPF" />
+
   </ItemGroup>
 
 </Project>

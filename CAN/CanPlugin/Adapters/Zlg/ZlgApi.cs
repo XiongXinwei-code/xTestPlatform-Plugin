@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using CAN.Helpers;
 
 namespace CAN.Adapters.Zlg;
 
@@ -375,18 +376,10 @@ internal static class ZlgApi
             $"未知的 ZLG 设备类型 '{name}'，支持：USBCAN1, USBCAN2, USBCAN-E-U, USBCAN-2E-U, USBCANFD-200U, USBCANFD-100U, USBCANFD-MINI")
     };
 
-    /// <summary>Classic 波特率（bps）转 BTR0/BTR1 编码</summary>
-    public static (byte Timing0, byte Timing1) ToTiming(int baudRate) => baudRate switch
+    /// <summary>Classic 波特率和采样点转 SJA1000 BTR0/BTR1 编码。</summary>
+    public static (byte Timing0, byte Timing1) ToTiming(int baudRate, double samplePoint)
     {
-        1_000_000 => ((byte)0x00, (byte)0x14),
-        800_000 => ((byte)0x00, (byte)0x16),
-        500_000 => ((byte)0x00, (byte)0x1C),
-        250_000 => ((byte)0x01, (byte)0x1C),
-        125_000 => ((byte)0x03, (byte)0x1C),
-        100_000 => ((byte)0x04, (byte)0x39),
-        50_000 => ((byte)0x09, (byte)0x1C),
-        20_000 => ((byte)0x18, (byte)0x1C),
-        10_000 => ((byte)0x31, (byte)0x1C),
-        _ => throw new ArgumentException($"ZLG 不支持的波特率 {baudRate} bps")
-    };
+        ushort btr = CanSamplePointCalculator.ToSja1000Btr(baudRate, samplePoint);
+        return ((byte)(btr >> 8), (byte)btr);
+    }
 }

@@ -14,7 +14,8 @@ public sealed class IsoTpTransport
     private readonly uint _rxId;
     private readonly CanFrameType _frameType;
     private readonly bool _useFd;
-    private readonly int _maxPayload; // 单帧最大有效载荷（Classic=7, FD=63）
+    private readonly int _frameDataLength; // CAN 数据区长度（Classic=8, FD=64）
+    private readonly int _maxSingleFramePayload; // 单帧最大 UDS 载荷（Classic=7, FD=62）
 
     // ISO-TP 帧类型 (高 4 位)
     private const byte SingleFrame = 0x00;
@@ -35,13 +36,15 @@ public sealed class IsoTpTransport
         _rxId = rxId;
         _frameType = frameType;
         _useFd = useFd;
-        _maxPayload = useFd ? 63 : 7; // FD 单帧 SF_DL 可达 62 字节（含 PCI），简化为 63
+        _frameDataLength = useFd ? 64 : 8;
+        // CAN FD 的扩展单帧需要 00 + SF_DL 两个 PCI 字节，因此最大载荷是 62 字节。
+        _maxSingleFramePayload = useFd ? 62 : 7;
     }
 
     /// <summary>发送 UDS 请求数据（自动分段）</summary>
     public async Task SendAsync(byte[] data, CancellationToken ct = default)
     {
-        if (data.Length <= _maxPayload)
+        if (data.Length <= _maxSingleFramePayload)
         {
             SendSingleFrame(data);
         }
@@ -71,7 +74,6 @@ public sealed class IsoTpTransport
 
     private void SendSingleFrame(byte[] data)
     {
-        int frameLen = _useFd ? 8 : 8; // 最小帧长度填充到 8
         if (data.Length > 7 && _useFd)
         {
             // CAN FD 扩展单帧: PCI(00) + Length + Data
@@ -116,11 +118,28 @@ public sealed class IsoTpTransport
     {
         // 发送首帧 (FF)
         int totalLen = data.Length;
-        var ff = new byte[8];
-        ff[0] = (byte)(FirstFrame | ((totalLen >> 8) & 0x0F));
-        ff[1] = (byte)(totalLen & 0xFF);
-        int ffDataLen = 6; // 首帧数据区 = 8 - 2(PCI)
-        Buffer.BlockCopy(data, 0, ff, 2, Math.Min(ffDataLen, data.Length));
+        var ff = new byte[_frameDataLength];
+        int ffPciLength;
+        if (totalLen <= 0x0FFF)
+        {
+            ff[0] = (byte)(FirstFrame | ((totalLen >> 8) & 0x0F));
+            ff[1] = (byte)(totalLen & 0xFF);
+            ffPciLength = 2;
+        }
+        else
+        {
+            // ISO 15765-2:2016 扩展首帧长度：10 00 + 32 位消息长度。
+            ff[0] = FirstFrame;
+            ff[1] = 0x00;
+            ff[2] = (byte)(totalLen >> 24);
+            ff[3] = (byte)(totalLen >> 16);
+            ff[4] = (byte)(totalLen >> 8);
+            ff[5] = (byte)totalLen;
+            ffPciLength = 6;
+        }
+
+        int ffDataLen = Math.Min(_frameDataLength - ffPciLength, data.Length);
+        Buffer.BlockCopy(data, 0, ff, ffPciLength, ffDataLen);
         WriteFrame(ff);
 
         // 等待流控帧 (FC)
@@ -142,9 +161,12 @@ public sealed class IsoTpTransport
 
         while (offset < totalLen && !ct.IsCancellationRequested)
         {
-            var cf = new byte[8];
+            int cfDataLen = Math.Min(_frameDataLength - 1, totalLen - offset);
+            // 对齐 ZLG 的“短帧填充”行为：中间帧使用完整 DLC，末帧只取容纳有效
+            // 数据所需的最小长度（适配器会向上对齐到合法 CAN FD DLC）。
+            int cfFrameLength = _useFd ? Math.Max(cfDataLen + 1, 8) : 8;
+            var cf = new byte[cfFrameLength];
             cf[0] = (byte)(ConsecutiveFrame | (seqNum & 0x0F));
-            int cfDataLen = Math.Min(7, totalLen - offset);
             Buffer.BlockCopy(data, offset, cf, 1, cfDataLen);
             WriteFrame(cf);
 
@@ -153,8 +175,7 @@ public sealed class IsoTpTransport
             sentInBlock++;
 
             // 帧间隔
-            if (stMin > 0)
-                await Task.Delay(stMin, ct);
+            await DelayForStMinAsync(stMin, ct);
 
             // Block Size 控制
             if (blockSize > 0 && sentInBlock >= blockSize && offset < totalLen)
@@ -172,10 +193,30 @@ public sealed class IsoTpTransport
     private async Task<byte[]?> ReceiveMultiFrameAsync(byte[] ffData, int timeoutMs, CancellationToken ct)
     {
         // 解析首帧
+        if (ffData.Length < 2)
+            return null;
+
         int totalLen = ((ffData[0] & 0x0F) << 8) | ffData[1];
+        int ffPciLength = 2;
+        if (totalLen == 0)
+        {
+            if (ffData.Length < 6)
+                return null;
+
+            uint extendedLength = ((uint)ffData[2] << 24) |
+                                  ((uint)ffData[3] << 16) |
+                                  ((uint)ffData[4] << 8) |
+                                  ffData[5];
+            if (extendedLength == 0 || extendedLength > int.MaxValue)
+                return null;
+
+            totalLen = (int)extendedLength;
+            ffPciLength = 6;
+        }
+
         var buffer = new byte[totalLen];
-        int ffDataLen = Math.Min(6, totalLen);
-        Buffer.BlockCopy(ffData, 2, buffer, 0, ffDataLen);
+        int ffDataLen = Math.Min(ffData.Length - ffPciLength, totalLen);
+        Buffer.BlockCopy(ffData, ffPciLength, buffer, 0, ffDataLen);
         int received = ffDataLen;
 
         // 发送流控帧
@@ -197,7 +238,8 @@ public sealed class IsoTpTransport
             byte seq = (byte)(cf.Data[0] & 0x0F);
             if (seq != expectedSeq) return null;
 
-            int cfDataLen = Math.Min(7, totalLen - received);
+            int cfDataLen = Math.Min(cf.Data.Length - 1, totalLen - received);
+            if (cfDataLen <= 0) return null;
             Buffer.BlockCopy(cf.Data, 1, buffer, received, cfDataLen);
             received += cfDataLen;
             expectedSeq = (byte)((expectedSeq + 1) & 0x0F);
@@ -207,6 +249,23 @@ public sealed class IsoTpTransport
     }
 
     // ── 辅助 ────────────────────────────────────────────────────
+
+    private static async Task DelayForStMinAsync(int stMin, CancellationToken ct)
+    {
+        if (stMin <= 0x7F)
+        {
+            if (stMin > 0)
+                await Task.Delay(stMin, ct);
+            return;
+        }
+
+        if (stMin is >= 0xF1 and <= 0xF9)
+        {
+            // 0xF1~0xF9 分别表示 100~900 微秒，不能直接当成 241~249 ms。
+            double microseconds = (stMin - 0xF0) * 100d;
+            await Task.Delay(TimeSpan.FromTicks((long)(microseconds * 10)), ct);
+        }
+    }
 
     private void WriteFrame(byte[] data)
     {

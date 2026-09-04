@@ -26,11 +26,17 @@ public sealed class EcuFlashPreset
     /// <summary>擦除例程 ID 表达式</summary>
     public string EraseRoutineId { get; set; } = "\"0xFF00\"";
 
+    /// <summary>擦除例程是否携带地址和长度参数</summary>
+    public bool EraseWithAddressAndLength { get; set; } = true;
+
     /// <summary>擦除超时（ms）</summary>
     public int EraseTimeoutMs { get; set; } = 30000;
 
-    /// <summary>单块最大传输字节数</summary>
+    /// <summary>单块最大传输字节数；0 表示采用 ECU 返回值</summary>
     public int MaxBlockSize { get; set; } = 512;
+
+    /// <summary>下载前等待时间（ms）</summary>
+    public int PreDownloadDelayMs { get; set; }
 
     /// <summary>块传输失败后的重试次数</summary>
     public int BlockRetryCount { get; set; } = 2;
