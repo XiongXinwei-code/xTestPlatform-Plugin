@@ -1,4 +1,5 @@
 using CAN.Models;
+using CAN.Helpers;
 
 namespace CAN.Adapters.Zlg;
 
@@ -64,6 +65,23 @@ public sealed class ZlgAdapter : ICanAdapter
                 throw new InvalidOperationException($"ZLG 设备类型 {parts[0]} 不支持 CAN FD，请改用 USBCANFD 系列设备或将协议设为 Classic");
             }
 
+            if (Math.Abs(config.ArbitrationSamplePoint - 80d) > 0.01)
+            {
+                ZlgApi.CloseDevice(_deviceHandle);
+                _deviceHandle = IntPtr.Zero;
+                throw new InvalidOperationException(
+                    $"当前内置 ZLGCAN 的 CAN FD 标准波特率接口固定使用 80% 仲裁段采样点，" +
+                    $"不能可靠表达 {config.ArbitrationSamplePoint:F2}%；请设为 80%，或提供当前设备型号对应的 ZLG 自定义波特率字符串规则。");
+            }
+            if (Math.Abs(config.DataSamplePoint - 80d) > 0.01)
+            {
+                ZlgApi.CloseDevice(_deviceHandle);
+                _deviceHandle = IntPtr.Zero;
+                throw new InvalidOperationException(
+                    $"当前内置 ZLGCAN 的 CAN FD 标准波特率接口固定使用 80% 数据段采样点，" +
+                    $"不能可靠表达 {config.DataSamplePoint:F2}%；请设为 80%，或提供当前设备型号对应的 ZLG 自定义波特率字符串规则。");
+            }
+
             // 新版 ZLGCAN 使用属性接口配置 CAN FD；部分旧版 DLL / 固件会拒绝
             // canfd_* 属性，但仍接受 InitCAN 结构体中的直接时序值（v1.0.19 的方式）。
             // 因此属性设置只作为优先路径，失败时退回直接时序，不能在此提前中止打开过程。
@@ -94,7 +112,8 @@ public sealed class ZlgAdapter : ICanAdapter
             initConfig.can.acc_mask = 0xFFFFFFFF;
             initConfig.can.filter = 0;
             initConfig.can.mode = 0;
-            (initConfig.can.timing0, initConfig.can.timing1) = ZlgApi.ToTiming(config.BaudRate);
+            (initConfig.can.timing0, initConfig.can.timing1) =
+                ZlgApi.ToTiming(config.BaudRate, config.ArbitrationSamplePoint);
         }
 
         _channelHandle = ZlgApi.InitCAN(_deviceHandle, channelIndex, ref initConfig);
@@ -105,12 +124,41 @@ public sealed class ZlgAdapter : ICanAdapter
             throw new InvalidOperationException($"初始化 ZLG CAN 通道 {channelIndex} 失败");
         }
 
+        // ZLGCAN 属性名沿用厂商设备 XML 中的 initenal_resistance（原始拼写）。
+        // 老设备不具备该属性时，未启用状态保持兼容；用户明确启用时必须确认已生效。
+        bool terminationConfigured = ZlgApi.TrySetProperty(
+            _deviceHandle, $"{channelIndex}/initenal_resistance", config.EnableTermination ? "1" : "0");
+        if (config.EnableTermination && !terminationConfigured)
+        {
+            ZlgApi.ResetCAN(_channelHandle);
+            ZlgApi.CloseDevice(_deviceHandle);
+            _deviceHandle = IntPtr.Zero;
+            _channelHandle = IntPtr.Zero;
+            throw new InvalidOperationException(
+                $"启用 ZLG 通道 {channelIndex} 内置 120 Ω 终端电阻失败；请确认设备支持该属性，或取消勾选并外接电阻。");
+        }
+
         if (ZlgApi.StartCAN(_channelHandle) != ZlgApi.STATUS_OK)
         {
             ZlgApi.CloseDevice(_deviceHandle);
             _deviceHandle = IntPtr.Zero;
             _channelHandle = IntPtr.Zero;
             throw new InvalidOperationException($"启动 ZLG CAN 通道 {channelIndex} 失败");
+        }
+
+        if (_isFd)
+        {
+            config.AppliedArbitrationBitRate = config.BaudRate;
+            config.AppliedArbitrationSamplePoint = 80;
+            config.AppliedDataBitRate = config.DataBitRate;
+            config.AppliedDataSamplePoint = 80;
+        }
+        else
+        {
+            var timing = CanSamplePointCalculator.CalculateSja1000(
+                config.BaudRate, config.ArbitrationSamplePoint);
+            config.AppliedArbitrationBitRate = timing.ActualBitRate;
+            config.AppliedArbitrationSamplePoint = timing.SamplePoint;
         }
 
         _isConnected = true;
