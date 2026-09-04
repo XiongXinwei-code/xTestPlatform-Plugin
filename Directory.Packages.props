@@ -7,8 +7,8 @@
 	<!-- xTestPlatform 插件 SDK -->
 	<PackageVersion Include="xTestPlatform.StepEditor.SDK" Version="1.2.4" />
 
-	<!-- 序列化 -->
-	<PackageVersion Include="MessagePack" Version="3.1.7" />
+	<!-- 序列化：须 ≥ xTestPlatform.Core 引用的版本，否则报 CS1705 -->
+	<PackageVersion Include="MessagePack" Version="3.1.8" />
 
 	<!-- UI / MVVM -->
 	<PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
