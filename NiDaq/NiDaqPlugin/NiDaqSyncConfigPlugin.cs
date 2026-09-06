@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSetting>
+public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSetting>, IStepPlugin
 {
     public override string StepTypeId => "NiDaq.SyncConfig";
     public override string DisplayName => "NiDaq_Sync_Config";
@@ -72,5 +72,31 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
     {
         var s = DeserializeSetting(setting);
         return $"Sync Config: {s.TaskName} ({s.AiChannels.Count} AI + {s.EncoderChannels.Count} Enc)";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (NiDaqSyncConfigSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_020", "任务名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_020E", $"TaskName 表达式无效: {taskNameErr}"));
+        if (s.AiChannels.Count == 0) errors.Add(StepSettingError.Error("DAQ_021", "AI 通道列表为空"));
+        if (s.EncoderChannels.Count == 0) errors.Add(StepSettingError.Error("DAQ_022", "编码器通道列表为空"));
+        if (s.SampleRate <= 0) errors.Add(StepSettingError.Error("DAQ_023", "采样率必须大于 0"));
+        if (s.SamplesPerChannel <= 0) errors.Add(StepSettingError.Error("DAQ_024", "每通道采样数必须大于 0"));
+        for (int i = 0; i < s.AiChannels.Count; i++)
+        {
+            var ch = s.AiChannels[i];
+            if (string.IsNullOrWhiteSpace(ch.PhysicalChannel))
+                errors.Add(StepSettingError.Error("DAQ_025", $"AI 第 {i + 1} 行：物理通道不能为空"));
+            if (string.IsNullOrWhiteSpace(ch.ColumnName))
+                errors.Add(StepSettingError.Error("DAQ_026", $"AI 第 {i + 1} 行：列名不能为空"));
+            if (ch.MinValue >= ch.MaxValue)
+                errors.Add(StepSettingError.Error("DAQ_027", $"AI 第 {i + 1} 行：量程下限 ({ch.MinValue}) 必须小于上限 ({ch.MaxValue})"));
+        }
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

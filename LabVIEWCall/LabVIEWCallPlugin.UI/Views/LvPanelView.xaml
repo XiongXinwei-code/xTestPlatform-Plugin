@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:LabVIEWCallPlugin.UI.Views"
              xmlns:helpers="clr-namespace:LabVIEWCallPlugin.UI.Converters"
              xmlns:models="clr-namespace:LabVIEWCallPlugin.UI.Models"
+             xmlns:coremodels="clr-namespace:LabVIEWCallPlugin.Models;assembly=LabVIEWCall.StepPlugin"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf" 
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
@@ -33,7 +34,7 @@
                            MethodName="GetValues" 
                            ObjectType="{x:Type sys:Enum}">
             <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="models:ValueSourceType"/>
+                <x:Type TypeName="coremodels:ValueSourceType"/>
             </ObjectDataProvider.MethodParameters>
         </ObjectDataProvider>
 

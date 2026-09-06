@@ -2,10 +2,11 @@ using CAN.XCP.Executors;
 using CAN.XCP.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using CAN.Validation;
 
 namespace CAN.XCP;
 
-public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
+public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>, IStepPlugin
 {
     public override string StepTypeId  => "XCP.Disconnect";
     public override string DisplayName => "XCP_Disconnect";
@@ -42,5 +43,23 @@ public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
     {
         var s = DeserializeSetting(setting);
         return $"XCP Disconnect TX={s.TxId} RX={s.RxId}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (XcpDisconnectSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("XCP_101", "ConnectionName 不能为空"));
+        if (string.IsNullOrWhiteSpace(s.TxId))
+            errors.Add(StepSettingError.Error("XCP_102", "TX ID 不能为空"));
+        if (string.IsNullOrWhiteSpace(s.RxId))
+            errors.Add(StepSettingError.Error("XCP_103", "RX ID 不能为空"));
+
+        CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

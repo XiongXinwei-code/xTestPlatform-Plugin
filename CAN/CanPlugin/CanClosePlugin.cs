@@ -2,10 +2,11 @@ using CAN.Executors;
 using CAN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using CAN.Validation;
 
 namespace CAN;
 
-public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>
+public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.CanClose";
     public override string DisplayName => "CAN_Close";
@@ -38,5 +39,19 @@ public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Close {s.ConnectionName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (CanCloseSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("CAN_010", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("CAN_010E", $"ConnectionName 表达式无效: {connErr}"));
+        CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

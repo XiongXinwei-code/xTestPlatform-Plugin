@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using xTestPlatform.Core.SequenceModels;
 
-namespace LabVIEWCallPlugin.UI.Helper
+namespace LabVIEWCallPlugin.Helpers
 {
     public static class LabVIEWTypeConverter
     {

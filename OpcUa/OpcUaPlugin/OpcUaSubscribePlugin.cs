@@ -1,12 +1,14 @@
+using OpcUa.Helpers;
 using OpcUa.Executors;
 using OpcUa.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using OpcUa.Validation;
 
 namespace OpcUa;
 
 /// <summary>OPC UA 订阅插件，等待节点值满足指定条件</summary>
-public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
+public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>, IStepPlugin
 {
     public override string StepTypeId => "OpcUa.Subscribe";
     public override string DisplayName => "OpcUa_Subscribe";
@@ -47,5 +49,30 @@ public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Subscribe {s.NodeId} until {s.CompareMode} {s.ExpectedValue}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaSubscribeSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("OPCUA_060", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_060E", $"ConnectionName 表达式无效: {connErr}"));
+        if (string.IsNullOrWhiteSpace(s.NodeId))
+            errors.Add(StepSettingError.Error("OPCUA_061", "节点 ID 不能为空"));
+        else if (!OpcUaHelper.IsValidNodeId(s.NodeId))
+            errors.Add(StepSettingError.Error("OPCUA_061F", "节点 ID 格式无效，正确格式如 ns=2;s=MyVariable"));
+        if (!string.IsNullOrWhiteSpace(s.ExpectedValue)
+            && !context.Evaluator.ValidateExpression(s.ExpectedValue, context.ExecutionContext, out var expErr))
+            errors.Add(StepSettingError.Error("OPCUA_064", $"ExpectedValue 表达式无效: {expErr}"));
+        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
+            errors.Add(StepSettingError.Error("OPCUA_062", "超时必须大于 0，或为 -1 表示永不超时"));
+        if (s.SamplingIntervalMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_063", "采样间隔必须大于 0"));
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

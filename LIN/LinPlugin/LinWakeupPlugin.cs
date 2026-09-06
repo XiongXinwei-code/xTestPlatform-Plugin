@@ -2,10 +2,11 @@ using LIN.Executors;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using LIN.Validation;
 
 namespace LIN;
 
-public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
+public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>, IStepPlugin
 {
     public override string StepTypeId   => "IO.LinWakeup";
     public override string DisplayName  => "LIN_Wakeup";
@@ -48,5 +49,30 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Wakeup {s.ConnectionName} ({(s.WakeupMode == LinWakeupMode.Remote ? "总线唤醒" : "本地唤醒")}, 延时 {s.PostWakeupDelayMs}ms)";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (LinWakeupSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("LIN_WK01", "连接标识名不能为空"));
+        else
+        {
+            if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var err))
+                errors.Add(StepSettingError.Error("LIN_WK02", $"ConnectionName 表达式无效: {err}"));
+
+            if (context.SequenceFile != null && context.Block != null && context.CurrentStep != null)
+                LinLifecycleValidator.CheckPrecedingOpen(
+                    context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        }
+
+        if (s.PostWakeupDelayMs < 0)
+            errors.Add(StepSettingError.Error("LIN_WK03", "唤醒后延时不能为负数"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

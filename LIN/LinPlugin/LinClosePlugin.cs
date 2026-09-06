@@ -2,10 +2,11 @@ using LIN.Executors;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using LIN.Validation;
 
 namespace LIN;
 
-public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
+public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>, IStepPlugin
 {
     public override string StepTypeId   => "IO.LinClose";
     public override string DisplayName  => "LIN_Close";
@@ -38,5 +39,27 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Close {s.ConnectionName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (LinCloseSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("LIN_C01", "连接标识名不能为空"));
+        else
+        {
+            if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var err))
+                errors.Add(StepSettingError.Error("LIN_C02", $"ConnectionName 表达式无效: {err}"));
+
+            if (context.SequenceFile != null && context.Block != null && context.CurrentStep != null)
+                LinLifecycleValidator.CheckPrecedingOpen(
+                    context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        }
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

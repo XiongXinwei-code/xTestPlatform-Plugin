@@ -1,11 +1,12 @@
-using LIN.Models;
+using CAN;
+using CAN.Models;
 using MessagePack;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
-namespace LIN.UI.Validation;
+namespace CAN.Validation;
 
-internal static class LinLifecycleValidator
+internal static class CanLifecycleValidator
 {
     private static readonly MessagePackSerializerOptions _opts =
         MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
@@ -35,47 +36,51 @@ internal static class LinLifecycleValidator
         return currentIndex > 0 ? allSteps.Take(currentIndex) : [];
     }
 
-    /// <summary>检查当前步骤之前是否存在匹配的 LIN.Open 步骤</summary>
+    /// <summary>
+    /// 检查当前步骤之前是否存在匹配的 CAN.Open 步骤
+    /// </summary>
     public static void CheckPrecedingOpen(
-        SequenceFile sequenceFile, List<Step> block, Step currentStep,
-        string connectionName, List<StepSettingError> errors)
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(connectionName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            if (step.StepSetting.StepType != "IO.LinOpen") continue;
+            if (step.StepSetting.StepType != "IO.CanOpen") continue;
             try
             {
-                var s = MessagePackSerializer.Deserialize<LinOpenSetting>(step.StepSetting.Setting, _opts);
-                if (s.ConnectionName == connectionName) return;
+                var setting = MessagePackSerializer.Deserialize<CanOpenSetting>(
+                    step.StepSetting.Setting, _opts);
+                if (setting.ConnectionName == connectionName) return;
             }
             catch { }
         }
 
-        errors.Add(StepSettingError.Warning("LIN_LC01",
-            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 LIN_Open 步骤"));
+        errors.Add(StepSettingError.Warning("CAN_LC01",
+            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 CAN.Open 步骤"));
     }
 
-    /// <summary>检查当前 CyclicSendStop 之前是否存在匹配的 CyclicSendStart</summary>
+    /// <summary>
+    /// 检查当前 CyclicSendStop 之前是否存在匹配的 CyclicSendStart
+    /// </summary>
     public static void CheckPrecedingCyclicStart(
-        SequenceFile sequenceFile, List<Step> block, Step currentStep,
-        string taskName, List<StepSettingError> errors)
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
     {
-        if (string.IsNullOrWhiteSpace(taskName)) return;
+        if (string.IsNullOrWhiteSpace(connectionName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            if (step.StepSetting.StepType != "IO.LinCyclicSendStart") continue;
+            if (step.StepSetting.StepType != "IO.CanCyclicSendStart") continue;
             try
             {
-                var s = MessagePackSerializer.Deserialize<LinCyclicSendStartSetting>(step.StepSetting.Setting, _opts);
-                if (s.TaskName == taskName) return;
+                var setting = MessagePackSerializer.Deserialize<CanCyclicSendStartSetting>(
+                    step.StepSetting.Setting, _opts);
+                if (setting.ConnectionName == connectionName) return;
             }
             catch { }
         }
 
-        errors.Add(StepSettingError.Warning("LIN_LC02",
-            $"在此步骤之前未找到针对任务 \"{taskName}\" 的 LIN_CyclicSendStart 步骤"));
+        errors.Add(StepSettingError.Warning("CAN_LC02",
+            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 CAN.CyclicSendStart 步骤"));
     }
 }

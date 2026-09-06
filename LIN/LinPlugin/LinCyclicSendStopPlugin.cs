@@ -2,10 +2,11 @@ using LIN.Executors;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using LIN.Validation;
 
 namespace LIN;
 
-public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSetting>
+public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSetting>, IStepPlugin
 {
     public override string StepTypeId   => "IO.LinCyclicSendStop";
     public override string DisplayName  => "LIN_Cyclic_SendStop";
@@ -38,5 +39,22 @@ public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSe
     {
         var s = DeserializeSetting(setting);
         return $"CyclicSendStop TaskName={s.TaskName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (LinCyclicSendStopSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.TaskName))
+            errors.Add(StepSettingError.Error("LIN_SS01", "任务标识名不能为空"));
+
+        if (context.SequenceFile != null && context.Block != null && context.CurrentStep != null)
+            LinLifecycleValidator.CheckPrecedingCyclicStart(
+                context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

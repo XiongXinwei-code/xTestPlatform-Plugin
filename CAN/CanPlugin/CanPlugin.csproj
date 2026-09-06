@@ -17,7 +17,7 @@
   <ItemGroup>
 
 	<PackageReference Include="MessagePack" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+	<PackageReference Include="xTestPlatform.StepRuntime.SDK" />
 
   </ItemGroup>
 

@@ -2,10 +2,11 @@ using LIN.Executors;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using LIN.Validation;
 
 namespace LIN;
 
-public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
+public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>, IStepPlugin
 {
     public override string StepTypeId   => "IO.LinRead";
     public override string DisplayName  => "LIN_Read";
@@ -45,5 +46,24 @@ public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
         var s = DeserializeSetting(setting);
         var filter = string.IsNullOrWhiteSpace(s.FilterFrameId) ? "任意ID" : $"ID={s.FilterFrameId}";
         return $"Read {filter}, Timeout={s.ReadTimeoutMs}ms";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (LinReadSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("LIN_R01", "连接标识名不能为空"));
+        if (s.ReadTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("LIN_R02", "读取超时时间必须大于 0"));
+
+        if (context.SequenceFile != null && context.Block != null && context.CurrentStep != null)
+            LinLifecycleValidator.CheckPrecedingOpen(
+                context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

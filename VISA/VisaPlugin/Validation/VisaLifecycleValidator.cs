@@ -1,11 +1,11 @@
 using MessagePack;
-using OpcUa.Models;
 using xTestPlatform.Core.Plugins.Contracts;
+using VISA.Models;
 using xTestPlatform.Core.SequenceModels;
 
-namespace OpcUa.UI.Validation;
+namespace VISA.Validation;
 
-internal static class OpcUaLifecycleValidator
+internal static class VisaLifecycleValidator
 {
     private static readonly MessagePackSerializerOptions _opts =
         MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
@@ -35,45 +35,24 @@ internal static class OpcUaLifecycleValidator
         return currentIndex > 0 ? allSteps.Take(currentIndex) : [];
     }
 
-    public static void CheckPrecedingConnect(
+    public static void CheckPrecedingOpen(
         SequenceFile sequenceFile, List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(connectionName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            if (step.StepSetting.StepType != "OpcUa.Connect") continue;
+            if (step.StepSetting.StepType != "IO.VisaOpen") continue;
             try
             {
-                var setting = MessagePackSerializer.Deserialize<OpcUaConnectSetting>(
+                var setting = MessagePackSerializer.Deserialize<VisaOpenSetting>(
                     step.StepSetting.Setting, _opts);
                 if (setting.ConnectionName == connectionName) return;
             }
             catch { }
         }
 
-        errors.Add(StepSettingError.Warning("OPCUA_LC01",
-            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 OpcUA.Connect 步骤"));
-    }
-
-    public static void CheckPrecedingDataAcqStart(
-        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
-    {
-        if (string.IsNullOrWhiteSpace(taskName)) return;
-
-        foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
-        {
-            if (step.StepSetting.StepType != "OpcUa.DataAcqStart") continue;
-            try
-            {
-                var setting = MessagePackSerializer.Deserialize<OpcUaDataAcqStartSetting>(
-                    step.StepSetting.Setting, _opts);
-                if (setting.TaskName == taskName) return;
-            }
-            catch { }
-        }
-
-        errors.Add(StepSettingError.Warning("OPCUA_LC02",
-            $"在此步骤之前未找到针对任务 \"{taskName}\" 的 OpcUa.DataAcqStart 步骤"));
+        errors.Add(StepSettingError.Warning("VISA_LC01",
+            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 VISA.Open 步骤"));
     }
 }

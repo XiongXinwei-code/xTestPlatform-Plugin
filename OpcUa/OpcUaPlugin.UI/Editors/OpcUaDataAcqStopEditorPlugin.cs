@@ -1,9 +1,7 @@
 using System.Windows;
 using OpcUa.Models;
 using OpcUa.UI.Views;
-using OpcUa.UI.Validation;
 using StepEditor.Abstractions;
-using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
 namespace OpcUa.UI;
@@ -20,16 +18,5 @@ public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
         view.ViewModel.AttachSerializer(new OpcUaDataAcqStopPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
-    }
-
-    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
-		StepEditorValidationContext context, CancellationToken ct = default)
-    {
-        var errors = new List<StepSettingError>();
-        var s = (OpcUaDataAcqStopSetting)new OpcUaDataAcqStopPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (string.IsNullOrWhiteSpace(s.TaskName))
-            errors.Add(StepSettingError.Error("OPCUA_080", "采集任务名不能为空"));
-        OpcUaLifecycleValidator.CheckPrecedingDataAcqStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
-        return errors;
     }
 }

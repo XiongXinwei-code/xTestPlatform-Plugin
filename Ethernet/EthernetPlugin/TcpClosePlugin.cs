@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class TcpClosePlugin : StepPluginBase<TcpCloseSetting>
+public sealed class TcpClosePlugin : StepPluginBase<TcpCloseSetting>, IStepPlugin
 {
     public override string StepTypeId  => "Ethernet.TcpClose";
     public override string DisplayName => "Ethernet_TcpClose";
@@ -39,5 +39,21 @@ public sealed class TcpClosePlugin : StepPluginBase<TcpCloseSetting>
     {
         var s = DeserializeSetting(setting);
         return $"TCP Close: {s.ConnectionName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.Models.TcpCloseSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("ETH_101", "ConnectionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("ETH_102", $"ConnectionName 表达式无效: {e1}"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

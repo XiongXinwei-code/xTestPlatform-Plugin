@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfigSetting>
+public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfigSetting>, IStepPlugin
 {
     public override string StepTypeId => "NiDaq.EncoderConfig";
     public override string DisplayName => "NiDaq_Encoder_Config";
@@ -52,5 +52,22 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
     {
         var s = DeserializeSetting(setting);
         return $"Encoder Config: {s.TaskName} ({s.CounterChannel}, {s.DecodingType})";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (NiDaqEncoderConfigSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_040", "任务名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_040E", $"TaskName 表达式无效: {taskNameErr}"));
+        if (string.IsNullOrWhiteSpace(s.CounterChannel)) errors.Add(StepSettingError.Error("DAQ_041", "Counter 通道不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.CounterChannel, context.ExecutionContext, out var chErr))
+            errors.Add(StepSettingError.Error("DAQ_041E", $"CounterChannel 表达式无效: {chErr}"));
+        if (s.PulsesPerRevolution <= 0) errors.Add(StepSettingError.Error("DAQ_042", "每转脉冲数 (PPR) 必须大于 0"));
+        if (s.DistancePerPulse <= 0) errors.Add(StepSettingError.Error("DAQ_043", "每脉冲距离必须大于 0"));
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

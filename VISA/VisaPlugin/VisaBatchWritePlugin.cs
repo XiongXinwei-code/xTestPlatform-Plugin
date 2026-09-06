@@ -2,13 +2,14 @@ using VISA.Executors;
 using VISA.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using VISA.Validation;
 
 namespace VISA;
 
 /// <summary>
 /// VISA 批量写入插件，按顺序发送多条 SCPI 命令，支持命令间延时
 /// </summary>
-public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
+public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.VisaBatchWrite";
     public override string DisplayName => "VISA_BatchWrite";
@@ -58,5 +59,33 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
     {
         var s = DeserializeSetting(setting);
         return $"BatchWrite {s.ConnectionName}: {s.Items.Count} 条命令";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (VisaBatchWriteSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("VISA_060", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_060E", $"ConnectionName 表达式无效: {connErr}"));
+        if (s.Items.Count == 0)
+            errors.Add(StepSettingError.Error("VISA_061", "至少需要一条 SCPI 命令"));
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            if (s.Items[i].DelayMs < 0)
+                errors.Add(StepSettingError.Error("VISA_063", $"第 {i + 1} 条命令：延时不能为负数"));
+        }
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            if (string.IsNullOrWhiteSpace(s.Items[i].Command))
+                errors.Add(StepSettingError.Error("VISA_062", $"第 {i + 1} 行：命令不能为空"));
+            else if (!context.Evaluator.ValidateExpression(s.Items[i].Command, context.ExecutionContext, out var cmdErr))
+                errors.Add(StepSettingError.Error("VISA_062E", $"第 {i + 1} 行：Command 表达式无效: {cmdErr}"));
+        }
+        VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

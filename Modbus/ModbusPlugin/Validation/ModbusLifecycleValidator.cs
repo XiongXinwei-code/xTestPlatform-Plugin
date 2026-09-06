@@ -3,8 +3,11 @@ using Modbus.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
-namespace Modbus.UI.Validation;
+namespace Modbus.Validation;
 
+/// <summary>
+/// Modbus 连接生命周期校验辅助类，仅做序列文件静态分析，不访问设备。
+/// </summary>
 internal static class ModbusLifecycleValidator
 {
     private static readonly MessagePackSerializerOptions _opts =

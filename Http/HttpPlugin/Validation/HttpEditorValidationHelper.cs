@@ -1,9 +1,8 @@
 using System.Collections.ObjectModel;
 using Http.Models;
-using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 
-namespace Http.UI.Validation;
+namespace Http.Validation;
 
 /// <summary>
 /// HTTP 编辑器共用的校验辅助方法
@@ -12,7 +11,7 @@ internal static class HttpEditorValidationHelper
 {
     /// <summary>校验可选的输出变量：留空跳过，否则要求变量存在且类型匹配</summary>
     public static void CheckVariable(
-        StepEditorValidationContext context, string variableName, Type expected, string code, List<StepSettingError> errors)
+        StepSettingValidationContext context, string variableName, Type expected, string code, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(variableName)) return;
 
@@ -30,7 +29,7 @@ internal static class HttpEditorValidationHelper
 
     /// <summary>校验请求头集合：名称不可为空，值表达式必须合法</summary>
     public static void CheckHeaders(
-        StepEditorValidationContext context, ObservableCollection<HttpHeaderItem> headers, string code, List<StepSettingError> errors)
+        StepSettingValidationContext context, ObservableCollection<HttpHeaderItem> headers, string code, List<StepSettingError> errors)
     {
         foreach (var header in headers)
         {

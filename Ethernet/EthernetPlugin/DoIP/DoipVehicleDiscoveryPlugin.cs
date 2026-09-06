@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDiscoverySetting>
+public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDiscoverySetting>, IStepPlugin
 {
     public override string StepTypeId  => "DoIP.VehicleDiscovery";
     public override string DisplayName => "DoIP_VehicleDiscovery";
@@ -42,5 +42,27 @@ public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDisco
     {
         var s = DeserializeSetting(setting);
         return $"DoIP VehicleDiscovery: {s.BroadcastAddress}:{s.Port}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.DoIP.Models.DoipVehicleDiscoverySetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.BroadcastAddress))
+            errors.Add(StepSettingError.Error("DOIP_401", "BroadcastAddress 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.BroadcastAddress, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("DOIP_402", $"BroadcastAddress 表达式无效: {e1}"));
+
+        if (s.Port <= 0 || s.Port > 65535)
+            errors.Add(StepSettingError.Error("DOIP_403", "Port 必须在 1~65535 之间"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("DOIP_404", "TimeoutMs 必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

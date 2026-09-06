@@ -1,3 +1,4 @@
+using LabVIEWCallPlugin.Models;
 using System.Windows;
 using System.Windows.Controls;
 using LabVIEWCallPlugin.UI.Models;
@@ -5,7 +6,7 @@ using LabVIEWCallPlugin.UI.Models;
 namespace LabVIEWCallPlugin.UI.Converters
 {
     /// <summary>
-    /// ¸ù¾Ý DataType Ñ¡ÔñºÏÊÊµÄ±à¼­Ä£°å
+    /// ï¿½ï¿½ï¿½ï¿½ DataType Ñ¡ï¿½ï¿½ï¿½ï¿½ÊµÄ±à¼­Ä£ï¿½ï¿½
     /// </summary>
     public class ValueEditorTemplateSelector : DataTemplateSelector
     {
@@ -22,12 +23,12 @@ namespace LabVIEWCallPlugin.UI.Converters
                 var dataType = node.Type?.ToLower() ?? string.Empty;
                 var value = node.Value ?? string.Empty;
 
-                // Ã¶¾ÙÀàÐÍ - ¼ì²é Type ÊÇ·ñ°üº¬ "enum" »ò¼ì²éÖµÊÇ·ñÎª JSON ¸ñÊ½
+                // Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ - ï¿½ï¿½ï¿½ Type ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ "enum" ï¿½ï¿½ï¿½ï¿½Öµï¿½Ç·ï¿½Îª JSON ï¿½ï¿½Ê½
                 if (dataType.Contains("enum") || IsEnumJsonFormat(value))
                 {
                     return EnumTemplate;
                 }
-                // ÕûÊýÀàÐÍ - ¾«È·Æ¥Åä
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ - ï¿½ï¿½È·Æ¥ï¿½ï¿½
                 else if (dataType.Contains("int") ||
                     dataType.StartsWith("i8") || dataType.StartsWith("i16") ||
                     dataType.StartsWith("i32") || dataType.StartsWith("i64") ||
@@ -38,18 +39,18 @@ namespace LabVIEWCallPlugin.UI.Converters
                 {
                     return IntegerTemplate;
                 }
-                // ¸¡µãÊýÀàÐÍ - ×ª»»Ð¡Ð´ºóÍ³Ò»Ð¡Ð´Æ¥Åä
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ - ×ªï¿½ï¿½Ð¡Ð´ï¿½ï¿½Í³Ò»Ð¡Ð´Æ¥ï¿½ï¿½
                 else if (dataType.Contains("double") || dataType.Contains("float") ||
                          dataType.Contains("single") || dataType.Contains("decimal"))
                 {
                     return NumericTemplate;
                 }
-                // ²¼¶ûÀàÐÍ - Í³Ò»Æ¥Åä boolean ºÍ bool
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ - Í³Ò»Æ¥ï¿½ï¿½ boolean ï¿½ï¿½ bool
                 else if (dataType.Contains("boolean") || dataType.Contains("bool"))
                 {
                     return BooleanTemplate;
                 }
-                // ×Ö·û´®ÀàÐÍ
+                // ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 else
                 {
                     return StringTemplate;
@@ -60,7 +61,7 @@ namespace LabVIEWCallPlugin.UI.Converters
         }
 
         /// <summary>
-        /// ¼ì²éÖµÊÇ·ñÎªÃ¶¾Ù JSON ¸ñÊ½: {"String Value":"xxx","Enum Strings":[...]}
+        /// ï¿½ï¿½ï¿½Öµï¿½Ç·ï¿½ÎªÃ¶ï¿½ï¿½ JSON ï¿½ï¿½Ê½: {"String Value":"xxx","Enum Strings":[...]}
         /// </summary>
         private bool IsEnumJsonFormat(string value)
         {

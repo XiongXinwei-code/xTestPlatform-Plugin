@@ -3,7 +3,7 @@ using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
-namespace OpcUa.UI.Validation;
+namespace OpcUa.Validation;
 
 internal static class OpcUaVariableValidator
 {

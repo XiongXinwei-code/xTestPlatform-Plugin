@@ -20,10 +20,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="MessagePack" />
+		<PackageReference Include="CommunityToolkit.Mvvm" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+		<PackageReference Include="xTestPlatform.StepRuntime.SDK" />
 	</ItemGroup>
 
 	<!-- �?补上：lvLib.dll 需要随插件输出 -->

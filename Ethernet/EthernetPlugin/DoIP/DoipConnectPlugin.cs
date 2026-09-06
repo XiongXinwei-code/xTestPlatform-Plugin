@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
+public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>, IStepPlugin
 {
     public override string StepTypeId  => "DoIP.Connect";
     public override string DisplayName => "DoIP_Connect";
@@ -46,5 +46,39 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
     {
         var s = DeserializeSetting(setting);
         return $"DoIP Connect: {s.SessionName} -> {s.RemoteHost}:{s.RemotePort} SA={s.SourceAddress}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.DoIP.Models.DoipConnectSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.SessionName))
+            errors.Add(StepSettingError.Error("DOIP_101", "SessionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.SessionName, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("DOIP_102", $"SessionName 表达式无效: {e1}"));
+
+        if (string.IsNullOrWhiteSpace(s.RemoteHost))
+            errors.Add(StepSettingError.Error("DOIP_103", "RemoteHost 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.RemoteHost, context.ExecutionContext, out var e2))
+            errors.Add(StepSettingError.Error("DOIP_104", $"RemoteHost 表达式无效: {e2}"));
+
+        if (string.IsNullOrWhiteSpace(s.RemotePort))
+            errors.Add(StepSettingError.Error("DOIP_105", "RemotePort 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.RemotePort, context.ExecutionContext, out var e3))
+            errors.Add(StepSettingError.Error("DOIP_106", $"RemotePort 表达式无效: {e3}"));
+
+        if (string.IsNullOrWhiteSpace(s.SourceAddress))
+            errors.Add(StepSettingError.Error("DOIP_107", "SourceAddress 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.SourceAddress, context.ExecutionContext, out var e4))
+            errors.Add(StepSettingError.Error("DOIP_108", $"SourceAddress 表达式无效: {e4}"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("DOIP_109", "TimeoutMs 必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

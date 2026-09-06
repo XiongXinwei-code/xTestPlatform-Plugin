@@ -15,7 +15,7 @@
 
   <ItemGroup>
 	<PackageReference Include="MessagePack" />
-	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+	<PackageReference Include="xTestPlatform.StepRuntime.SDK" />
   </ItemGroup>
 
   <!-- NI DAQmx + TDMS DLL references from repo-local libs folder (64-bit runtime assemblies), buildable on CI and dev machines -->

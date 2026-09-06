@@ -4,163 +4,163 @@ using System.Collections.Specialized;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace LabVIEWCallPlugin.UI.Models
+namespace LabVIEWCallPlugin.Models
 {
     /// <summary>
-    /// ÖµÀ´Ô´ÀàÐÍÃ¶¾Ù£¨ÓÃÓÚ UI °ó¶¨£©
+    /// Öµï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½Ù£ï¿½ï¿½ï¿½ï¿½ï¿½ UI ï¿½ó¶¨£ï¿½
     /// </summary>
     public enum ValueSourceType
     {
         /// <summary>
-        /// ³£Á¿Öµ
+        /// ï¿½ï¿½ï¿½ï¿½Öµ
         /// </summary>
         Constant,
 
         /// <summary>
-        /// ±äÁ¿
+        /// ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         Variable,
 
         /// <summary>
-        /// ´Ó²ÎÊýÎÄ¼þ¶ÁÈ¡
+        /// ï¿½Ó²ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½È¡
         /// </summary>
         FromParameterFile
     }
 
     /// <summary>
-    /// LabVIEW Á¬½ÓÃæ°å½Úµã
-    /// Êý¾Ý¸ñÊ½: [[Â·¾¶Êý×é], {"Node": {...}, "½ÚµãÃû": Êµ¼ÊÖµ}]
+    /// LabVIEW ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½
+    /// ï¿½ï¿½ï¿½Ý¸ï¿½Ê½: [[Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½], {"Node": {...}, "ï¿½Úµï¿½ï¿½ï¿½": Êµï¿½ï¿½Öµ}]
     /// </summary>
     public partial class LvPanelNode : ObservableObject
     {
-        #region ºËÐÄÊôÐÔ
+        #region ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         /// <summary>
-        /// ¸¸½ÚµãÒýÓÃ
+        /// ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private LvPanelNode? _parent;
 
         /// <summary>
-        /// ×Ó½Úµã¼¯ºÏ
+        /// ï¿½Ó½Úµã¼¯ï¿½ï¿½
         /// </summary>
         public ObservableCollection<LvPanelNode> Children { get; }
 
         /// <summary>
-        /// ½ÚµãÂ·¾¶Êý×é£¨Èç: ["3-error in-Cluster","0-status-Boolean"]£©
-        /// ´Ó JSON Êý¾ÝµÄµÚÒ»¸öÊý×éÔªËØÖÐ¶ÁÈ¡
+        /// ï¿½Úµï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½é£¨ï¿½ï¿½: ["3-error in-Cluster","0-status-Boolean"]ï¿½ï¿½
+        /// ï¿½ï¿½ JSON ï¿½ï¿½ï¿½ÝµÄµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½Ð¶ï¿½È¡
         /// </summary>
         public List<string> Path { get; set; }
 
         /// <summary>
-        /// ½ÚµãË÷Òý
+        /// ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private int _index;
 
         /// <summary>
-        /// ½ÚµãÃû³Æ£¨Èç: x+y, error out, status£©
+        /// ï¿½Úµï¿½ï¿½ï¿½ï¿½Æ£ï¿½ï¿½ï¿½: x+y, error out, statusï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private string _name;
 
         /// <summary>
-        /// ±êÇ©£¨Tag£©¸ñÊ½£ºIndex-Name-Type£¨Èç: 2-x+y-Double Float£©
+        /// ï¿½ï¿½Ç©ï¿½ï¿½Tagï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Index-Name-Typeï¿½ï¿½ï¿½ï¿½: 2-x+y-Double Floatï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private string _tag;
 
         /// <summary>
-        /// ½ÚµãÖµ£¨ÐòÁÐ»¯µÄ×Ö·û´®Öµ£©
+        /// ï¿½Úµï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½Öµï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private string _value;
 
         /// <summary>
-        /// ½Úµã±äÁ¿Ãû
+        /// ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private string _variable;
 
         /// <summary>
-        /// Êý¾ÝÀàÐÍ£¨Èç: Double Float, Cluster, String, Boolean, I32, Enum U16£©
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½: Double Float, Cluster, String, Boolean, I32, Enum U16ï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private string _type;
 
         /// <summary>
-        /// ÊÇ·ñÈ±Ê§
+        /// ï¿½Ç·ï¿½È±Ê§
         /// </summary>
         [ObservableProperty]
         private bool _isMissing;
 
         /// <summary>
-        /// ÊÇ·ñ¼ÇÂ¼ÈÕÖ¾
+        /// ï¿½Ç·ï¿½ï¿½Â¼ï¿½ï¿½Ö¾
         /// </summary>
         [ObservableProperty]
         private bool _log;
 
         /// <summary>
-        /// Í¼±êË÷Òý
+        /// Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private int _iconIndex;
 
         /// <summary>
-        /// ÖµÀ´Ô´ÀàÐÍ£¨×Ö·û´®ÐÎÊ½£¬ÓÃÓÚÐòÁÐ»¯£©
-        /// ¿ÉÑ¡Öµ: "Constant", "Variable", "FromParameterFile"
+        /// Öµï¿½ï¿½Ô´ï¿½ï¿½ï¿½Í£ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½Ñ¡Öµ: "Constant", "Variable", "FromParameterFile"
         /// </summary>
         [ObservableProperty]
         private string _valueSourceType = "Constant";
 
         /// <summary>
-        /// ×Ó½ÚµãÂ·¾¶¼¯ºÏ£¨ÓÃÓÚÐòÁÐ»¯£©
-        /// ¸ñÊ½: [["4-error out-Cluster","0-status-Boolean"], ...]
+        /// ï¿½Ó½Úµï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½
+        /// ï¿½ï¿½Ê½: [["4-error out-Cluster","0-status-Boolean"], ...]
         /// </summary>
         public List<List<string>> ChildNodePath { get; set; }
 
         /// <summary>
-        /// ÕûÊýÏÔÊ¾¸ñÊ½£¨Ê®½øÖÆ¡¢Ê®Áù½øÖÆ¡¢¶þ½øÖÆ£©
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ê½ï¿½ï¿½Ê®ï¿½ï¿½ï¿½Æ¡ï¿½Ê®ï¿½ï¿½ï¿½ï¿½ï¿½Æ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ£ï¿½
         /// </summary>
         [ObservableProperty]
         private string _integerFormat = "Decimal";
 
         /// <summary>
-        /// ÊÇ·ñÕ¹¿ª£¨UI ×´Ì¬£©
+        /// ï¿½Ç·ï¿½Õ¹ï¿½ï¿½ï¿½ï¿½UI ×´Ì¬ï¿½ï¿½
         /// </summary>
         [ObservableProperty]
         private bool _isExpanded;
 
         #endregion
 
-        #region ¼ÆËãÊôÐÔ
+        #region ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         /// <summary>
-        /// ÊÇ·ñÎª¸ù½Úµã
+        /// ï¿½Ç·ï¿½Îªï¿½ï¿½ï¿½Úµï¿½
         /// </summary>
         [JsonIgnore]
         public bool IsRootNode => Parent == null;
 
         /// <summary>
-        /// ÊÇ·ñÓÐ×Ó½Úµã
+        /// ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ó½Úµï¿½
         /// </summary>
         [JsonIgnore]
         public bool HasChildren => Children.Count > 0;
 
         /// <summary>
-        /// ½Úµã²ã¼¶£¨¸ù¾Ý Path ³¤¶È£©
+        /// ï¿½Úµï¿½ã¼¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Path ï¿½ï¿½ï¿½È£ï¿½
         /// </summary>
         [JsonIgnore]
         public int Level => Path?.Count ?? 0;
 
         /// <summary>
-        /// µ±Ç°½ÚµãµÄ Tag£¨Â·¾¶µÄ×îºóÒ»¸öÔªËØ£©
+        /// ï¿½ï¿½Ç°ï¿½Úµï¿½ï¿½ Tagï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ôªï¿½Ø£ï¿½
         /// </summary>
         [JsonIgnore]
         public string CurrentTag => Path?.Count > 0 ? Path[Path.Count - 1] : Tag;
 
         /// <summary>
-        /// ¸¸½ÚµãµÄÂ·¾¶Êý×é
+        /// ï¿½ï¿½ï¿½Úµï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         [JsonIgnore]
         public List<string>? ParentPath
@@ -175,13 +175,13 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ÊÇ·ñÎªÃ¶¾ÙÀàÐÍ
+        /// ï¿½Ç·ï¿½ÎªÃ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
         [JsonIgnore]
         public bool IsEnumType => Type?.StartsWith("Enum") == true;
 
         /// <summary>
-        /// ÖµÀ´Ô´ÀàÐÍÃ¶¾Ù£¨ÓÃÓÚ UI °ó¶¨£©
+        /// Öµï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½Ù£ï¿½ï¿½ï¿½ï¿½ï¿½ UI ï¿½ó¶¨£ï¿½
         /// </summary>
         [JsonIgnore]
         public ValueSourceType ValueSourceTypeEnum
@@ -197,7 +197,7 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// »ñÈ¡»òÉèÖÃÃ¶¾ÙµÄµ±Ç°Öµ£¨´Ó JSON ¸ñÊ½¶ÁÈ¡ "String Value"£©
+        /// ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ÙµÄµï¿½Ç°Öµï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½Ê½ï¿½ï¿½È¡ "String Value"ï¿½ï¿½
         /// </summary>
         [JsonIgnore]
         public string? EnumCurrentValue
@@ -234,7 +234,7 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// »ñÈ¡Ã¶¾ÙÁÐ±í£¨´Ó JSON ¸ñÊ½ÖÐÌáÈ¡ "Enum Strings"£©
+        /// ï¿½ï¿½È¡Ã¶ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½È¡ "Enum Strings"ï¿½ï¿½
         /// </summary>
         [JsonIgnore]
         public string[]? EnumValues
@@ -263,7 +263,7 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// »ñÈ¡Êµ¼ÊÖµ¶ÔÏó£¨·´ÐòÁÐ»¯ºóµÄÀàÐÍ»¯Öµ£©
+        /// ï¿½ï¿½È¡Êµï¿½ï¿½Öµï¿½ï¿½ï¿½ó£¨·ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í»ï¿½Öµï¿½ï¿½
         /// </summary>
         [JsonIgnore]
         public object? ActualValue
@@ -275,7 +275,7 @@ namespace LabVIEWCallPlugin.UI.Models
 
                 try
                 {
-                    // ´¦ÀíÃ¶¾ÙÀàÐÍ
+                    // ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                     if (IsEnumType)
                     {
                         return EnumCurrentValue ?? string.Empty;
@@ -307,7 +307,7 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ¸ñÊ½»¯ÏÔÊ¾Öµ£¨¸ù¾Ý IntegerFormat£©
+        /// ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½Ê¾Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ IntegerFormatï¿½ï¿½
         /// </summary>
         [JsonIgnore]
         public string FormattedValue
@@ -317,13 +317,13 @@ namespace LabVIEWCallPlugin.UI.Models
                 if (ActualValue == null)
                     return string.Empty;
 
-                // Ã¶¾ÙÀàÐÍÖ±½ÓÏÔÊ¾µ±Ç°Öµ
+                // Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Öµ
                 if (IsEnumType)
                 {
                     return EnumCurrentValue ?? string.Empty;
                 }
 
-                // Èç¹ûÊÇÕûÊýÀàÐÍ£¬¸ù¾Ý¸ñÊ½ÏÔÊ¾
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½ï¿½Ý¸ï¿½Ê½ï¿½ï¿½Ê¾
                 if (Type is "I32" or "I16" or "I8" or "U32" or "U16" or "U8" or "I64" or "U64")
                 {
                     if (ActualValue is int intVal)
@@ -370,7 +370,7 @@ namespace LabVIEWCallPlugin.UI.Models
 
         #endregion
 
-        #region ¹¹Ôìº¯Êý
+        #region ï¿½ï¿½ï¿½ìº¯ï¿½ï¿½
 
         public LvPanelNode()
         {
@@ -388,7 +388,7 @@ namespace LabVIEWCallPlugin.UI.Models
 
         #endregion
 
-        #region ÊÂ¼þ´¦Àí
+        #region ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½
 
         private void OnChildrenCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
@@ -416,12 +416,12 @@ namespace LabVIEWCallPlugin.UI.Models
 
         #endregion
 
-        #region ÐòÁÐ»¯·½·¨
+        #region ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½
 
         /// <summary>
-        /// ´ÓÐòÁÐ»¯Êý¾Ý´´½¨½Úµã
-        /// ÊäÈë¸ñÊ½: [["2-x+y-Double Float"], {"Index": 0, "Name": "x+y", ...}]
-        /// »ò: [["4-error out-Cluster","0-status-Boolean"], {"Index": 0, "Name": "status", ...}]
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ï¿½Úµï¿½
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ê½: [["2-x+y-Double Float"], {"Index": 0, "Name": "x+y", ...}]
+        /// ï¿½ï¿½: [["4-error out-Cluster","0-status-Boolean"], {"Index": 0, "Name": "status", ...}]
         /// </summary>
         public static LvPanelNode FromSerializedItem(JsonElement item)
         {
@@ -433,7 +433,7 @@ namespace LabVIEWCallPlugin.UI.Models
 
             var node = new LvPanelNode();
 
-            // ½âÎöÂ·¾¶Êý×é£¨µÚÒ»¸öÊý×éÔªËØ£©
+            // ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½é£¨ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½Ø£ï¿½
             if (pathArrayElement.ValueKind == JsonValueKind.Array)
             {
                 node.Path = new List<string>();
@@ -443,7 +443,7 @@ namespace LabVIEWCallPlugin.UI.Models
                 }
             }
 
-            // ½âÎö½ÚµãÔªÊý¾Ý
+            // ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½Ôªï¿½ï¿½ï¿½ï¿½
             if (dataObject.TryGetProperty("Index", out var indexProp))
             {
                 node.Index = indexProp.GetInt32();
@@ -485,7 +485,7 @@ namespace LabVIEWCallPlugin.UI.Models
                 node.Variable = variableProp.GetString() ?? "Constant";
             }
 
-            // ½âÎö×Ó½ÚµãÂ·¾¶
+            // ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Úµï¿½Â·ï¿½ï¿½
             if (dataObject.TryGetProperty("ChildNodePath", out var childPath) &&
                 childPath.ValueKind == JsonValueKind.Array)
             {
@@ -497,8 +497,8 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ×ª»»ÎªÐòÁÐ»¯¸ñÊ½£¨ÐÂ¸ñÊ½£¬²»°üº¬ "Node" °ü×°£©
-        /// Êä³ö¸ñÊ½: [["2-x+y-Double Float"], {"Index": 0, "Name": "x+y", ...}]
+        /// ×ªï¿½ï¿½Îªï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½Â¸ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ "Node" ï¿½ï¿½×°ï¿½ï¿½
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ê½: [["2-x+y-Double Float"], {"Index": 0, "Name": "x+y", ...}]
         /// </summary>
         public JsonElement ToSerializedItem()
         {
@@ -517,23 +517,23 @@ namespace LabVIEWCallPlugin.UI.Models
                 ChildNodePath = ChildNodePath
             };
 
-            // Ê¹ÓÃÊµ¼ÊµÄ Path Êý×é
+            // Ê¹ï¿½ï¿½Êµï¿½Êµï¿½ Path ï¿½ï¿½ï¿½ï¿½
             var result = new object[] { Path, dataObject };
             return JsonSerializer.SerializeToElement(result);
         }
 
         /// <summary>
-        /// ÐòÁÐ»¯Õû¸ö½ÚµãÊ÷£¨°üÀ¨ËùÓÐ×Ó½Úµã£©
+        /// ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Úµã£©
         /// </summary>
         public List<JsonElement> ToSerializedTree()
         {
             var result = new List<JsonElement>();
 
-            // Ìí¼Óµ±Ç°½Úµã
+            // ï¿½ï¿½Óµï¿½Ç°ï¿½Úµï¿½
             if (Path != null && Path.Count > 0)
                 result.Add(ToSerializedItem());
 
-            // µÝ¹éÌí¼ÓËùÓÐ×Ó½Úµã
+            // ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Úµï¿½
             foreach (var child in Children)
             {
                 result.AddRange(child.ToSerializedTree());
@@ -544,12 +544,12 @@ namespace LabVIEWCallPlugin.UI.Models
 
         #endregion
 
-        #region Ã¶¾Ù¸¨Öú·½·¨
+        #region Ã¶ï¿½Ù¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         /// <summary>
-        /// ¸üÐÂÃ¶¾ÙÖµ£¨±£³Ö JSON ¸ñÊ½²»±ä£¬Ö»¸üÐÂ "String Value"£©
+        /// ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ä£¬Ö»ï¿½ï¿½ï¿½ï¿½ "String Value"ï¿½ï¿½
         /// </summary>
-        /// <param name="newValue">ÐÂµÄÃ¶¾ÙÖµ</param>
+        /// <param name="newValue">ï¿½Âµï¿½Ã¶ï¿½ï¿½Öµ</param>
         public void UpdateEnumValue(string newValue)
         {
             if (!IsEnumType || string.IsNullOrEmpty(Value))
@@ -577,16 +577,16 @@ namespace LabVIEWCallPlugin.UI.Models
             }
             catch (JsonException)
             {
-                // JSON ½âÎöÊ§°Ü£¬ºöÂÔ
+                // JSON ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½
             }
         }
 
         #endregion
 
-        #region ¸¨Öú·½·¨
+        #region ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         /// <summary>
-        /// ¸üÐÂ×Ó½ÚµãÂ·¾¶
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Úµï¿½Â·ï¿½ï¿½
         /// </summary>
         private void UpdateChildNodePath()
         {
@@ -596,11 +596,11 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// »ñÈ¡Ä¬ÈÏÖµ
+        /// ï¿½ï¿½È¡Ä¬ï¿½ï¿½Öµ
         /// </summary>
         private object GetDefaultValue()
         {
-            // Ã¶¾ÙÀàÐÍ·µ»Ø¿Õ×Ö·û´®
+            // Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½Ø¿ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
             if (IsEnumType)
                 return string.Empty;
 
@@ -617,21 +617,21 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ÐòÁÐ»¯Öµ
+        /// ï¿½ï¿½ï¿½Ð»ï¿½Öµ
         /// </summary>
         private string SerializeValue(object? value)
         {
             if (value == null)
                 return string.Empty;
 
-            // Ã¶¾ÙÀàÐÍÐèÒª±£³Ö JSON ¸ñÊ½
+            // Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½Ê½
             if (IsEnumType && value is string enumValue)
             {
-                // Èç¹ûÒÑ¾­ÊÇ JSON ¸ñÊ½£¬Ö±½Ó·µ»Ø
+                // ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ JSON ï¿½ï¿½Ê½ï¿½ï¿½Ö±ï¿½Ó·ï¿½ï¿½ï¿½
                 if (enumValue.StartsWith("{"))
                     return enumValue;
 
-                // ·ñÔò£¬³¢ÊÔ¸üÐÂÃ¶¾ÙÖµ
+                // ï¿½ï¿½ï¿½ò£¬³ï¿½ï¿½Ô¸ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½Öµ
                 UpdateEnumValue(enumValue);
                 return Value;
             }
@@ -645,7 +645,7 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ²éÕÒ×Ó½Úµã£¨¸ù¾Ý Tag£©
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Úµã£¨ï¿½ï¿½ï¿½ï¿½ Tagï¿½ï¿½
         /// </summary>
         public LvPanelNode? FindChild(string tag)
         {
@@ -653,18 +653,18 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ¸ù¾ÝÂ·¾¶²éÕÒ½Úµã
+        /// ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½Ò½Úµï¿½
         /// </summary>
         public LvPanelNode? FindByPath(List<string> pathArray)
         {
             if (pathArray == null || pathArray.Count == 0)
                 return this;
 
-            // Èç¹ûÂ·¾¶Æ¥Åäµ±Ç°½Úµã
+            // ï¿½ï¿½ï¿½Â·ï¿½ï¿½Æ¥ï¿½äµ±Ç°ï¿½Úµï¿½
             if (Path != null && Path.SequenceEqual(pathArray))
                 return this;
 
-            // µÝ¹é²éÕÒ×Ó½Úµã
+            // ï¿½Ý¹ï¿½ï¿½ï¿½ï¿½ï¿½Ó½Úµï¿½
             foreach (var child in Children)
             {
                 var found = child.FindByPath(pathArray);
@@ -676,14 +676,14 @@ namespace LabVIEWCallPlugin.UI.Models
         }
 
         /// <summary>
-        /// ¼ì²éÊÇ·ñÎªÖ¸¶¨½ÚµãµÄ×Ó½Úµã
+        /// ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ÎªÖ¸ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½Ó½Úµï¿½
         /// </summary>
         public bool IsChildOf(LvPanelNode potentialParent)
         {
             if (potentialParent == null || Path == null || potentialParent.Path == null)
                 return false;
 
-            // ×Ó½ÚµãµÄÂ·¾¶Ó¦¸ÃÒÔ¸¸½ÚµãµÄÂ·¾¶¿ªÍ·
+            // ï¿½Ó½Úµï¿½ï¿½Â·ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½Ô¸ï¿½ï¿½Úµï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½Í·
             if (Path.Count <= potentialParent.Path.Count)
                 return false;
 
@@ -693,7 +693,7 @@ namespace LabVIEWCallPlugin.UI.Models
                     return false;
             }
 
-            // È·±£ÊÇÖ±½Ó×Ó½Úµã£¨Â·¾¶³¤¶È²î1£©
+            // È·ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½Ó½Úµã£¨Â·ï¿½ï¿½ï¿½ï¿½ï¿½È²ï¿½1ï¿½ï¿½
             return Path.Count == potentialParent.Path.Count + 1;
         }
 
@@ -707,7 +707,7 @@ namespace LabVIEWCallPlugin.UI.Models
     }
 
     /// <summary>
-    /// ×Ô¶¨Òå JSON ÊôÐÔÃüÃû²ßÂÔ£¬ÓÃÓÚÃ¶¾ÙÀàÐÍ
+    /// ï¿½Ô¶ï¿½ï¿½ï¿½ JSON ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     internal class EnumPropertyNamingPolicy : JsonNamingPolicy
     {
@@ -723,7 +723,7 @@ namespace LabVIEWCallPlugin.UI.Models
     }
 
     /// <summary>
-    /// ½ÚµãÔªÊý¾Ý£¨ÓÃÓÚ¶ÀÁ¢ÐòÁÐ»¯£©
+    /// ï¿½Úµï¿½Ôªï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½
     /// </summary>
     public class NodeMetadata
     {

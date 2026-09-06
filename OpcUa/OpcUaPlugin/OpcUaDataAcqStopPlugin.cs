@@ -2,11 +2,12 @@ using OpcUa.Executors;
 using OpcUa.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using OpcUa.Validation;
 
 namespace OpcUa;
 
 /// <summary>OPC UA 数据采集停止插件</summary>
-public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSetting>
+public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSetting>, IStepPlugin
 {
     public override string StepTypeId => "OpcUa.DataAcqStop";
     public override string DisplayName => "OpcUa_DataAcq_Stop";
@@ -41,5 +42,17 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
     {
         var s = DeserializeSetting(setting);
         return $"DataAcq Stop: {s.TaskName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaDataAcqStopSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.TaskName))
+            errors.Add(StepSettingError.Error("OPCUA_080", "采集任务名不能为空"));
+        OpcUaLifecycleValidator.CheckPrecedingDataAcqStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

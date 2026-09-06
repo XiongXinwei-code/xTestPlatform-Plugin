@@ -2,13 +2,14 @@ using Http.Executors;
 using Http.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using Http.Validation;
 
 namespace Http;
 
 /// <summary>
 /// 释放命名 HTTP 客户端插件
 /// </summary>
-public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSetting>
+public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.HttpClientClose";
     public override string DisplayName => "Http_ClientClose";
@@ -53,5 +54,21 @@ public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSettin
     {
         var s = DeserializeSetting(setting);
         return $"Close HTTP client {s.ClientName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (HttpClientCloseSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ClientName))
+            errors.Add(StepSettingError.Error("HTTP_100", "客户端标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ClientName, context.ExecutionContext, out var nameErr))
+            errors.Add(StepSettingError.Error("HTTP_100E", $"ClientName 表达式无效: {nameErr}"));
+
+        HttpLifecycleValidator.CheckPrecedingCreate(context.SequenceFile, context.Block, context.CurrentStep, s.ClientName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

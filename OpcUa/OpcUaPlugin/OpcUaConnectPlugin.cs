@@ -6,7 +6,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 连接插件，建立与 OPC UA 服务器的会话</summary>
-public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
+public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>, IStepPlugin
 {
     public override string StepTypeId => "OpcUa.Connect";
     public override string DisplayName => "OpcUa_Connect";
@@ -48,5 +48,26 @@ public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Connect {s.ConnectionName} ({s.EndpointUrl})";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaConnectSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("OPCUA_001", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_001E", $"ConnectionName 表达式无效: {connErr}"));
+        if (string.IsNullOrWhiteSpace(s.EndpointUrl))
+            errors.Add(StepSettingError.Error("OPCUA_002", "端点 URL 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.EndpointUrl, context.ExecutionContext, out var urlErr))
+            errors.Add(StepSettingError.Error("OPCUA_002E", $"EndpointUrl 表达式无效: {urlErr}"));
+        if (s.AuthMode == OpcUaAuthMode.UserPassword && string.IsNullOrWhiteSpace(s.UserName))
+            errors.Add(StepSettingError.Error("OPCUA_003", "用户名密码模式下用户名不能为空"));
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_004", "超时必须大于 0"));
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

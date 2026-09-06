@@ -1,12 +1,11 @@
-using CAN;
-using CAN.Models;
 using MessagePack;
+using OpcUa.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
-namespace CAN.UI.Validation;
+namespace OpcUa.Validation;
 
-internal static class CanLifecycleValidator
+internal static class OpcUaLifecycleValidator
 {
     private static readonly MessagePackSerializerOptions _opts =
         MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
@@ -36,51 +35,45 @@ internal static class CanLifecycleValidator
         return currentIndex > 0 ? allSteps.Take(currentIndex) : [];
     }
 
-    /// <summary>
-    /// 检查当前步骤之前是否存在匹配的 CAN.Open 步骤
-    /// </summary>
-    public static void CheckPrecedingOpen(
+    public static void CheckPrecedingConnect(
         SequenceFile sequenceFile, List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(connectionName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            if (step.StepSetting.StepType != "IO.CanOpen") continue;
+            if (step.StepSetting.StepType != "OpcUa.Connect") continue;
             try
             {
-                var setting = MessagePackSerializer.Deserialize<CanOpenSetting>(
+                var setting = MessagePackSerializer.Deserialize<OpcUaConnectSetting>(
                     step.StepSetting.Setting, _opts);
                 if (setting.ConnectionName == connectionName) return;
             }
             catch { }
         }
 
-        errors.Add(StepSettingError.Warning("CAN_LC01",
-            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 CAN.Open 步骤"));
+        errors.Add(StepSettingError.Warning("OPCUA_LC01",
+            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 OpcUA.Connect 步骤"));
     }
 
-    /// <summary>
-    /// 检查当前 CyclicSendStop 之前是否存在匹配的 CyclicSendStart
-    /// </summary>
-    public static void CheckPrecedingCyclicStart(
-        SequenceFile sequenceFile, List<Step> block, Step currentStep, string connectionName, List<StepSettingError> errors)
+    public static void CheckPrecedingDataAcqStart(
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
     {
-        if (string.IsNullOrWhiteSpace(connectionName)) return;
+        if (string.IsNullOrWhiteSpace(taskName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            if (step.StepSetting.StepType != "IO.CanCyclicSendStart") continue;
+            if (step.StepSetting.StepType != "OpcUa.DataAcqStart") continue;
             try
             {
-                var setting = MessagePackSerializer.Deserialize<CanCyclicSendStartSetting>(
+                var setting = MessagePackSerializer.Deserialize<OpcUaDataAcqStartSetting>(
                     step.StepSetting.Setting, _opts);
-                if (setting.ConnectionName == connectionName) return;
+                if (setting.TaskName == taskName) return;
             }
             catch { }
         }
 
-        errors.Add(StepSettingError.Warning("CAN_LC02",
-            $"在此步骤之前未找到针对连接 \"{connectionName}\" 的 CAN.CyclicSendStart 步骤"));
+        errors.Add(StepSettingError.Warning("OPCUA_LC02",
+            $"在此步骤之前未找到针对任务 \"{taskName}\" 的 OpcUa.DataAcqStart 步骤"));
     }
 }

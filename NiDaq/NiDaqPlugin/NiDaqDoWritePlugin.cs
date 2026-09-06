@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
+public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>, IStepPlugin
 {
     public override string StepTypeId => "NiDaq.DoWrite";
     public override string DisplayName => "NiDaq_DO_Write";
@@ -47,5 +47,20 @@ public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
     {
         var s = DeserializeSetting(setting);
         return $"DO Write: {s.Channel} = {s.Value}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (NiDaqDoWriteSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.Channel)) errors.Add(StepSettingError.Error("DAQ_100", "物理通道不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Channel, context.ExecutionContext, out var chErr))
+            errors.Add(StepSettingError.Error("DAQ_100E", $"Channel 表达式无效: {chErr}"));
+        if (string.IsNullOrWhiteSpace(s.Value)) errors.Add(StepSettingError.Error("DAQ_101", "输出值不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Value, context.ExecutionContext, out var valErr))
+            errors.Add(StepSettingError.Error("DAQ_101E", $"Value 表达式无效: {valErr}"));
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

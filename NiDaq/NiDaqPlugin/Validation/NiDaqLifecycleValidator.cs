@@ -3,7 +3,7 @@ using NiDaq.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
-namespace NiDaq.UI.Validation;
+namespace NiDaq.Validation;
 
 internal static class NiDaqLifecycleValidator
 {

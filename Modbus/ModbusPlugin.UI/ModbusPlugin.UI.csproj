@@ -33,4 +33,8 @@
 	<PackageReference Include="Syncfusion.Tools.WPF" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Validation\" />
+  </ItemGroup>
+
 </Project>

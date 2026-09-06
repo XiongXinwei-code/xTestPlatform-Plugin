@@ -2,11 +2,12 @@ using OpcUa.Executors;
 using OpcUa.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using OpcUa.Validation;
 
 namespace OpcUa;
 
 /// <summary>OPC UA 断开连接插件</summary>
-public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSetting>
+public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSetting>, IStepPlugin
 {
     public override string StepTypeId => "OpcUa.Disconnect";
     public override string DisplayName => "OpcUa_Disconnect";
@@ -39,5 +40,17 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
     {
         var s = DeserializeSetting(setting);
         return $"Disconnect {s.ConnectionName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaDisconnectSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("OPCUA_010", "连接标识名不能为空"));
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

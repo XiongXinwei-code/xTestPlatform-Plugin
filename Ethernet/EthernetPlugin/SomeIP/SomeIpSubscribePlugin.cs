@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.SomeIP;
 
-public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSetting>
+public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSetting>, IStepPlugin
 {
     public override string StepTypeId  => "SomeIp.Subscribe";
     public override string DisplayName => "SomeIp_Subscribe";
@@ -44,5 +44,34 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
     {
         var s = DeserializeSetting(setting);
         return $"SOME/IP Subscribe: 端口 {s.LocalPort} Service={s.ServiceId} Event={s.EventId}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.SomeIP.Models.SomeIpSubscribeSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.LocalPort))
+            errors.Add(StepSettingError.Error("SOMEIP_301", "LocalPort 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.LocalPort, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("SOMEIP_302", $"LocalPort 表达式无效: {e1}"));
+
+        if (string.IsNullOrWhiteSpace(s.ServiceId))
+            errors.Add(StepSettingError.Error("SOMEIP_303", "ServiceId 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ServiceId, context.ExecutionContext, out var e2))
+            errors.Add(StepSettingError.Error("SOMEIP_304", $"ServiceId 表达式无效: {e2}"));
+
+        if (string.IsNullOrWhiteSpace(s.EventId))
+            errors.Add(StepSettingError.Error("SOMEIP_305", "EventId 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.EventId, context.ExecutionContext, out var e3))
+            errors.Add(StepSettingError.Error("SOMEIP_306", $"EventId 表达式无效: {e3}"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("SOMEIP_307", "TimeoutMs 必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

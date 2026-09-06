@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
+public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>, IStepPlugin
 {
     public override string StepTypeId  => "Ethernet.TcpOpen";
     public override string DisplayName => "Ethernet_TcpOpen";
@@ -43,5 +43,34 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
     {
         var s = DeserializeSetting(setting);
         return $"TCP Open: {s.ConnectionName} -> {s.RemoteHost}:{s.RemotePort}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.Models.TcpOpenSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("ETH_001", "ConnectionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("ETH_002", $"ConnectionName 表达式无效: {e1}"));
+
+        if (string.IsNullOrWhiteSpace(s.RemoteHost))
+            errors.Add(StepSettingError.Error("ETH_003", "RemoteHost 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.RemoteHost, context.ExecutionContext, out var e2))
+            errors.Add(StepSettingError.Error("ETH_004", $"RemoteHost 表达式无效: {e2}"));
+
+        if (string.IsNullOrWhiteSpace(s.RemotePort))
+            errors.Add(StepSettingError.Error("ETH_005", "RemotePort 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.RemotePort, context.ExecutionContext, out var e3))
+            errors.Add(StepSettingError.Error("ETH_006", $"RemotePort 表达式无效: {e3}"));
+
+        if (s.ConnectTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("ETH_007", "连接超时时间必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

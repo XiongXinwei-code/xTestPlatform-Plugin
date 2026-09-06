@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
+public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>, IStepPlugin
 {
     public override string StepTypeId  => "Ethernet.UdpReceive";
     public override string DisplayName => "Ethernet_UdpReceive";
@@ -44,5 +44,25 @@ public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
     {
         var s = DeserializeSetting(setting);
         return $"UDP Receive: 端口 {s.LocalPort} [{s.BindMode}] 超时 {s.TimeoutMs}ms";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.Models.UdpReceiveSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (s.LocalPort < 1 || s.LocalPort > 65535)
+            errors.Add(StepSettingError.Error("ETH_501", "LocalPort 必须在 1~65535 范围内"));
+
+        if (s.ExpectedLength < 0)
+            errors.Add(StepSettingError.Error("ETH_502", "ExpectedLength 不能小于 0"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("ETH_503", "接收超时时间必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

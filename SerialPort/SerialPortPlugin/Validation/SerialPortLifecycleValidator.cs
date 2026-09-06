@@ -1,15 +1,11 @@
-using Http.Models;
 using MessagePack;
-using StepEditor.Abstractions;
+using SerialPort.Models;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 
-namespace Http.UI.Validation;
+namespace SerialPort.Validation;
 
-/// <summary>
-/// HTTP 客户端生命周期校验，检查请求步骤之前是否存在同名客户端的创建步骤
-/// </summary>
-internal static class HttpLifecycleValidator
+internal static class SerialPortLifecycleValidator
 {
     private static readonly MessagePackSerializerOptions _opts =
         MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
@@ -39,24 +35,27 @@ internal static class HttpLifecycleValidator
         return currentIndex > 0 ? allSteps.Take(currentIndex) : [];
     }
 
-    public static void CheckPrecedingCreate(
-        SequenceFile sequenceFile, List<Step> block, Step currentStep, string clientName, List<StepSettingError> errors)
+    /// <summary>
+    /// 检查当前步骤之前是否存在匹配的 SerialPort.Open 步骤
+    /// </summary>
+    public static void CheckPrecedingOpen(
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string portName, List<StepSettingError> errors)
     {
-        if (string.IsNullOrWhiteSpace(clientName)) return;
+        if (string.IsNullOrWhiteSpace(portName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
-            if (step.StepSetting.StepType != "IO.HttpClientCreate") continue;
+            if (step.StepSetting.StepType != "IO.SerialPortOpen") continue;
             try
             {
-                var setting = MessagePackSerializer.Deserialize<HttpClientCreateSetting>(
+                var setting = MessagePackSerializer.Deserialize<SerialPortOpenSetting>(
                     step.StepSetting.Setting, _opts);
-                if (setting.ClientName == clientName) return;
+                if (setting.PortName == portName) return;
             }
             catch { }
         }
 
-        errors.Add(StepSettingError.Warning("HTTP_LC01",
-            $"在此步骤之前未找到针对客户端 \"{clientName}\" 的 Http_ClientCreate 步骤"));
+        errors.Add(StepSettingError.Warning("SP_LC01",
+            $"在此步骤之前未找到针对端口 \"{portName}\" 的 SerialPort.Open 步骤"));
     }
 }

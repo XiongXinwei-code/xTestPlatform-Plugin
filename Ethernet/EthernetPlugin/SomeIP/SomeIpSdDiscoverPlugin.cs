@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.SomeIP;
 
-public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSetting>
+public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSetting>, IStepPlugin
 {
     public override string StepTypeId  => "SomeIp.SdDiscover";
     public override string DisplayName => "SomeIp_SdDiscover";
@@ -44,5 +44,32 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
     {
         var s = DeserializeSetting(setting);
         return $"SOME/IP-SD Discover: {s.MulticastAddress}:{s.Port} Service={s.ServiceId}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.SomeIP.Models.SomeIpSdDiscoverSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.MulticastAddress))
+            errors.Add(StepSettingError.Error("SOMEIP_401", "MulticastAddress 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.MulticastAddress, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("SOMEIP_402", $"MulticastAddress 表达式无效: {e1}"));
+
+        if (s.Port <= 0 || s.Port > 65535)
+            errors.Add(StepSettingError.Error("SOMEIP_403", "Port 必须在 1~65535 之间"));
+
+        if (string.IsNullOrWhiteSpace(s.ServiceId))
+            errors.Add(StepSettingError.Error("SOMEIP_404", "ServiceId 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ServiceId, context.ExecutionContext, out var e2))
+            errors.Add(StepSettingError.Error("SOMEIP_405", $"ServiceId 表达式无效: {e2}"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("SOMEIP_406", "TimeoutMs 必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

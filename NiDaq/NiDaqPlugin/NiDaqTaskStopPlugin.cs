@@ -2,10 +2,11 @@ using NiDaq.Executors;
 using NiDaq.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using NiDaq.Validation;
 
 namespace NiDaq;
 
-public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>
+public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>, IStepPlugin
 {
     public override string StepTypeId => "NiDaq.TaskStop";
     public override string DisplayName => "NiDaq_Task_Stop";
@@ -38,5 +39,19 @@ public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Task Stop: {s.TaskName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (NiDaqTaskStopSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.TaskName)) errors.Add(StepSettingError.Error("DAQ_070", "任务名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
+            errors.Add(StepSettingError.Error("DAQ_070E", $"TaskName 表达式无效: {taskNameErr}"));
+        NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

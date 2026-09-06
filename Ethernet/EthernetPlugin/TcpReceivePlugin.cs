@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
+public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>, IStepPlugin
 {
     public override string StepTypeId  => "Ethernet.TcpReceive";
     public override string DisplayName => "Ethernet_TcpReceive";
@@ -52,5 +52,27 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
         var s = DeserializeSetting(setting);
         var len = s.ExpectedLength > 0 ? $"{s.ExpectedLength}字节" : "任意长度";
         return $"TCP Receive: {s.ConnectionName} 接收{len} [{s.Encoding}]";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.Models.TcpReceiveSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("ETH_301", "ConnectionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("ETH_302", $"ConnectionName 表达式无效: {e1}"));
+
+        if (s.ExpectedLength < 0)
+            errors.Add(StepSettingError.Error("ETH_303", "ExpectedLength 不能小于 0"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("ETH_304", "接收超时时间必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

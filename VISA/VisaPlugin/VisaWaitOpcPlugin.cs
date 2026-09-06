@@ -2,13 +2,14 @@ using VISA.Executors;
 using VISA.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using VISA.Validation;
 
 namespace VISA;
 
 /// <summary>
 /// VISA 等待操作完成插件，发送 *OPC? 并等待仪器返回 1
 /// </summary>
-public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>
+public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.VisaWaitOpc";
     public override string DisplayName => "VISA_WaitOPC";
@@ -44,5 +45,21 @@ public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>
     {
         var s = DeserializeSetting(setting);
         return $"WaitOPC {s.ConnectionName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (VisaWaitOpcSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("VISA_050", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("VISA_050E", $"ConnectionName 表达式无效: {connErr}"));
+        if (s.TimeoutMs < 0)
+            errors.Add(StepSettingError.Error("VISA_051", "超时不能为负数（0 表示不限时）"));
+        VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

@@ -2,10 +2,11 @@ using SerialPort.Executors;
 using SerialPort.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using SerialPort.Validation;
 
 namespace SerialPort;
 
-public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSetting>
+public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.SerialPortClose";
     public override string DisplayName => "SerialPort_Close";
@@ -38,5 +39,25 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
     {
         var s = DeserializeSetting(setting);
         return $"Close {s.PortName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var serializer = CreateSerializer();
+        var s = context.Setting is { Length: > 0 }
+            ? (SerialPortCloseSetting)serializer.Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion)
+            : new SerialPortCloseSetting();
+
+        if (string.IsNullOrWhiteSpace(s.PortName))
+            errors.Add(StepSettingError.Error("SP_010", "PortName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.PortName, context.ExecutionContext, out var portErr))
+            errors.Add(StepSettingError.Error("SP_010E", $"PortName 表达式无效: {portErr}"));
+
+        SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

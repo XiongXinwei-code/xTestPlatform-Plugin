@@ -2,10 +2,11 @@ using LIN.Executors;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using LIN.Validation;
 
 namespace LIN;
 
-public sealed class LinWritePlugin : StepPluginBase<LinWriteSetting>
+public sealed class LinWritePlugin : StepPluginBase<LinWriteSetting>, IStepPlugin
 {
     public override string StepTypeId   => "IO.LinWrite";
     public override string DisplayName  => "LIN_Write";
@@ -43,5 +44,24 @@ public sealed class LinWritePlugin : StepPluginBase<LinWriteSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Write ID={s.FrameId} Data={s.Data} ({s.ChecksumType})";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (LinWriteSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("LIN_W01", "连接标识名不能为空"));
+        if (string.IsNullOrWhiteSpace(s.FrameId))
+            errors.Add(StepSettingError.Error("LIN_W02", "帧 ID 不能为空"));
+
+        if (context.SequenceFile != null && context.Block != null && context.CurrentStep != null)
+            LinLifecycleValidator.CheckPrecedingOpen(
+                context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

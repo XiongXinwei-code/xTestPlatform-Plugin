@@ -1,21 +1,21 @@
-using LabVIEWCallPlugin.UI.Models;
+using LabVIEWCallPlugin.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Diagnostics;
 using System;
 
-namespace LabVIEWCallPlugin.UI.Converters
+namespace LabVIEWCallPlugin.Converters
 {
     /// <summary>
-    /// LabVIEW Á¬½ÓÃæ°å JSON Êý¾Ý×ª»»Æ÷
-    /// Êý¾Ý¸ñÊ½: [[Â·¾¶Êý×é], {"Index": 0, "Name": "x+y", "Tag": "0-x+y-Double Float", ...}]
+    /// LabVIEW ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ JSON ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½ï¿½
+    /// ï¿½ï¿½ï¿½Ý¸ï¿½Ê½: [[Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½], {"Index": 0, "Name": "x+y", "Tag": "0-x+y-Double Float", ...}]
     /// </summary>
     public static class LvPanelConverter
     {
         /// <summary>
-        /// ½« JSON ×Ö·û´®×ª»»ÎªÊ÷ÐÎ½Úµã¼¯ºÏ(¸ù½ÚµãÁÐ±í)
-        /// ÊäÈë¸ñÊ½: [
+        /// ï¿½ï¿½ JSON ï¿½Ö·ï¿½ï¿½ï¿½×ªï¿½ï¿½Îªï¿½ï¿½ï¿½Î½Úµã¼¯ï¿½ï¿½(ï¿½ï¿½ï¿½Úµï¿½ï¿½Ð±ï¿½)
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½Ê½: [
         ///   [["0-y-Double Float"], {"Index": 0, "Name": "y", "Tag": "0-y-Double Float", "Value": "0", "Type": "Double Float", ...}],
         ///   [["3-error in-Cluster"], {"Index": 3, "Name": "error in", "Tag": "3-error in-Cluster", "Type": "Cluster", ...}],
         ///   [["3-error in-Cluster","0-status-Boolean"], {"Index": 0, "Name": "status", "Tag": "0-status-Boolean", ...}]
@@ -30,27 +30,27 @@ namespace LabVIEWCallPlugin.UI.Converters
 
             try
             {
-                // ½âÎöÎª JsonDocument
+                // ï¿½ï¿½ï¿½ï¿½Îª JsonDocument
                 using var document = JsonDocument.Parse(jsonData);
                 var root = document.RootElement;
 
                 if (root.ValueKind != JsonValueKind.Array)
                 {
-                    Debug.WriteLine("LvPanelConverter: JSON ¸ùÔªËØ²»ÊÇÊý×é");
+                    Debug.WriteLine("LvPanelConverter: JSON ï¿½ï¿½Ôªï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½");
                     return new List<LvPanelNode>();
                 }
 
-                // ´´½¨½Úµã×Öµä£¬Ê¹ÓÃÂ·¾¶×Ö·û´®×÷Îª key
+                // ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½Öµä£¬Ê¹ï¿½ï¿½Â·ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½Îª key
                 var nodeDict = new Dictionary<string, LvPanelNode>();
 
-                // ±éÀúËùÓÐÐòÁÐ»¯Ïî
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½ï¿½ï¿½
                 foreach (var item in root.EnumerateArray())
                 {
                     try
                     {
                         var node = LvPanelNode.FromSerializedItem(item);
 
-                        // Ê¹ÓÃ Path ×÷ÎªÎ¨Ò»±êÊ¶
+                        // Ê¹ï¿½ï¿½ Path ï¿½ï¿½ÎªÎ¨Ò»ï¿½ï¿½Ê¶
                         if (node.Path != null && node.Path.Count > 0)
                         {
                             var pathKey = GetPathKey(node.Path);
@@ -59,34 +59,34 @@ namespace LabVIEWCallPlugin.UI.Converters
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"LvPanelConverter: ½âÎö½ÚµãÊ§°Ü: {ex.Message}");
+                        Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½Ê§ï¿½ï¿½: {ex.Message}");
                     }
                 }
 
-              //  Debug.WriteLine($"LvPanelConverter: ³É¹¦½âÎö {nodeDict.Count} ¸ö½Úµã");
+              //  Debug.WriteLine($"LvPanelConverter: ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½ {nodeDict.Count} ï¿½ï¿½ï¿½Úµï¿½");
 
-                // ¹¹½¨Ê÷ÐÎ½á¹¹
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î½á¹¹
                 var rootNodes = BuildTreeStructure(nodeDict);
 
-             //   Debug.WriteLine($"LvPanelConverter: ¹¹½¨Ê÷Íê³É£¬¸ù½ÚµãÊý: {rootNodes.Count}");
+             //   Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½: {rootNodes.Count}");
                 return rootNodes;
             }
             catch (JsonException ex)
             {
-                Debug.WriteLine($"LvPanelConverter: JSON ·´ÐòÁÐ»¯Ê§°Ü: {ex.Message}");
-                Debug.WriteLine($"LvPanelConverter: ´íÎóÎ»ÖÃ: Line {ex.LineNumber}, Position {ex.BytePositionInLine}");
+                Debug.WriteLine($"LvPanelConverter: JSON ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½Ê§ï¿½ï¿½: {ex.Message}");
+                Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½: Line {ex.LineNumber}, Position {ex.BytePositionInLine}");
                 return new List<LvPanelNode>();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"LvPanelConverter: ×ª»»Ê§°Ü: {ex.Message}");
-                Debug.WriteLine($"LvPanelConverter: ¶ÑÕ»: {ex.StackTrace}");
+                Debug.WriteLine($"LvPanelConverter: ×ªï¿½ï¿½Ê§ï¿½ï¿½: {ex.Message}");
+                Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½Õ»: {ex.StackTrace}");
                 return new List<LvPanelNode>();
             }
         }
 
         /// <summary>
-        /// ½«½ÚµãÊ÷×ª»»Îª JSON ×Ö·û´®
+        /// ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½×ªï¿½ï¿½Îª JSON ï¿½Ö·ï¿½ï¿½ï¿½
         /// </summary>
         public static string ConvertToJson(IEnumerable<LvPanelNode> rootNodes)
         {
@@ -99,7 +99,7 @@ namespace LabVIEWCallPlugin.UI.Converters
             {
                 var allItems = new List<JsonElement>();
 
-                // ÊÕ¼¯ËùÓÐ½Úµã£¨°üÀ¨×ÓËï½Úµã£©
+                // ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½Ð½Úµã£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµã£©
                 foreach (var root in rootNodes)
                 {
                     allItems.AddRange(root.ToSerializedTree());
@@ -113,13 +113,13 @@ namespace LabVIEWCallPlugin.UI.Converters
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"LvPanelConverter: ÐòÁÐ»¯Ê§°Ü: {ex.Message}");
+                Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½ï¿½Ð»ï¿½Ê§ï¿½ï¿½: {ex.Message}");
                 return "[]";
             }
         }
 
         /// <summary>
-        /// ¹¹½¨Ê÷ÐÎ½á¹¹£¨Ê¹ÓÃÂ·¾¶×÷ÎªÎ¨Ò»±êÊ¶£©
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î½á¹¹ï¿½ï¿½Ê¹ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ÎªÎ¨Ò»ï¿½ï¿½Ê¶ï¿½ï¿½
         /// </summary>
         private static List<LvPanelNode> BuildTreeStructure(Dictionary<string, LvPanelNode> nodeDict)
         {
@@ -127,7 +127,7 @@ namespace LabVIEWCallPlugin.UI.Converters
 
             foreach (var node in nodeDict.Values)
             {
-                // Èç¹û½ÚµãÓÐ ChildNodePath£¬Ôò¹¹½¨¸¸×Ó¹ØÏµ
+                // ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ ChildNodePathï¿½ï¿½ï¿½ò¹¹½ï¿½ï¿½ï¿½ï¿½Ó¹ï¿½Ïµ
                 if (node.ChildNodePath != null && node.ChildNodePath.Count > 0)
                 {
                     foreach (var childPath in node.ChildNodePath)
@@ -139,26 +139,26 @@ namespace LabVIEWCallPlugin.UI.Converters
 
                         if (nodeDict.TryGetValue(childPathKey, out var childNode))
                         {
-                            // ±ÜÃâÖØ¸´Ìí¼Ó
+                            // ï¿½ï¿½ï¿½ï¿½ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½
                             if (!node.Children.Contains(childNode))
                             {
                                 node.Children.Add(childNode);
                                 childNode.Parent = node;
-                             //   Debug.WriteLine($"LvPanelConverter: Ìí¼Ó×Ó½Úµã [{childPathKey}] µ½¸¸½Úµã [{GetPathKey(node.Path)}]");
+                             //   Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½ï¿½ï¿½Ó½Úµï¿½ [{childPathKey}] ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ [{GetPathKey(node.Path)}]");
                             }
                         }
                         else
                         {
-                            Debug.WriteLine($"LvPanelConverter: ¾¯¸æ - Î´ÕÒµ½×Ó½Úµã [{childPathKey}]");
+                            Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½ï¿½ï¿½ - Î´ï¿½Òµï¿½ï¿½Ó½Úµï¿½ [{childPathKey}]");
                         }
                     }
                 }
 
-                // ÕÒ³ö¸ù½Úµã£¨Ã»ÓÐ¸¸½ÚµãµÄ½Úµã£©
+                // ï¿½Ò³ï¿½ï¿½ï¿½ï¿½Úµã£¨Ã»ï¿½Ð¸ï¿½ï¿½Úµï¿½Ä½Úµã£©
                 if (node.Parent == null)
                 {
                     rootNodes.Add(node);
-                 //   Debug.WriteLine($"LvPanelConverter: Ìí¼Ó¸ù½Úµã [{GetPathKey(node.Path)}] - {node.Name}");
+                 //   Debug.WriteLine($"LvPanelConverter: ï¿½ï¿½Ó¸ï¿½ï¿½Úµï¿½ [{GetPathKey(node.Path)}] - {node.Name}");
                 }
             }
 
@@ -166,8 +166,8 @@ namespace LabVIEWCallPlugin.UI.Converters
         }
 
         /// <summary>
-        /// ½«Â·¾¶Êý×é×ª»»Îª×Ö·û´® key
-        /// ¸ñÊ½: "3-error in-Cluster|0-status-Boolean"
+        /// ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Îªï¿½Ö·ï¿½ï¿½ï¿½ key
+        /// ï¿½ï¿½Ê½: "3-error in-Cluster|0-status-Boolean"
         /// </summary>
         private static string GetPathKey(List<string> path)
         {

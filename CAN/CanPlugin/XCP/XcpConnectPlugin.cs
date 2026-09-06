@@ -2,10 +2,11 @@ using CAN.XCP.Executors;
 using CAN.XCP.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using CAN.Validation;
 
 namespace CAN.XCP;
 
-public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
+public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>, IStepPlugin
 {
     public override string StepTypeId  => "XCP.Connect";
     public override string DisplayName => "XCP_Connect";
@@ -46,5 +47,27 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
     {
         var s = DeserializeSetting(setting);
         return $"XCP Connect TX={s.TxId} RX={s.RxId} ({s.ConnectMode})";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (XcpConnectSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("XCP_001", "ConnectionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("XCP_002", $"ConnectionName 表达式无效: {connErr}"));
+        if (string.IsNullOrWhiteSpace(s.TxId))
+            errors.Add(StepSettingError.Error("XCP_003", "TX ID 不能为空"));
+        if (string.IsNullOrWhiteSpace(s.RxId))
+            errors.Add(StepSettingError.Error("XCP_004", "RX ID 不能为空"));
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("XCP_005", "超时时间必须大于 0"));
+
+        CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

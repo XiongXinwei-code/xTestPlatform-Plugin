@@ -1,12 +1,14 @@
+using OpcUa.Helpers;
 using OpcUa.Executors;
 using OpcUa.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using OpcUa.Validation;
 
 namespace OpcUa;
 
 /// <summary>OPC UA 批量读取插件</summary>
-public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
+public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>, IStepPlugin
 {
     public override string StepTypeId => "OpcUa.BatchRead";
     public override string DisplayName => "OpcUa_BatchRead";
@@ -54,5 +56,35 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
     {
         var s = DeserializeSetting(setting);
         return $"BatchRead {s.Items.Count} nodes via {s.ConnectionName}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (OpcUaBatchReadSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("OPCUA_040", "连接标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+            errors.Add(StepSettingError.Error("OPCUA_040E", $"ConnectionName 表达式无效: {connErr}"));
+        if (s.Items.Count == 0)
+            errors.Add(StepSettingError.Warning("OPCUA_041", "节点列表为空"));
+        for (int i = 0; i < s.Items.Count; i++)
+        {
+            var item = s.Items[i];
+            if (string.IsNullOrWhiteSpace(item.NodeId))
+                errors.Add(StepSettingError.Error("OPCUA_042", $"第 {i + 1} 行：节点标识不能为空"));
+            else if (!OpcUaHelper.IsValidNodeId(item.NodeId))
+                errors.Add(StepSettingError.Error("OPCUA_042F", $"第 {i + 1} 行：节点标识格式无效，正确格式如 ns=2;s=MyVariable"));
+            if (string.IsNullOrWhiteSpace(item.ResultVariable))
+                errors.Add(StepSettingError.Error("OPCUA_043", $"第 {i + 1} 行：结果变量不能为空"));
+            else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
+                errors.Add(StepSettingError.Error("OPCUA_044", $"第 {i + 1} 行：变量 {item.ResultVariable} 不存在，请先创建该变量"));
+        }
+        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
+            errors.Add(StepSettingError.Error("OPCUA_045", "超时必须大于 0，或为 -1 表示永不超时"));
+        OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

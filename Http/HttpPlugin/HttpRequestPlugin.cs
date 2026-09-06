@@ -2,13 +2,14 @@ using Http.Executors;
 using Http.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using Http.Validation;
 
 namespace Http;
 
 /// <summary>
 /// HTTP REST 请求插件，发送请求并将状态码与响应体存入变量
 /// </summary>
-public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
+public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.HttpRequest";
     public override string DisplayName => "Http_Request";
@@ -77,5 +78,39 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
     {
         var s = DeserializeSetting(setting);
         return $"{s.Method.ToString().ToUpperInvariant()} {s.Path} => {s.ResponseVariable}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (HttpRequestSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ClientName))
+            errors.Add(StepSettingError.Error("HTTP_020", "客户端标识名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ClientName, context.ExecutionContext, out var nameErr))
+            errors.Add(StepSettingError.Error("HTTP_020E", $"ClientName 表达式无效: {nameErr}"));
+
+        if (string.IsNullOrWhiteSpace(s.Path))
+            errors.Add(StepSettingError.Error("HTTP_021", "请求路径不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Path, context.ExecutionContext, out var pathErr))
+            errors.Add(StepSettingError.Error("HTTP_021E", $"Path 表达式无效: {pathErr}"));
+
+        if (s.ContentType != BodyContentType.None)
+        {
+            if (string.IsNullOrWhiteSpace(s.Body))
+                errors.Add(StepSettingError.Error("HTTP_022", "已选择请求体类型，请求体内容不能为空"));
+            else if (!context.Evaluator.ValidateExpression(s.Body, context.ExecutionContext, out var bodyErr))
+                errors.Add(StepSettingError.Error("HTTP_022E", $"Body 表达式无效: {bodyErr}"));
+        }
+
+        HttpEditorValidationHelper.CheckVariable(context, s.ResponseVariable, typeof(string), "HTTP_023", errors);
+        HttpEditorValidationHelper.CheckVariable(context, s.StatusCodeVariable, typeof(int), "HTTP_024", errors);
+        HttpEditorValidationHelper.CheckVariable(context, s.ElapsedVariable, typeof(int), "HTTP_025", errors);
+        HttpEditorValidationHelper.CheckHeaders(context, s.Headers, "HTTP_026", errors);
+
+        HttpLifecycleValidator.CheckPrecedingCreate(context.SequenceFile, context.Block, context.CurrentStep, s.ClientName, errors);
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

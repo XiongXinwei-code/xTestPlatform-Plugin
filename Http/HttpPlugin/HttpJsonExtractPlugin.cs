@@ -1,3 +1,4 @@
+using Http.Validation;
 using Http.Executors;
 using Http.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
@@ -8,7 +9,7 @@ namespace Http;
 /// <summary>
 /// JSON 提取插件，按路径从 JSON 文本中提取字段写入变量
 /// </summary>
-public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSetting>
+public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.HttpJsonExtract";
     public override string DisplayName => "Http_JsonExtract";
@@ -62,5 +63,25 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
     {
         var s = DeserializeSetting(setting);
         return $"Extract {s.Items.Count} JSON field(s) from {s.SourceJson}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (HttpJsonExtractSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.SourceJson))
+            errors.Add(StepSettingError.Error("HTTP_060", "待解析的 JSON 源不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.SourceJson, context.ExecutionContext, out var srcErr))
+            errors.Add(StepSettingError.Error("HTTP_060E", $"SourceJson 表达式无效: {srcErr}"));
+
+        HttpEditorValidationHelper.CheckExtractItems(s.Items, "JSON 路径", "HTTP_061", errors);
+
+        foreach (var item in s.Items)
+            HttpEditorValidationHelper.CheckVariable(context, item.TargetVariable, typeof(string), "HTTP_062", errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

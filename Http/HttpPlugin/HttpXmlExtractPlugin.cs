@@ -1,3 +1,5 @@
+using System.Xml.XPath;
+using Http.Validation;
 using Http.Executors;
 using Http.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
@@ -8,7 +10,7 @@ namespace Http;
 /// <summary>
 /// XML 提取插件，按 XPath 从 XML 文本中提取字段写入变量
 /// </summary>
-public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
+public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.HttpXmlExtract";
     public override string DisplayName => "Http_XmlExtract";
@@ -63,5 +65,37 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Extract {s.Items.Count} XML field(s) from {s.SourceXml}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (HttpXmlExtractSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.SourceXml))
+            errors.Add(StepSettingError.Error("HTTP_080", "待解析的 XML 源不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.SourceXml, context.ExecutionContext, out var srcErr))
+            errors.Add(StepSettingError.Error("HTTP_080E", $"SourceXml 表达式无效: {srcErr}"));
+
+        HttpEditorValidationHelper.CheckExtractItems(s.Items, "XPath", "HTTP_081", errors);
+
+        foreach (var item in s.Items)
+        {
+            HttpEditorValidationHelper.CheckVariable(context, item.TargetVariable, typeof(string), "HTTP_082", errors);
+
+            if (string.IsNullOrWhiteSpace(item.Path)) continue;
+            try
+            {
+                XPathExpression.Compile(item.Path);
+            }
+            catch (XPathException ex)
+            {
+                errors.Add(StepSettingError.Error("HTTP_083", $"XPath 语法错误 [{item.Path}]: {ex.Message}"));
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

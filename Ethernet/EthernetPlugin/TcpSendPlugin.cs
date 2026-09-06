@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>
+public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>, IStepPlugin
 {
     public override string StepTypeId  => "Ethernet.TcpSend";
     public override string DisplayName => "Ethernet_TcpSend";
@@ -45,5 +45,29 @@ public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>
     {
         var s = DeserializeSetting(setting);
         return $"TCP Send: {s.ConnectionName} [{s.Encoding}] {s.Data}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.Models.TcpSendSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("ETH_201", "ConnectionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("ETH_202", $"ConnectionName 表达式无效: {e1}"));
+
+        if (string.IsNullOrWhiteSpace(s.Data))
+            errors.Add(StepSettingError.Error("ETH_203", "Data 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Data, context.ExecutionContext, out var e2))
+            errors.Add(StepSettingError.Error("ETH_204", $"Data 表达式无效: {e2}"));
+
+        if (s.SendTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("ETH_205", "SendTimeoutMs 必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSetting>
+public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSetting>, IStepPlugin
 {
     public override string StepTypeId  => "DoIP.DiagRequest";
     public override string DisplayName => "DoIP_DiagRequest";
@@ -45,5 +45,34 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
     {
         var s = DeserializeSetting(setting);
         return $"DoIP DiagRequest: {s.SessionName} -> {s.TargetAddress} [{s.RequestData}]";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (Ethernet.DoIP.Models.DoipDiagRequestSetting)CreateSerializer()
+                    .Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.SessionName))
+            errors.Add(StepSettingError.Error("DOIP_301", "SessionName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.SessionName, context.ExecutionContext, out var e1))
+            errors.Add(StepSettingError.Error("DOIP_302", $"SessionName 表达式无效: {e1}"));
+
+        if (string.IsNullOrWhiteSpace(s.TargetAddress))
+            errors.Add(StepSettingError.Error("DOIP_303", "TargetAddress 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TargetAddress, context.ExecutionContext, out var e2))
+            errors.Add(StepSettingError.Error("DOIP_304", $"TargetAddress 表达式无效: {e2}"));
+
+        if (string.IsNullOrWhiteSpace(s.RequestData))
+            errors.Add(StepSettingError.Error("DOIP_305", "RequestData 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.RequestData, context.ExecutionContext, out var e3))
+            errors.Add(StepSettingError.Error("DOIP_306", $"RequestData 表达式无效: {e3}"));
+
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("DOIP_307", "TimeoutMs 必须大于 0"));
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

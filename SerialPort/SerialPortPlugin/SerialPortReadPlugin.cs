@@ -2,10 +2,11 @@ using SerialPort.Executors;
 using SerialPort.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using SerialPort.Validation;
 
 namespace SerialPort;
 
-public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
+public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>, IStepPlugin
 {
     public override string StepTypeId => "IO.SerialPortRead";
     public override string DisplayName => "SerialPort_Read";
@@ -46,5 +47,42 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
     {
         var s = DeserializeSetting(setting);
         return $"Read <- {s.PortName} ({s.DataFormat})";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var serializer = CreateSerializer();
+        var s = context.Setting is { Length: > 0 }
+            ? (SerialPortReadSetting)serializer.Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion)
+            : new SerialPortReadSetting();
+
+        if (string.IsNullOrWhiteSpace(s.PortName))
+            errors.Add(StepSettingError.Error("SP_030", "PortName 不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.PortName, context.ExecutionContext, out var portErr))
+            errors.Add(StepSettingError.Error("SP_030E", $"PortName 表达式无效: {portErr}"));
+
+        if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("SP_031", "ReadTimeout 必须大于 0，或为 -1 表示永不超时"));
+
+        if (s.ReadBytes < 0)
+            errors.Add(StepSettingError.Error("SP_032", "ReadBytes 不能为负数"));
+
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("SP_033", "ResultVariable 未配置，必须指定读取结果存放的变量路径"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("SP_034", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null && val is not string)
+                errors.Add(StepSettingError.Error("SP_035", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
+        }
+
+        SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

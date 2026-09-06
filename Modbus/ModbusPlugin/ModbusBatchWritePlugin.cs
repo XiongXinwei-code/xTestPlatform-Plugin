@@ -1,5 +1,6 @@
 using Modbus.Executors;
 using Modbus.Models;
+using Modbus.Validation;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
@@ -8,7 +9,7 @@ namespace Modbus;
 /// <summary>
 /// Modbus 批量写入插件，一次执行多个地址段的写入操作
 /// </summary>
-public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSetting>
+public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSetting>, IStepPlugin
 {
 	public override string StepTypeId => "IO.ModbusBatchWrite";
 	public override string DisplayName => "Modbus_BatchWrite";
@@ -59,5 +60,47 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 	{
 		var s = DeserializeSetting(setting);
 		return $"BatchWrite {s.ConnectionName} ({s.Items.Count} items)";
+	}
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+		var errors = new List<StepSettingError>();
+
+		ModbusBatchWriteSetting s;
+		try
+		{
+			s = DeserializeSetting(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			errors.Add(StepSettingError.Error("MB_05X", $"设置无法读取：{ex.Message}"));
+			return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+		}
+
+		if (string.IsNullOrWhiteSpace(s.ConnectionName))
+			errors.Add(StepSettingError.Error("MB_050", "连接标识名不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+			errors.Add(StepSettingError.Error("MB_050E", $"ConnectionName 表达式无效: {connErr}"));
+		if (s.Items.Count == 0)
+			errors.Add(StepSettingError.Warning("MB_051", "批量写入列表为空"));
+		if (s.IntervalMs < 0)
+			errors.Add(StepSettingError.Error("MB_053", "写入间隔时间不能为负数"));
+		for (int i = 0; i < s.Items.Count; i++)
+		{
+			var item = s.Items[i];
+			if (string.IsNullOrWhiteSpace(item.Values))
+				errors.Add(StepSettingError.Error("MB_052", $"第 {i + 1} 行：写入值不能为空"));
+		}
+
+		ModbusLifecycleValidator.CheckPrecedingConnect(
+			context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}
 }

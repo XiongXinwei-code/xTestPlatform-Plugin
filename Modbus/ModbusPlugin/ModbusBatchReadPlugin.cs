@@ -1,5 +1,6 @@
 using Modbus.Executors;
 using Modbus.Models;
+using Modbus.Validation;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
@@ -8,7 +9,7 @@ namespace Modbus;
 /// <summary>
 /// Modbus 批量读取插件，一次执行多个地址段的读取操作
 /// </summary>
-public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSetting>
+public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSetting>, IStepPlugin
 {
 	public override string StepTypeId => "IO.ModbusBatchRead";
 	public override string DisplayName => "Modbus_BatchRead";
@@ -59,5 +60,49 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 	{
 		var s = DeserializeSetting(setting);
 		return $"BatchRead {s.ConnectionName} ({s.Items.Count} items)";
+	}
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+		var errors = new List<StepSettingError>();
+
+		ModbusBatchReadSetting s;
+		try
+		{
+			s = DeserializeSetting(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			errors.Add(StepSettingError.Error("MB_04X", $"设置无法读取：{ex.Message}"));
+			return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+		}
+
+		if (string.IsNullOrWhiteSpace(s.ConnectionName))
+			errors.Add(StepSettingError.Error("MB_040", "连接标识名不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+			errors.Add(StepSettingError.Error("MB_040E", $"ConnectionName 表达式无效: {connErr}"));
+		if (s.Items.Count == 0)
+			errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
+		for (int i = 0; i < s.Items.Count; i++)
+		{
+			var item = s.Items[i];
+			if (string.IsNullOrWhiteSpace(item.ResultVariable))
+				errors.Add(StepSettingError.Error("MB_042", $"第 {i + 1} 行：结果变量不能为空"));
+			else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
+				errors.Add(StepSettingError.Error("MB_044", $"第 {i + 1} 行：变量 {item.ResultVariable} 不存在，请先创建该变量"));
+			if (item.Quantity == 0)
+				errors.Add(StepSettingError.Error("MB_043", $"第 {i + 1} 行：读取数量必须大于 0"));
+		}
+
+		ModbusLifecycleValidator.CheckPrecedingConnect(
+			context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}
 }

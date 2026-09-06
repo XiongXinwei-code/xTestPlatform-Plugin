@@ -2,10 +2,11 @@ using LIN.Executors;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using LIN.Validation;
 
 namespace LIN;
 
-public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStartSetting>
+public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStartSetting>, IStepPlugin
 {
     public override string StepTypeId   => "IO.LinCyclicSendStart";
     public override string DisplayName  => "LIN_Cyclic_SendStart";
@@ -51,5 +52,32 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
     {
         var s = DeserializeSetting(setting);
         return $"CyclicSendStart TaskName={s.TaskName}, 帧数={s.Frames.Count}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (LinCyclicSendStartSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+
+        if (string.IsNullOrWhiteSpace(s.ConnectionName))
+            errors.Add(StepSettingError.Error("LIN_CS01", "连接标识名不能为空"));
+        if (string.IsNullOrWhiteSpace(s.TaskName))
+            errors.Add(StepSettingError.Error("LIN_CS02", "任务标识名不能为空"));
+        if (s.Frames.Count == 0)
+            errors.Add(StepSettingError.Warning("LIN_CS03", "帧列表为空，周期发送将不会发送任何数据"));
+
+        foreach (var frame in s.Frames.Where(f => f.Enabled))
+        {
+            if (frame.CycleTimeMs <= 0)
+                errors.Add(StepSettingError.Error("LIN_CS04", $"帧 {frame.FrameId} 的周期时间必须大于 0"));
+        }
+
+        if (context.SequenceFile != null && context.Block != null && context.CurrentStep != null)
+            LinLifecycleValidator.CheckPrecedingOpen(
+                context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

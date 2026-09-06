@@ -1,10 +1,12 @@
+using LabVIEWCallPlugin.Models;
+using LabVIEWCallPlugin.Converters;
+using LabVIEWCallPlugin.Helpers;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExpressionEditor;
 using LabVIEWCallPlugin.LVadapter;
 using LabVIEWCallPlugin.UI.Converters;
 using LabVIEWCallPlugin.UI.Models;
-using LabVIEWCallPlugin.UI.Helper;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
@@ -16,11 +18,11 @@ using xTestPlatform.Core.SequenceModels;
 namespace LabVIEWCallPlugin.UI.ViewModels
 {
     /// <summary>
-    /// LabVIEW Ãæ°åÊÓÍ¼Ä£ÐÍ
+    /// LabVIEW ï¿½ï¿½ï¿½ï¿½ï¿½Í¼Ä£ï¿½ï¿½
     /// </summary>
     public partial class LvPanelViewModel : ObservableObject
     {
-        /// <summary>¼ÓÔØÃæ°å²ÎÊý</summary>
+        /// <summary>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</summary>
         public class LoadPanelParameter
         {
             public string ViFilePath { get; set; } = string.Empty;
@@ -37,26 +39,26 @@ namespace LabVIEWCallPlugin.UI.ViewModels
         [ObservableProperty] private string _indicatorJson;
         [ObservableProperty] private bool _isReentrant;
 
-        /// <summary>VI µ±Ç°ÔËÐÐ×´Ì¬</summary>
+        /// <summary>VI ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½×´Ì¬</summary>
         [ObservableProperty] private VIState _viState;
 
-        /// <summary>VI ×´Ì¬ÏÔÊ¾ÎÄ±¾</summary>
+        /// <summary>VI ×´Ì¬ï¿½ï¿½Ê¾ï¿½Ä±ï¿½</summary>
         [ObservableProperty] private string _viStateText;
 
-        /// <summary>LabVIEW IDE Á¬½Ó×´Ì¬</summary>
+        /// <summary>LabVIEW IDE ï¿½ï¿½ï¿½ï¿½×´Ì¬</summary>
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsLabViewDisconnected))]
         private LabViewIdeState _labViewIdeState;
 
-        /// <summary>LabVIEW IDE Î´Á¬½ÓÊ±Îª true£¨ÓÃÓÚÃæ°åÌáÊ¾²ã¿É¼ûÐÔ°ó¶¨£©</summary>
+        /// <summary>LabVIEW IDE Î´ï¿½ï¿½ï¿½ï¿½Ê±Îª trueï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½É¼ï¿½ï¿½Ô°ó¶¨£ï¿½</summary>
         public bool IsLabViewDisconnected =>
             LabViewIdeState == LabViewIdeState.Disconnected ||
             LabViewIdeState == LabViewIdeState.Unknown;
 
-        /// <summary>LabVIEW IDE ×´Ì¬ÏÔÊ¾ÎÄ±¾</summary>
+        /// <summary>LabVIEW IDE ×´Ì¬ï¿½ï¿½Ê¾ï¿½Ä±ï¿½</summary>
         [ObservableProperty] private string _labViewIdeStateText;
 
-        // Ã÷È·±ê×¢¿É¿Õ£¬±ÜÃâ NullReferenceException
+        // ï¿½ï¿½È·ï¿½ï¿½×¢ï¿½É¿Õ£ï¿½ï¿½ï¿½ï¿½ï¿½ NullReferenceException
         [ObservableProperty] private SequenceFile? _sequenceFile;
         [ObservableProperty] private EditPosition? _editPosition;
 
@@ -77,18 +79,18 @@ namespace LabVIEWCallPlugin.UI.ViewModels
             _indicatorNodes.CollectionChanged += (s, e) => UpdateIndicatorJson();
         }
 
-        // ©¤©¤ ÃüÁî ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         [RelayCommand]
         private void OpenVariableView(LvPanelNode? node)
         {
-            // SequenceFile Î´¸³ÖµÊ±Ö±½ÓºöÂÔ£¬±ÜÃâ NullReferenceException
+            // SequenceFile Î´ï¿½ï¿½ÖµÊ±Ö±ï¿½Óºï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ NullReferenceException
             if (SequenceFile is null) return;
 
             Application.Current.Dispatcher.Invoke(() =>
             {
 
-                // ½« LabVIEW ÀàÐÍ×ª»»ÎªÆ½Ì¨ÀàÐÍÃû
+                // ï¿½ï¿½ LabVIEW ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ÎªÆ½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 string platformType = LabVIEWTypeConverter.ConvertToString(node?.Type);
 
                 var dialog = new ExpressionEditorDialog(
@@ -112,11 +114,11 @@ namespace LabVIEWCallPlugin.UI.ViewModels
         }
 
         /// <summary>
-        /// ¼ÓÔØ VI Ãæ°åÁ¬½ÓÐÅÏ¢¡£
+        /// ï¿½ï¿½ï¿½ï¿½ VI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
         /// <para>
-        /// ½×¶ÎÒ»£º¼ì²é LabVIEW IDE ÊÇ·ñÔÚÏß¡£<br/>
-        /// IDE Î´Á¬½Ó ¡ú ºóÌ¨½âÎö²½ÖèÉèÖÃ JSON »Ö¸´½Úµã£¬await ºóÔÚ UI Ïß³ÌÌî³ä¼¯ºÏ£¬Ìø¹ý DLL µ÷ÓÃ¡£<br/>
-        /// IDE ÒÑÁ¬½Ó ¡ú µ÷ÓÃ GetConnectPanel »ñÈ¡×îÐÂÃæ°åÊý¾Ý²¢Ë¢ÐÂ½ÚµãºÍÍ¼Ïñ¡£
+        /// ï¿½×¶ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ LabVIEW IDE ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ß¡ï¿½<br/>
+        /// IDE Î´ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ JSON ï¿½Ö¸ï¿½ï¿½Úµã£¬await ï¿½ï¿½ï¿½ï¿½ UI ï¿½ß³ï¿½ï¿½ï¿½ä¼¯ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½ DLL ï¿½ï¿½ï¿½Ã¡ï¿½<br/>
+        /// IDE ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ GetConnectPanel ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý²ï¿½Ë¢ï¿½Â½Úµï¿½ï¿½Í¼ï¿½ï¿½
         /// </para>
         /// </summary>
         [RelayCommand]
@@ -127,7 +129,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
 
             try
             {
-                // ©¤©¤ ½×¶ÎÒ»£º¼ì²é LabVIEW IDE ÊÇ·ñÔÚÏß ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½×¶ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ LabVIEW IDE ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 bool ideConnected = await Task.Run(() => LvLibHelper.ConnectLabVIEW());
 
                 LabViewIdeState = ideConnected ? LabViewIdeState.Connected : LabViewIdeState.Disconnected;
@@ -135,9 +137,9 @@ namespace LabVIEWCallPlugin.UI.ViewModels
 
                 if (!ideConnected)
                 {
-                    // ©¤©¤ IDE Î´Á¬½Ó£ººóÌ¨½âÎö JSON£¬await ºóÔÚ UI Ïß³Ì¸üÐÂ¼¯ºÏ ©¤©¤
-                    // JSON ½âÎö·ÅºóÌ¨Ïß³Ì£»await Íê³Éºó×Ô¶¯»Øµ½ UI Ïß³Ì£¬
-                    // ÎÞÐè Dispatcher.Invoke£¬±ÜÃâ°×°××èÈû ThreadPool Ïß³Ì¡£
+                    // ï¿½ï¿½ï¿½ï¿½ IDE Î´ï¿½ï¿½ï¿½Ó£ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ JSONï¿½ï¿½await ï¿½ï¿½ï¿½ï¿½ UI ï¿½ß³Ì¸ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+                    // JSON ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½Ì¨ï¿½ß³Ì£ï¿½await ï¿½ï¿½Éºï¿½ï¿½Ô¶ï¿½ï¿½Øµï¿½ UI ï¿½ß³Ì£ï¿½
+                    // ï¿½ï¿½ï¿½ï¿½ Dispatcher.Invokeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½ï¿½ ThreadPool ï¿½ß³Ì¡ï¿½
                     var (controlList, indicatorList) = await Task.Run(() =>
                     {
                         var ctrl = new List<LvPanelNode>();
@@ -145,16 +147,16 @@ namespace LabVIEWCallPlugin.UI.ViewModels
 
                         try { ctrl = LvPanelConverter.ConvertFromJson(loadParameter.ControlJson); }
                         catch (Exception ex)
-                        { Debug.WriteLine($"´Ó JSON ½âÎö Control ½ÚµãÊ§°Ü: {ex.Message}"); }
+                        { Debug.WriteLine($"ï¿½ï¿½ JSON ï¿½ï¿½ï¿½ï¿½ Control ï¿½Úµï¿½Ê§ï¿½ï¿½: {ex.Message}"); }
 
                         try { ind = LvPanelConverter.ConvertFromJson(loadParameter.IndicatorJson); }
                         catch (Exception ex)
-                        { Debug.WriteLine($"´Ó JSON ½âÎö Indicator ½ÚµãÊ§°Ü: {ex.Message}"); }
+                        { Debug.WriteLine($"ï¿½ï¿½ JSON ï¿½ï¿½ï¿½ï¿½ Indicator ï¿½Úµï¿½Ê§ï¿½ï¿½: {ex.Message}"); }
 
                         return (ctrl, ind);
                     });
 
-                    // await ºóÒÑ»Øµ½ UI Ïß³Ì£¬Ö±½Ó²Ù×÷ ObservableCollection
+                    // await ï¿½ï¿½ï¿½Ñ»Øµï¿½ UI ï¿½ß³Ì£ï¿½Ö±ï¿½Ó²ï¿½ï¿½ï¿½ ObservableCollection
                     ControlNodes.Clear();
                     foreach (var node in controlList)
                     {
@@ -169,11 +171,11 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                         SubscribeNodePropertyChanged(node);
                     }
 
-                    Debug.WriteLine("LabVIEW IDE Î´Á¬½Ó£¬ÒÑ´Ó²½ÖèÉèÖÃ»Ö¸´½Úµã¡£");
+                    Debug.WriteLine("LabVIEW IDE Î´ï¿½ï¿½ï¿½Ó£ï¿½ï¿½Ñ´Ó²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»Ö¸ï¿½ï¿½Úµã¡£");
                     return;
                 }
 
-                // ©¤©¤ ½×¶Î¶þ£ºIDE ÔÚÏß£¬´Ó LabVIEW »ñÈ¡×îÐÂÃæ°åÊý¾Ý ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½×¶Î¶ï¿½ï¿½ï¿½IDE ï¿½ï¿½ï¿½ß£ï¿½ï¿½ï¿½ LabVIEW ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 var result = await Task.Run(() =>
                 {
                     var panelInfo = LvLibHelper.GetConnectPanel(
@@ -190,7 +192,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                             panelInfo.IsReentrant, panelInfo.VIState);
                 });
 
-                // await ºóÒÑ»Øµ½ UI Ïß³Ì£¬Ö±½Ó²Ù×÷ ObservableCollection
+                // await ï¿½ï¿½ï¿½Ñ»Øµï¿½ UI ï¿½ß³Ì£ï¿½Ö±ï¿½Ó²ï¿½ï¿½ï¿½ ObservableCollection
                 ControlNodes.Clear();
                 foreach (var node in result.controlList)
                 {
@@ -205,7 +207,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                     SubscribeNodePropertyChanged(node);
                 }
 
-                // ÒÑÔÚ UI Ïß³Ì£¬Ö±½Ó´´½¨ WriteableBitmap£¬ÎÞÐè Dispatcher.Invoke
+                // ï¿½ï¿½ï¿½ï¿½ UI ï¿½ß³Ì£ï¿½Ö±ï¿½Ó´ï¿½ï¿½ï¿½ WriteableBitmapï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Dispatcher.Invoke
                 PanelImage = ConvertPixmapToImage(result.PixelData, result.Width, result.Height);
                 IsReentrant = result.IsReentrant;
                 ViState = result.VIState;
@@ -216,16 +218,16 @@ namespace LabVIEWCallPlugin.UI.ViewModels
             }
             catch (DllNotFoundException ex)
             {
-                Debug.WriteLine($"ÕÒ²»µ½ lvLib.dll: {ex.Message}");
+                Debug.WriteLine($"ï¿½Ò²ï¿½ï¿½ï¿½ lvLib.dll: {ex.Message}");
             }
             catch (BadImageFormatException ex)
             {
-                Debug.WriteLine($"DLL Î»Êý²»Æ¥Åä: {ex.Message}");
+                Debug.WriteLine($"DLL Î»ï¿½ï¿½ï¿½ï¿½Æ¥ï¿½ï¿½: {ex.Message}");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"¼ÓÔØÊ§°Ü: {ex.Message}");
-                Debug.WriteLine($"¶ÑÕ»¸ú×Ù: {ex.StackTrace}");
+                Debug.WriteLine($"ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½: {ex.Message}");
+                Debug.WriteLine($"ï¿½ï¿½Õ»ï¿½ï¿½ï¿½ï¿½: {ex.StackTrace}");
             }
             finally
             {
@@ -233,7 +235,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
             }
         }
 
-        // ©¤©¤ Ë½ÓÐ¸¨Öú ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // ï¿½ï¿½ï¿½ï¿½ Ë½ï¿½Ð¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         private string GetVIStateText(VIState state) => state switch
         {
@@ -279,30 +281,30 @@ namespace LabVIEWCallPlugin.UI.ViewModels
         private void UpdateControlJson()
         {
             try { ControlJson = LvPanelConverter.ConvertToJson(ControlNodes); }
-            catch (Exception ex) { Debug.WriteLine($"ÐòÁÐ»¯ Control JSON Ê§°Ü: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"ï¿½ï¿½ï¿½Ð»ï¿½ Control JSON Ê§ï¿½ï¿½: {ex.Message}"); }
         }
 
         private void UpdateIndicatorJson()
         {
             try { IndicatorJson = LvPanelConverter.ConvertToJson(IndicatorNodes); }
-            catch (Exception ex) { Debug.WriteLine($"ÐòÁÐ»¯ Indicator JSON Ê§°Ü: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"ï¿½ï¿½ï¿½Ð»ï¿½ Indicator JSON Ê§ï¿½ï¿½: {ex.Message}"); }
         }
 
         /// <summary>
-        /// ½« LabVIEW 24-bit pixmap ×ª»»Îª WPF ImageSource¡£
-        /// ½öÔÚ UI Ïß³Ìµ÷ÓÃ£¨LoadPanelAsync µÄ await Ö®ºó£©£¬ÎÞÐè Dispatcher.Invoke¡£
+        /// ï¿½ï¿½ LabVIEW 24-bit pixmap ×ªï¿½ï¿½Îª WPF ImageSourceï¿½ï¿½
+        /// ï¿½ï¿½ï¿½ï¿½ UI ï¿½ß³Ìµï¿½ï¿½Ã£ï¿½LoadPanelAsync ï¿½ï¿½ await Ö®ï¿½ó£©£ï¿½ï¿½ï¿½ï¿½ï¿½ Dispatcher.Invokeï¿½ï¿½
         /// </summary>
         private ImageSource? ConvertPixmapToImage(uint[] pixelData, int width, int height)
         {
             if (pixelData == null || pixelData.Length == 0 || width <= 0 || height <= 0)
             {
-                Debug.WriteLine("Í¼ÏñÊý¾ÝÎÞÐ§");
+                Debug.WriteLine("Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§");
                 return null;
             }
 
             if (pixelData.Length != width * height)
             {
-                Debug.WriteLine($"ÏñËØÊý¾Ý´óÐ¡²»Æ¥Åä: ÆÚÍû {width * height}, Êµ¼Ê {pixelData.Length}");
+                Debug.WriteLine($"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý´ï¿½Ð¡ï¿½ï¿½Æ¥ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ {width * height}, Êµï¿½ï¿½ {pixelData.Length}");
                 return null;
             }
 
@@ -321,7 +323,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                             for (int x = 0; x < width; x++)
                             {
                                 uint pixel = pixelData[y * width + x];
-                                // LabVIEW pixmap ÎÞ Alpha Ê±²¹ 0xFF
+                                // LabVIEW pixmap ï¿½ï¿½ Alpha Ê±ï¿½ï¿½ 0xFF
                                 if ((pixel & 0xFF000000) == 0) pixel |= 0xFF000000;
 
                                 uint a = (pixel >> 24) & 0xFF;
@@ -329,7 +331,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                                 uint g = (pixel >> 8) & 0xFF;
                                 uint r = pixel & 0xFF;
 
-                                // LabVIEW ARGB ¡ú WPF Bgra32
+                                // LabVIEW ARGB ï¿½ï¿½ WPF Bgra32
                                 pBackBuffer[y * stride + x] = (a << 24) | (b << 16) | (g << 8) | r;
                             }
                     }
@@ -346,7 +348,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Í¼Ïñ×ª»»Ê§°Ü: {ex.Message}");
+                Debug.WriteLine($"Í¼ï¿½ï¿½×ªï¿½ï¿½Ê§ï¿½ï¿½: {ex.Message}");
                 return null;
             }
         }
@@ -388,12 +390,12 @@ namespace LabVIEWCallPlugin.UI.ViewModels
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Ìí¼ÓÎÄ×ÖÊ§°Ü: {ex.Message}");
+                Debug.WriteLine($"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½: {ex.Message}");
                 return sourceBitmap;
             }
         }
 
-        // ©¤©¤ ½Úµã²Ù×÷ÃüÁî ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         [RelayCommand(CanExecute = nameof(CanRemoveNode))]
         private void RemoveNode(LvPanelNode? node)
@@ -404,7 +406,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                 if (node.Parent != null) node.Parent.Children.Remove(node);
                 else { ControlNodes.Remove(node); IndicatorNodes.Remove(node); }
             }
-            catch (Exception ex) { Debug.WriteLine($"ÒÆ³ý½ÚµãÊ§°Ü: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"ï¿½Æ³ï¿½ï¿½Úµï¿½Ê§ï¿½ï¿½: {ex.Message}"); }
         }
 
         private bool CanRemoveNode(LvPanelNode? node) => node?.IsMissing == true;
@@ -419,7 +421,7 @@ namespace LabVIEWCallPlugin.UI.ViewModels
                 foreach (var node in GetMissingNodes(IndicatorNodes).ToList())
                     RemoveNodeRecursive(node, IndicatorNodes);
             }
-            catch (Exception ex) { Debug.WriteLine($"ÅúÁ¿ÒÆ³ý¶ªÊ§½ÚµãÊ§°Ü: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"ï¿½ï¿½ï¿½ï¿½ï¿½Æ³ï¿½ï¿½ï¿½Ê§ï¿½Úµï¿½Ê§ï¿½ï¿½: {ex.Message}"); }
         }
 
         private IEnumerable<LvPanelNode> GetMissingNodes(ObservableCollection<LvPanelNode> nodes)

@@ -1,5 +1,6 @@
 using Modbus.Executors;
 using Modbus.Models;
+using Modbus.Validation;
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 
@@ -8,7 +9,7 @@ namespace Modbus;
 /// <summary>
 /// Modbus 写入插件，支持写入线圈和保持寄存器
 /// </summary>
-public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>
+public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>, IStepPlugin
 {
 	public override string StepTypeId => "IO.ModbusWrite";
 	public override string DisplayName => "Modbus_Write";
@@ -48,5 +49,45 @@ public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>
 	{
 		var s = DeserializeSetting(setting);
 		return $"Write {s.ConnectionName} Slave={s.SlaveAddress} {s.RegisterType}[{s.StartAddress}] = {s.Values}";
+	}
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+		cancellationToken.ThrowIfCancellationRequested();
+		var errors = new List<StepSettingError>();
+
+		ModbusWriteSetting s;
+		try
+		{
+			s = DeserializeSetting(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception ex)
+		{
+			errors.Add(StepSettingError.Error("MB_03X", $"设置无法读取：{ex.Message}"));
+			return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+		}
+
+		if (string.IsNullOrWhiteSpace(s.ConnectionName))
+			errors.Add(StepSettingError.Error("MB_030", "连接标识名不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
+			errors.Add(StepSettingError.Error("MB_030E", $"ConnectionName 表达式无效: {connErr}"));
+		if (string.IsNullOrWhiteSpace(s.StartAddress))
+			errors.Add(StepSettingError.Error("MB_032", "起始地址不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.StartAddress, context.ExecutionContext, out var addrErr))
+			errors.Add(StepSettingError.Error("MB_032E", $"StartAddress 表达式无效: {addrErr}"));
+		if (string.IsNullOrWhiteSpace(s.Values))
+			errors.Add(StepSettingError.Error("MB_031", "写入值不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.Values, context.ExecutionContext, out var valErr))
+			errors.Add(StepSettingError.Error("MB_031E", $"Values 表达式无效: {valErr}"));
+
+		ModbusLifecycleValidator.CheckPrecedingConnect(
+			context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+		return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
 	}
 }

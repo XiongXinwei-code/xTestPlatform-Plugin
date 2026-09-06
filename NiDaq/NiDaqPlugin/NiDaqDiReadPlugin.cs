@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
+public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>, IStepPlugin
 {
     public override string StepTypeId => "NiDaq.DiRead";
     public override string DisplayName => "NiDaq_DI_Read";
@@ -47,5 +47,27 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
     {
         var s = DeserializeSetting(setting);
         return $"DI Read: {s.Channel} → {s.ResultVariable}";
+    }
+
+	public Task<IReadOnlyList<StepSettingError>> ValidateSettingAsync(
+		StepSettingValidationContext context,
+		CancellationToken cancellationToken = default)
+	{
+        var errors = new List<StepSettingError>();
+        var s = (NiDaqDiReadSetting)CreateSerializer().Deserialize(context.Setting, context.CurrentStep.StepSetting.SettingVersion);
+        if (string.IsNullOrWhiteSpace(s.Channel)) errors.Add(StepSettingError.Error("DAQ_090", "物理通道不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Channel, context.ExecutionContext, out var chErr))
+            errors.Add(StepSettingError.Error("DAQ_090E", $"Channel 表达式无效: {chErr}"));
+        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_091", "结果变量不能为空"));
+        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+            errors.Add(StepSettingError.Error("DAQ_092", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
+        else
+        {
+            var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+            if (val is not null && val is not uint)
+                errors.Add(StepSettingError.Error("DAQ_093", $"变量 {s.ResultVariable} 类型不匹配，期望 uint，实际类型 {val.GetType().Name}"));
+        }
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }
