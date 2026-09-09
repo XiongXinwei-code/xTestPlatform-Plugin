@@ -29,9 +29,9 @@ public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSettin
 
         ## 行为
 
+        - 从运行期资源表中移除 `ClientName` 对应的客户端，移除时会自动释放
+        - 客户端不存在时：`IgnoreIfNotFound` 为 true（默认）则**不报错**，仅记录日志并按 Passed 返回；为 false 则**报错**
         - 释放后同名客户端需重新执行 Http_ClientCreate 才能继续使用
-        - 客户端不存在且 IgnoreIfNotFound 为 false 时，步骤报错
-        - 客户端以 Engine 生命周期注册，即使不显式关闭，引擎停止时也会自动释放
 
         ## 示例
 

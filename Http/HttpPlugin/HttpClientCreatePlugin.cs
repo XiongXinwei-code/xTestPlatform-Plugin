@@ -39,11 +39,11 @@ public sealed class HttpClientCreatePlugin : StepPluginBase<HttpClientCreateSett
 
         ## 行为
 
-        - 客户端以 Engine 生命周期注册，键为 `Http.Client.{ClientName}`，引擎停止时自动释放
+        - 创建的客户端会以 `ClientName` 为标识名注册到运行期资源表，供后续 Http_Request / Http_SoapRequest / Http_ClientClose 步骤取用
+        - 用同一个 ClientName 重复创建时：`ReplaceIfExists` 为 true（默认）时**静默替换**——旧客户端会被自动释放后再注册新客户端；为 false 时**报错**
         - AuthMode 与 TLS 选项相互独立，未使用的认证字段会被忽略
         - Basic 认证按 RFC 7617 生成 Authorization 头；BearerToken 生成 `Bearer {Token}` 头
         - ClientCertificate 模式加载 pfx 证书并启用双向 TLS，证书文件不存在时步骤报错
-        - ReplaceIfExists 为 false 且同名客户端已存在时，步骤报错
         - BaseUrl 会自动补齐结尾斜杠，确保相对路径拼接不丢失路径段
 
         ## 示例

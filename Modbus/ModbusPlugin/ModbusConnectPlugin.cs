@@ -38,7 +38,9 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 		## 行为
 
 		- TransportType=TCP 时使用 IpAddress/TcpPort，RTU 时使用串口参数
-		- 连接失败或同名连接已存在时步骤报错
+		- 连接失败时步骤报错
+		- 建立的主站对象会以 `ConnectionName` 为标识名注册到运行期资源表（同时以同一标识名注册底层传输对象与超时配置），供后续 Modbus_Read / Modbus_Write / Modbus_Disconnect 步骤取用
+		- 用同一个 ConnectionName 重复连接时：**静默替换**——旧对象会被自动释放，再注册新对象，不会报错
 		- 仅支持 TCP 与 RTU 两种传输方式，不支持 Modbus ASCII
 
 		## 检索关键词

@@ -26,7 +26,8 @@ public sealed class DoipDisconnectPlugin : StepPluginBase<DoipDisconnectSetting>
 
         ## 行为
 
-        - 关闭后该会话名不可再被其他 DoIP 步骤使用
+        - 从插件内部的全局 DoIP 会话池中查找 `SessionName` 对应的会话，释放连接并从会话池移除
+        - 会话名不存在时**不报错**，按 Passed 返回
 
         ## 相关插件
 

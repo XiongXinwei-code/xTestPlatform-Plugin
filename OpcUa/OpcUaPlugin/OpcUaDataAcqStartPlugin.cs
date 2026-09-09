@@ -33,7 +33,8 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
         ## 行为
 
         - 步骤启动采集后立即返回，采集在后台持续进行
-        - 同名 TaskName 已在采集中时步骤报错
+        - 采集任务会以 `TaskName` 为标识名注册到运行期资源表（同时以同一标识名注册节点列表配置），供 OpcUa_DataAcq_Read / OpcUa_DataAcq_Stop 步骤取用
+        - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会被自动释放，再注册新任务，不会报错
 
         ## 示例
 

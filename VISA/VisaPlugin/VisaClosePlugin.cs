@@ -28,7 +28,8 @@ public sealed class VisaClosePlugin : StepPluginBase<VisaCloseSetting>
 
         ## 行为
 
-        - 连接不存在时步骤报错
+        - 从运行期资源表中移除 `ConnectionName` 对应的会话及其终止符配置，移除时会自动释放会话
+        - 连接名不存在时**不报错**，按 Passed 返回
 
         ## 相关插件
 

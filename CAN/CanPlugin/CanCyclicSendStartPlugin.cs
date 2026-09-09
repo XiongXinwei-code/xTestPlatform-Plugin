@@ -31,7 +31,8 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
         ## 行为
 
         - 步骤启动任务后立即返回，发送在后台持续进行
-        - 同名 TaskName 已在运行时步骤报错
+        - 任务会以 `TaskName` 为标识名注册到运行期资源表，供 CAN_Cyclic_SendStop 步骤取用
+        - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会先被停止并从表中移除，再注册新任务，不会报错
 
         ## 示例
 

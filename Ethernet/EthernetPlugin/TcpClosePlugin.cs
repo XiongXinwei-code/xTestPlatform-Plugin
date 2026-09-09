@@ -26,7 +26,8 @@ public sealed class TcpClosePlugin : StepPluginBase<TcpCloseSetting>
 
         ## 行为
 
-        - 关闭后该连接名不可再被其他 TCP 步骤使用
+        - 从插件内部的全局 TCP 连接池中查找 `ConnectionName` 对应的连接，关闭套接字并从连接池移除
+        - 连接名不存在时**不报错**，按 Passed 返回
 
         ## 相关插件
 

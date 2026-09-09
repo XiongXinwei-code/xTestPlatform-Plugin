@@ -32,7 +32,8 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
         ## 行为
 
         - 端口不存在或已被占用时步骤报错
-        - 同一 PortName 重复打开会报错，需先用 SerialPort_Close 关闭
+        - 打开的端口会以 `PortName` 为标识名注册到运行期资源表，供后续 SerialPort_Write / SerialPort_Read / SerialPort_Query / SerialPort_Close 步骤取用
+        - 用同一个 PortName 重复打开时：**静默替换**——旧端口对象会被自动关闭并释放，再注册新对象，不会报错
 
         ## 检索关键词
 

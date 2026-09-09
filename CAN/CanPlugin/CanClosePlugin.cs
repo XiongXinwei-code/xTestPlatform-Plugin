@@ -25,7 +25,8 @@ public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>
 
         ## 行为
 
-        - 连接不存在时步骤报错
+        - 从运行期资源表中查找 `ConnectionName` 对应的适配器，关闭硬件通道并从表中移除
+        - 连接名不存在时**不报错**，仅记录日志并按 Passed 返回
 
         ## 相关插件
 

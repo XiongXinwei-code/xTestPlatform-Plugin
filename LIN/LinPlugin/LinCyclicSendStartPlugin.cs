@@ -37,7 +37,8 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
 
         ## 行为
 
-        - 任务在后台运行，重名任务启动会报错
+        - 任务在后台运行，会以 `TaskName` 为标识名注册到运行期资源表，供 LIN_Cyclic_SendStop 步骤取用
+        - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会先被停止并从表中移除，再注册新任务，不会报错
 
         ## 相关插件
 

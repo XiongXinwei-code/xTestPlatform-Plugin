@@ -33,6 +33,7 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
 
         - 连接成功后可执行 ShortUpload/ShortDownload 等 XCP 操作
         - 从站无响应或返回错误时步骤报错
+        - 填写 `ResourceVariable` 时，从站返回的资源掩码会以该名称注册到运行期资源表；用同一个名称重复注册时**静默替换**，不会报错
 
         ## 相关插件
 

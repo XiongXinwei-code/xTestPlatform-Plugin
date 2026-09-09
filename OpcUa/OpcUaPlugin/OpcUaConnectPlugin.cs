@@ -33,7 +33,9 @@ public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
 
         ## 行为
 
-        - 连接失败、认证失败或同名连接已存在时步骤报错
+        - 连接失败或认证失败时步骤报错
+        - 建立的会话会以 `ConnectionName` 为标识名注册到运行期资源表，供后续 OpcUa_Read / OpcUa_Write / OpcUa_Subscribe / OpcUa_DataAcq_Start / OpcUa_Disconnect 步骤取用
+        - 用同一个 ConnectionName 重复连接时：**静默替换**——旧会话会被自动释放，再注册新会话，不会报错
 
         ## 相关插件
 

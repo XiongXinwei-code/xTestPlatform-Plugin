@@ -30,6 +30,8 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
         ## 行为
 
         - 连接失败或超时时步骤报错
+        - 建立的连接以 `ConnectionName` 为标识名保存在**插件内部的全局 TCP 连接池**（非运行期资源表），供 Ethernet_TcpSend / Ethernet_TcpReceive / Ethernet_TcpClose 步骤取用；连接池不随序列结束自动释放，必须显式调用 Ethernet_TcpClose
+        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧连接会被自动关闭并释放，再建立新连接，不会报错
 
         ## 相关插件
 
