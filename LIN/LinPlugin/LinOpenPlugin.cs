@@ -31,7 +31,8 @@ public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
 
         ## 行为
 
-        - 打开后通过 ConnectionName 标识连接，供 Read/Write/Cyclic 步骤使用
+        - 打开的适配器会以 `ConnectionName` 为标识名注册到运行期资源表，供后续 LIN_Read / LIN_Write / LIN_Cyclic / LIN_Close 步骤取用
+        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧适配器会被自动关闭并释放，再注册新适配器，不会报错
 
         ## 适用硬件
 

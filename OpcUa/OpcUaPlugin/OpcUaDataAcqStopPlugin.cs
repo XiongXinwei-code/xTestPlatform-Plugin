@@ -26,8 +26,8 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
 
         ## 行为
 
-        - 停止后台采集任务并释放资源
-        - 任务不存在时步骤报错
+        - 从运行期资源表中查找 `TaskName` 对应的采集任务，停止采集并连同节点列表配置一并从表中移除
+        - 任务名不存在或未启动时**步骤报错**
 
         ## 相关插件
 

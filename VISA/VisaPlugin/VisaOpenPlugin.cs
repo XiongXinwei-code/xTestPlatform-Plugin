@@ -33,7 +33,8 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
         ## 行为
 
         - 资源不存在或打开超时时步骤报错
-        - 同名 ConnectionName 重复打开会报错，需先用 VISA_Close 关闭
+        - 打开的会话会以 `ConnectionName` 为标识名注册到运行期资源表（同时以同一标识名注册 `Terminator` 配置），供后续 VISA_Write / VISA_Read / VISA_Query / VISA_Close 步骤取用
+        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧会话会被自动关闭并释放，再注册新会话，不会报错
 
         ## 检索关键词
 

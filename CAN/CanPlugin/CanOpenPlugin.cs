@@ -50,7 +50,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
 
         ## 行为
 
-        - 硬件不存在、通道被占用或同名连接已存在时步骤报错
+        - 打开的适配器会以 `ConnectionName` 为标识名注册到运行期资源表，供后续 CAN_Read / CAN_Write / CAN_Cyclic / CAN_Close / XCP 步骤取用
+        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧适配器会被自动关闭并释放，再注册新适配器，不会报错
+        - 硬件不存在或通道被占用时步骤报错
         - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
         - 界面只配置采样点百分比，不暴露厂商专用的 BRP/SJW/TSEG1/TSEG2；适配器内部根据设备时钟与驱动能力换算
         - 运行日志会分别输出 Nominal/Data 两段的目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略

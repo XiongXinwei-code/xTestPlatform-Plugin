@@ -25,7 +25,8 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
 
         ## 行为
 
-        - 关闭后该连接名不可再被其他 LIN 步骤使用
+        - 从运行期资源表中查找 `ConnectionName` 对应的适配器，关闭硬件通道并从表中移除
+        - 连接名不存在时**不报错**，仅记录日志并按 Passed 返回
 
         ## 相关插件
 
