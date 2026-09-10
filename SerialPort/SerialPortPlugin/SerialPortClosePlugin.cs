@@ -21,7 +21,7 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | PortName | string([ExpressionField]) | 是 | — | 要关闭的端口名，如 COM1 |
+        | PortName | string([ExpressionField] -> string) | 是 | — | 要关闭的端口名，如 COM1 |
 
         ## 行为
 

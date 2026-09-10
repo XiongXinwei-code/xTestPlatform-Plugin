@@ -21,7 +21,7 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 要唤醒的连接标识名 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | "LIN1" | 要唤醒的连接标识名 |
         | WakeupMode | LinWakeupMode | 是 | Remote | 唤醒模式：Remote（总线唤醒）/ Local（仅本地接口） |
         | PostWakeupDelayMs | int | 是 | 100 | 唤醒后延时（毫秒），等待从节点就绪；0 表示不延时 |
 

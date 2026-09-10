@@ -21,8 +21,8 @@ public sealed class SerialPortQueryPlugin : StepPluginBase<SerialPortQuerySettin
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| PortName | string([ExpressionField]) | 是 | — | 已打开的端口名 |
-		| WriteData | string([ExpressionField]) | 是 | — | 要发送的数据 |
+		| PortName | string([ExpressionField] -> string) | 是 | — | 已打开的端口名 |
+		| WriteData | string([ExpressionField] -> string) | 是 | — | 要发送的数据 |
 		| DataFormat | 枚举 | 否 | String | 可选值：String, Hex, Bin |
 		| ReadTimeoutMs | int | 否 | 3000 | 读取超时毫秒数 |
 		| ReadBytes | int | 否 | 0 | 读取字节数，0 表示读到终止符 |

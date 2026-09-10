@@ -22,7 +22,7 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | — | 要断开的 OPC UA 连接标识名 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 要断开的 OPC UA 连接标识名 |
 
         ## 行为
 

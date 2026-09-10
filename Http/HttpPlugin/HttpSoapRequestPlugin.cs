@@ -24,12 +24,12 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ClientName | string([ExpressionField]) | 是 | "Mes" | 由 Http_ClientCreate 创建的客户端标识名 |
-        | Path | string([ExpressionField]) | 是 | "/service.asmx" | 服务端点路径，也可填写完整绝对 URL |
+        | ClientName | string([ExpressionField] -> string) | 是 | "Mes" | 由 Http_ClientCreate 创建的客户端标识名 |
+        | Path | string([ExpressionField] -> string) | 是 | "/service.asmx" | 服务端点路径，也可填写完整绝对 URL |
         | SoapVersion | 枚举 | 否 | Soap11 | SOAP 协议版本，可选值：Soap11, Soap12 |
-        | SoapAction | string([ExpressionField]) | 否 | — | SOAPAction 值，通常为命名空间加操作名 |
-        | Envelope | string([ExpressionField]) | 是 | — | 完整的 SOAP Envelope XML，可用表达式拼接变量 |
-        | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField])），结构见示例 |
+        | SoapAction | string([ExpressionField] -> string) | 否 | — | SOAPAction 值，通常为命名空间加操作名 |
+        | Envelope | string([ExpressionField] -> string) | 是 | — | 完整的 SOAP Envelope XML，可用表达式拼接变量 |
+        | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField] -> string)），结构见示例 |
         | ResponseVariable | string(变量路径) | 否 | Locals.SoapResponse |
         | StatusCodeVariable | string(变量路径) | 否 | — | 响应状态码写入的变量名，写入类型为 int |
         | TreatSoapFaultAsFailure | bool | 否 | true | 响应中包含 SOAP Fault 时是否判定步骤失败 |

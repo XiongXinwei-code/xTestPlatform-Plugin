@@ -21,11 +21,11 @@ public sealed class UdsReadDataByIdPlugin : StepPluginBase<UdsReadDataByIdSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | Did | string([ExpressionField]) | 是 | — | 数据标识符，如 0xF190 |
+        | Did | string([ExpressionField] -> string) | 是 | — | 数据标识符，如 0xF190 |
         | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
-        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
-        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField] -> string) | 是 | — | 请求 CAN ID，如 0x7DF |
+        | RxId | string([ExpressionField] -> string) | 是 | — | 响应 CAN ID，如 0x7E8 |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

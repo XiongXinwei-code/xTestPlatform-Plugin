@@ -24,7 +24,7 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SourceJson | string([ExpressionField]) | 是 | HttpResponse | 待解析的 JSON 文本，通常填写存放响应体的变量名 |
+        | SourceJson | string([ExpressionField] -> string) | 是 | HttpResponse | 待解析的 JSON 文本，通常填写存放响应体的变量名 |
         | Items | 集合 | 是 | 空 | 提取映射列表，元素含 Path、TargetVariable、DefaultValue，结构见示例 |
         | FailOnMissingPath | bool | 否 | true | 任一路径未命中时是否判定步骤失败 |
 

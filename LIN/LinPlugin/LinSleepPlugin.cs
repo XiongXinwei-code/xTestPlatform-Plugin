@@ -21,7 +21,7 @@ public sealed class LinSleepPlugin : StepPluginBase<LinSleepSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 连接标识名 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | "LIN1" | 连接标识名 |
         | SleepMode | LinSleepMode | 是 | Remote | 睡眠模式：Remote（发送 Go-to-Sleep 命令）/ Local（仅本地接口） |
         | PostSleepDelayMs | int | 是 | 100 | 入睡后延时（毫秒），等待从节点完成入睡流程；0 表示不延时 |
 
