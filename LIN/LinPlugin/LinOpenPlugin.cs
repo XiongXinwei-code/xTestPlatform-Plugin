@@ -22,12 +22,12 @@ public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | AdapterType | 枚举 | 否 | NI | 可选值：NI（已实现）；PEAK / Vector / IXXAT 枚举已定义但适配器未实现，选用会在运行时抛 NotSupportedException |
-        | Channel | string([ExpressionField]) | 是 | "LIN1" | 硬件通道名称 |
+        | Channel | string([ExpressionField] -> string) | 是 | "LIN1" | 硬件通道名称 |
         | BaudRate | int | 否 | 19200 | 波特率 |
         | LinVersion | 枚举 | 否 | LIN_2x | 可选值：LIN_1x, LIN_2x |
         | IsMaster | bool | 否 | true | 是否主节点 |
         | RxQueueSize | int | 否 | 512 | 接收缓冲区大小（帧数），驱动层接收队列容量，两次读取之间到达的帧缓存在此，队列满后新帧丢弃 |
-        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 运行时连接标识名，供后续步骤引用 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | "LIN1" | 运行时连接标识名，供后续步骤引用 |
 
         ## 行为
 

@@ -21,9 +21,9 @@ public sealed class LinWritePlugin : StepPluginBase<LinWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名 |
-        | FrameId | string([ExpressionField]) | 是 | 0 | 帧 ID 0-63 |
-        | Data | string([ExpressionField]) | 是 | 空 | 十六进制数据，如 "01 02 03" |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | "LIN1" | 已打开的连接标识名 |
+        | FrameId | string([ExpressionField] -> string) | 是 | 0 | 帧 ID 0-63，求值结果为字符串，支持十进制（如 "\"63\""）或 0x 前缀十六进制（如 "\"0x3F\""） |
+        | Data | string([ExpressionField] -> string) | 是 | 空 | 十六进制数据，如 "01 02 03" |
         | ChecksumType | 枚举 | 否 | Enhanced | 可选值：Classic, Enhanced |
         | EnableLog | bool | 否 | true | 是否输出日志 |
 

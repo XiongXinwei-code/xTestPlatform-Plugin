@@ -24,7 +24,7 @@ public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ClientName | string([ExpressionField]) | 是 | "Mes" | 要释放的客户端标识名 |
+        | ClientName | string([ExpressionField] -> string) | 是 | "Mes" | 要释放的客户端标识名 |
         | IgnoreIfNotFound | bool | 否 | true | 客户端不存在时是否忽略而不报错 |
 
         ## 行为

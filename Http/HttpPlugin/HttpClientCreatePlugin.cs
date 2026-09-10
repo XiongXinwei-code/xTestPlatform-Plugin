@@ -24,18 +24,18 @@ public sealed class HttpClientCreatePlugin : StepPluginBase<HttpClientCreateSett
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ClientName | string([ExpressionField]) | 是 | "Mes" | 客户端标识名，供后续请求步骤引用 |
-        | BaseUrl | string([ExpressionField]) | 是 | "http://localhost:8080" | 服务基地址，请求步骤填相对路径即可 |
+        | ClientName | string([ExpressionField] -> string) | 是 | "Mes" | 客户端标识名，供后续请求步骤引用 |
+        | BaseUrl | string([ExpressionField] -> string) | 是 | "http://localhost:8080" | 服务基地址，请求步骤填相对路径即可 |
         | TimeoutMs | int | 否 | 30000 | 请求超时毫秒数，0 表示不限制 |
         | AuthMode | 枚举 | 否 | None | 认证方式，可选值：None, Basic, BearerToken, ClientCertificate |
-        | UserName | string([ExpressionField]) | 否 | — | Basic 认证用户名，仅 AuthMode=Basic 时生效 |
-        | Password | string([ExpressionField]) | 否 | — | Basic 认证密码，仅 AuthMode=Basic 时生效 |
-        | Token | string([ExpressionField]) | 否 | — | Bearer Token，仅 AuthMode=BearerToken 时生效 |
-        | ClientCertPath | string([ExpressionField]) | 否 | — | 客户端证书 pfx 路径，仅 AuthMode=ClientCertificate 时生效 |
-        | ClientCertPassword | string([ExpressionField]) | 否 | — | 客户端证书密码，仅 AuthMode=ClientCertificate 时生效 |
+        | UserName | string([ExpressionField] -> string) | 否 | — | Basic 认证用户名，仅 AuthMode=Basic 时生效 |
+        | Password | string([ExpressionField] -> string) | 否 | — | Basic 认证密码，仅 AuthMode=Basic 时生效 |
+        | Token | string([ExpressionField] -> string) | 否 | — | Bearer Token，仅 AuthMode=BearerToken 时生效 |
+        | ClientCertPath | string([ExpressionField] -> string) | 否 | — | 客户端证书 pfx 路径，仅 AuthMode=ClientCertificate 时生效 |
+        | ClientCertPassword | string([ExpressionField] -> string) | 否 | — | 客户端证书密码，仅 AuthMode=ClientCertificate 时生效 |
         | IgnoreServerCertificateErrors | bool | 否 | false | 忽略服务端证书校验错误，仅用于自签证书的内网环境 |
         | ReplaceIfExists | bool | 否 | true | 同名客户端已存在时是否替换 |
-        | DefaultHeaders | 集合 | 否 | 空 | 默认请求头列表，元素含 Name 与 Value（string([ExpressionField])），结构见示例 |
+        | DefaultHeaders | 集合 | 否 | 空 | 默认请求头列表，元素含 Name 与 Value（string([ExpressionField] -> string)），结构见示例 |
 
         ## 行为
 

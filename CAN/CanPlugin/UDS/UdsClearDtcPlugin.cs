@@ -21,10 +21,10 @@ public sealed class UdsClearDtcPlugin : StepPluginBase<UdsClearDtcSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | DtcGroup | string([ExpressionField]) | 否 | 0xFFFFFF | DTC 组，0xFFFFFF 表示全部清除 |
-        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
-        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
+        | DtcGroup | string([ExpressionField] -> string) | 否 | 0xFFFFFF | DTC 组，0xFFFFFF 表示全部清除 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField] -> string) | 是 | — | 请求 CAN ID，如 0x7DF |
+        | RxId | string([ExpressionField] -> string) | 是 | — | 响应 CAN ID，如 0x7E8 |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

@@ -24,7 +24,7 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SourceXml | string([ExpressionField]) | 是 | SoapResponse | 待解析的 XML 文本，通常填写存放响应体的变量名 |
+        | SourceXml | string([ExpressionField] -> string) | 是 | SoapResponse | 待解析的 XML 文本，通常填写存放响应体的变量名 |
         | Items | 集合 | 是 | 空 | 提取映射列表，元素含 Path（XPath）、TargetVariable、DefaultValue，结构见示例 |
         | IgnoreNamespaces | bool | 否 | true | 是否忽略元素命名空间，忽略后 XPath 可直接写元素名 |
         | FailOnMissingPath | bool | 否 | true | 任一 XPath 未命中时是否判定步骤失败 |

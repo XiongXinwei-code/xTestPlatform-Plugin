@@ -24,12 +24,12 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ClientName | string([ExpressionField]) | 是 | "Mes" | 由 Http_ClientCreate 创建的客户端标识名 |
+        | ClientName | string([ExpressionField] -> string) | 是 | "Mes" | 由 Http_ClientCreate 创建的客户端标识名 |
         | Method | 枚举 | 否 | Get | 请求方法，可选值：Get, Post, Put, Patch, Delete, Head, Options |
-        | Path | string([ExpressionField]) | 是 | "/" | 相对基地址的路径，也可填写完整绝对 URL |
+        | Path | string([ExpressionField] -> string) | 是 | "/" | 相对基地址的路径，也可填写完整绝对 URL |
         | ContentType | 枚举 | 否 | None | 请求体类型，可选值：None, Json, Xml, Text, FormUrlEncoded |
-        | Body | string([ExpressionField]) | 否 | — | 请求体内容，可用表达式拼接变量生成 JSON |
-        | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField])），结构见示例 |
+        | Body | string([ExpressionField] -> string) | 否 | — | 请求体内容，可用表达式拼接变量生成 JSON |
+        | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField] -> string)），结构见示例 |
         | ResponseVariable | string(变量路径) | 否 | Locals.HttpResponse |
         | StatusCodeVariable | string(变量路径) | 否 | — | 响应状态码写入的变量名，写入类型为 int |
         | ElapsedVariable | string(变量路径) | 否 | — | 请求耗时毫秒数写入的变量名，写入类型为 int |

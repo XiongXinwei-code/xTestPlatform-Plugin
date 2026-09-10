@@ -25,7 +25,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | AdapterType | 枚举 | 是 | — | 硬件类型，可选值：NI, PEAK, Vector, ZLG, Kvaser, TOSUN |
-        | Channel | string([ExpressionField]) | 是 | — | 通道名称 |
+        | Channel | string([ExpressionField] -> string) | 是 | — | 通道名称 |
         | BaudRate | int | 是 | — | 仲裁段波特率 |
         | Protocol | 枚举 | 是 | Classic | 可选值：Classic, FD |
         | DataBitRate | int | FD 时 | 2000000 | 数据段波特率 |
@@ -33,7 +33,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | ArbitrationSamplePoint | double | 否 | 80.0 | 仲裁段目标采样点百分比，范围 7.5%~97.5%；插件在适配器内部转换为驱动位时序 |
         | DataSamplePoint | double | FD 时 | 80.0 | 数据段目标采样点百分比，范围 7.5%~97.5%；与仲裁段采样点独立配置 |
         | RxQueueSize | int | 否 | 8192 | 接收缓冲区大小（帧数）；NI-XNET 同时由后台接收泵持续排空驱动队列 |
-        | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 连接标识名，序列内唯一 |
 
         ## 通道命名规则
 

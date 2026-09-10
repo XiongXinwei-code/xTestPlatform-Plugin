@@ -21,9 +21,9 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | TxId | string([ExpressionField]) | 是 | "0x7E1" | XCP 请求 CAN ID |
-        | RxId | string([ExpressionField]) | 是 | "0x7E9" | XCP 响应 CAN ID |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField] -> string) | 是 | "0x7E1" | XCP 请求 CAN ID |
+        | RxId | string([ExpressionField] -> string) | 是 | "0x7E9" | XCP 响应 CAN ID |
         | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
         | ConnectMode | 枚举 | 否 | Normal | 可选值：Normal, UserDefined |
         | ResourceVariable | string | 否 | 空 | 存储资源掩码的变量路径 |

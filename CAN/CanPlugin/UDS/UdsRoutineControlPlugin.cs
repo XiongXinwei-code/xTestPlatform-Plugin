@@ -22,12 +22,12 @@ public sealed class UdsRoutineControlPlugin : StepPluginBase<UdsRoutineControlSe
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | ControlType | 枚举 | 否 | Start | 可选值：Start, Stop, RequestResults |
-        | RoutineId | string([ExpressionField]) | 是 | — | 例程 ID，如 0xFF00 |
-        | OptionRecord | string([ExpressionField]) | 否 | 空 | 输入参数（十六进制），可为空 |
+        | RoutineId | string([ExpressionField] -> string) | 是 | — | 例程 ID，如 0xFF00 |
+        | OptionRecord | string([ExpressionField] -> string) | 否 | 空 | 输入参数（十六进制），可为空 |
         | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
-        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID |
-        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
+        | TxId | string([ExpressionField] -> string) | 是 | — | 请求 CAN ID，如 0x7DF |
+        | RxId | string([ExpressionField] -> string) | 是 | — | 响应 CAN ID，如 0x7E8 |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

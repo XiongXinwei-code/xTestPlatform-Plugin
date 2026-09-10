@@ -22,8 +22,8 @@ public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | OpcUa1 | 连接标识名，序列内唯一 |
-        | EndpointUrl | string([ExpressionField]) | 是 | — | 服务器端点，如 opc.tcp://192.168.1.1:4840 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | OpcUa1 | 连接标识名，序列内唯一 |
+        | EndpointUrl | string([ExpressionField] -> string) | 是 | — | 服务器端点，如 opc.tcp://192.168.1.1:4840 |
         | SecurityPolicy | 枚举 | 否 | None | 可选值：None, Basic256Sha256, Aes128Sha256RsaOaep, Aes256Sha256RsaPss |
         | AuthMode | 枚举 | 否 | Anonymous | 可选值：Anonymous, UserPassword |
         | UserName | string | 否 | 空 | AuthMode=UserPassword 时使用 |

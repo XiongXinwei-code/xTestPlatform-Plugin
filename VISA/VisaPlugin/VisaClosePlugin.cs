@@ -24,7 +24,7 @@ public sealed class VisaClosePlugin : StepPluginBase<VisaCloseSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | — | 要关闭的连接标识名 |
+        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 要关闭的连接标识名 |
 
         ## 行为
 

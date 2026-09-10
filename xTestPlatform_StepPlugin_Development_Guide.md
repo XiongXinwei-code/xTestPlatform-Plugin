@@ -122,7 +122,8 @@
 - [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
 - [ ] 所有作为"结果写入目标"的 string 字段已标记 `[VariablePathField]`（判断依据：Executor 中该字段被传给 `ctx.SetVariable`），且默认值/示例使用带作用域前缀的完整路径（如 `Locals.rxData`）（§12.3）
 - [ ] 插件只读写变量列表中已声明、且由用户明确配置的完整变量路径；禁止硬编码变量路径，禁止通过拼接前后缀等方式构造隐式变量路径，禁止将表达式求值得到的普通字符串值再次作为变量路径（§12.3）
-- [ ] `[ExpressionField]` 与 `[VariablePathField]` 未同时标记在同一属性上；`Description` 参数表格中类型列已相应写成 `string([ExpressionField])` 或 `string(变量路径)`（§12.3）
+- [ ] `[ExpressionField]` 与 `[VariablePathField]` 未同时标记在同一属性上；`Description` 参数表格中类型列已相应写成 `string([ExpressionField] -> 求值类型)` 或 `string(变量路径)`（§12.3）
+- [ ] 每个 `[ExpressionField]` 参数在 `Description` 类型列中已标注求值后的返回类型（如 `string([ExpressionField] -> string)`、`string([ExpressionField] -> byte[])`），返回类型以 Executor 中实际求值调用为准，不得凭字段名臆测（§2.1.1）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
 - [ ] **阻塞式 I/O 必须做软超时兜底**：若底层 API 是同步阻塞调用，或其异步重载不响应 `CancellationToken`（如 `System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync`、NModbus 的 `Read*Async`、NI-VISA 的 `FormattedIO`、NI-DAQmx 的 `Reader/Writer`、LabVIEW 的 VI 调用），必须在插件层用 `Task.Run(...) + WaitAsync(TimeSpan, token)` 或同步读写 + 截止时间循环做软超时，**不能只在 Setting 里声明超时字段就认为超时生效**
@@ -278,7 +279,7 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| ConnectionName | string([ExpressionField]) | 是 | — | 已建立的连接名 |
+| ConnectionName | string([ExpressionField] -> string) | 是 | — | 已建立的连接名 |
 | TimeoutMs | int | 否 | 0 | 超时毫秒数，0 表示不限制 |
 | DataFormat | 枚举 | 否 | UInt16 | 可选值：UInt16, Int16, Float_AB_CD |
 | Items | 集合 | 是 | — | 读取项列表，元素结构见示例 |
@@ -310,7 +311,7 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 **设计要点：**
 
 1. **五个固定章节，顺序固定**：`功能` → `参数` → `行为` → `示例` → `相关插件`。前两节必填，后三节按需。
-2. **参数用表格**：类型列区分 `string / int / bool / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成 `string([ExpressionField])`、`int([ExpressionField])` 这种形式，即“实际类型([ExpressionField])”，AI 就知道要生成表达式而不是字面量。标了 `[VariablePathField]` 的字段写成 `string(变量路径)`，说明列给出带作用域前缀的示例（如 `Locals.rxData`），AI 就知道要填完整变量路径而不是裸变量名或表达式（§12.3）。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
+2. **参数用表格**：类型列区分 `string / int / bool / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成 `string([ExpressionField] -> 求值类型)` 这种形式，即“声明类型([ExpressionField] -> 求值后返回类型)”。外层 `string` 表示 Setting 中该属性的声明类型（表达式字段恒为 `string`，AI 生成 JSON 时要填字符串字面量）；箭头后是该表达式**求值后应当返回的类型**，AI 据此知道表达式该算出什么，而不必猜测。返回类型用 C# 小写写法（`string`、`int`、`bool`、`byte[]`、`object`），并**必须与 Executor 中实际的求值调用一致**：`EvalStringAsync` → `string`，`EvaluateAsync<byte[]>` → `byte[]`，依此类推。标了 `[VariablePathField]` 的字段写成 `string(变量路径)`，说明列给出带作用域前缀的示例（如 `Locals.rxData`），AI 就知道要填完整变量路径而不是裸变量名或表达式（§12.3）。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
 3. **示例用 ```json 代码块**：渲染成等宽代码块，AI 也能直接照抄结构。含集合的 Setting 必须给示例。
 4. **相关插件**：对成组使用的插件族（连接/断开、启动/停止、配置/读取）特别有价值，帮助 AI 和用户理解组合用法。
 5. **代码实现用 C# 原始字符串字面量**（`"""..."""`）书写多行 Markdown，避免转义。
@@ -327,8 +328,8 @@ public override string Description => """
 
     | 参数 | 类型 | 必填 | 默认值 | 说明 |
     |------|------|------|--------|------|
-    | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名 |
-    | Command | string([ExpressionField]) | 是 | — | SCPI 查询命令，如 *IDN? |
+    | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 VISA 连接标识名 |
+    | Command | string([ExpressionField] -> string) | 是 | — | SCPI 查询命令，如 *IDN? |
     | ResultVariable | string(变量路径) | 是 | — | 结果存入的变量，如 Locals.idn |
     | TrimResponse | bool | 否 | true | 是否去除响应首尾空白 |
 
@@ -1851,7 +1852,7 @@ result.Title = setting.Title;
 
 #### 同步要求
 
-标记了 `[VariablePathField]` 的字段，插件 `Description` 的"## 参数"表格中类型列必须写成 `string(变量路径)`，与 `[ExpressionField]` 写成 `string([ExpressionField])` 的规则对应（§2.1.1）：
+标记了 `[VariablePathField]` 的字段，插件 `Description` 的"## 参数"表格中类型列必须写成 `string(变量路径)`，与 `[ExpressionField]` 写成 `string([ExpressionField] -> 求值类型)` 的规则对应（§2.1.1）：
 
 ```markdown
 | ResultVariable | string(变量路径) | 否 | — | 存储接收数据的变量（如 Locals.rxData） |
