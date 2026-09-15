@@ -84,7 +84,7 @@ public sealed class OpcUaWriteExecutor : IStepExecutor
                 };
             }
 
-            context.LogAction?.Invoke($"OPC UA 写入: {nodeIdStr} = {writeValueStr}");
+            context.Log($"OPC UA 写入: {nodeIdStr} = {writeValueStr}");
 
             return new ExecutionResult
             {

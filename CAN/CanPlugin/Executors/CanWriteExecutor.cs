@@ -53,7 +53,7 @@ public sealed class CanWriteExecutor : IStepExecutor
             adapter.Write(message);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"CAN 发送: ID=0x{canId:X}, Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
+                context.Log($"CAN 发送: ID=0x{canId:X}, Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
 
             return new ExecutionResult
             {

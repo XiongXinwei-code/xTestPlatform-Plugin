@@ -72,10 +72,10 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
                 if (string.IsNullOrWhiteSpace(csvPath))
                     return ErrorResult("CSV 文件路径不能为空");
                 OpcUaDataAcqTask.AppendCsv(csvPath, items, records);
-                context.LogAction?.Invoke($"数据已追加导出到: {csvPath} ({records.Count} 条记录)");
+                context.Log($"数据已追加导出到: {csvPath} ({records.Count} 条记录)");
             }
 
-            context.LogAction?.Invoke($"OPC UA 采集数据读取: {taskName} ({records.Count} 条记录, 缓冲剩余 {acqTask.SampleCount})");
+            context.Log($"OPC UA 采集数据读取: {taskName} ({records.Count} 条记录, 缓冲剩余 {acqTask.SampleCount})");
 
             return new ExecutionResult
             {

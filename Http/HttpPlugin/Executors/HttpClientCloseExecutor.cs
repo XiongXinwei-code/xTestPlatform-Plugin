@@ -33,7 +33,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
             {
                 if (setting.IgnoreIfNotFound)
                 {
-                    context.LogAction?.Invoke($"HTTP 客户端不存在，已忽略关闭操作: {clientName}");
+                    context.Log(LogLevel.Warn, $"HTTP 客户端不存在，已忽略关闭操作: {clientName}");
                     return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
                 }
 
@@ -41,7 +41,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
             }
 
             context.Resources.Remove(key);
-            context.LogAction?.Invoke($"HTTP 客户端已释放: {clientName}");
+            context.Log($"HTTP 客户端已释放: {clientName}");
 
             return new ExecutionResult
             {

@@ -90,7 +90,7 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
 
                             if (setting.EnableLog)
                             {
-                                context.LogAction?.Invoke(
+                                context.Log(
                                     $"[CyclicSend] 0x{canId:X} -> {BitConverter.ToString(data).Replace("-", " ")} ({msg.CycleTimeMs}ms)");
                             }
                         }
@@ -101,12 +101,12 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                     }
                     catch (Exception ex)
                     {
-                        context.LogAction?.Invoke($"[CyclicSend] 报文 {msg.CanId} 发送异常: {ex.Message}");
+                        context.Log(LogLevel.Warn, $"[CyclicSend] 报文 {msg.CanId} 发送异常: {ex.Message}", ex.ToString());
                     }
                 }, cts.Token);
             }
 
-            context.LogAction?.Invoke($"CAN 周期发送已启动: TaskName={taskName}, 报文数={enabledMessages.Count}");
+            context.Log($"CAN 周期发送已启动: TaskName={taskName}, 报文数={enabledMessages.Count}");
 
             return new ExecutionResult
             {

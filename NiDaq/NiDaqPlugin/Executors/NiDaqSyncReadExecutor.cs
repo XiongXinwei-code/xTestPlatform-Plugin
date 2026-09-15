@@ -88,7 +88,7 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
                 string[] aiNames = new string[aiChannels];
                 for (int ch = 0; ch < aiChannels; ch++)
                     aiNames[ch] = task.AIChannels[ch].VirtualName;
-                DaqFileWriter.AppendSyncCsv(filePath, aiData, aiNames, encoderValue, setting.MaxFileSizeMB, context.LogAction);
+                DaqFileWriter.AppendSyncCsv(filePath, aiData, aiNames, encoderValue, setting.MaxFileSizeMB, m => context.Log(m));
             }
 
             return new ExecutionResult

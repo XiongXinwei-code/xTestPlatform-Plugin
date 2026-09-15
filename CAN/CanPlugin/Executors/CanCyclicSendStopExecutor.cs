@@ -27,7 +27,7 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
                 await cts.CancelAsync();
                 context.Resources.Remove(taskKey);
 
-                context.LogAction?.Invoke($"CAN 周期发送已停止: TaskName={taskName}");
+                context.Log($"CAN 周期发送已停止: TaskName={taskName}");
 
                 return new ExecutionResult
                 {

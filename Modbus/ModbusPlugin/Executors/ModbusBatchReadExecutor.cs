@@ -85,7 +85,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 			}
 
 			var summary = string.Join("; ", results);
-			context.LogAction?.Invoke($"Modbus BatchRead: {summary}");
+			context.Log($"Modbus BatchRead: {summary}");
 
 			return new ExecutionResult
 			{

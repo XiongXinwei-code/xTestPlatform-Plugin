@@ -42,7 +42,7 @@ public sealed class XcpShortUploadExecutor : IStepExecutor
             var hexValue = XcpExecutorHelper.ToHex(data);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"XCP SHORT_UPLOAD 0x{address:X8} [{setting.ReadLength}字节] = {hexValue}");
+                context.Log($"XCP SHORT_UPLOAD 0x{address:X8} [{setting.ReadLength}字节] = {hexValue}");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, hexValue);

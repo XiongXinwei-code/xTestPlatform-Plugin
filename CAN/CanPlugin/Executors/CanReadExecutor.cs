@@ -70,7 +70,7 @@ public sealed class CanReadExecutor : IStepExecutor
                 context.SetVariable(setting.IdVariable, $"0x{msg.Id:X}");
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
+                context.Log($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
 
             return new ExecutionResult
             {

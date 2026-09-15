@@ -39,11 +39,11 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
                 if (port.IsOpen)
                     port.Close();
                 context.Resources.Remove(key);
-                context.LogAction?.Invoke($"串口 {portName} 已关闭");
+                context.Log($"串口 {portName} 已关闭");
             }
             else
             {
-                context.LogAction?.Invoke($"串口 {portName} 未找到或已关闭");
+                context.Log(LogLevel.Warn, $"串口 {portName} 未找到或已关闭");
             }
 
             return new ExecutionResult

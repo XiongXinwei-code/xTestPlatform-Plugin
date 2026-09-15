@@ -79,7 +79,7 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
             // Set 会自动销毁同名旧会话（如上次运行异常终止未断开）
             context.Resources.Set(key, session);
 
-            context.LogAction?.Invoke($"OPC UA 连接已建立: {connName} ({endpointUrl})");
+            context.Log($"OPC UA 连接已建立: {connName} ({endpointUrl})");
 
             return new ExecutionResult
             {

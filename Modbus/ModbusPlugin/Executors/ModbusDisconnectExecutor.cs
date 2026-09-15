@@ -38,7 +38,7 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 				context.Resources.Remove(key + "_transport");
 			}
 
-			context.LogAction?.Invoke($"Modbus 连接已关闭: {connName}");
+			context.Log($"Modbus 连接已关闭: {connName}");
 			return new ExecutionResult
 			{
 				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已断开: {connName}" }

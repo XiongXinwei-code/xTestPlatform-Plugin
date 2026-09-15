@@ -47,7 +47,7 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
             if (OpcUaHelper.CompareValue(currentStr, expectedValue, setting.CompareMode))
             {
                 context.SetVariable(setting.ResultVariable, currentValue.Value);
-                context.LogAction?.Invoke($"OPC UA 订阅: {nodeIdStr} 当前值 {currentStr} 已满足条件");
+                context.Log($"OPC UA 订阅: {nodeIdStr} 当前值 {currentStr} 已满足条件");
                 return new ExecutionResult
                 {
                     StepResult = new StepResult { Status = TestStatus.Passed, Value = currentStr }
@@ -94,7 +94,7 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
                 var resultValue = await tcs.Task;
 
                 context.SetVariable(setting.ResultVariable, resultValue);
-                context.LogAction?.Invoke($"OPC UA 订阅: {nodeIdStr} = {resultValue}，条件满足");
+                context.Log($"OPC UA 订阅: {nodeIdStr} = {resultValue}，条件满足");
 
                 return new ExecutionResult
                 {

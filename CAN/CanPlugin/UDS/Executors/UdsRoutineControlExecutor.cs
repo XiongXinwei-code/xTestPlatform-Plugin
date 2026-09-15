@@ -45,7 +45,7 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     context.SetVariable(setting.ResultVariable, hex);
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
+                    context.Log($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
             }
             else

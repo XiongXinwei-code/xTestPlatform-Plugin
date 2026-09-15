@@ -27,11 +27,11 @@ public sealed class CanCloseExecutor : IStepExecutor
             {
                 adapter.Close();
                 context.Resources.Remove(key);
-                context.LogAction?.Invoke($"CAN 通道已关闭: {connName}");
+                context.Log($"CAN 通道已关闭: {connName}");
             }
             else
             {
-                context.LogAction?.Invoke($"CAN 通道未找到: {connName}");
+                context.Log(LogLevel.Warn, $"CAN 通道未找到: {connName}");
             }
 
             return new ExecutionResult

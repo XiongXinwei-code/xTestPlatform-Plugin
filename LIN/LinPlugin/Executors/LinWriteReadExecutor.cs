@@ -51,7 +51,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             adapter.Write(txFrame);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
+                context.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
 
             // 等待从机对同一帧 ID 的响应
             var response = adapter.Read(frameId, setting.ResponseTimeoutMs, cancellationToken);
@@ -74,7 +74,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
                 context.SetVariable(setting.ResultVariable, responseHex);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"LIN 响应: ID=0x{response.FrameId:X2}({response.FrameId}), Data=[{responseHex}]");
+                context.Log($"LIN 响应: ID=0x{response.FrameId:X2}({response.FrameId}), Data=[{responseHex}]");
 
             return new ExecutionResult
             {

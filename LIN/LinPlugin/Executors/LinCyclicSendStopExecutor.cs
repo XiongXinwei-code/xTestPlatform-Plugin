@@ -26,7 +26,7 @@ public sealed class LinCyclicSendStopExecutor : IStepExecutor
             {
                 await cts.CancelAsync();
                 context.Resources.Remove(taskKey);
-                context.LogAction?.Invoke($"LIN 周期发送已停止: TaskName={taskName}");
+                context.Log($"LIN 周期发送已停止: TaskName={taskName}");
 
                 return new ExecutionResult
                 {

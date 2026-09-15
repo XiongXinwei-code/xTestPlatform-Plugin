@@ -41,7 +41,7 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
             context.Resources.Remove(taskKey);
             context.Resources.Remove(taskKey + "_items");
 
-            context.LogAction?.Invoke($"OPC UA 数据采集已停止: {taskName} (丢弃未消费数据 {records.Count} 条)");
+            context.Log($"OPC UA 数据采集已停止: {taskName} (丢弃未消费数据 {records.Count} 条)");
 
             return new ExecutionResult
             {

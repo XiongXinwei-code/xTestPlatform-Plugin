@@ -31,7 +31,7 @@ public sealed class DoipConnectExecutor : IStepExecutor
                 name, host, port, sourceAddress, activationType, setting.TimeoutMs, cancellationToken);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke(
+                context.Log(
                     $"DoIP 连接并路由激活成功: {name} -> {host}:{port}, 源地址=0x{sourceAddress:X4}");
 
             return new ExecutionResult

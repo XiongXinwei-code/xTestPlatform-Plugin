@@ -50,19 +50,19 @@ public sealed class CanFlashExecutor : IStepExecutor
 
             if (setting.EnableLog)
             {
-                context.LogAction?.Invoke($"UDS Flash: 固件 {filePath}");
-                context.LogAction?.Invoke($"UDS Flash: 共 {segments.Count} 个数据段，合计 {totalBytes} 字节");
-                context.LogAction?.Invoke(setting.UseFdFrame
+                context.Log($"UDS Flash: 固件 {filePath}");
+                context.Log($"UDS Flash: 共 {segments.Count} 个数据段，合计 {totalBytes} 字节");
+                context.Log(setting.UseFdFrame
                     ? "UDS Flash: ISO-TP 使用 CAN FD/BRS，分段帧最大 64 字节"
                     : "UDS Flash: ISO-TP 使用 Classic CAN，分段帧最大 8 字节");
                 foreach (var seg in segments)
-                    context.LogAction?.Invoke($"UDS Flash: 数据段 {seg}");
+                    context.Log($"UDS Flash: 数据段 {seg}");
             }
 
             if (setting.PreDownloadDelayMs > 0)
             {
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 下载前等待 {setting.PreDownloadDelayMs} ms");
+                    context.Log($"UDS Flash: 下载前等待 {setting.PreDownloadDelayMs} ms");
                 await Task.Delay(setting.PreDownloadDelayMs, cancellationToken);
             }
 
@@ -121,13 +121,13 @@ public sealed class CanFlashExecutor : IStepExecutor
                     }
 
                     if (setting.EnableLog)
-                        context.LogAction?.Invoke(
+                        context.Log(
                             $"UDS Flash: 擦除 0x{segment.StartAddress:X8}，长度 {segment.Length} 字节，" +
                             $"TX=[{UdsExecutorHelper.ToHex(eraseRequest.ToArray())}]");
 
                     var eraseResponse = await eraseClient.RequestAsync(eraseRequest.ToArray(), cancellationToken);
                     if (setting.EnableLog)
-                        context.LogAction?.Invoke($"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
+                        context.Log($"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                     if (!eraseResponse.IsPositive)
                         return Failed($"擦除失败: {eraseResponse.GetNrcDescription()}",
                             $"{eraseResponse.GetFailureValue()}; " +
@@ -141,11 +141,11 @@ public sealed class CanFlashExecutor : IStepExecutor
                 downloadRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
 
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 请求下载 TX=[{UdsExecutorHelper.ToHex(downloadRequest.ToArray())}]");
+                    context.Log($"UDS Flash: 请求下载 TX=[{UdsExecutorHelper.ToHex(downloadRequest.ToArray())}]");
 
                 var downloadResponse = await client.RequestAsync(downloadRequest.ToArray(), cancellationToken);
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
+                    context.Log($"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
                 if (!downloadResponse.IsPositive)
                     return Failed($"请求下载失败: {downloadResponse.GetNrcDescription()}",
                         downloadResponse.GetFailureValue());
@@ -155,7 +155,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     return Error("ECU 返回的最大块长度无效，无法确定分块大小");
 
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 开始传输 0x{segment.StartAddress:X8}，分块大小 {blockSize} 字节");
+                    context.Log($"UDS Flash: 开始传输 0x{segment.StartAddress:X8}，分块大小 {blockSize} 字节");
                 ReportProgress(context, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
 
                 // 分块传输 (0x36)
@@ -179,7 +179,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                             break;
 
                         if (attempt < setting.BlockRetryCount && setting.EnableLog)
-                            context.LogAction?.Invoke(
+                            context.Log(
                                 $"UDS Flash: 块 {blockCounter} 传输失败({transferResponse.GetNrcDescription()})，第 {attempt + 1} 次重试");
                     }
 
@@ -205,7 +205,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                         exitResponse.GetFailureValue());
 
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 数据段 0x{segment.StartAddress:X8} 传输完成");
+                    context.Log($"UDS Flash: 数据段 0x{segment.StartAddress:X8} 传输完成");
             }
 
             // ── 校验 (0x31) ──────────────────────────────────────────────
@@ -227,11 +227,11 @@ public sealed class CanFlashExecutor : IStepExecutor
                 checkRequest.AddRange(EncodeValue(checkValue, 4));
 
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 校验 {setting.CheckMode}=0x{checkValue:X8}");
+                    context.Log($"UDS Flash: 校验 {setting.CheckMode}=0x{checkValue:X8}");
 
                 var checkResponse = await eraseClient.RequestAsync(checkRequest.ToArray(), cancellationToken);
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
+                    context.Log($"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
                 if (!checkResponse.IsPositive)
                     return Failed($"固件校验失败: {checkResponse.GetNrcDescription()}",
                         checkResponse.GetFailureValue());
@@ -250,7 +250,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 }
 
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke(
+                    context.Log(
                         $"UDS Flash: {setting.CheckMode} 校验通过，校验值=0x{checkValue:X8}");
             }
 
@@ -258,7 +258,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 context.SetVariable(setting.ResultVariable, writtenBytes);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"UDS Flash: 烧录完成，共写入 {writtenBytes} 字节");
+                context.Log($"UDS Flash: 烧录完成，共写入 {writtenBytes} 字节");
 
             return new ExecutionResult
             {
@@ -390,7 +390,7 @@ public sealed class CanFlashExecutor : IStepExecutor
         // 实时进度，也避免每个数据块都写日志造成明显额外开销。
         if (setting.EnableLog && percent != lastLoggedPercent)
         {
-            context.LogAction?.Invoke(
+            context.Log(
                 $"UDS Flash: 下载进度 {percent}% ({written:N0}/{total:N0} 字节)");
             lastLoggedPercent = percent;
         }

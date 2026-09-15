@@ -70,7 +70,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 						timeoutMs, "Modbus 写入多个寄存器", cancellationToken);
 			}
 
-			context.LogAction?.Invoke($"Modbus Write: Addr={startAddr}, Values={valuesStr}");
+			context.Log($"Modbus Write: Addr={startAddr}, Values={valuesStr}");
 
 			return new ExecutionResult
 			{

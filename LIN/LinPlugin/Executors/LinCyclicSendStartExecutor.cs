@@ -86,7 +86,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
                             adapter.Write(frame);
 
                             if (setting.EnableLog)
-                                context.LogAction?.Invoke($"[LIN 周期发送] 0x{frameId:X2} → {BitConverter.ToString(data).Replace("-", " ")} ({frameItem.CycleTimeMs}ms)");
+                                context.Log($"[LIN 周期发送] 0x{frameId:X2} → {BitConverter.ToString(data).Replace("-", " ")} ({frameItem.CycleTimeMs}ms)");
                         }
                     }
                     catch (OperationCanceledException)
@@ -95,12 +95,12 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
                     }
                     catch (Exception ex)
                     {
-                        context.LogAction?.Invoke($"[LIN 周期发送] 帧 {frameItem.FrameId} 发送异常: {ex.Message}");
+                        context.Log(LogLevel.Warn, $"[LIN 周期发送] 帧 {frameItem.FrameId} 发送异常: {ex.Message}", ex.ToString());
                     }
                 }, cts.Token);
             }
 
-            context.LogAction?.Invoke($"LIN 周期发送已启动: TaskName={taskName}, 帧数={enabledFrames.Count}");
+            context.Log($"LIN 周期发送已启动: TaskName={taskName}, 帧数={enabledFrames.Count}");
 
             return new ExecutionResult
             {

@@ -77,7 +77,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
 
             context.Resources.Set(key, resource);
 
-            context.LogAction?.Invoke($"HTTP 客户端已创建: {clientName} -> {baseUrl}（认证方式: {setting.AuthMode}）");
+            context.Log($"HTTP 客户端已创建: {clientName} -> {baseUrl}（认证方式: {setting.AuthMode}）");
 
             return new ExecutionResult
             {

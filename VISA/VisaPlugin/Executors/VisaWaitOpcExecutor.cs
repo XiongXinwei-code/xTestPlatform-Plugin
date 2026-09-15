@@ -54,7 +54,7 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
                 var terminator = GetTerminator(context, connName);
                 var response = await VisaHelper.RunWithTimeoutAsync(
                     () => VisaHelper.Query(session, "*OPC?", true, terminator), timeoutMs, "WaitOPC", cancellationToken);
-                context.LogAction?.Invoke($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
+                context.Log($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
 
                 return new ExecutionResult
                 {

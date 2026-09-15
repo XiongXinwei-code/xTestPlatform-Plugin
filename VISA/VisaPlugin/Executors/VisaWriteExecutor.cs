@@ -55,7 +55,7 @@ public sealed class VisaWriteExecutor : IStepExecutor
                 gate.Release();
             }
 
-            context.LogAction?.Invoke($"VISA Write: {command}");
+            context.Log($"VISA Write: {command}");
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Passed, Value = command }

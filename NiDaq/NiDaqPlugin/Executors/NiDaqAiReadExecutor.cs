@@ -74,7 +74,7 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
                 string[]? names = new string[channels];
                 for (int ch = 0; ch < channels; ch++)
                     names[ch] = task.AIChannels[ch].VirtualName;
-                DaqFileWriter.AppendCsv(filePath, data, names, setting.MaxFileSizeMB, context.LogAction);
+                DaqFileWriter.AppendCsv(filePath, data, names, setting.MaxFileSizeMB, m => context.Log(m));
             }
 
             return new ExecutionResult

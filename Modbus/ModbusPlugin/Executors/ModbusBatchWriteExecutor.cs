@@ -75,7 +75,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 					await Task.Delay(setting.IntervalMs, cancellationToken);
 			}
 
-			context.LogAction?.Invoke($"Modbus 批量写入: 已写入 {setting.Items.Count} 项");
+			context.Log($"Modbus 批量写入: 已写入 {setting.Items.Count} 项");
 
 			return new ExecutionResult
 			{

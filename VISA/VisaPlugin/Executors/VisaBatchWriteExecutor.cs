@@ -56,7 +56,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
                     await VisaHelper.RunWithTimeoutAsync(
                         () => VisaHelper.Write(session, command, terminator), timeoutMs, "批量写入", cancellationToken);
                     sent++;
-                    context.LogAction?.Invoke($"VISA BatchWrite [{sent}]: {command}");
+                    context.Log($"VISA BatchWrite [{sent}]: {command}");
 
                     if (item.DelayMs > 0)
                         await Task.Delay(item.DelayMs, cancellationToken);

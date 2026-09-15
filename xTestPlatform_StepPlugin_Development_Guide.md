@@ -1,6 +1,11 @@
 ﻿# xTestPlatform 步骤插件开发手册
 
-> **版本**：3.3.1 | **框架**：.NET 8 / WPF | **日期**：2026-08-13
+> **版本**：3.4.0 | **框架**：.NET 8 / WPF | **日期**：2026-08-13
+
+> ⚠️ **3.4.0 破坏性变更**：`IExecutionContext.LogAction` 已移除，改为结构化的
+> `ctx.Log(LogLevel level, string message, string? detail = null)`（并提供 `ctx.Log(string)` 等价于 Info）。
+> 日志等级改由 `LogLevel` 枚举显式携带，时间戳由引擎在日志产生时生成。
+> 所有插件需按 §13.5 的迁移对照表更新调用点。
 
 ---
 
@@ -131,6 +136,9 @@
 - [ ] 每个会发生等待的步骤都应提供可配置的超时字段（如 `SendTimeoutMs`、`ReadTimeoutMs`、`TimeoutMs`），并在编辑器 UI 中暴露；未配置时使用合理的默认值而非无限等待
 - [ ] **新增或修改 Setting 字段时必须同步四处**：① Setting 类属性；② 插件 `Description` 的"## 参数"表格（含类型/必填/默认值/说明）与"## 行为"节；③ 编辑器 ViewModel + XAML 绑定；④ `ValidateWithContextAsync` 的取值范围校验。四者缺一都算未交付（§2.1.1、§13.1）
 - [ ] Executor 不抛出未捕获异常：内部 try/catch，取消返回 `Aborted`、异常返回 `Error`（§13.4）
+- [ ] 日志统一使用 `ctx.Log(...)`；代码中不得再出现 `ctx.LogAction`（该成员已移除）（§13.5）
+- [ ] 日志消息正文不带 `[Error]`/`[Warn]` 之类的等级前缀，也不自行拼时间戳，等级一律用 `LogLevel` 参数表达（§13.5）
+- [ ] 异常堆栈写入 `Log` 的 `detail` 参数，不拼接到 `message`（§13.5）
 （静默替换 / 报错 / 复用）（§6.1.2）
 还是报错（§6.1.2）
 作用域与生命周期（§6.1.2）
@@ -823,8 +831,17 @@ public interface IExecutionContext {
     /// <summary>引擎是否已发出中止命令，插件可在耗时循环中轮询</summary>
     bool IsAbortRequested => false;
 
-    /// <summary>日志输出委托，供表达式脚本中调用 Log("消息")</summary>
-    Action<string>? LogAction => null;
+    /// <summary>
+    /// 输出一条结构化日志到 LogMonitor 与运行时日志文件。
+    /// <para>等级由 <paramref name="level"/> 显式指定，消息正文<b>不要</b>再写 "[Error]" 之类的前缀。</para>
+    /// </summary>
+    /// <param name="level">日志等级</param>
+    /// <param name="message">消息正文（无前缀）</param>
+    /// <param name="detail">诊断明细（可空），如异常链与调用堆栈；不在日志主行显示，由界面展开行呈现</param>
+    void Log(LogLevel level, string message, string? detail = null);
+
+    /// <summary>输出一条 Info 等级日志，等价于 Log(LogLevel.Info, message)</summary>
+    void Log(string message) => Log(LogLevel.Info, message);
 
     /// <summary>触发自定义事件，通知生产界面或其他订阅者（详见 §17）</summary>
     void RaiseCustomEvent(string eventName, object? payload = null) { }
@@ -2081,26 +2098,72 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 ### 13.5 调试日志输出
 
-插件开发完成后，在测试平台调试时可通过 `IExecutionContext.LogAction` 输出日志到平台的调试界面（LogMonitor）：
+插件开发完成后，在测试平台调试时可通过 `IExecutionContext.Log(...)` 输出日志到平台的调试界面（LogMonitor）：
 
 ```csharp
 public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct) {
-    ctx.LogAction?.Invoke("开始执行延时检测...");
+    ctx.Log("开始执行延时检测...");                      // 不带等级 = Info
 
     var s = DeserializeSetting(ctx.CurrentStep!.Step.StepSetting.Setting);
-    ctx.LogAction?.Invoke($"目标变量: {s.TargetVariable}, 延时: {s.DelayMs}ms");
+    ctx.Log(LogLevel.Debug, $"目标变量: {s.TargetVariable}, 延时: {s.DelayMs}ms");
 
     await Task.Delay(s.DelayMs, ct);
 
     var value = ctx.GetVariable(s.TargetVariable);
-    ctx.LogAction?.Invoke($"读取到值: {value}");
+    if (value is null)
+        ctx.Log(LogLevel.Warn, $"变量 {s.TargetVariable} 不存在，按默认值处理");
+    else
+        ctx.Log($"读取到值: {value}");
 
     // ... 业务逻辑 ...
 }
 ```
 
-> 💡 `LogAction` 输出的消息会实时显示在平台调试界面的日志窗口中，方便开发者定位问题。  
-> 生产环境中建议减少日志量，避免影响性能。
+#### 日志等级
+
+`LogLevel` 定义在 `xTestPlatform.Core.Engine`，取值如下：
+
+| 等级 | 用途 |
+|------|------|
+| `Trace` | 最细粒度的追踪，如逐帧报文、逐字节收发 |
+| `Debug` | 开发排障用的中间量，如解析出的参数、握手过程 |
+| `Info` | 正常流程节点，工程师平时关心的主线信息（默认等级） |
+| `Warn` | 可继续执行但不符合预期，如超时重试、回退到默认值 |
+| `Error` | 本步骤已失败，需要工程师介入 |
+| `Fatal` | 致命故障，通常意味着整个运行无法继续 |
+| `Pass` / `Fail` | 测试判定结论，供报表与筛选区分于普通 Info/Error |
+
+#### 三条硬性约定
+
+1. **不要在消息里手写等级前缀**。旧写法 `ctx.LogAction?.Invoke("[Error] 打开串口失败")` 必须改成
+   `ctx.Log(LogLevel.Error, "打开串口失败")`。平台靠 `LogLevel` 字段做着色、计数与过滤，
+   正文里的 `[Error]` 不但不会被识别，还会让日志行出现重复前缀。
+2. **不要自己打时间戳**。时间戳由引擎在日志产生的那一刻生成（`DateTimeOffset`），
+   精度和顺序都比插件自己取 `DateTime.Now` 更可靠。
+3. **异常堆栈放 `detail`，不要拼进 `message`**。例如：
+
+```csharp
+catch (Exception ex) {
+    ctx.Log(LogLevel.Error, $"打开串口 {s.PortName} 失败：{ex.Message}", ex.ToString());
+}
+```
+
+这样日志主行保持简洁可读，完整异常链在界面展开行里查看，与 `ErrorInfo.FromException(ex)`
+的 `Message` / `Detail` 分工保持一致。
+
+#### 从旧版 `LogAction` 迁移
+
+| 旧写法 | 新写法 |
+|--------|--------|
+| `ctx.LogAction?.Invoke("正在连接")` | `ctx.Log("正在连接")` |
+| `ctx.LogAction?.Invoke("[Warn] 重试第 1 次")` | `ctx.Log(LogLevel.Warn, "重试第 1 次")` |
+| `ctx.LogAction?.Invoke("[Error] " + ex.Message)` | `ctx.Log(LogLevel.Error, ex.Message, ex.ToString())` |
+
+> ⚠️ `IExecutionContext.LogAction` 已移除。`Log` 是接口上的方法而非可空委托，
+> 因此不需要再写 `?.Invoke`，直接调用即可。
+
+> 💡 `Log` 输出的消息会实时显示在平台调试界面的日志窗口中，方便开发者定位问题。  
+> 生产环境中建议减少日志量，高频循环内的细节输出请降到 `Trace` / `Debug` 等级。
 
 ---
 
@@ -2765,8 +2828,8 @@ using xTestPlatform.Core.Models.StepSettings;  // [ExpressionField] 特性
 
 ```csharp
 using <YourNamespace>.Models;                  // 本插件的 Setting 模型
-using xTestPlatform.Core.Engine;               // IExecutionContext
-using xTestPlatform.Core.Models;               // Step, LogAction 等
+using xTestPlatform.Core.Engine;               // IExecutionContext, LogLevel
+using xTestPlatform.Core.Models;               // Step 等
 using xTestPlatform.Core.Plugins.Contracts;    // IStepExecutor
 using xTestPlatform.Core.Services.ExpressionEngine; // ★ IExpressionEvaluator, ExpressionEvaluatorFactory
 ```
@@ -2812,8 +2875,8 @@ using xTestPlatform.Core.SequenceModels;       // SequenceFile
 | `xTestPlatform.Core.Plugins.BuiltIn` | `StepPluginBase<T>` | Plugin 主类 |
 | `xTestPlatform.Core.Plugins.Contracts` | `IStepPlugin`, `IStepExecutor`, `StepSettingError` | Plugin 主类、Executor、Editor |
 | `xTestPlatform.Core.Models.StepSettings` | `[ExpressionField]`、`[VariablePathField]` 特性 | Setting 模型 |
-| `xTestPlatform.Core.Engine` | `IExecutionContext` | Executor、Editor（校验） |
-| `xTestPlatform.Core.Models` | `Step`, `LogAction` | Executor |
+| `xTestPlatform.Core.Engine` | `IExecutionContext`, `LogLevel` | Executor、Editor（校验） |
+| `xTestPlatform.Core.Models` | `Step` | Executor |
 | **`xTestPlatform.Core.Services.ExpressionEngine`** | **`IExpressionEvaluator`, `ExpressionEvaluatorFactory`** | **Executor、Editor** |
 | `xTestPlatform.Core.SequenceModels` | `SequenceFile`, `Step` | Editor、View、ViewModel |
 | `StepEditor.Abstractions` | `IStepEditorPlugin`, `IRefreshableEditor`, `EditPosition` | Editor、View |
