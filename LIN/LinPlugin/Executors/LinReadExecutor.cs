@@ -67,7 +67,7 @@ public sealed class LinReadExecutor : IStepExecutor
                 context.SetVariable(setting.IdVariable, frame.FrameId.ToString());
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"LIN 接收: ID=0x{frame.FrameId:X2}({frame.FrameId}), Data=[{dataHex}]");
+                context.Log($"LIN 接收: ID=0x{frame.FrameId:X2}({frame.FrameId}), Data=[{dataHex}]");
 
             return new ExecutionResult
             {

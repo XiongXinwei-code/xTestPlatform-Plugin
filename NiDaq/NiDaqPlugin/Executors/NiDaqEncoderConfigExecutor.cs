@@ -35,7 +35,7 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
             if (existingTask is DaqTask oldTask)
             {
                 try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
-                context.LogAction?.Invoke($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
+                context.Log($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
             }
 
             var decodingType = setting.DecodingType switch

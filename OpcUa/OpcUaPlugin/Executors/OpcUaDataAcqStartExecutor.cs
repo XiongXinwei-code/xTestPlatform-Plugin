@@ -65,7 +65,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             // 同时保存 items 配置供 Stop 步骤使用
             context.Resources.Set(taskKey + "_items", resolvedItems);
 
-            context.LogAction?.Invoke($"OPC UA 数据采集已启动: {taskName} ({resolvedItems.Count} 节点, {setting.SamplingIntervalMs}ms 间隔)");
+            context.Log($"OPC UA 数据采集已启动: {taskName} ({resolvedItems.Count} 节点, {setting.SamplingIntervalMs}ms 间隔)");
 
             return new ExecutionResult
             {

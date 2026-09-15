@@ -22,7 +22,7 @@ public sealed class XcpConnectExecutor : IStepExecutor
             var response = await client.ConnectAsync(setting.ConnectMode, cancellationToken);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke(
+                context.Log(
                     $"XCP CONNECT 成功: MaxCTO={response.MaxCto}, MaxDTO={response.MaxDto}, " +
                     $"CAL={response.SupportsCalibration}, DAQ={response.SupportsDaq}, PGM={response.SupportsProgramming}");
 

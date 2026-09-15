@@ -29,7 +29,7 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
             {
                 await client.SendOnlyAsync(request, cancellationToken);
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS DiagSession: 0x{(byte)setting.SessionType:X2} (抑制正响应)");
+                    context.Log($"UDS DiagSession: 0x{(byte)setting.SessionType:X2} (抑制正响应)");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = setting.SessionType.ToString() } };
             }
 
@@ -38,13 +38,13 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
             if (response.IsPositive)
             {
                 if (setting.EnableLog)
-                    context.LogAction?.Invoke($"UDS DiagSession 切换成功: {setting.SessionType}");
+                    context.Log($"UDS DiagSession 切换成功: {setting.SessionType}");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = setting.SessionType.ToString() } };
             }
             else
             {
                 if (setting.EnableLog && response.IsTimeout)
-                    context.LogAction?.Invoke($"UDS DiagSession 接收超时: {response.DiagnosticMessage}");
+                    context.Log(LogLevel.Warn, $"UDS DiagSession 接收超时: {response.DiagnosticMessage}");
 
                 return new ExecutionResult
                 {

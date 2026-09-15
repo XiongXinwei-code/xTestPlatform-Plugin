@@ -49,7 +49,7 @@ public sealed class SerialPortWriteExecutor : IStepExecutor
 
             await SerialPortHelper.WriteWithTimeoutAsync(port, bytes, port.WriteTimeout, cancellationToken);
 
-            context.LogAction?.Invoke($"串口 {portName} 写入 {bytes.Length} 字节 ({s.DataFormat})");
+            context.Log($"串口 {portName} 写入 {bytes.Length} 字节 ({s.DataFormat})");
 
             return new ExecutionResult
             {

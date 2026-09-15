@@ -26,7 +26,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
             var eventId = SomeIpHelper.ParseId(eventStr, "EventId");
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke(
+                context.Log(
                     $"SOME/IP 订阅监听: 端口 {localPort} Service=0x{serviceId:X4} Event=0x{eventId:X4}，超时 {setting.TimeoutMs}ms");
 
             using var udp = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
@@ -53,7 +53,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
 
             var payloadHex = SomeIpHelper.ToHex(notification.Payload);
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"SOME/IP 收到事件通知: [{payloadHex}]");
+                context.Log($"SOME/IP 收到事件通知: [{payloadHex}]");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, payloadHex);

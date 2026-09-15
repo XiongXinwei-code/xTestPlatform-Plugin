@@ -66,7 +66,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 			// 将超时值随连接保存，供后续读写步骤做软超时兜底
 			context.Resources.Set(ModbusHelper.GetTimeoutKey(connName), setting.TimeoutMs);
 
-			context.LogAction?.Invoke($"Modbus 连接已建立: {connName} ({setting.TransportType})");
+			context.Log($"Modbus 连接已建立: {connName} ({setting.TransportType})");
 
 			return new ExecutionResult
 			{

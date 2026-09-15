@@ -52,7 +52,7 @@ public sealed class SerialPortOpenExecutor : IStepExecutor
             // Set 会自动销毁同名旧串口（如上次运行异常终止未关闭的连接）
             context.Resources.Set(key, port);
 
-            context.LogAction?.Invoke($"串口 {portName} 已打开 (波特率: {s.BaudRate})");
+            context.Log($"串口 {portName} 已打开 (波特率: {s.BaudRate})");
 
             return new ExecutionResult
             {

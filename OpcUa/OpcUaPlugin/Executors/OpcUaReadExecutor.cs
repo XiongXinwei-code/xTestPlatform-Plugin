@@ -55,7 +55,7 @@ public sealed class OpcUaReadExecutor : IStepExecutor
 
             var value = dataValue.Value?.ToString() ?? "";
             context.SetVariable(setting.ResultVariable, dataValue.Value);
-            context.LogAction?.Invoke($"OPC UA 读取: {nodeIdStr} = {value}");
+            context.Log($"OPC UA 读取: {nodeIdStr} = {value}");
 
             return new ExecutionResult
             {

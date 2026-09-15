@@ -37,7 +37,7 @@ public sealed class LinOpenExecutor : IStepExecutor
 
             // Set 会自动销毁同名旧适配器（如上次运行异常终止未关闭）
             context.Resources.Set(key, adapter);
-            context.LogAction?.Invoke($"LIN 通道已打开: {channel} ({setting.AdapterType}, LIN {setting.LinVersion}, {setting.BaudRate} bps, {(setting.IsMaster ? "主节点" : "从节点")})");
+            context.Log($"LIN 通道已打开: {channel} ({setting.AdapterType}, LIN {setting.LinVersion}, {setting.BaudRate} bps, {(setting.IsMaster ? "主节点" : "从节点")})");
 
             return new ExecutionResult
             {

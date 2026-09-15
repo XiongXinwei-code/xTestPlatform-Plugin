@@ -56,7 +56,7 @@ public sealed class VisaReadExecutor : IStepExecutor
             }
             context.SetVariable(varName, response);
 
-            context.LogAction?.Invoke($"VISA Read: {response}");
+            context.Log($"VISA Read: {response}");
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Passed, Value = response }

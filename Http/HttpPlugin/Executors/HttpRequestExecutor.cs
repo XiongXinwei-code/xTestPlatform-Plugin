@@ -58,7 +58,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
             }
 
             if (setting.LogPayload)
-                context.LogAction?.Invoke($"HTTP 请求: {request.Method} {path}{(string.IsNullOrEmpty(body) ? string.Empty : " | " + body)}");
+                context.Log($"HTTP 请求: {request.Method} {path}{(string.IsNullOrEmpty(body) ? string.Empty : " | " + body)}");
 
             var stopwatch = Stopwatch.StartNew();
             using var response = await resource.Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
@@ -76,7 +76,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
                 context.SetVariable(setting.ElapsedVariable, elapsedMs);
 
             if (setting.LogPayload)
-                context.LogAction?.Invoke($"HTTP 响应: {statusCode} ({elapsedMs} ms) | {content}");
+                context.Log($"HTTP 响应: {statusCode} ({elapsedMs} ms) | {content}");
 
             var succeeded = response.IsSuccessStatusCode || !setting.TreatNonSuccessAsFailure;
 

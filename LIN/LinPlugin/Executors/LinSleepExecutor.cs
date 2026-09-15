@@ -37,12 +37,12 @@ public sealed class LinSleepExecutor : IStepExecutor
 
             cancellationToken.ThrowIfCancellationRequested();
             adapter.Sleep(setting.SleepMode == LinSleepMode.Remote);
-            context.LogAction?.Invoke($"LIN 总线已进入睡眠: {connName} ({(setting.SleepMode == LinSleepMode.Remote ? "总线睡眠" : "本地睡眠")})");
+            context.Log($"LIN 总线已进入睡眠: {connName} ({(setting.SleepMode == LinSleepMode.Remote ? "总线睡眠" : "本地睡眠")})");
 
             if (setting.PostSleepDelayMs > 0)
             {
                 await Task.Delay(setting.PostSleepDelayMs, cancellationToken);
-                context.LogAction?.Invoke($"入睡后延时 {setting.PostSleepDelayMs}ms 完成，从节点应已入睡");
+                context.Log($"入睡后延时 {setting.PostSleepDelayMs}ms 完成，从节点应已入睡");
             }
 
             return new ExecutionResult

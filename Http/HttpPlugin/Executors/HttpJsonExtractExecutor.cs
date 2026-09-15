@@ -57,7 +57,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                 }
 
                 context.SetVariable(item.TargetVariable, value);
-                context.LogAction?.Invoke($"JSON 提取: {item.Path} => {item.TargetVariable} = {value}");
+                context.Log($"JSON 提取: {item.Path} => {item.TargetVariable} = {value}");
             }
 
             if (missing.Count > 0 && setting.FailOnMissingPath)

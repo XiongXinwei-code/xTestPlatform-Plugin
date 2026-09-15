@@ -79,7 +79,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 			var varName = setting.ResultVariable;
 			context.SetVariable(varName, result);
 
-			context.LogAction?.Invoke($"Modbus Read: Addr={startAddr}, Qty={quantity}, Result={result}");
+			context.Log($"Modbus Read: Addr={startAddr}, Qty={quantity}, Result={result}");
 
 			return new ExecutionResult
 			{

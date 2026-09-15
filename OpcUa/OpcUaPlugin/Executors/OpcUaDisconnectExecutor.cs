@@ -28,11 +28,11 @@ public sealed class OpcUaDisconnectExecutor : IStepExecutor
             {
                 await session.CloseAsync(cancellationToken);
                 context.Resources.Remove(key);
-                context.LogAction?.Invoke($"OPC UA 连接已断开: {connName}");
+                context.Log($"OPC UA 连接已断开: {connName}");
             }
             else
             {
-                context.LogAction?.Invoke($"OPC UA 连接 {connName} 不存在或已断开");
+                context.Log(LogLevel.Warn, $"OPC UA 连接 {connName} 不存在或已断开");
             }
 
             return new ExecutionResult

@@ -75,7 +75,7 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
                 }
 
                 context.SetVariable(item.TargetVariable, value);
-                context.LogAction?.Invoke($"XML 提取: {item.Path} => {item.TargetVariable} = {value}");
+                context.Log($"XML 提取: {item.Path} => {item.TargetVariable} = {value}");
             }
 
             if (missing.Count > 0 && setting.FailOnMissingPath)

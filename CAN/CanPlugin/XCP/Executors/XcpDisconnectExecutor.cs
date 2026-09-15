@@ -22,7 +22,7 @@ public sealed class XcpDisconnectExecutor : IStepExecutor
             await client.DisconnectAsync(cancellationToken);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke("XCP DISCONNECT 成功");
+                context.Log("XCP DISCONNECT 成功");
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
         }

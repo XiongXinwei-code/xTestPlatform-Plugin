@@ -34,7 +34,7 @@ public sealed class VisaOpenExecutor : IStepExecutor
             context.Resources.Set(key, session);
             context.Resources.Set(VisaHelper.GetTerminatorKey(connName), VisaHelper.NormalizeTerminator(setting.Terminator));
 
-            context.LogAction?.Invoke($"VISA 会话已打开: {connName} ({resource})");
+            context.Log($"VISA 会话已打开: {connName} ({resource})");
 
             return new ExecutionResult
             {

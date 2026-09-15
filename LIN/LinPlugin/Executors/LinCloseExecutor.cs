@@ -27,11 +27,11 @@ public sealed class LinCloseExecutor : IStepExecutor
             {
                 adapter.Close();
                 context.Resources.Remove(key);
-                context.LogAction?.Invoke($"LIN 通道已关闭: {connName}");
+                context.Log($"LIN 通道已关闭: {connName}");
             }
             else
             {
-                context.LogAction?.Invoke($"LIN 通道未找到: {connName}");
+                context.Log(LogLevel.Warn, $"LIN 通道未找到: {connName}");
             }
 
             return new ExecutionResult

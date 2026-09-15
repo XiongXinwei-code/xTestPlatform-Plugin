@@ -72,7 +72,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
                 }
             }
 
-            context.LogAction?.Invoke($"OPC UA 批量读取: {setting.Items.Count} 个节点完成");
+            context.Log($"OPC UA 批量读取: {setting.Items.Count} 个节点完成");
 
             return new ExecutionResult
             {

@@ -95,7 +95,7 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
                 };
             }
 
-            context.LogAction?.Invoke($"OPC UA 批量写入: {setting.Items.Count} 个节点完成");
+            context.Log($"OPC UA 批量写入: {setting.Items.Count} 个节点完成");
 
             return new ExecutionResult
             {

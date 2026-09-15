@@ -34,7 +34,7 @@ public sealed class TcpOpenExecutor : IStepExecutor
             await TcpConnectionManager.ConnectAsync(name!, host!, port, setting.ConnectTimeoutMs, cancellationToken);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"TCP 连接成功: {name} -> {host}:{port}");
+                context.Log($"TCP 连接成功: {name} -> {host}:{port}");
 
             return new ExecutionResult
             {

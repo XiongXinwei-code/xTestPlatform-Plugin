@@ -20,7 +20,7 @@ public sealed class TcpCloseExecutor : IStepExecutor
             TcpConnectionManager.Close(name!);
 
             if (setting.EnableLog)
-                context.LogAction?.Invoke($"TCP 连接已关闭: {name}");
+                context.Log($"TCP 连接已关闭: {name}");
 
             return new ExecutionResult
             {

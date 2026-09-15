@@ -77,7 +77,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             }
 
             if (setting.LogPayload)
-                context.LogAction?.Invoke($"SOAP 请求: {path} | Action: {soapAction} | {envelope}");
+                context.Log($"SOAP 请求: {path} | Action: {soapAction} | {envelope}");
 
             var stopwatch = Stopwatch.StartNew();
             using var response = await resource.Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
@@ -93,7 +93,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
                 context.SetVariable(setting.StatusCodeVariable, statusCode);
 
             if (setting.LogPayload)
-                context.LogAction?.Invoke($"SOAP 响应: {statusCode} ({elapsedMs} ms) | {responseXml}");
+                context.Log($"SOAP 响应: {statusCode} ({elapsedMs} ms) | {responseXml}");
 
             var faultMessage = setting.TreatSoapFaultAsFailure ? TryGetFaultMessage(responseXml) : null;
             if (faultMessage != null)

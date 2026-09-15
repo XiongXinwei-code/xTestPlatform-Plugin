@@ -81,7 +81,7 @@ public sealed class CanOpenExecutor : IStepExecutor
                 timingDetails += $"; {dataDetails}";
             }
             string terminationDetails = $"内置终端电阻={(setting.EnableTermination ? "已使能" : "未使能")}";
-            context.LogAction?.Invoke(
+            context.Log(
                 $"CAN 通道已打开: {channel} ({setting.AdapterType}, {setting.Protocol}); " +
                 $"{timingDetails}; {terminationDetails}");
 

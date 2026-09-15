@@ -124,7 +124,7 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 			if (!string.IsNullOrWhiteSpace(s.ResultVariable))
 				context.SetVariable(s.ResultVariable, result);
 
-			context.LogAction?.Invoke($"串口 {portName} 查询: 发送 {writeBytes.Length} 字节，接收 {buffer.Length} 字节 ({s.DataFormat})");
+			context.Log($"串口 {portName} 查询: 发送 {writeBytes.Length} 字节，接收 {buffer.Length} 字节 ({s.DataFormat})");
 
 			return new ExecutionResult
 			{
