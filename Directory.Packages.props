@@ -5,7 +5,7 @@
 
   <ItemGroup>
 	<!-- xTestPlatform 插件 SDK -->
-	<PackageVersion Include="xTestPlatform.StepEditor.SDK" Version="1.2.5" />
+	<PackageVersion Include="xTestPlatform.StepEditor.SDK" Version="1.2.6" />
 
 	<!-- 序列化：须 ≥ xTestPlatform.Core 引用的版本，否则报 CS1705 -->
 	<PackageVersion Include="MessagePack" Version="3.1.8" />

@@ -34,8 +34,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             using var udp = new UdpClient { EnableBroadcast = true };
             await udp.SendAsync(request, new IPEndPoint(IPAddress.Parse(broadcast), setting.Port), cancellationToken);
 
-            if (setting.EnableLog)
-                context.Log($"DoIP 车辆识别请求已广播: {broadcast}:{setting.Port}");
+            context.Log($"DoIP 车辆识别请求已广播: {broadcast}:{setting.Port}");
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(setting.TimeoutMs);
@@ -55,8 +54,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             var logicalAddress = (ushort)((data[25] << 8) | data[26]);
             var summary = $"VIN={vin}, LogicalAddress=0x{logicalAddress:X4}, IP={result.RemoteEndPoint.Address}";
 
-            if (setting.EnableLog)
-                context.Log($"DoIP 发现车辆: {summary}");
+            context.Log($"DoIP 发现车辆: {summary}");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, summary);

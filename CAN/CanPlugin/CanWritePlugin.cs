@@ -26,7 +26,6 @@ public sealed class CanWritePlugin : StepPluginBase<CanWriteSetting>
         | FrameType | 枚举 | 否 | Standard | 可选值：Standard, Extended |
         | Data | string([ExpressionField] -> string) | 是 | — | 十六进制数据，如 "02 10 01" |
         | UseFdFrame | bool | 否 | false | 是否使用 CAN FD 帧 |
-        | EnableLog | bool | 否 | true | 是否输出发送日志 |
 
         ## 行为
 

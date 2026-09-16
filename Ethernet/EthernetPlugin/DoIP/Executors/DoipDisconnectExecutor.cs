@@ -19,8 +19,7 @@ public sealed class DoipDisconnectExecutor : IStepExecutor
 
             DoipConnectionManager.Close(name);
 
-            if (setting.EnableLog)
-                context.Log($"DoIP 会话已断开: {name}");
+            context.Log($"DoIP 会话已断开: {name}");
 
             return new ExecutionResult
             {

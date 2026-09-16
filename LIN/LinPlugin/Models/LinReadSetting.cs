@@ -24,7 +24,4 @@ public class LinReadSetting
     /// <summary>存储接收到的帧 ID 的变量路径</summary>
     [VariablePathField]
     public string IdVariable { get; set; } = string.Empty;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

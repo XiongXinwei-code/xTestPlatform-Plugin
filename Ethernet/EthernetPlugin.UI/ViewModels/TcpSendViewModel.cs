@@ -27,9 +27,4 @@ public class TcpSendViewModel : EthernetViewModelBase<TcpSendSetting>
         get => Setting?.SendTimeoutMs ?? 3000;
         set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 }

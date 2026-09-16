@@ -64,11 +64,6 @@ public class LinWriteViewModel : INotifyPropertyChanged
         get => (int)(_setting?.ChecksumType ?? LinChecksumType.Enhanced);
         set { if (_setting == null) return; _setting.ChecksumType = (LinChecksumType)value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => _setting?.EnableLog ?? true;
-        set { if (_setting == null || _setting.EnableLog == value) return; _setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null)

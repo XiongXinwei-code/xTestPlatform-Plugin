@@ -24,9 +24,4 @@ public class TcpOpenViewModel : EthernetViewModelBase<TcpOpenSetting>
         get => Setting?.ConnectTimeoutMs ?? 3000;
         set { if (Setting == null || Setting.ConnectTimeoutMs == value) return; Setting.ConnectTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 }

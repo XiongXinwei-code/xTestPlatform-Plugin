@@ -20,7 +20,4 @@ public class TcpSendSetting
 
     /// <summary>发送超时时间（毫秒）；0 表示使用默认值 3000ms</summary>
     public int SendTimeoutMs { get; set; } = 3000;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

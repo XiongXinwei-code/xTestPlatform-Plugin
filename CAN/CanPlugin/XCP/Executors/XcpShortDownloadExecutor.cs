@@ -46,8 +46,7 @@ public sealed class XcpShortDownloadExecutor : IStepExecutor
 
             await client.ShortDownloadAsync(address, addrExt, data, cancellationToken);
 
-            if (setting.EnableLog)
-                context.Log($"XCP SHORT_DOWNLOAD 0x{address:X8} ← {XcpExecutorHelper.ToHex(data)}");
+            context.Log($"XCP SHORT_DOWNLOAD 0x{address:X8} ← {XcpExecutorHelper.ToHex(data)}");
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
         }

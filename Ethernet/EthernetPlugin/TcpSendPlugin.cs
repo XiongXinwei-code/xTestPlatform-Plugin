@@ -25,7 +25,6 @@ public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>
         | Data | string([ExpressionField] -> string) | 是 | "01 02 03" | 发送数据 |
         | Encoding | 枚举 | 否 | Hex | 数据编码格式，可选值：Hex, Utf8, Ascii |
         | SendTimeoutMs | int | 否 | 3000 | 发送超时时间（毫秒），必须大于 0 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

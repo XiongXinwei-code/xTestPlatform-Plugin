@@ -27,7 +27,6 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
         | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
         | ConnectMode | 枚举 | 否 | Normal | 可选值：Normal, UserDefined |
         | ResourceVariable | string | 否 | 空 | 存储资源掩码的变量路径 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

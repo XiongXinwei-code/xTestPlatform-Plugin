@@ -307,7 +307,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="校验方式:" Style="{StaticResource LabelStyle}"/>
@@ -343,10 +343,6 @@
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                Text="烧录完成后写入实际传输的总字节数，留空则不写入。"/>
                 </StackPanel>
-
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="输出日志:" Style="{StaticResource LabelStyle}"/>
-                <CheckBox Grid.Row="5" Grid.Column="1" IsChecked="{Binding EnableLog}"
-                          VerticalAlignment="Center" Margin="0,0,0,8"/>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

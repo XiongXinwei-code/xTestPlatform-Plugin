@@ -22,7 +22,6 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="150"/>
@@ -41,16 +40,13 @@
 					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-				<TextBlock Grid.Row="2" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
-
-				<TextBlock Grid.Row="3" Grid.Column="0" Text="Frames:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
+				<TextBlock Grid.Row="2" Grid.Column="0" Text="Frames:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,8">
 					<Button Content="Add" Width="60" Margin="0,0,8,0" Click="OnAddFrame"/>
 					<Button Content="Remove" Width="60" Click="OnRemoveFrame"/>
 				</StackPanel>
 
-				<DataGrid Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+				<DataGrid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
 						  ItemsSource="{Binding Frames}"
 						  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
 						  Margin="0,0,0,8" MinHeight="120">

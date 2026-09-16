@@ -27,7 +27,6 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
         | SourceAddress | string | 是 | "0x0E00" | 诊断仪逻辑地址 |
         | ActivationType | 枚举 | 否 | Default | 可选值：Default, WwhObd, CentralSecurity |
         | TimeoutMs | int | 否 | 3000 | 超时毫秒数 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

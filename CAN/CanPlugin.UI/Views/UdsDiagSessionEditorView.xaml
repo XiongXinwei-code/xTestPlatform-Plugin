@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="CAN.UI.Views.UdsDiagSessionEditorView"
+<UserControl x:Class="CAN.UI.Views.UdsDiagSessionEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -21,7 +21,6 @@
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -57,9 +56,6 @@
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Suppress Response:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <CheckBox Grid.Row="5" Grid.Column="1" IsChecked="{Binding SuppressPositiveResponse}" Margin="0,0,0,8"/>
-
-                <TextBlock Grid.Row="6" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <CheckBox Grid.Row="6" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

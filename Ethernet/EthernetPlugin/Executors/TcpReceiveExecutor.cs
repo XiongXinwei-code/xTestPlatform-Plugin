@@ -46,8 +46,7 @@ public sealed class TcpReceiveExecutor : IStepExecutor
 
             var result = EthernetDataHelper.Decode(buffer, setting.Encoding);
 
-            if (setting.EnableLog)
-                context.Log($"TCP 接收: {name} 收到 {buffer.Length} 字节 [{EthernetDataHelper.Decode(buffer, EthernetDataEncoding.Hex)}]");
+            context.Log($"TCP 接收: {name} 收到 {buffer.Length} 字节 [{EthernetDataHelper.Decode(buffer, EthernetDataEncoding.Hex)}]");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, result);

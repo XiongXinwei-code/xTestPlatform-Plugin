@@ -37,8 +37,7 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     context.SetVariable(setting.ResultVariable, hex);
 
-                if (setting.EnableLog)
-                    context.Log($"UDS ReadDataByID: DID=0x{did:X4}, Data=[{hex}]");
+                context.Log($"UDS ReadDataByID: DID=0x{did:X4}, Data=[{hex}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
             }
             else

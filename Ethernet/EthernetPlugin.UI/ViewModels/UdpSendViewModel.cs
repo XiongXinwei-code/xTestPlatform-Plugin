@@ -32,9 +32,4 @@ public class UdpSendViewModel : EthernetViewModelBase<UdpSendSetting>
         get => Setting == null ? 0 : Array.IndexOf(Encodings, Setting.Encoding);
         set { if (Setting == null || value < 0 || value >= Encodings.Length) return; Setting.Encoding = Encodings[value]; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 }

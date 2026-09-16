@@ -37,9 +37,4 @@ public class DoipConnectViewModel : EthernetViewModelBase<DoipConnectSetting>
         get => Setting?.TimeoutMs ?? 3000;
         set { if (Setting == null || Setting.TimeoutMs == value) return; Setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 }

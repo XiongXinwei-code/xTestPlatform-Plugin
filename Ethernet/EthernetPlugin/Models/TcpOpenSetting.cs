@@ -21,7 +21,4 @@ public class TcpOpenSetting
 
     /// <summary>连接超时（毫秒）</summary>
     public int ConnectTimeoutMs { get; set; } = 3000;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

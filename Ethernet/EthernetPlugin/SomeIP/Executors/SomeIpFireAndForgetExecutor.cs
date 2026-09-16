@@ -51,9 +51,8 @@ public sealed class SomeIpFireAndForgetExecutor : IStepExecutor
                 await udp.SendAsync(message.Encode(), cancellationToken);
             }
 
-            if (setting.EnableLog)
-                context.Log(
-                    $"SOME/IP FireAndForget 已发送({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
+            context.Log(
+                $"SOME/IP FireAndForget 已发送({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
         }

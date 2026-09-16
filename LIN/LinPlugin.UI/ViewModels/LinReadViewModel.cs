@@ -69,11 +69,6 @@ public class LinReadViewModel : INotifyPropertyChanged
         get => _setting?.IdVariable ?? string.Empty;
         set { if (_setting == null || _setting.IdVariable == value) return; _setting.IdVariable = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => _setting?.EnableLog ?? true;
-        set { if (_setting == null || _setting.EnableLog == value) return; _setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null)

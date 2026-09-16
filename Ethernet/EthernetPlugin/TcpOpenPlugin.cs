@@ -25,7 +25,6 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
         | RemoteHost | string([ExpressionField] -> string) | 是 | "192.168.1.1" | 远端 IP 地址 |
         | RemotePort | string([ExpressionField] -> string) | 是 | "13400" | 远端端口号 |
         | ConnectTimeoutMs | int | 否 | 3000 | 连接超时毫秒数 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

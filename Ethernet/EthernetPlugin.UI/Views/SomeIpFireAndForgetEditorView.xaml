@@ -26,7 +26,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="RemoteHost:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -77,9 +76,6 @@
                     ScriptText="{Binding Payload, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-
-                <TextBlock Grid.Row="8" Grid.Column="0" Text="EnableLog:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <CheckBox Grid.Row="8" Grid.Column="1" IsChecked="{Binding EnableLog}" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

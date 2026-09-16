@@ -31,8 +31,7 @@ public sealed class UdpReceiveExecutor : IStepExecutor
 
             var resultStr = EthernetDataHelper.Decode(bytes, setting.Encoding);
 
-            if (setting.EnableLog)
-                context.Log($"UDP 接收: 端口 {setting.LocalPort} 收到 {bytes.Length} 字节 来自 {result.RemoteEndPoint} [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
+            context.Log($"UDP 接收: 端口 {setting.LocalPort} 收到 {bytes.Length} 字节 来自 {result.RemoteEndPoint} [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, resultStr);

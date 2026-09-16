@@ -24,7 +24,4 @@ public class UdpSendSetting
 
     /// <summary>数据编码格式</summary>
     public EthernetDataEncoding Encoding { get; set; } = EthernetDataEncoding.Hex;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }
