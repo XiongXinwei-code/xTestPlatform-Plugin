@@ -24,9 +24,4 @@ public class DoipVehicleDiscoveryViewModel : EthernetViewModelBase<DoipVehicleDi
         get => Setting?.ResultVariable ?? string.Empty;
         set { if (Setting == null || Setting.ResultVariable == value) return; Setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 }

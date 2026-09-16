@@ -57,11 +57,6 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
         get => _setting?.TaskName ?? string.Empty;
         set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => _setting?.EnableLog ?? false;
-        set { if (_setting == null || _setting.EnableLog == value) return; _setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
     public ObservableCollection<LinCyclicFrameItem> Frames => _setting?.Frames ?? [];
 
     public void AddFrame()

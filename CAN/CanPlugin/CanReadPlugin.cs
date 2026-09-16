@@ -26,7 +26,6 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
         | ReadTimeoutMs | int | 否 | — | 读取超时毫秒数 |
         | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据） |
         | IdVariable | string(变量路径) | 否 | 空 | 接收帧 CAN ID 存入的变量名 |
-        | EnableLog | bool | 否 | true | 是否输出读取日志 |
 
         ## 行为
 

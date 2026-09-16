@@ -31,8 +31,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
             if (!setting.WaitResponse)
             {
                 await client.SendOnlyAsync(requestData, cancellationToken);
-                if (setting.EnableLog)
-                    context.Log($"UDS RawRequest (无响应): [{UdsExecutorHelper.ToHex(requestData)}]");
+                context.Log($"UDS RawRequest (无响应): [{UdsExecutorHelper.ToHex(requestData)}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = UdsExecutorHelper.ToHex(requestData) } };
             }
 
@@ -42,8 +41,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, responseHex);
 
-            if (setting.EnableLog)
-                context.Log($"UDS RawRequest: TX=[{UdsExecutorHelper.ToHex(requestData)}] RX=[{responseHex}]");
+            context.Log(LogLevel.Trace, $"UDS RawRequest: TX=[{UdsExecutorHelper.ToHex(requestData)}] RX=[{responseHex}]");
 
             if (response.IsPositive)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = responseHex } };

@@ -37,7 +37,4 @@ public class SomeIpFireAndForgetSetting
     /// <summary>负载数据（十六进制，支持表达式，可为空）</summary>
     [ExpressionField]
     public string Payload { get; set; } = "\"\"";
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

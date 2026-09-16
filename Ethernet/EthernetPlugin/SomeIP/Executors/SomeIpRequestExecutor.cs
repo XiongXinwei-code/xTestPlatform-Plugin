@@ -39,9 +39,8 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
                 Payload          = SomeIpHelper.ParsePayload(payloadStr),
             };
 
-            if (setting.EnableLog)
-                context.Log(
-                    $"SOME/IP 请求({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
+            context.Log(
+                $"SOME/IP 请求({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
 
             SomeIpMessage response;
             if (setting.Transport == SomeIpTransport.Tcp)
@@ -50,9 +49,8 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
                 response = await RequestOverUdpAsync(host, port, message, setting.TimeoutMs, cancellationToken);
 
             var responseHex = SomeIpHelper.ToHex(response.Payload);
-            if (setting.EnableLog)
-                context.Log(
-                    $"SOME/IP 响应: ReturnCode=0x{response.ReturnCode:X2} [{responseHex}]");
+            context.Log(
+                $"SOME/IP 响应: ReturnCode=0x{response.ReturnCode:X2} [{responseHex}]");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, responseHex);

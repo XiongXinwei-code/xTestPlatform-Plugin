@@ -88,11 +88,8 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
 
                             adapter.Write(message);
 
-                            if (setting.EnableLog)
-                            {
-                                context.Log(
-                                    $"[CyclicSend] 0x{canId:X} -> {BitConverter.ToString(data).Replace("-", " ")} ({msg.CycleTimeMs}ms)");
-                            }
+                            context.Log(
+                                $"[CyclicSend] 0x{canId:X} -> {BitConverter.ToString(data).Replace("-", " ")} ({msg.CycleTimeMs}ms)");
                         }
                     }
                     catch (OperationCanceledException)

@@ -26,7 +26,6 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
         | RequestData | string([ExpressionField] -> string) | 是 | "22 F1 90" | UDS 请求十六进制数据 |
         | TimeoutMs | int | 否 | 3000 | 响应超时毫秒数 |
         | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

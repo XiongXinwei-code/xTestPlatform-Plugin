@@ -36,8 +36,7 @@ public sealed class UdpSendExecutor : IStepExecutor
             using var udp = new UdpClient(setting.LocalPort);
             await udp.SendAsync(bytes, new IPEndPoint(IPAddress.Parse(host!), port), cancellationToken);
 
-            if (setting.EnableLog)
-                context.Log($"UDP 发送: {host}:{port} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
+            context.Log($"UDP 发送: {host}:{port} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
 
             return new ExecutionResult
             {

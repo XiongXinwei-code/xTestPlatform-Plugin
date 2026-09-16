@@ -49,8 +49,7 @@ public sealed class LinWriteExecutor : IStepExecutor
 
             adapter.Write(frame);
 
-            if (setting.EnableLog)
-                context.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
+            context.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
 
             return new ExecutionResult
             {

@@ -26,7 +26,6 @@ public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
         | ReadTimeoutMs | int | 否 | 1000 | 读取超时毫秒数 |
         | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 string（十六进制数据） |
         | IdVariable | string(变量路径) | 否 | 空 | 存储帧 ID 的变量路径 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

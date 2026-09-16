@@ -25,7 +25,6 @@ public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
         | TxId | string([ExpressionField] -> string) | 是 | "0x7E1" | XCP 请求 CAN ID |
         | RxId | string([ExpressionField] -> string) | 是 | "0x7E9" | XCP 响应 CAN ID |
         | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

@@ -26,7 +26,6 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
         | ServiceId | string([ExpressionField] -> string) | 否 | "0xFFFF" | 查找的服务 ID，0xFFFF 表示所有服务 |
         | TimeoutMs | int | 否 | 3000 | 收集响应超时毫秒数 |
         | ResultVariable | string(变量路径) | 否 | 空 | 存储发现结果的变量路径 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

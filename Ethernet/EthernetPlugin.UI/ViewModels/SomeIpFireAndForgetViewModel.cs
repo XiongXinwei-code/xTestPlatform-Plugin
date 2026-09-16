@@ -46,9 +46,4 @@ public class SomeIpFireAndForgetViewModel : EthernetViewModelBase<SomeIpFireAndF
         get => Setting?.Payload ?? "\"\"";
         set { if (Setting == null || Setting.Payload == value) return; Setting.Payload = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 }

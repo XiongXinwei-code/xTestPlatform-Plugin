@@ -67,11 +67,6 @@ public abstract class XcpViewModelBase<TSetting> : INotifyPropertyChanged where 
         get => Setting?.TimeoutMs ?? 1000;
         set { if (Setting == null || Setting.TimeoutMs == value) return; Setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); }
     }
-    public bool EnableLog
-    {
-        get => Setting?.EnableLog ?? true;
-        set { if (Setting == null || Setting.EnableLog == value) return; Setting.EnableLog = value; OnPropertyChanged(); QueueSave(); }
-    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null)

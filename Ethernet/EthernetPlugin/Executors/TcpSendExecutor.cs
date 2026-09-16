@@ -36,8 +36,7 @@ public sealed class TcpSendExecutor : IStepExecutor
                 throw new TimeoutException($"TCP 发送超时({timeoutMs}ms): 对端未接收数据");
             }
 
-            if (setting.EnableLog)
-                context.Log($"TCP 发送: {name} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
+            context.Log($"TCP 发送: {name} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
 
             return new ExecutionResult
             {

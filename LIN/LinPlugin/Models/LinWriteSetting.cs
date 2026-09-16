@@ -20,7 +20,4 @@ public class LinWriteSetting
 
     /// <summary>校验类型</summary>
     public LinChecksumType ChecksumType { get; set; } = LinChecksumType.Enhanced;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

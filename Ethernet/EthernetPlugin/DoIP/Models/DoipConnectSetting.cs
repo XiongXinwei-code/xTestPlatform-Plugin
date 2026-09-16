@@ -27,7 +27,4 @@ public class DoipConnectSetting
 
     /// <summary>连接与响应超时（毫秒）</summary>
     public int TimeoutMs { get; set; } = 3000;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

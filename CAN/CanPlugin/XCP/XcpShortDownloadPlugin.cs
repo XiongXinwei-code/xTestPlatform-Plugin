@@ -29,7 +29,6 @@ public sealed class XcpShortDownloadPlugin : StepPluginBase<XcpShortDownloadSett
         | AddressExtension | 枚举 | 否 | None | 可选值：None, Odt, Daq |
         | Data | string([ExpressionField] -> string) | 是 | "01 00 00 00" | 要写入的十六进制数据（最多 6 字节） |
         | ByteOrder | 枚举 | 否 | LittleEndian | 可选值：LittleEndian, BigEndian |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

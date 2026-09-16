@@ -54,7 +54,6 @@ public class CanCyclicSendStartViewModel : INotifyPropertyChanged
 
     public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
     public string TaskName { get => _setting?.TaskName ?? ""; set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); } }
-    public bool EnableLog { get => _setting?.EnableLog ?? false; set { if (_setting == null || _setting.EnableLog == value) return; _setting.EnableLog = value; OnPropertyChanged(); QueueSave(); } }
 
     public void AddMessage()
     {

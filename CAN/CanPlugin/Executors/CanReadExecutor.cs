@@ -69,8 +69,7 @@ public sealed class CanReadExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(setting.IdVariable))
                 context.SetVariable(setting.IdVariable, $"0x{msg.Id:X}");
 
-            if (setting.EnableLog)
-                context.Log($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
+            context.Log($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
 
             return new ExecutionResult
             {

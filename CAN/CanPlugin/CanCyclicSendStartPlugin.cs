@@ -23,7 +23,6 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
         | TaskName | string([ExpressionField] -> string) | 是 | — | 任务标识名，Stop 时用此名称停止 |
-        | EnableLog | bool | 否 | false | 是否输出发送日志 |
         | Messages | 集合 | 是 | — | 周期报文列表，元素结构见示例 |
 
         Messages 元素中 CanId 和 Data 为表达式字段，字面量值需用引号包裹；FrameType 可选值：Standard, Extended。

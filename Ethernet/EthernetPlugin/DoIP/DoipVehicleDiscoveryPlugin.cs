@@ -25,7 +25,6 @@ public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDisco
         | Port | int | 否 | 13400 | UDP 发现端口 |
         | TimeoutMs | int | 否 | 3000 | 等待响应超时毫秒数 |
         | ResultVariable | string(变量路径) | 否 | 空 | 存储发现结果的变量路径 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

@@ -24,15 +24,13 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
             var targetAddress = DoipHelper.ParseAddress(targetStr);
             var requestData = DoipHelper.ParseHexData(dataStr);
 
-            if (setting.EnableLog)
-                context.Log(
-                    $"DoIP 诊断请求: {name} -> 0x{targetAddress:X4} [{DoipHelper.ToHex(requestData)}]");
+            context.Log(
+                $"DoIP 诊断请求: {name} -> 0x{targetAddress:X4} [{DoipHelper.ToHex(requestData)}]");
 
             var response = await client.DiagRequestAsync(targetAddress, requestData, cancellationToken);
             var responseHex = DoipHelper.ToHex(response);
 
-            if (setting.EnableLog)
-                context.Log($"DoIP 诊断响应: [{responseHex}]");
+            context.Log($"DoIP 诊断响应: [{responseHex}]");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, responseHex);

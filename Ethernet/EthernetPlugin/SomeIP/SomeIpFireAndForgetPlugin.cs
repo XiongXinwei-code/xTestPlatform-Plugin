@@ -29,7 +29,6 @@ public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForg
         | ClientId | string([ExpressionField] -> string) | 否 | "0x0001" | 客户端 ID |
         | InterfaceVersion | string([ExpressionField] -> string) | 否 | "0x01" | 接口版本 |
         | Payload | string([ExpressionField] -> string) | 否 | 空 | 十六进制负载，可为空 |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

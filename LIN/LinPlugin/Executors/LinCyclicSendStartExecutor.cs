@@ -85,8 +85,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
 
                             adapter.Write(frame);
 
-                            if (setting.EnableLog)
-                                context.Log($"[LIN 周期发送] 0x{frameId:X2} → {BitConverter.ToString(data).Replace("-", " ")} ({frameItem.CycleTimeMs}ms)");
+                            context.Log($"[LIN 周期发送] 0x{frameId:X2} → {BitConverter.ToString(data).Replace("-", " ")} ({frameItem.CycleTimeMs}ms)");
                         }
                     }
                     catch (OperationCanceledException)

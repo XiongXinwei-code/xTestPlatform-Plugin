@@ -30,7 +30,6 @@ public sealed class XcpShortUploadPlugin : StepPluginBase<XcpShortUploadSetting>
         | ReadLength | int | 否 | 4 | 读取字节数 1-7 |
         | ByteOrder | 枚举 | 否 | LittleEndian | 可选值：LittleEndian, BigEndian |
         | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制数据） |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

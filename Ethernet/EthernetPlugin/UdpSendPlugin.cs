@@ -26,7 +26,6 @@ public sealed class UdpSendPlugin : StepPluginBase<UdpSendSetting>
         | LocalPort | int | 否 | 0 | 本机发送端口，0=系统自动分配 |
         | Data | string([ExpressionField] -> string) | 是 | "01 02 03" | 发送数据 |
         | Encoding | 枚举 | 否 | Hex | 数据编码格式，可选值：Hex, Utf8, Ascii |
-        | EnableLog | bool | 否 | true | 是否输出日志 |
 
         ## 行为
 

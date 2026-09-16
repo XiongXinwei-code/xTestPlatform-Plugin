@@ -44,8 +44,7 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
                 var hex = UdsExecutorHelper.ToHex(resultData);
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     context.SetVariable(setting.ResultVariable, hex);
-                if (setting.EnableLog)
-                    context.Log($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
+                context.Log($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
             }
             else

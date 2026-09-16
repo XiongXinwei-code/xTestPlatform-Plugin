@@ -44,7 +44,4 @@ public class SomeIpRequestSetting
     /// <summary>结果存储变量路径（存储响应负载十六进制字符串，可选）</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
-
-    /// <summary>是否输出日志</summary>
-    public bool EnableLog { get; set; } = true;
 }

@@ -28,9 +28,8 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             var multicast = IPAddress.Parse(addrStr.Trim());
             var findServiceId = SomeIpHelper.ParseId(serviceStr, "ServiceId");
 
-            if (setting.EnableLog)
-                context.Log(
-                    $"SOME/IP-SD 发现: {multicast}:{setting.Port} 查找 Service=0x{findServiceId:X4}，超时 {setting.TimeoutMs}ms");
+            context.Log(
+                $"SOME/IP-SD 发现: {multicast}:{setting.Port} 查找 Service=0x{findServiceId:X4}，超时 {setting.TimeoutMs}ms");
 
             using var udp = new UdpClient(AddressFamily.InterNetwork);
             udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
@@ -70,8 +69,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
                 };
 
             var result = string.Join("; ", offers);
-            if (setting.EnableLog)
-                context.Log($"SOME/IP-SD 发现服务: {result}");
+            context.Log($"SOME/IP-SD 发现服务: {result}");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, result);

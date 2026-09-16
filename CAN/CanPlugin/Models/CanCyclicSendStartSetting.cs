@@ -15,9 +15,6 @@ public class CanCyclicSendStartSetting
     [ExpressionField]
     public string TaskName { get; set; } = "\"CyclicTask1\"";
 
-    /// <summary>是否将发送信息输出到 Log 窗口</summary>
-    public bool EnableLog { get; set; } = false;
-
     /// <summary>周期发送报文列表</summary>
     public ObservableCollection<CyclicMessageItem> Messages { get; set; } = [];
 }
