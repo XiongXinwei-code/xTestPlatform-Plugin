@@ -16,6 +16,9 @@ concurrency:
 env:
   DOTNET_VERSION: "8.0.x"
   PUBLISH_DIR: publish
+  # 保留的历史 Release 数量。插件管理器的"安装历史版本"只能装这些仍存在的 Release，
+  # 被清理掉的版本其 zip 下载链接会失效，因此该值决定可回退的版本深度。
+  KEEP_RELEASES: "10"
 
 jobs:
   auto-release:
@@ -305,6 +308,85 @@ jobs:
 
           "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      # ── 7.5 生成历史版本索引 versions.json ─────────────────────────────
+      # 客户端「安装历史版本」依赖该文件。做法：继承上一个 Release 的 versions.json，
+      # 追加本次各插件条目，并剔除已被清理（Release 不存在）的版本，避免出现死链。
+      - name: 生成历史版本索引
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.PLUGIN_TOKEN }}
+        run: |
+          $tag = "${{ steps.bump_version.outputs.new_tag }}"
+          $assetsDir = "$env:GITHUB_WORKSPACE\assets"
+          $manifest = Get-Content "$assetsDir\manifest.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+
+          # ① 继承上一个 Release 的历史索引（首次发布时为空）
+          $history = @{}
+          $prevIndexPath = "$env:GITHUB_WORKSPACE\prev-versions.json"
+          gh release download --pattern "versions.json" --output $prevIndexPath 2>$null
+          if ($LASTEXITCODE -eq 0 -and (Test-Path $prevIndexPath)) {
+              try {
+                  $prev = Get-Content $prevIndexPath -Raw -Encoding UTF8 | ConvertFrom-Json
+                  foreach ($p in $prev.plugins) {
+                      $history[$p.name] = @($p.versions)
+                  }
+                  Write-Host "📥 已继承上一版历史索引（$($history.Keys.Count) 个插件）"
+              } catch {
+                  Write-Warning "上一版 versions.json 解析失败，将重新生成：$_"
+                  $history = @{}
+              }
+          } else {
+              Write-Host "ℹ️ 未找到上一版 versions.json，按首次发布处理"
+          }
+
+          # ② 追加本次发布的各插件版本（同版本号去重，以本次为准）
+          foreach ($e in $manifest.plugins) {
+              $list = @()
+              if ($history.ContainsKey($e.name)) {
+                  $list = @($history[$e.name] | Where-Object { $_.version -ne $e.version })
+              }
+              $list = @([pscustomobject][ordered]@{
+                  version     = $e.version
+                  releaseTag  = $tag
+                  publishedAt = $e.publishedAt
+                  downloadUrl = $e.downloadUrl
+                  sha256      = $e.sha256
+                  size        = $e.size
+                  changelog   = $e.changelog
+              }) + $list
+              $history[$e.name] = $list
+          }
+
+          # ③ 剔除将被清理掉的 Release 对应的版本（下载链接会失效）
+          # 保留列表 = 本次 tag + 现有 Release 中最新的 (KEEP_RELEASES - 1) 个
+          $keep = [int]"${{ env.KEEP_RELEASES }}"
+          $existing = @(gh release list --json tagName --jq '.[].tagName')
+          $keepTags = @($tag) + @($existing | Where-Object { $_ -ne $tag } | Select-Object -First ($keep - 1))
+          Write-Host "🔖 历史索引保留的发布包: $($keepTags -join ', ')"
+
+          $plugins = @()
+          foreach ($name in ($history.Keys | Sort-Object)) {
+              $valid = @($history[$name] | Where-Object { $keepTags -contains $_.releaseTag })
+              if ($valid.Count -eq 0) { continue }
+              # 按版本号语义倒序，最新在前（同一插件未变更时多个 Release 的 publishedAt 相同，不能用时间排序）
+              $valid = @($valid | Sort-Object -Property @{ Expression = {
+                  try { [version]($_.version -replace '^[vV]', '') } catch { [version]"0.0.0" }
+              } } -Descending)
+              $plugins += [ordered]@{
+                  name     = $name
+                  versions = $valid
+              }
+              Write-Host "  🕘 $name : $($valid.Count) 个可安装版本"
+          }
+
+          $index = [ordered]@{
+              indexVersion = 1
+              generatedAt  = (Get-Date).ToString("o")
+              plugins      = $plugins
+          }
+          $index | ConvertTo-Json -Depth 6 | Set-Content "$assetsDir\versions.json" -Encoding UTF8
+          Write-Host "✅ versions.json 已生成（$($plugins.Count) 个插件）"
+
       # ── 8. 生成 Release Notes ─────────────────────────────────────────
       - name: 生成 Release Notes
         shell: pwsh
@@ -336,6 +418,7 @@ jobs:
             ${{ env.ZIP_NAME }}
             assets/*.zip
             assets/manifest.json
+            assets/versions.json
           generate_release_notes: false
           token: ${{ secrets.PLUGIN_TOKEN }}
 
@@ -345,10 +428,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PLUGIN_TOKEN }}
         run: |
-          # 保留最近 3 个版本，删除更早的发布和标签
+          # 保留最近 KEEP_RELEASES 个版本，删除更早的发布和标签
+          # 保留数与 versions.json 的过滤规则一致，保证历史版本索引中不出现死链
+          $keep = [int]"${{ env.KEEP_RELEASES }}"
           $allTags = gh release list --json tagName --jq '.[].tagName'
-          $keepTags = @($allTags | Select-Object -First 3)
-          $toDelete = $allTags | Select-Object -Skip 3
+          $keepTags = @($allTags | Select-Object -First $keep)
+          $toDelete = $allTags | Select-Object -Skip $keep
           foreach ($tag in $toDelete) {
             Write-Host "🗑️ 删除发布: $tag"
             gh release delete $tag --yes --cleanup-tag
@@ -365,7 +450,8 @@ jobs:
               git push origin --delete "refs/tags/$tag"
             }
           }
-          Write-Host "✅ 历史发布和标签已清理完毕（保留最近 3 个版本）"
+          Write-Host "✅ 历史发布和标签已清理完毕（保留最近 $keep 个版本）"
 
       # 客户端 xTestPluginManager 固定从 releases/latest/download/manifest.json
-      # 获取插件清单，不读取 docs/version.json，因此流水线无需向 master 写回文件。
+      # 获取插件清单，从 releases/latest/download/versions.json 获取历史版本索引，
+      # 不读取 docs/version.json，因此流水线无需向 master 写回文件。
