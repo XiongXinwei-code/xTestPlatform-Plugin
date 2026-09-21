@@ -4,11 +4,12 @@ using CAN.Models;
 namespace CAN.Adapters.Kvaser;
 
 /// <summary>Kvaser CAN 适配器实现（CANlib）</summary>
-public sealed class KvaserAdapter : ICanAdapter
+public sealed class KvaserAdapter : ICanAdapter, ICanAdapterDiagnostics
 {
     private int _handle = -1;
     private bool _isConnected;
     private bool _isFd;
+    private readonly CanReceiveDiagnostics _diagnostics = new("Kvaser");
 
     public bool IsConnected => _isConnected;
 
@@ -118,6 +119,7 @@ public sealed class KvaserAdapter : ICanAdapter
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         var buffer = new byte[64];
+        var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
 
         while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)
         {
@@ -142,11 +144,19 @@ public sealed class KvaserAdapter : ICanAdapter
             };
 
             if (filterId == null || msg.Id == filterId.Value)
+            {
+                session.Matched();
                 return msg;
-            // ID 不匹配，继续读取
+            }
+
+            session.Filtered(msg.Id); // ID 不匹配，继续读取
         }
+
+        session.TimedOut();
         return null;
     }
+
+    public string GetReceiveDiagnostics() => _diagnostics.Get();
 
     public void Dispose() => Close();
 }

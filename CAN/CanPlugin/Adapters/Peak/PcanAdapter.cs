@@ -4,11 +4,12 @@ using CAN.Models;
 namespace CAN.Adapters.Peak;
 
 /// <summary>PEAK PCAN 适配器实现（PCAN-Basic API）</summary>
-public sealed class PcanAdapter : ICanAdapter
+public sealed class PcanAdapter : ICanAdapter, ICanAdapterDiagnostics
 {
     private ushort _channel;
     private bool _isConnected;
     private bool _isFd;
+    private readonly CanReceiveDiagnostics _diagnostics = new("PEAK");
 
     public bool IsConnected => _isConnected;
 
@@ -117,19 +118,30 @@ public sealed class PcanAdapter : ICanAdapter
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
+
         while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)
         {
             CanMessage? msg = _isFd ? ReadOneFd() : ReadOneClassic();
             if (msg != null)
             {
                 if (filterId == null || msg.Id == filterId.Value)
+                {
+                    session.Matched();
                     return msg;
+                }
+
+                session.Filtered(msg.Id);
                 continue; // ID 不匹配，继续读取
             }
             Thread.Sleep(1); // 接收队列为空，短暂等待
         }
+
+        session.TimedOut();
         return null;
     }
+
+    public string GetReceiveDiagnostics() => _diagnostics.Get();
 
     private CanMessage? ReadOneClassic()
     {

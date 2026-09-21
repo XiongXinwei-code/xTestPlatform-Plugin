@@ -57,17 +57,27 @@ public sealed class IsoTpTransport
     /// <summary>接收 UDS 响应数据（自动重组）</summary>
     public async Task<byte[]?> ReceiveAsync(int timeoutMs, CancellationToken ct = default)
     {
-        var msg = _adapter.Read(_rxId, timeoutMs, ct);
-        if (msg == null || msg.Data.Length == 0) return null;
+        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
 
-        byte pciType = (byte)(msg.Data[0] & 0xF0);
-
-        return pciType switch
+        while (!ct.IsCancellationRequested)
         {
-            SingleFrame => ParseSingleFrame(msg.Data),
-            FirstFrame => await ReceiveMultiFrameAsync(msg.Data, timeoutMs, ct),
-            _ => null
-        };
+            int remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
+            if (remaining <= 0) return null;
+
+            var msg = _adapter.Read(_rxId, remaining, ct);
+            if (msg == null || msg.Data.Length == 0) return null;
+
+            byte pciType = (byte)(msg.Data[0] & 0xF0);
+
+            // 队列中可能残留流控帧、连续帧或其他非诊断帧，忽略后继续等待，
+            // 不能直接返回 null，否则会被上层误判为接收超时。
+            if (pciType == SingleFrame)
+                return ParseSingleFrame(msg.Data);
+            if (pciType == FirstFrame)
+                return await ReceiveMultiFrameAsync(msg.Data, remaining, ct);
+        }
+
+        return null;
     }
 
     // ── 单帧 ────────────────────────────────────────────────────
