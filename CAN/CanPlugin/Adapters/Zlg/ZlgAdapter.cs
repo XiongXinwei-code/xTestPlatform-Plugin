@@ -4,12 +4,13 @@ using CAN.Helpers;
 namespace CAN.Adapters.Zlg;
 
 /// <summary>周立功 ZLG CAN 适配器实现（zlgcan.dll）</summary>
-public sealed class ZlgAdapter : ICanAdapter
+public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
 {
     private IntPtr _deviceHandle = IntPtr.Zero;
     private IntPtr _channelHandle = IntPtr.Zero;
     private bool _isConnected;
     private bool _isFd;
+    private readonly CanReceiveDiagnostics _diagnostics = new("ZLG");
 
     public bool IsConnected => _isConnected;
 
@@ -252,6 +253,8 @@ public sealed class ZlgAdapter : ICanAdapter
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
+
         while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)
         {
             int remainMs = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
@@ -261,12 +264,20 @@ public sealed class ZlgAdapter : ICanAdapter
             if (msg != null)
             {
                 if (filterId == null || msg.Id == filterId.Value)
+                {
+                    session.Matched();
                     return msg;
-                // ID 不匹配，继续读取
+                }
+
+                session.Filtered(msg.Id); // ID 不匹配，继续读取
             }
         }
+
+        session.TimedOut();
         return null;
     }
+
+    public string GetReceiveDiagnostics() => _diagnostics.Get();
 
     private CanMessage? ReadOneClassic(int waitMs)
     {

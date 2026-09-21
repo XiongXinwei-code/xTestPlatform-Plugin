@@ -3,12 +3,13 @@ using CAN.Models;
 namespace CAN.Adapters.Tosun;
 
 /// <summary>同星 TOSUN CAN 适配器实现（TSCAN API）</summary>
-public sealed class TosunAdapter : ICanAdapter
+public sealed class TosunAdapter : ICanAdapter, ICanAdapterDiagnostics
 {
     private nuint _deviceHandle;
     private int _channelIndex;
     private bool _isConnected;
     private bool _isFd;
+    private readonly CanReceiveDiagnostics _diagnostics = new("TOSUN");
     private bool _libInitialized;
 
     public bool IsConnected => _isConnected;
@@ -149,19 +150,30 @@ public sealed class TosunAdapter : ICanAdapter
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
+
         while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)
         {
             CanMessage? msg = _isFd ? ReadOneFd() : ReadOneClassic();
             if (msg != null)
             {
                 if (filterId == null || msg.Id == filterId.Value)
+                {
+                    session.Matched();
                     return msg;
+                }
+
+                session.Filtered(msg.Id);
                 continue; // ID 不匹配，继续读取
             }
             Thread.Sleep(1); // 接收 FIFO 为空，短暂等待
         }
+
+        session.TimedOut();
         return null;
     }
+
+    public string GetReceiveDiagnostics() => _diagnostics.Get();
 
     private CanMessage? ReadOneClassic()
     {

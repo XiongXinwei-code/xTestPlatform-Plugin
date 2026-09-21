@@ -1,6 +1,8 @@
 // StepInfoExtractor：反射扫描插件目录中的 *.StepPlugin.dll，
-// 提取所有 IStepPlugin 实现的 DisplayName 与 Description（简述），
-// 以 JSON 数组输出到 stdout：[{ "displayName": "...", "description": "..." }]
+// 提取所有 IStepPlugin 实现的 StepTypeId、DisplayName 与 Description（简述），
+// 以 JSON 数组输出到 stdout：[{ "stepTypeId": "...", "displayName": "...", "description": "..." }]
+// stepTypeId 是序列文件中实际存储的步骤类型标识，客户端据此由未知步骤反查所需插件，
+// 不可省略；DisplayName 仅用于展示，与 stepTypeId 无固定对应关系。
 // 用法：StepInfoExtractor <插件产物目录>
 // 警告信息输出到 stderr，单个类型失败不影响整体（跳过并警告）。
 
@@ -53,6 +55,7 @@ foreach (var dll in dlls)
             try
             {
                 var instance = Activator.CreateInstance(type);
+                var stepTypeId = GetStringProperty(type, instance, "StepTypeId");
                 var displayName = GetStringProperty(type, instance, "DisplayName");
                 var description = GetStringProperty(type, instance, "Description");
                 if (string.IsNullOrWhiteSpace(displayName))
@@ -60,7 +63,9 @@ foreach (var dll in dlls)
                     Console.Error.WriteLine($"警告: {type.FullName} 的 DisplayName 为空，已跳过");
                     continue;
                 }
-                steps.Add(new StepInfo(displayName, ShortenDescription(description)));
+                if (string.IsNullOrWhiteSpace(stepTypeId))
+                    Console.Error.WriteLine($"警告: {type.FullName} 的 StepTypeId 为空，该步骤无法被反查定位");
+                steps.Add(new StepInfo(stepTypeId, displayName, ShortenDescription(description)));
             }
             catch (Exception ex)
             {
@@ -111,7 +116,7 @@ static string ShortenDescription(string description)
     return lines.Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0 && !l.StartsWith("#")) ?? string.Empty;
 }
 
-internal sealed record StepInfo(string displayName, string description);
+internal sealed record StepInfo(string stepTypeId, string displayName, string description);
 
 // 从插件目录探测依赖，避免加载失败
 internal sealed class PluginLoadContext : AssemblyLoadContext
