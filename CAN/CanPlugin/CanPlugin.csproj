@@ -29,4 +29,13 @@
 	</None>
   </ItemGroup>
 
+  <!-- 复制随插件发布的 Vector XL Driver Library（x64）至输出目录 Native\Vector\；
+	   目录为空时不影响构建，运行时会回退到系统已安装的 Vector 驱动 -->
+  <ItemGroup>
+	<None Include="Native\Vector\x64\**\*.*" Exclude="Native\Vector\x64\**\*.md;Native\Vector\x64\**\*.h;Native\Vector\x64\**\*.lib;Native\Vector\x64\**\.gitkeep">
+	  <Link>Native\Vector\%(RecursiveDir)%(Filename)%(Extension)</Link>
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</None>
+  </ItemGroup>
+
 </Project>
