@@ -44,6 +44,12 @@ internal static class HttpHelper
     {
         var handler = new HttpClientHandler();
 
+        // 设备通常位于同一局域网，不经过系统代理。
+        // 若保留默认的系统代理设置，内网地址也会被转发到代理服务器，
+        // 表现为每次请求都卡满超时时间。
+        handler.UseProxy = false;
+        handler.Proxy = null;
+
         if (authMode == AuthMode.ClientCertificate)
         {
             if (string.IsNullOrWhiteSpace(certPath))

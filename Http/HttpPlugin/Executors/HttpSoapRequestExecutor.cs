@@ -130,9 +130,12 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex)
         {
-            return Error("SOAP 调用超时");
+            var detail = ex.InnerException?.Message;
+            return Error(string.IsNullOrWhiteSpace(detail)
+                ? "SOAP 调用超时，请检查服务端是否可达"
+                : $"SOAP 调用超时，请检查服务端是否可达: {detail}");
         }
         catch (Exception ex)
         {

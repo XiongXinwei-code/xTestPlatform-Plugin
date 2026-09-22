@@ -98,9 +98,12 @@ public sealed class HttpRequestExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex)
         {
-            return Error("HTTP 请求超时");
+            var detail = ex.InnerException?.Message;
+            return Error(string.IsNullOrWhiteSpace(detail)
+                ? "HTTP 请求超时，请检查服务端是否可达"
+                : $"HTTP 请求超时，请检查服务端是否可达: {detail}");
         }
         catch (Exception ex)
         {
