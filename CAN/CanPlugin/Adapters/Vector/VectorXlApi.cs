@@ -7,6 +7,108 @@ internal static class VectorXlApi
 {
     private const string DllName = "vxlapi64.dll";
 
+    // ── 原生库加载 ────────────────────────────────────────────────────────────
+    // 插件由宿主动态加载，DllImport 默认搜索的是宿主进程目录而非插件目录，
+    // 因此这里把随插件一起发布的 Native\Vector 目录显式加入搜索路径。
+    // 若该目录下没有 vxlapi64.dll（例如未随包发布），解析器返回 Zero，
+    // 运行时会退回系统默认搜索顺序，即使用现场已安装的 Vector 驱动。
+    static VectorXlApi()
+    {
+        var tried = new List<string>();
+        try
+        {
+            foreach (var dir in EnumerateCandidateDirs())
+            {
+                if (string.IsNullOrEmpty(dir) || tried.Contains(dir))
+                    continue;
+                tried.Add(dir);
+
+                if (!File.Exists(Path.Combine(dir, DllName)))
+                    continue;
+
+                NativeDir = dir;
+                NativeLibrary.SetDllImportResolver(typeof(VectorXlApi).Assembly, ResolveNativeLibrary);
+                break;
+            }
+        }
+        catch (Exception ex)
+        {
+            NativeDir = null;
+            tried.Add($"[异常] {ex.Message}");
+        }
+
+        ProbedDirs = tried;
+    }
+
+    /// <summary>依次列出可能存放 Native\Vector 的目录</summary>
+    private static IEnumerable<string?> EnumerateCandidateDirs()
+    {
+        // 1) 插件程序集自身所在目录（正常从文件加载时）
+        string? asmDir = null;
+        try
+        {
+            var loc = typeof(VectorXlApi).Assembly.Location;
+            if (!string.IsNullOrEmpty(loc))
+                asmDir = Path.GetDirectoryName(loc);
+        }
+        catch { /* 忽略 */ }
+        if (asmDir is not null)
+            yield return Path.Combine(asmDir, "Native", "Vector");
+
+        // 2) 宿主基目录下的插件目录（Assembly.Location 为空时的兜底）
+        var baseDir = AppContext.BaseDirectory;
+        if (!string.IsNullOrEmpty(baseDir))
+        {
+            yield return Path.Combine(baseDir, "Plugins", "CAN", "Native", "Vector");
+            yield return Path.Combine(baseDir, "Native", "Vector");
+
+            // 3) 插件目录名可能与宿主约定不同，扫描 Plugins 下一层
+            var pluginsRoot = Path.Combine(baseDir, "Plugins");
+            string[] subDirs;
+            try { subDirs = Directory.Exists(pluginsRoot) ? Directory.GetDirectories(pluginsRoot) : []; }
+            catch { subDirs = []; }
+            foreach (var sub in subDirs)
+                yield return Path.Combine(sub, "Native", "Vector");
+        }
+    }
+
+    /// <summary>实际使用的原生库目录，未随包发布时为 null（走系统已安装驱动）</summary>
+    private static readonly string? NativeDir;
+
+    /// <summary>探测过的目录，用于加载失败时输出诊断信息</summary>
+    private static readonly IReadOnlyList<string> ProbedDirs;
+
+    /// <summary>插件自带库加载失败的原因，成功或未使用时为 null</summary>
+    private static string? LoadFailure;
+
+    /// <summary>生成原生库加载失败的诊断说明</summary>
+    internal static string GetLoadDiagnostics()
+    {
+        var dirs = ProbedDirs.Count == 0 ? "（无）" : string.Join("；", ProbedDirs);
+        if (NativeDir is null)
+            return $"插件目录下未附带 {DllName}，且系统中也未找到（依赖已安装的 Vector 驱动）。已探测：{dirs}";
+
+        var detail = LoadFailure is null ? "未进入插件自带的加载流程" : $"加载失败：{LoadFailure}";
+        return $"已定位插件自带原生库目录：{NativeDir}；{detail}；已探测：{dirs}";
+    }
+
+    private static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
+    {
+        if (NativeDir is null || !string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
+            return IntPtr.Zero;
+
+        try
+        {
+            return NativeLibrary.Load(Path.Combine(NativeDir, DllName));
+        }
+        catch (Exception ex)
+        {
+            // 回退到系统默认搜索顺序（现场已安装的 Vector 驱动）
+            LoadFailure = $"{ex.GetType().Name}: {ex.Message}";
+            return IntPtr.Zero;
+        }
+    }
+
     // ── 状态码 ────────────────────────────────────────────
     public const short XL_SUCCESS = 0;
     public const short XL_ERR_QUEUE_IS_EMPTY = 10;

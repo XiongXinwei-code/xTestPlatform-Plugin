@@ -29,7 +29,8 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
         {
             throw new InvalidOperationException(
                 "未找到 vxlapi64.dll，请安装 Vector XL Driver Library。" +
-                "下载地址: https://www.vector.com/int/en/products/products-a-z/libraries-drivers/xl-driver-library/");
+                "下载地址: https://www.vector.com/int/en/products/products-a-z/libraries-drivers/xl-driver-library/。" +
+                $"加载诊断：{VectorXlApi.GetLoadDiagnostics()}");
         }
     }
 
