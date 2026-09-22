@@ -96,7 +96,8 @@ internal static class VectorXlApi
         public uint crc;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 12)]
         public byte[] reserved3;
-        public byte totalBitCnt;
+        // vxlapi.h 中 totalBitCnt 为 unsigned short；若按 1 字节声明会使 dlc 与 data 整体错位。
+        public ushort totalBitCnt;
         public byte dlc;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 5)]
         public byte[] reserved4;
