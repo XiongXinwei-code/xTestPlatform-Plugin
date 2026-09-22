@@ -99,6 +99,11 @@ internal static class HttpHelper
             ? TimeSpan.FromMilliseconds(timeoutMs)
             : Timeout.InfiniteTimeSpan;
 
+        // 部分嵌入式/脚本实现的服务端使用 HTTP/1.1 长连接回复，却不发送 Content-Length
+        // 也不使用分块编码，客户端无法判断响应体何时结束，只能等到超时。
+        // 显式要求关闭连接，由连接关闭作为响应结束标记。
+        client.DefaultRequestHeaders.ConnectionClose = true;
+
         switch (authMode)
         {
             case AuthMode.Basic:
