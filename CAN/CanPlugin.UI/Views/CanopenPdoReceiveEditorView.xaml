@@ -1,0 +1,55 @@
+<UserControl x:Class="CAN.UI.Views.CanopenPdoReceiveEditorView"
+			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+			 xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+			 xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+			 syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
+			 mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800">
+	<!-- CANopen PDO 接收步骤编辑器：等待指定 COB-ID 的 PDO 报文，并将数据写入结果变量 -->
+	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+		<syncfusion:TabItemExt Header="CANopen PDO Receive"
+							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+							   ImageHeight="20" ImageWidth="20">
+			<ScrollViewer VerticalScrollBarVisibility="Auto">
+			<Grid Margin="16">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="140"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- 连接名称：需与前序 CAN_Open 步骤中的连接名称一致 -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+					ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
+					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <!-- COB-ID：待接收 PDO 的 11 位标准 CAN ID（0x000~0x7FF），如 TPDO1 = 0x180 + NodeId -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="COB-ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
+					ScriptText="{Binding CobId, Mode=TwoWay}" ExpectedResultType="Object"
+					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <!-- 等待超时（毫秒）：超时未收到报文时步骤返回 Error -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <!-- 结果变量：用户已声明的 string 变量路径，接收数据以十六进制字符串写入；留空则不写入 -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+            </Grid>
+			</ScrollViewer>
+		</syncfusion:TabItemExt>
+	</syncfusion:TabControlExt>
+</UserControl>

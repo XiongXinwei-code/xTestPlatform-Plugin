@@ -1,5 +1,9 @@
 # 更新记录
 
+## v1.3.0 - 2026-09-02
+- 新增：CANopen 协议步骤 CANopen_SdoRead、CANopen_SdoWrite（快速/分段/块传输，含 CRC 校验与 SDO 中止码中文说明）、CANopen_NmtControl、CANopen_WaitHeartbeat、CANopen_PdoSend、CANopen_PdoReceive。
+- 新增：SDO 编辑器支持导入 EDS/DCF 文件并选择对象，自动填入 Index、SubIndex 和数据类型。
+
 ## v1.2.8 - 2026-09-01
 - 优化：NI-XNET 启用发送完成回显监控；UDS 超时时会明确显示 0x704 是否真正完成总线发送，发送回显不会进入普通接收队列或被误判为 ECU 响应。
 - 优化：NI-XNET 超时诊断增加 CANComm 状态、最后总线错误、收发错误计数、收发器错误与休眠状态，可直接区分 ECU 未响应、ACK 错误、位错误和 Bus Off。
