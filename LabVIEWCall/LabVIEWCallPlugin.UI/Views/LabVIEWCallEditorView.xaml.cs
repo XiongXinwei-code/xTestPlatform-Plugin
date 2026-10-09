@@ -196,7 +196,8 @@ namespace LabVIEWCallPlugin.UI.Views
             // ShowPanel / ClosePanel 变化时立即持久化
             if (e.PropertyName is nameof(LabVIEWCallSetting.ShowPanel)
                                or nameof(LabVIEWCallSetting.ClosePanel)
-                               or nameof(LabVIEWCallSetting.ViFilePath))
+                               or nameof(LabVIEWCallSetting.ViFilePath)
+                               or nameof(LabVIEWCallSetting.TimeoutMs))
             {
                 SchedulePersist();
             }

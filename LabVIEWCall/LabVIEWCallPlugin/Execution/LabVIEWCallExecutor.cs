@@ -225,6 +225,12 @@ namespace LabVIEWCallPlugin.Execution
                 if (runtimeVal is null) continue;
 
                 // 将运行时值转换为对应的 JsonElement，供 GetXxx() 读取
+                if (node.DataType is ViDataType.Int32Array or ViDataType.Float64Array or ViDataType.StringArray)
+                {
+                    node.Value = ConvertArrayToJsonElement(runtimeVal, node.DataType);
+                    continue;
+                }
+
                 node.Value = ConvertToJsonElement(
                     Convert.ToString(runtimeVal,
                         System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
@@ -540,6 +546,42 @@ namespace LabVIEWCallPlugin.Execution
             "String Array" or "String[]" => ViDataType.StringArray,
             _ => ViDataType.Float64
         };
+
+        /// <summary>
+        /// 数组类型运行时变量 → JsonElement。
+        /// 支持平台数组/集合、JSON 数组字符串（"[1,2]"）以及逗号分隔字符串（"1,2"）。
+        /// </summary>
+        private static JsonElement ConvertArrayToJsonElement(object runtimeVal, string viDataType)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            IEnumerable<string> items;
+            if (runtimeVal is string s)
+            {
+                var text = s.Trim();
+                if (text.StartsWith('['))
+                    return JsonDocument.Parse(text).RootElement.Clone();
+                items = text.Length == 0
+                    ? []
+                    : text.Split(',').Select(p => p.Trim());
+            }
+            else if (runtimeVal is System.Collections.IEnumerable seq)
+            {
+                items = seq.Cast<object?>().Select(o => Convert.ToString(o, inv) ?? string.Empty);
+            }
+            else
+            {
+                items = [Convert.ToString(runtimeVal, inv) ?? string.Empty];
+            }
+
+            return viDataType switch
+            {
+                ViDataType.Int32Array => JsonSerializer.SerializeToElement(
+                    items.Select(p => int.Parse(p, inv)).ToArray()),
+                ViDataType.Float64Array => JsonSerializer.SerializeToElement(
+                    items.Select(p => double.Parse(p, System.Globalization.NumberStyles.Float, inv)).ToArray()),
+                _ => JsonSerializer.SerializeToElement(items.ToArray())
+            };
+        }
 
         /// <summary>LvPanelNode.Value 字符串 → JsonElement（供 GetXxx() 调用）</summary>
         private static JsonElement ConvertToJsonElement(string value, string lvType)

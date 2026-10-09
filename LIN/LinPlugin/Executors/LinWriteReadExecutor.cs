@@ -61,7 +61,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Error  = new ErrorInfo { Message = $"等待从机响应超时 ({setting.ResponseTimeoutMs}ms)，帧 ID=0x{frameId:X2}" }
                     }
                 };

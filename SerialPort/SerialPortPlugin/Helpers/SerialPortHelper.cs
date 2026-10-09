@@ -75,6 +75,8 @@ public static class SerialPortHelper
     public static async Task WriteWithTimeoutAsync(
         SysSerialPort port, byte[] data, int timeoutMs, CancellationToken cancellationToken)
     {
+        if (timeoutMs <= 0 && timeoutMs != SysSerialPort.InfiniteTimeout)
+            throw new ArgumentOutOfRangeException(nameof(timeoutMs), $"写超时必须大于 0 或为 -1（不超时），当前值: {timeoutMs}");
         port.WriteTimeout = timeoutMs;
         await RunWithTimeoutAsync(
             () => { port.Write(data, 0, data.Length); return 0; },

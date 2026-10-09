@@ -37,6 +37,14 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
             double value = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
                 () => reader.ReadSingleSampleDouble(), setting.ReadTimeoutMs, "编码器读取", cancellationToken);
 
+            // 通道以 Ticks 创建，按编码器配置换算为目标单位（Pulses 保持原始计数）
+            if (NiDaqTaskRegistry.GetMetadata(taskName, "Unit") is EncoderUnit unit
+                && unit != EncoderUnit.Pulses
+                && NiDaqTaskRegistry.GetMetadata(taskName, "DistancePerPulse") is double distancePerPulse)
+            {
+                value *= distancePerPulse;
+            }
+
             context.SetVariable(resultVar, value);
 
             return new ExecutionResult
