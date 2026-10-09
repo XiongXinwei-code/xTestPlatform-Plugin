@@ -37,6 +37,10 @@ public static class LinHelper
     {
         if (string.IsNullOrWhiteSpace(hexStr)) return [];
         hexStr = hexStr.Replace("-", "").Replace(" ", "").Replace(",", "");
+        if (hexStr.Length % 2 != 0)
+            throw new FormatException($"LIN 数据十六进制字符数必须为偶数，当前值: {hexStr}");
+        if (hexStr.Length / 2 > 8)
+            throw new ArgumentOutOfRangeException(nameof(hexStr), $"LIN 数据长度必须在 1-8 字节范围内，当前 {hexStr.Length / 2} 字节");
         var bytes = new byte[hexStr.Length / 2];
         for (int i = 0; i < bytes.Length; i++)
             bytes[i] = Convert.ToByte(hexStr.Substring(i * 2, 2), 16);

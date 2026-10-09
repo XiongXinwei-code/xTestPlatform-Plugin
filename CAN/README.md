@@ -23,6 +23,12 @@
 | CAN_Open | 打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD 协议。 |
 | CAN_Read | 从已打开的 CAN 通道接收一帧报文，可按 ID 过滤，结果存入变量。 |
 | CAN_Write | 向已打开的 CAN 通道发送一帧报文。 |
+| CANopen_SdoRead | 通过 SDO 上传读取节点对象字典条目（支持快速/分段/块传输），可从 EDS/DCF 选择对象，结果写入变量。 |
+| CANopen_SdoWrite | 通过 SDO 下载写入节点对象字典条目（支持快速/分段/块传输），可从 EDS/DCF 选择对象。 |
+| CANopen_NmtControl | 发送 NMT 命令（启动、停止、进入预运行、复位节点、复位通信），NodeId 为 0 时广播。 |
+| CANopen_WaitHeartbeat | 等待指定节点的心跳/Boot-up 报文，可校验 NMT 状态并写入变量。 |
+| CANopen_PdoSend | 按 COB-ID 发送一帧 PDO（0~8 字节）。 |
+| CANopen_PdoReceive | 等待指定 COB-ID 的 PDO，数据以十六进制字符串写入变量。 |
 | UDS_ClearDTC | 清除 ECU 故障码（UDS 服务 0x14）。 |
 | UDS_DiagSession | 切换 ECU 诊断会话模式（UDS 服务 0x10）。 |
 | UDS_Flash | 通过 UDS 擦除、下载、传输、校验烧录 Intel HEX、S-Record 或 BIN 固件；支持连续映射范围、地址空洞填充、自动块大小与 FlashDriver 激活延时。 |
@@ -39,7 +45,9 @@
 
 ## 使用前提
 
-使用前需安装对应硬件厂商的驱动程序；UDS/XCP 步骤需先通过 CAN_Open 打开通道。
+UDS/XCP/CANopen 步骤需先通过 CAN_Open 打开通道（CANopen 使用标准 11 位帧，建议 CAN 2.0 Classic）。
+
+CANopen SDO 步骤可在编辑器中导入设备 EDS/DCF 文件，从对象列表中选择后自动填入 Index、SubIndex 与数据类型；EDS 仅用于编辑时选择，运行时不依赖该文件。
 
 其中 **ZLG 周立功** 的二次开发库（zlgcan.dll、kerneldlls 内核驱动及其依赖的 VC++ 2013 运行库）已随插件一起发布，位于插件目录下的 `Native\Zlg`，无需额外配置 PATH 或安装运行库。
 

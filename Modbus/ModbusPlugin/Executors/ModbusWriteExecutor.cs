@@ -44,6 +44,18 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 			var valuesStr = await Evaluator.EvalStringAsync(setting.Values, context);
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 
+			if (setting.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister)
+			{
+				return new ExecutionResult
+				{
+					StepResult = new StepResult
+					{
+						Status = TestStatus.Error,
+						Error = new ErrorInfo { Message = $"寄存器类型 {setting.RegisterType} 为只读，不支持写入（仅支持 Coil / HoldingRegister）" }
+					}
+				};
+			}
+
 			if (setting.RegisterType == ModbusRegisterType.Coil)
 			{
 				var bools = valuesStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

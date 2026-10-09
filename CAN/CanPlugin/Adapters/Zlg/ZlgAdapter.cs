@@ -252,12 +252,12 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
     {
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var deadline = timeoutMs < 0 ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
         var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
 
         while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)
         {
-            int remainMs = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
+            int remainMs = (int)Math.Min((deadline - DateTime.UtcNow).TotalMilliseconds, 100);
             if (remainMs <= 0) break;
 
             CanMessage? msg = _isFd ? ReadOneFd(Math.Min(remainMs, 100)) : ReadOneClassic(Math.Min(remainMs, 100));

@@ -50,74 +50,8 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 			await SerialPortHelper.WriteWithTimeoutAsync(port, writeBytes, port.WriteTimeout, cancellationToken);
 
 			// Read
-			byte[] buffer;
-			var deadline = DateTime.UtcNow.AddMilliseconds(s.ReadTimeoutMs);
-
-			if (s.ReadBytes > 0)
-			{
-				buffer = new byte[s.ReadBytes];
-				int totalRead = 0;
-				while (totalRead < s.ReadBytes)
-				{
-					var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
-					if (remaining <= 0) break;
-
-					int read = await SerialPortHelper.ReadWithTimeoutAsync(
-						port, buffer, totalRead, s.ReadBytes - totalRead, remaining, cancellationToken);
-					if (read == 0) break;
-					totalRead += read;
-				}
-
-				if (totalRead < s.ReadBytes)
-					throw new TimeoutException(
-						$"串口查询读取超时({s.ReadTimeoutMs}ms): 需读 {s.ReadBytes} 字节，实际只读到 {totalRead} 字节");
-			}
-			else
-			{
-				using var ms = new MemoryStream();
-				var temp = new byte[1024];
-				var terminator = SerialPortHelper.NormalizeTerminator(s.Terminator);
-				var needTerminator = s.DataFormat == SerialPortDataFormat.String && !string.IsNullOrEmpty(terminator);
-				var matched = false;
-
-				while (true)
-				{
-					cancellationToken.ThrowIfCancellationRequested();
-
-					var remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
-					if (remaining <= 0) break;
-
-					int read;
-					try
-					{
-						read = await SerialPortHelper.ReadWithTimeoutAsync(
-							port, temp, 0, temp.Length, remaining, cancellationToken);
-					}
-					catch (TimeoutException)
-					{
-						break;
-					}
-					if (read == 0) break;
-					ms.Write(temp, 0, read);
-
-					if (needTerminator)
-					{
-						var current = System.Text.Encoding.UTF8.GetString(ms.ToArray());
-						if (current.Contains(terminator))
-						{
-							matched = true;
-							break;
-						}
-					}
-				}
-
-				buffer = ms.ToArray();
-
-				// 配置了终止符却未等到，视为查询失败；未配置终止符时超时即为正常结束条件
-				if (needTerminator && !matched)
-					throw new TimeoutException(
-						$"串口查询读取超时({s.ReadTimeoutMs}ms): 未收到终止符，已收到 {buffer.Length} 字节");
-			}
+			var buffer = await SerialPortHelper.ReadFrameAsync(
+				port, s.ReadBytes, s.Terminator, s.ReadTimeoutMs, "串口查询读取", cancellationToken);
 
 			var result = SerialPortHelper.ConvertFromBytes(buffer, s.DataFormat);
 

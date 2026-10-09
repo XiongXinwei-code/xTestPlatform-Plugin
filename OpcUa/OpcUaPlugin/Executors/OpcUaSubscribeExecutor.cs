@@ -86,6 +86,12 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
 
             try
             {
+                // 订阅建立后再读取一次，覆盖首次读取与订阅创建之间发生的值变化
+                var recheck = await session.ReadValueAsync(nodeId, cancellationToken);
+                var recheckStr = recheck.Value?.ToString() ?? "";
+                if (OpcUaHelper.CompareValue(recheckStr, expectedValue, setting.CompareMode))
+                    tcs.TrySetResult(recheckStr);
+
                 // 等待条件满足或超时
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 timeoutCts.CancelAfter(setting.TimeoutMs);

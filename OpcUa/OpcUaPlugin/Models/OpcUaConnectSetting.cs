@@ -31,5 +31,5 @@ public class OpcUaConnectSetting
     public int TimeoutMs { get; set; } = 5000;
 
     /// <summary>是否自动接受服务器证书</summary>
-    public bool AutoAcceptCertificate { get; set; } = true;
+    public bool AutoAcceptCertificate { get; set; } = false;
 }

@@ -58,6 +58,40 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
 
             var response = await session.ReadAsync(null, 0, TimestampsToReturn.Both, nodesToRead, cancellationToken);
 
+            if (response.Results == null || response.Results.Count < setting.Items.Count)
+            {
+                return new ExecutionResult
+                {
+                    StepResult = new StepResult
+                    {
+                        Status = TestStatus.Error,
+                        Error = new ErrorInfo { Message = $"OPC UA 批量读取失败: 服务器返回结果数 {response.Results?.Count ?? 0} 少于请求节点数 {setting.Items.Count}" }
+                    }
+                };
+            }
+
+            var badNodes = new List<string>();
+            for (int i = 0; i < setting.Items.Count; i++)
+            {
+                var status = response.Results[i].StatusCode;
+                if (StatusCode.IsBad(status))
+                {
+                    badNodes.Add($"{setting.Items[i].NodeId}({status})");
+                }
+            }
+
+            if (badNodes.Count > 0)
+            {
+                return new ExecutionResult
+                {
+                    StepResult = new StepResult
+                    {
+                        Status = TestStatus.Error,
+                        Error = new ErrorInfo { Message = $"OPC UA 批量读取失败: {badNodes.Count} 个节点状态为 Bad: {string.Join(", ", badNodes)}" }
+                    }
+                };
+            }
+
             // 将结果存入变量
             var results = new List<string>();
             for (int i = 0; i < setting.Items.Count; i++)

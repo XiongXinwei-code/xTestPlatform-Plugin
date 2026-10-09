@@ -53,7 +53,7 @@ public sealed class LinReadExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Error  = new ErrorInfo { Message = $"读取超时 ({setting.ReadTimeoutMs}ms)，未收到 LIN 帧" }
                     }
                 };

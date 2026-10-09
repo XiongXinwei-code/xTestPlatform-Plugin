@@ -61,12 +61,16 @@ public static class ModbusDataConverter
 		{
 			ModbusDataFormat.UInt16 => parts.Select(p => ushort.Parse(p)).ToArray(),
 			ModbusDataFormat.Int16 => parts.Select(p => (ushort)(short.Parse(p))).ToArray(),
-			ModbusDataFormat.UInt32_AB_CD or ModbusDataFormat.Int32_AB_CD =>
+			ModbusDataFormat.UInt32_AB_CD =>
 				parts.SelectMany(p => { var v = uint.Parse(p); return new ushort[] { (ushort)(v >> 16), (ushort)(v & 0xFFFF) }; }).ToArray(),
+			ModbusDataFormat.Int32_AB_CD =>
+				parts.SelectMany(p => { var v = unchecked((uint)int.Parse(p)); return new ushort[] { (ushort)(v >> 16), (ushort)(v & 0xFFFF) }; }).ToArray(),
 			ModbusDataFormat.Float_AB_CD =>
 				parts.SelectMany(p => { var v = BitConverter.ToUInt32(BitConverter.GetBytes(float.Parse(p)), 0); return new ushort[] { (ushort)(v >> 16), (ushort)(v & 0xFFFF) }; }).ToArray(),
-			ModbusDataFormat.UInt32_CD_AB or ModbusDataFormat.Int32_CD_AB =>
+			ModbusDataFormat.UInt32_CD_AB =>
 				parts.SelectMany(p => { var v = uint.Parse(p); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
+			ModbusDataFormat.Int32_CD_AB =>
+				parts.SelectMany(p => { var v = unchecked((uint)int.Parse(p)); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
 			ModbusDataFormat.Float_CD_AB =>
 				parts.SelectMany(p => { var v = BitConverter.ToUInt32(BitConverter.GetBytes(float.Parse(p)), 0); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
 			_ => parts.Select(p => ushort.Parse(p)).ToArray()

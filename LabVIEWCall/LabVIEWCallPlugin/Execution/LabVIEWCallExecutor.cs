@@ -145,9 +145,52 @@ namespace LabVIEWCallPlugin.Execution
                 int offset = 0;
                 object? value = DecodeNodeFromFlat(output, ds, ref offset);
                 CollectOutputVariables(output, value, result);
+
+                if (TryGetErrorClusterError(output, value, out var errorMessage))
+                    throw new InvalidOperationException(errorMessage);
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 识别 LabVIEW 标准错误簇（status: Boolean, code: Int32, source: String），
+        /// status 为 true 时返回错误信息。
+        /// </summary>
+        private static bool TryGetErrorClusterError(ViParameterNode node, object? value, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            if (node.DataType != ViDataType.Cluster || value is not Dictionary<string, object?> dict)
+                return false;
+
+            var children = node.Children ?? [];
+            var statusNode = children.FirstOrDefault(c =>
+                string.Equals(c.Name, "status", StringComparison.OrdinalIgnoreCase) && c.DataType == ViDataType.Boolean);
+            var codeNode = children.FirstOrDefault(c =>
+                string.Equals(c.Name, "code", StringComparison.OrdinalIgnoreCase) && c.DataType == ViDataType.Int32);
+            var sourceNode = children.FirstOrDefault(c =>
+                string.Equals(c.Name, "source", StringComparison.OrdinalIgnoreCase) && c.DataType == ViDataType.String);
+
+            if (statusNode != null && codeNode != null && sourceNode != null)
+            {
+                dict.TryGetValue(statusNode.Name, out var status);
+                if (status is true)
+                {
+                    dict.TryGetValue(codeNode.Name, out var code);
+                    dict.TryGetValue(sourceNode.Name, out var source);
+                    errorMessage = $"VI 输出错误簇 {node.Name} 报告错误 - 错误码: {code}, 来源: {source}";
+                    return true;
+                }
+                return false;
+            }
+
+            foreach (var child in children)
+            {
+                dict.TryGetValue(child.Name, out var childValue);
+                if (TryGetErrorClusterError(child, childValue, out errorMessage))
+                    return true;
+            }
+            return false;
         }
 
         // ── 运行时变量绑定 ────────────────────────────────────────────────
@@ -182,6 +225,12 @@ namespace LabVIEWCallPlugin.Execution
                 if (runtimeVal is null) continue;
 
                 // 将运行时值转换为对应的 JsonElement，供 GetXxx() 读取
+                if (node.DataType is ViDataType.Int32Array or ViDataType.Float64Array or ViDataType.StringArray)
+                {
+                    node.Value = ConvertArrayToJsonElement(runtimeVal, node.DataType);
+                    continue;
+                }
+
                 node.Value = ConvertToJsonElement(
                     Convert.ToString(runtimeVal,
                         System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
@@ -497,6 +546,42 @@ namespace LabVIEWCallPlugin.Execution
             "String Array" or "String[]" => ViDataType.StringArray,
             _ => ViDataType.Float64
         };
+
+        /// <summary>
+        /// 数组类型运行时变量 → JsonElement。
+        /// 支持平台数组/集合、JSON 数组字符串（"[1,2]"）以及逗号分隔字符串（"1,2"）。
+        /// </summary>
+        private static JsonElement ConvertArrayToJsonElement(object runtimeVal, string viDataType)
+        {
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            IEnumerable<string> items;
+            if (runtimeVal is string s)
+            {
+                var text = s.Trim();
+                if (text.StartsWith('['))
+                    return JsonDocument.Parse(text).RootElement.Clone();
+                items = text.Length == 0
+                    ? []
+                    : text.Split(',').Select(p => p.Trim());
+            }
+            else if (runtimeVal is System.Collections.IEnumerable seq)
+            {
+                items = seq.Cast<object?>().Select(o => Convert.ToString(o, inv) ?? string.Empty);
+            }
+            else
+            {
+                items = [Convert.ToString(runtimeVal, inv) ?? string.Empty];
+            }
+
+            return viDataType switch
+            {
+                ViDataType.Int32Array => JsonSerializer.SerializeToElement(
+                    items.Select(p => int.Parse(p, inv)).ToArray()),
+                ViDataType.Float64Array => JsonSerializer.SerializeToElement(
+                    items.Select(p => double.Parse(p, System.Globalization.NumberStyles.Float, inv)).ToArray()),
+                _ => JsonSerializer.SerializeToElement(items.ToArray())
+            };
+        }
 
         /// <summary>LvPanelNode.Value 字符串 → JsonElement（供 GetXxx() 调用）</summary>
         private static JsonElement ConvertToJsonElement(string value, string lvType)

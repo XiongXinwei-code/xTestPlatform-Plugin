@@ -41,6 +41,20 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 			}
 
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
+			var readOnlyItem = setting.Items.FirstOrDefault(i =>
+				i.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister);
+			if (readOnlyItem != null)
+			{
+				return new ExecutionResult
+				{
+					StepResult = new StepResult
+					{
+						Status = TestStatus.Error,
+						Error = new ErrorInfo { Message = $"地址 {readOnlyItem.StartAddress} 的寄存器类型 {readOnlyItem.RegisterType} 为只读，不支持写入（仅支持 Coil / HoldingRegister）" }
+					}
+				};
+			}
+
 			foreach (var item in setting.Items)
 			{
 				cancellationToken.ThrowIfCancellationRequested();

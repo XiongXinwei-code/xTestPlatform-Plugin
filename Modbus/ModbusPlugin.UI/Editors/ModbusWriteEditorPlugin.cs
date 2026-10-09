@@ -39,6 +39,8 @@ public sealed class ModbusWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_031", "写入值不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.Values, context.ExecutionContext, out var valErr))
             errors.Add(StepSettingError.Error("MB_031E", $"Values 表达式无效: {valErr}"));
+        if (s.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister)
+            errors.Add(StepSettingError.Error("MB_033", $"寄存器类型 {s.RegisterType} 为只读，不支持写入"));
         ModbusLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }
