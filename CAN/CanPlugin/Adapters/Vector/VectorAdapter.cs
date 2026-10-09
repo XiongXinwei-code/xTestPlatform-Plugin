@@ -43,7 +43,7 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
         }
 
         // Channel 参数为全局通道索引（0、1、2…），在 Vector Hardware Config 中查看
-        if (!int.TryParse(config.Channel.Trim(), out int channelIndex) || channelIndex < 0)
+        if (!int.TryParse(config.Channel.Trim(), out int channelIndex) || channelIndex < 0 || channelIndex > 63)
             throw new ArgumentException($"无效的 Vector 通道 '{config.Channel}'，应为通道索引（0、1、2…）");
 
         _isFd = config.Protocol == CanProtocolType.FD;
@@ -191,7 +191,7 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
     {
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var deadline = timeoutMs < 0 ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
         var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
 
         while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)

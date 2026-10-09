@@ -29,7 +29,7 @@ public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
         | UserName | string | 否 | 空 | AuthMode=UserPassword 时使用 |
         | Password | string | 否 | 空 | AuthMode=UserPassword 时使用 |
         | TimeoutMs | int | 否 | 5000 | 连接超时毫秒数 |
-        | AutoAcceptCertificate | bool | 否 | true | 是否自动接受服务器证书 |
+        | AutoAcceptCertificate | bool | 否 | false | 是否自动接受不受信任的服务器证书（开启存在中间人攻击风险，仅用于调试） |
 
         ## 行为
 

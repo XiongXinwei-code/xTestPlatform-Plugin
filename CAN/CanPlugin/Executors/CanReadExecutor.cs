@@ -39,7 +39,8 @@ public sealed class CanReadExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(setting.FilterId))
             {
                 var idStr = await Evaluator.EvalStringAsync(setting.FilterId, context);
-                filterId = ParseCanId(idStr);
+                if (!string.IsNullOrWhiteSpace(idStr))
+                    filterId = ParseCanId(idStr);
             }
 
             // 读取

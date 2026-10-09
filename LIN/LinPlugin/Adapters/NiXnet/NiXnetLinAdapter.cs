@@ -10,7 +10,8 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     private uint _txSession;
     private bool _isConnected;
     private readonly object _lock = new();
-    private readonly Queue<LinFrame> _pendingFrames = new();
+    private readonly LinkedList<LinFrame> _pendingFrames = new();
+    private const int MaxPendingFrames = 4096;
 
     public bool IsConnected => _isConnected;
 
@@ -176,14 +177,16 @@ public sealed class NiXnetLinAdapter : ILinAdapter
 
         while (!ct.IsCancellationRequested)
         {
-            // 先从缓存队列中查找匹配帧
+            // 先从缓存队列中查找匹配帧；不匹配的帧保留在队列中供后续读取
             lock (_lock)
             {
-                while (_pendingFrames.Count > 0)
+                for (var node = _pendingFrames.First; node != null; node = node.Next)
                 {
-                    var pending = _pendingFrames.Dequeue();
-                    if (filterFrameId == null || pending.FrameId == filterFrameId.Value)
-                        return pending;
+                    if (filterFrameId == null || node.Value.FrameId == filterFrameId.Value)
+                    {
+                        _pendingFrames.Remove(node);
+                        return node.Value;
+                    }
                 }
             }
 
@@ -208,7 +211,12 @@ public sealed class NiXnetLinAdapter : ILinAdapter
             lock (_lock)
             {
                 foreach (var frame in ParseFrames(buffer, (int)bytesRead))
-                    _pendingFrames.Enqueue(frame);
+                {
+                    _pendingFrames.AddLast(frame);
+                    // 缓存上限保护：超出时丢弃最旧的帧，避免长期不读取时内存无限增长
+                    if (_pendingFrames.Count > MaxPendingFrames)
+                        _pendingFrames.RemoveFirst();
+                }
             }
         }
 

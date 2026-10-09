@@ -47,7 +47,7 @@ public class OpcUaConnectViewModel : INotifyPropertyChanged
     public string UserName { get => _setting?.UserName ?? ""; set { if (_setting == null || _setting.UserName == value) return; _setting.UserName = value; OnPropertyChanged(); QueueSave(); } }
     public string Password { get => _setting?.Password ?? ""; set { if (_setting == null || _setting.Password == value) return; _setting.Password = value; OnPropertyChanged(); QueueSave(); } }
     public int TimeoutMs { get => _setting?.TimeoutMs ?? 5000; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
-    public bool AutoAcceptCertificate { get => _setting?.AutoAcceptCertificate ?? true; set { if (_setting == null || _setting.AutoAcceptCertificate == value) return; _setting.AutoAcceptCertificate = value; OnPropertyChanged(); QueueSave(); } }
+    public bool AutoAcceptCertificate { get => _setting?.AutoAcceptCertificate ?? false; set { if (_setting == null || _setting.AutoAcceptCertificate == value) return; _setting.AutoAcceptCertificate = value; OnPropertyChanged(); QueueSave(); } }
 
     public bool IsUserPassword => (_setting?.AuthMode ?? OpcUaAuthMode.Anonymous) == OpcUaAuthMode.UserPassword;
 

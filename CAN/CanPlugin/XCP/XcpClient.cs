@@ -90,30 +90,31 @@ public class XcpClient
         return response.Skip(1).Take(length).ToArray();
     }
 
-    /// <summary>SHORT_DOWNLOAD（0xF0）：向 ECU 地址写入最多 6 字节</summary>
+    /// <summary>
+    /// 向 ECU 地址写入最多 6 字节。
+    /// 经典 CAN 的 MAX_CTO 为 8，单帧 SHORT_DOWNLOAD（0xED，需 8+n 字节）无法承载，
+    /// 因此按协议使用 SET_MTA（0xF6）设置地址，再以 DOWNLOAD（0xF0）携带数据写入。
+    /// </summary>
     public async Task ShortDownloadAsync(uint address, byte addrExt, byte[] data, CancellationToken ct = default)
     {
         if (data.Length is 0 or > 6)
             throw new ArgumentOutOfRangeException(nameof(data), "SHORT_DOWNLOAD 数据必须在 1-6 字节之间");
 
         var addrBytes = BitConverter.GetBytes(address);
-        var cmd = new byte[8];
-        cmd[0] = 0xF0;
-        cmd[1] = (byte)data.Length;
-        cmd[2] = 0x00;
-        cmd[3] = addrExt;
-        cmd[4] = addrBytes[0];
-        cmd[5] = addrBytes[1];
-        cmd[6] = addrBytes[2];
-        cmd[7] = addrBytes[3];
+        byte[] setMta = [0xF6, 0x00, 0x00, addrExt, addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]];
 
-        // SHORT_DOWNLOAD: 命令帧 + 数据帧（若数据 > 0）
-        await SendReceiveAsync(cmd, ct);
+        var mtaResponse = await SendReceiveAsync(setMta, ct);
+        if (mtaResponse[0] != 0xFF)
+            ThrowNegative(mtaResponse, "SET_MTA");
 
-        // 数据实际随命令一起发（CAN 帧足够），此处仅再确认响应
-        var response = await WaitResponseAsync(ct);
+        var download = new byte[2 + data.Length];
+        download[0] = 0xF0;
+        download[1] = (byte)data.Length;
+        data.CopyTo(download, 2);
+
+        var response = await SendReceiveAsync(download, ct);
         if (response[0] != 0xFF)
-            ThrowNegative(response, "SHORT_DOWNLOAD");
+            ThrowNegative(response, "DOWNLOAD");
     }
 
     // ────────────────────────────────────────────────────────────────

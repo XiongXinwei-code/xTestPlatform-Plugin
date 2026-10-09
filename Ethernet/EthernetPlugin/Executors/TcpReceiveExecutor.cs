@@ -35,12 +35,32 @@ public sealed class TcpReceiveExecutor : IStepExecutor
                     received += n;
                 }
                 if (received < setting.ExpectedLength)
-                    buffer = buffer[..received];
+                {
+                    return new ExecutionResult
+                    {
+                        StepResult = new StepResult
+                        {
+                            Status = TestStatus.Error,
+                            Error = new ErrorInfo { Message = $"TCP 接收失败: 对端已关闭连接，仅收到 {received}/{setting.ExpectedLength} 字节" }
+                        }
+                    };
+                }
             }
             else
             {
                 buffer = new byte[65535];
                 var n = await stream.ReadAsync(buffer, cts.Token);
+                if (n == 0)
+                {
+                    return new ExecutionResult
+                    {
+                        StepResult = new StepResult
+                        {
+                            Status = TestStatus.Error,
+                            Error = new ErrorInfo { Message = "TCP 接收失败: 对端已关闭连接，未收到数据" }
+                        }
+                    };
+                }
                 buffer = buffer[..n];
             }
 

@@ -48,8 +48,8 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
                 appConfig.CertificateValidator.CertificateValidation += (_, e) => { e.Accept = true; };
             }
 
-            // 选择端点
-            var selectedEndpoint = CoreClientUtils.SelectEndpoint(endpointUrl, useSecurity: setting.SecurityPolicy != OpcUaSecurityPolicy.None);
+            // 选择端点：按 SecurityPolicy 精确匹配
+            var selectedEndpoint = SelectEndpoint(appConfig, endpointUrl, setting.SecurityPolicy);
 
             var endpointConfig = EndpointConfiguration.Create(appConfig);
             var endpoint = new ConfiguredEndpoint(null, selectedEndpoint, endpointConfig);
@@ -101,5 +101,33 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
                 }
             };
         }
+    }
+
+    private static EndpointDescription SelectEndpoint(ApplicationConfiguration appConfig, string endpointUrl, OpcUaSecurityPolicy policy)
+    {
+        var policyUri = policy switch
+        {
+            OpcUaSecurityPolicy.Basic256Sha256 => SecurityPolicies.Basic256Sha256,
+            OpcUaSecurityPolicy.Aes128Sha256RsaOaep => SecurityPolicies.Aes128_Sha256_RsaOaep,
+            OpcUaSecurityPolicy.Aes256Sha256RsaPss => SecurityPolicies.Aes256_Sha256_RsaPss,
+            _ => SecurityPolicies.None
+        };
+
+        var uri = new Uri(endpointUrl);
+        using var client = DiscoveryClient.Create(appConfig, uri);
+        var endpoints = client.GetEndpoints(null);
+
+        var selected = endpoints
+            .Where(e => e.SecurityPolicyUri == policyUri && e.EndpointUrl.StartsWith(uri.Scheme, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(e => e.SecurityMode == MessageSecurityMode.SignAndEncrypt)
+            .ThenByDescending(e => e.SecurityLevel)
+            .FirstOrDefault();
+
+        if (selected == null)
+        {
+            throw new InvalidOperationException($"服务器 {endpointUrl} 未提供安全策略为 {policy} 的端点");
+        }
+
+        return selected;
     }
 }

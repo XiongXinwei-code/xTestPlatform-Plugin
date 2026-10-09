@@ -374,7 +374,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     {
         if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
 
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        var deadline = timeoutMs < 0 ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
         int filteredFrames = 0;
 
         while (!ct.IsCancellationRequested)

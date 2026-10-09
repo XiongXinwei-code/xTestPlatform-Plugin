@@ -25,11 +25,14 @@ public class UdsResponse
     /// <summary>原始响应字节</summary>
     public byte[] RawBytes { get; set; } = [];
 
-    /// <summary>是否为正响应</summary>
-    public bool IsPositive => ServiceId != 0x7F;
+    /// <summary>响应与请求不匹配时的协议错误描述（为 null 表示响应格式合法）</summary>
+    public string? ProtocolError { get; set; }
+
+    /// <summary>是否为正响应（SID 与子功能回显已校验）</summary>
+    public bool IsPositive => !IsTimeout && ProtocolError == null && ServiceId != 0x7F;
 
     /// <summary>否定响应码（仅 IsPositive=false 时有效）</summary>
-    public byte NegativeResponseCode => IsPositive ? (byte)0 : (Data.Length > 0 ? Data[0] : (byte)0);
+    public byte NegativeResponseCode => IsPositive || ProtocolError != null ? (byte)0 : (Data.Length > 0 ? Data[0] : (byte)0);
 
     /// <summary>获取 NRC 描述</summary>
     public string GetNrcDescription()
@@ -38,6 +41,9 @@ public class UdsResponse
             return string.IsNullOrWhiteSpace(DiagnosticMessage)
                 ? "等待 ECU 响应超时"
                 : $"等待 ECU 响应超时；{DiagnosticMessage}";
+
+        if (ProtocolError != null)
+            return ProtocolError;
 
         return NegativeResponseCode switch
         {
@@ -70,7 +76,9 @@ public class UdsResponse
     /// <summary>用于步骤结果 Value，避免把本地超时误报为 ECU 返回 NRC 0x10。</summary>
     public string GetFailureValue() => IsTimeout
         ? $"Timeout; {DiagnosticMessage}"
-        : $"NRC=0x{NegativeResponseCode:X2}";
+        : ProtocolError != null
+            ? $"InvalidResponse={BitConverter.ToString(RawBytes).Replace("-", " ")}"
+            : $"NRC=0x{NegativeResponseCode:X2}";
 }
 
 /// <summary>
@@ -97,7 +105,7 @@ public sealed class UdsClient
     public async Task<UdsResponse> RequestAsync(byte[] requestData, CancellationToken ct = default)
     {
         await _transport.SendAsync(requestData, ct);
-        return await WaitForResponseAsync(requestData[0], ct);
+        return await WaitForResponseAsync(requestData, ct);
     }
 
     /// <summary>发送 UDS 请求（不等待响应，用于功能寻址广播等）</summary>
@@ -106,8 +114,9 @@ public sealed class UdsClient
         await _transport.SendAsync(requestData, ct);
     }
 
-    private async Task<UdsResponse> WaitForResponseAsync(byte requestSid, CancellationToken ct)
+    private async Task<UdsResponse> WaitForResponseAsync(byte[] request, CancellationToken ct)
     {
+        byte requestSid = request[0];
         int timeout = _responseTimeoutMs;
 
         while (!ct.IsCancellationRequested)
@@ -119,9 +128,10 @@ public sealed class UdsClient
             }
 
             var response = ParseResponse(raw);
+            ValidateResponse(request, response);
 
             // 处理 NRC 0x78 - Response Pending
-            if (!response.IsPositive && response.NegativeResponseCode == 0x78)
+            if (!response.IsPositive && response.ProtocolError == null && response.NegativeResponseCode == 0x78)
             {
                 timeout = _p2StarTimeoutMs;
                 continue; // 继续等待
@@ -131,6 +141,43 @@ public sealed class UdsClient
         }
 
         return CreateTimeoutResponse(requestSid);
+    }
+
+    /// <summary>带子功能字节且正响应会回显子功能的服务</summary>
+    private static readonly HashSet<byte> SubFunctionServices = [0x10, 0x11, 0x19, 0x27, 0x28, 0x31, 0x3E, 0x85, 0x87];
+
+    /// <summary>校验响应 SID 与请求对应，并校验子功能回显</summary>
+    private static void ValidateResponse(byte[] request, UdsResponse response)
+    {
+        var raw = response.RawBytes;
+        byte requestSid = request[0];
+
+        if (raw[0] == 0x7F)
+        {
+            if (raw.Length < 3)
+                response.ProtocolError = $"否定响应长度不足: {BitConverter.ToString(raw)}";
+            else if (raw[1] != requestSid)
+                response.ProtocolError = $"否定响应服务 ID 不匹配: 期望 0x{requestSid:X2}，实际 0x{raw[1]:X2}";
+            return;
+        }
+
+        byte expectedSid = (byte)(requestSid + 0x40);
+        if (raw[0] != expectedSid)
+        {
+            response.ProtocolError = $"正响应服务 ID 不匹配: 期望 0x{expectedSid:X2}，实际 0x{raw[0]:X2}";
+            return;
+        }
+
+        if (SubFunctionServices.Contains(requestSid) && request.Length >= 2)
+        {
+            byte expectedSub = (byte)(request[1] & 0x7F);
+            if (raw.Length < 2 || (raw[1] & 0x7F) != expectedSub)
+            {
+                response.ProtocolError = raw.Length < 2
+                    ? $"正响应缺少子功能回显: 期望 0x{expectedSub:X2}"
+                    : $"正响应子功能不匹配: 期望 0x{expectedSub:X2}，实际 0x{raw[1] & 0x7F:X2}";
+            }
+        }
     }
 
     private UdsResponse CreateTimeoutResponse(byte requestSid)

@@ -145,9 +145,52 @@ namespace LabVIEWCallPlugin.Execution
                 int offset = 0;
                 object? value = DecodeNodeFromFlat(output, ds, ref offset);
                 CollectOutputVariables(output, value, result);
+
+                if (TryGetErrorClusterError(output, value, out var errorMessage))
+                    throw new InvalidOperationException(errorMessage);
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// 识别 LabVIEW 标准错误簇（status: Boolean, code: Int32, source: String），
+        /// status 为 true 时返回错误信息。
+        /// </summary>
+        private static bool TryGetErrorClusterError(ViParameterNode node, object? value, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            if (node.DataType != ViDataType.Cluster || value is not Dictionary<string, object?> dict)
+                return false;
+
+            var children = node.Children ?? [];
+            var statusNode = children.FirstOrDefault(c =>
+                string.Equals(c.Name, "status", StringComparison.OrdinalIgnoreCase) && c.DataType == ViDataType.Boolean);
+            var codeNode = children.FirstOrDefault(c =>
+                string.Equals(c.Name, "code", StringComparison.OrdinalIgnoreCase) && c.DataType == ViDataType.Int32);
+            var sourceNode = children.FirstOrDefault(c =>
+                string.Equals(c.Name, "source", StringComparison.OrdinalIgnoreCase) && c.DataType == ViDataType.String);
+
+            if (statusNode != null && codeNode != null && sourceNode != null)
+            {
+                dict.TryGetValue(statusNode.Name, out var status);
+                if (status is true)
+                {
+                    dict.TryGetValue(codeNode.Name, out var code);
+                    dict.TryGetValue(sourceNode.Name, out var source);
+                    errorMessage = $"VI 输出错误簇 {node.Name} 报告错误 - 错误码: {code}, 来源: {source}";
+                    return true;
+                }
+                return false;
+            }
+
+            foreach (var child in children)
+            {
+                dict.TryGetValue(child.Name, out var childValue);
+                if (TryGetErrorClusterError(child, childValue, out errorMessage))
+                    return true;
+            }
+            return false;
         }
 
         // ── 运行时变量绑定 ────────────────────────────────────────────────

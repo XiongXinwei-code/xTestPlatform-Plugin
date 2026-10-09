@@ -82,6 +82,94 @@ public static class SerialPortHelper
     }
 
     /// <summary>
+    /// 按固定字节数或终止符读取串口数据。
+    /// timeoutMs 为 -1 时表示永不超时（仅可由取消终止）；终止符按原始字节匹配，与显示格式无关。
+    /// 超时或未满足结束条件时抛出 <see cref="TimeoutException"/>。
+    /// </summary>
+    public static async Task<byte[]> ReadFrameAsync(
+        SysSerialPort port, int readBytes, string? terminatorText, int timeoutMs, string operationName, CancellationToken cancellationToken)
+    {
+        var infinite = timeoutMs == SysSerialPort.InfiniteTimeout;
+        var deadline = infinite ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        int Remaining() => infinite ? SysSerialPort.InfiniteTimeout : (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
+
+        if (readBytes > 0)
+        {
+            var buffer = new byte[readBytes];
+            int totalRead = 0;
+            try
+            {
+                while (totalRead < readBytes)
+                {
+                    var remaining = Remaining();
+                    if (!infinite && remaining <= 0) break;
+
+                    int read = await ReadWithTimeoutAsync(
+                        port, buffer, totalRead, readBytes - totalRead, remaining, cancellationToken);
+                    if (read == 0) break;
+                    totalRead += read;
+                }
+            }
+            catch (TimeoutException)
+            {
+            }
+
+            if (totalRead < readBytes)
+                throw new TimeoutException(
+                    $"{operationName}超时({timeoutMs}ms): 需读 {readBytes} 字节，实际只读到 {totalRead} 字节");
+            return buffer;
+        }
+
+        var terminator = NormalizeTerminator(terminatorText);
+        var terminatorBytes = System.Text.Encoding.UTF8.GetBytes(terminator);
+        var needTerminator = terminatorBytes.Length > 0;
+
+        if (!needTerminator && infinite)
+            throw new InvalidOperationException($"{operationName}失败: 未配置读取字节数和终止符时，读取超时不能为 -1（永不超时）");
+
+        using var ms = new MemoryStream();
+        var temp = new byte[1024];
+        var matched = false;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var remaining = Remaining();
+            if (!infinite && remaining <= 0) break;
+
+            int read;
+            try
+            {
+                read = await ReadWithTimeoutAsync(port, temp, 0, temp.Length, remaining, cancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                break;
+            }
+            if (read == 0) break;
+            ms.Write(temp, 0, read);
+
+            if (needTerminator && ms.GetBuffer().AsSpan(0, (int)ms.Length).IndexOf(terminatorBytes) >= 0)
+            {
+                matched = true;
+                break;
+            }
+        }
+
+        var data = ms.ToArray();
+
+        if (needTerminator && !matched)
+            throw new TimeoutException(
+                $"{operationName}超时({timeoutMs}ms): 未收到终止符，已收到 {data.Length} 字节");
+
+        if (data.Length == 0)
+            throw new TimeoutException($"{operationName}超时({timeoutMs}ms): 未收到任何数据");
+
+        return data;
+    }
+
+    /// <summary>
     /// 带真实超时的串口读取，返回本次读到的字节数（同步 Read 至少返回 1 字节，超时抛 TimeoutException）。
     /// 原因同 <see cref="WriteWithTimeoutAsync"/>：SerialStream.ReadAsync 不响应 CancellationToken。
     /// </summary>
