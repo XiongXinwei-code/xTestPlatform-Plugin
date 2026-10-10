@@ -22,9 +22,9 @@ public sealed class OpcUaReadPlugin : StepPluginBase<OpcUaReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已建立的 OPC UA 连接名 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 OPC UA 连接名，求值结果为 string |
         | NodeId | string | 是 | — | 节点标识，如 ns=2;s=Temperature |
-        | ResultVariable | string(变量路径) | 是 | — | 结果存入的变量名 |
+        | ResultVariable | string(VariablePathField) | 是 | — | 结果存入的变量名；如 Locals.result |
         | TimeoutMs | int | 否 | 5000 | 超时毫秒数 |
 
         ## 行为

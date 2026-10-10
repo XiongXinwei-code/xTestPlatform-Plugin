@@ -21,16 +21,16 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | RemoteHost | string([ExpressionField] -> string) | 是 | "192.168.1.20" | 服务端 IP |
-        | RemotePort | string([ExpressionField] -> string) | 是 | "30501" | 服务端端口 |
+        | RemoteHost | string([ExpressionField]) | 是 | "192.168.1.20" | 服务端 IP，求值结果为 string |
+        | RemotePort | string([ExpressionField]) | 是 | "30501" | 服务端端口，求值结果为 string |
         | Transport | 枚举 | 否 | Udp | 传输方式，可选值：Udp, Tcp |
-        | ServiceId | string([ExpressionField] -> string) | 是 | "0x1234" | 服务 ID |
-        | MethodId | string([ExpressionField] -> string) | 是 | "0x0001" | 方法 ID |
-        | ClientId | string([ExpressionField] -> string) | 否 | "0x0001" | 客户端 ID |
-        | InterfaceVersion | string([ExpressionField] -> string) | 否 | "0x01" | 接口版本 |
-        | Payload | string([ExpressionField] -> string) | 否 | 空 | 十六进制负载，可为空 |
+        | ServiceId | string([ExpressionField]) | 是 | "0x1234" | 服务 ID，求值结果为 string |
+        | MethodId | string([ExpressionField]) | 是 | "0x0001" | 方法 ID，求值结果为 string |
+        | ClientId | string([ExpressionField]) | 否 | "0x0001" | 客户端 ID，求值结果为 string |
+        | InterfaceVersion | string([ExpressionField]) | 否 | "0x01" | 接口版本，求值结果为 string |
+        | Payload | string([ExpressionField]) | 否 | 空 | 十六进制负载，可为空，求值结果为 string |
         | TimeoutMs | int | 否 | 3000 | 响应超时毫秒数 |
-        | ResultVariable | string(变量路径) | 否 | 空 | 存储响应负载的变量路径 |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 存储响应负载的变量路径；如 Locals.result |
 
         ## 行为
 

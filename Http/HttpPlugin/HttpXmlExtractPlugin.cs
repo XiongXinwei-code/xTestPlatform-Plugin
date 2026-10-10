@@ -24,8 +24,8 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SourceXml | string([ExpressionField] -> string) | 是 | SoapResponse | 待解析的 XML 文本，通常填写存放响应体的变量名 |
-        | Items | 集合 | 是 | 空 | 提取映射列表，元素含 Path（XPath）、TargetVariable、DefaultValue，结构见示例 |
+        | SourceXml | string([ExpressionField]) | 是 | SoapResponse | 待解析的 XML 文本，通常填写存放响应体的变量名，求值结果为 string |
+        | Items | 集合 | 是 | 空 | 提取映射列表；Path 为 XPath（如 //ReportResultResult/code、//ReportResultResult/@version），TargetVariable 为提取结果写入的变量（string(VariablePathField)，如 Locals.MesCode），DefaultValue 为 XPath 未命中时写入的默认值（普通文本） |
         | IgnoreNamespaces | bool | 否 | true | 是否忽略元素命名空间，忽略后 XPath 可直接写元素名 |
         | FailOnMissingPath | bool | 否 | true | 任一 XPath 未命中时是否判定步骤失败 |
 
@@ -36,20 +36,6 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
         - XPath 命中多个节点时取第一个节点
         - 未命中时写入该项的 DefaultValue；若 FailOnMissingPath 为 true 则同时判定步骤失败
         - SourceXml 不是合法 XML 或 XPath 语法错误时步骤报错
-
-        ## 示例
-
-        ```json
-        {
-          "SourceXml": "SoapResponse",
-          "Items": [
-            { "Path": "//ReportResultResult/code", "TargetVariable": "Locals.MesCode", "DefaultValue": "" },
-            { "Path": "//ReportResultResult/@version", "TargetVariable": "Locals.MesVersion", "DefaultValue": "1.0" }
-          ],
-          "IgnoreNamespaces": true,
-          "FailOnMissingPath": true
-        }
-        ```
 
         ## 相关插件
 

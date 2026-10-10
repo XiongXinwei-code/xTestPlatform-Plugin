@@ -21,11 +21,11 @@ public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "LIN1" | 已打开的连接标识名 |
-        | FilterFrameId | string([ExpressionField] -> string) | 否 | 空 | 过滤帧 ID 0-63，空则接收任意帧；求值结果为字符串，支持十进制（如 "\"63\""）或 0x 前缀十六进制（如 "\"0x3F\""） |
+        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名，求值结果为 string |
+        | FilterFrameId | string([ExpressionField]) | 否 | 空 | 过滤帧 ID 0-63，空则接收任意帧；求值结果为字符串，支持十进制（如 "\"63\""）或 0x 前缀十六进制（如 "\"0x3F\""），求值结果为 string |
         | ReadTimeoutMs | int | 否 | 1000 | 读取超时毫秒数 |
-        | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 string（十六进制数据） |
-        | IdVariable | string(变量路径) | 否 | 空 | 存储帧 ID 的变量路径 |
+        | ResultVariable | string(VariablePathField) | 是 | — | 结果变量名，写入类型为 string（十六进制数据）；如 Locals.result |
+        | IdVariable | string(VariablePathField) | 否 | 空 | 存储帧 ID 的变量路径；如 Locals.id |
 
         ## 行为
 

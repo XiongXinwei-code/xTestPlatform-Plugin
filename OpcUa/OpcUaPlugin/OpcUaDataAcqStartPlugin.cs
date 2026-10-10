@@ -23,32 +23,25 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | string([ExpressionField] -> string) | 是 | — | 采集任务标识名，序列内唯一 |
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已建立的 OPC UA 连接名 |
-        | Items | 集合 | 是 | — | 采集节点列表，元素结构见示例 |
+        | TaskName | string([ExpressionField]) | 是 | "DataAcq1" | 采集任务标识名，序列内唯一，求值结果为 string |
+        | ConnectionName | string([ExpressionField]) | 是 | "OpcUa1" | 已建立的 OPC UA 连接名，求值结果为 string |
+        | Items | 集合 | 是 | — | 采集节点列表，元素字段见下方 |
         | SamplingIntervalMs | int | 否 | 100 | 采样间隔毫秒数 |
-        | MaxDurationMs | int | 否 | 0 | 最大采集时长，0 表示无限 |
+        | MaxDurationMs | int | 否 | 0 | 最大采集时长，0 表示无限；到时后采集自动停止，已缓存数据仍可读取 |
         | BufferSize | int | 否 | 10000 | FIFO 缓冲区容量（条数），满时溢出停止采集 |
+
+        Items 元素字段：
+
+        - NodeId：string，节点标识（普通文本，如 ns=2;s=Temperature）
+        - ColumnName：string，该节点在采集数据中的列名（普通文本，如 Temp），为空时使用 NodeId 作为列名
 
         ## 行为
 
         - 步骤启动采集后立即返回，采集在后台持续进行
+        - Items 为空或连接名未找到时步骤报错
+        - 后台单次采样读取异常时跳过本次采样，不终止采集任务
         - 采集任务会以 `TaskName` 为标识名注册到运行期资源表（同时以同一标识名注册节点列表配置），供 OpcUa_DataAcq_Read / OpcUa_DataAcq_Stop 步骤取用
         - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会被自动释放，再注册新任务，不会报错
-
-        ## 示例
-
-        ```json
-        {
-          "TaskName": "\"acq1\"",
-          "ConnectionName": "\"OpcUa1\"",
-          "Items": [
-            { "NodeId": "ns=2;s=Temperature", "ColumnName": "Temp" }
-          ],
-          "SamplingIntervalMs": 100,
-          "MaxDurationMs": 0
-        }
-        ```
 
         ## 相关插件
 

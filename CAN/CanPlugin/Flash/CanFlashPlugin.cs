@@ -30,30 +30,30 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | FilePath | string([ExpressionField] -> string) | 是 | — | 固件文件路径 |
+        | FilePath | string([ExpressionField]) | 是 | — | 固件文件路径，求值结果为 string |
         | Format | 枚举 | 否 | Auto | 可选值：Auto, IntelHex, SRecord, Binary；Auto 按扩展名识别 |
-        | BaseAddress | string([ExpressionField] -> string) | 否 | "0x08000000" | 基地址，仅 Binary 格式使用 |
+        | BaseAddress | string([ExpressionField]) | 否 | "0x08000000" | 基地址，仅 Binary 格式使用，求值结果为 string |
         | UseMappedRange | bool | 否 | false | 是否将固件映射为一个连续地址范围；启用后对地址空洞填充并只执行一次擦除/下载 |
-        | MappedStartAddress | string([ExpressionField] -> string) | 条件必填 | 空 | 映射范围起始地址，仅 UseMappedRange=true 时使用 |
-        | MappedEndAddress | string([ExpressionField] -> string) | 条件必填 | 空 | 映射范围结束地址（含），仅 UseMappedRange=true 时使用 |
-        | GapFillByte | string([ExpressionField] -> string) | 否 | 0 | 映射范围内 HEX/S-Record 地址空洞的填充字节（0x00~0xFF） |
-        | AddressAndLengthFormatId | string([ExpressionField] -> string) | 否 | "0x44" | 地址与长度格式标识，高半字节为长度字节数、低半字节为地址字节数；用于擦除例程与 0x34 请求下载 |
-        | DataFormatId | string([ExpressionField] -> string) | 否 | "0x00" | 数据格式标识，0x00 表示不压缩不加密 |
+        | MappedStartAddress | string([ExpressionField]) | 条件必填 | 空 | 映射范围起始地址，仅 UseMappedRange=true 时使用，求值结果为 string |
+        | MappedEndAddress | string([ExpressionField]) | 条件必填 | 空 | 映射范围结束地址（含），仅 UseMappedRange=true 时使用，求值结果为 string |
+        | GapFillByte | string([ExpressionField]) | 否 | 0 | 映射范围内 HEX/S-Record 地址空洞的填充字节（0x00~0xFF），求值结果为 string |
+        | AddressAndLengthFormatId | string([ExpressionField]) | 否 | "0x44" | 地址与长度格式标识，高半字节为长度字节数、低半字节为地址字节数；用于擦除例程与 0x34 请求下载，求值结果为 string |
+        | DataFormatId | string([ExpressionField]) | 否 | "0x00" | 数据格式标识，0x00 表示不压缩不加密，求值结果为 string |
         | EraseBeforeDownload | bool | 否 | true | 是否在下载前执行擦除例程 |
-        | EraseRoutineId | string([ExpressionField] -> string) | 否 | "0xFF00" | 擦除例程 ID |
+        | EraseRoutineId | string([ExpressionField]) | 否 | "0xFF00" | 擦除例程 ID，求值结果为 string |
         | EraseWithAddressAndLength | bool | 否 | true | true 时擦除请求附带 [ALFID][地址][长度]；false 时执行无参数擦除；UseMappedRange=true 时强制带参数 |
         | EraseTimeoutMs | int | 否 | 30000 | 擦除超时毫秒数 |
         | MaxBlockSize | int | 否 | 512 | 单块最大字节数，实际不超过 ECU 在 0x34 响应中允许的长度；0 表示完全采用 ECU 返回值 |
         | PreDownloadDelayMs | int | 否 | 0 | 擦除与下载前等待时间，用于等待 FlashDriver 激活 |
         | CheckMode | 枚举 | 否 | Crc32 | 可选值：None, Crc32, Checksum |
-        | CheckRoutineId | string([ExpressionField] -> string) | 否 | "0x0202" | 校验例程 ID |
+        | CheckRoutineId | string([ExpressionField]) | 否 | "0x0202" | 校验例程 ID，求值结果为 string |
         | BlockRetryCount | int | 否 | 2 | 单块传输失败后的重试次数 |
         | InterBlockDelayMs | int | 否 | 0 | 每块之间的间隔毫秒数 |
-        | ProgressVariable | string(变量路径) | 否 | 空 | 进度变量名，写入类型为 int（0~100） |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 int（已烧录总字节数） |
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | string([ExpressionField] -> string) | 是 | — | 请求 CAN ID，如 0x7DF |
-        | RxId | string([ExpressionField] -> string) | 是 | — | 响应 CAN ID，如 0x7E8 |
+        | ProgressVariable | string(VariablePathField) | 否 | 空 | 进度变量名，写入类型为 int（0~100）；如 Locals.progress |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量名，写入类型为 int（已烧录总字节数）；如 Locals.result |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
+        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID，如 0x7DF，求值结果为 string |
+        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID，如 0x7E8，求值结果为 string |
         | FrameType | 枚举 | 否 | Standard | CAN ID 类型：Standard（11-bit）或 Extended（29-bit） |
         | UseFdFrame | bool | 否 | false | 是否按 CAN FD/BRS 发送 ISO-TP；启用后分段帧最大使用 64 字节数据区 |
         | ResponseTimeoutMs | int | 否 | 5000 | 普通请求的响应超时毫秒数 |
@@ -71,33 +71,6 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - 启用日志时按整数百分比输出下载进度，并在校验成功后明确输出校验方式与校验值
         - ECU 返回否定响应、请求超时或固件文件解析失败时步骤报错
         - 用户主动取消时立即停止传输并返回中止状态
-
-        ## 示例
-
-        ```json
-        {
-          "ConnectionName": "\"CAN1\"",
-          "TxId": "\"0x7E0\"",
-          "RxId": "\"0x7E8\"",
-          "UseFdFrame": true,
-          "FilePath": "\"D:\\\\firmware\\\\app.hex\"",
-          "Format": "IntelHex",
-          "UseMappedRange": true,
-          "MappedStartAddress": "\"0x02000000\"",
-          "MappedEndAddress": "\"0x0237FFFF\"",
-          "GapFillByte": "\"0x00\"",
-          "AddressAndLengthFormatId": "\"0x44\"",
-          "EraseBeforeDownload": true,
-          "EraseRoutineId": "\"0xFF00\"",
-          "EraseWithAddressAndLength": true,
-          "MaxBlockSize": 0,
-          "PreDownloadDelayMs": 500,
-          "CheckMode": "Crc32",
-          "CheckRoutineId": "\"0x0202\"",
-          "ProgressVariable": "Locals.flashProgress",
-          "ResultVariable": "Locals.flashedBytes"
-        }
-        ```
 
         ## 相关插件
 

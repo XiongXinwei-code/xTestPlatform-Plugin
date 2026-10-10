@@ -21,10 +21,10 @@ public sealed class UdpSendPlugin : StepPluginBase<UdpSendSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | RemoteHost | string([ExpressionField] -> string) | 是 | "192.168.1.255" | 目标 IP |
-        | RemotePort | string([ExpressionField] -> string) | 是 | "30490" | 目标端口 |
+        | RemoteHost | string([ExpressionField]) | 是 | "192.168.1.255" | 目标 IP，求值结果为 string |
+        | RemotePort | string([ExpressionField]) | 是 | "30490" | 目标端口，求值结果为 string |
         | LocalPort | int | 否 | 0 | 本机发送端口，0=系统自动分配 |
-        | Data | string([ExpressionField] -> string) | 是 | "01 02 03" | 发送数据 |
+        | Data | string([ExpressionField]) | 是 | "01 02 03" | 发送数据，求值结果为 string |
         | Encoding | 枚举 | 否 | Hex | 数据编码格式，可选值：Hex, Utf8, Ascii |
 
         ## 行为

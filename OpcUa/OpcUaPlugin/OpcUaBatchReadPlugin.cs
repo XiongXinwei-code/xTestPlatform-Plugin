@@ -22,25 +22,19 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已建立的 OPC UA 连接名 |
-        | Items | 集合 | 是 | — | 节点读取列表，元素结构见示例 |
-        | TimeoutMs | int | 否 | 5000 | 超时毫秒数 |
+        | ConnectionName | string([ExpressionField]) | 是 | "OpcUa1" | 已建立的 OPC UA 连接名，求值结果为 string |
+        | Items | 集合 | 是 | — | 节点读取列表，元素字段见下方 |
+        | TimeoutMs | int | 否 | 5000 | 预留参数，当前执行时未使用，读取超时由连接会话控制 |
+
+        Items 元素字段：
+
+        - NodeId：string，节点标识（普通文本，如 ns=2;s=Temperature）
+        - ResultVariable：string(VariablePathField)，该节点值写入的变量（如 Locals.temp_value），写入节点原始值，类型与节点数据类型一致
 
         ## 行为
 
-        - 一次请求批量读取所有节点，任意节点读取失败则步骤报错
-
-        ## 示例
-
-        ```json
-        {
-          "ConnectionName": "\"OpcUa1\"",
-          "Items": [
-            { "NodeId": "ns=2;s=Temperature", "ResultVariable": "Locals.temp_value" }
-          ],
-          "TimeoutMs": 5000
-        }
-        ```
+        - 一次请求批量读取所有节点，任意节点状态为 Bad 则步骤报错，且所有 ResultVariable 均不写入
+        - Items 为空时步骤直接通过
 
         ## 相关插件
 

@@ -21,32 +21,33 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | string([ExpressionField] -> string) | 是 | — | 任务名称 |
-        | AiChannels | 集合 | 是 | — | AI 通道列表，元素结构见下方示例 |
-        | EncoderChannels | 集合 | 是 | — | 编码器通道列表，元素结构见下方示例 |
-        | SampleRate | double | 是 | — | 采样率 Hz |
-        | SamplesPerChannel | int | 是 | — | 每通道采样数 |
-        | SampleMode | 枚举 | 否 | — | 可选值：FiniteSamples, ContinuousSamples |
+        | TaskName | string([ExpressionField]) | 是 | "SyncTask1" | 任务名称，求值结果为 string |
+        | AiChannels | 集合 | 是 | — | AI 通道列表，元素字段见下方 |
+        | EncoderChannels | 集合 | 是 | — | 编码器通道列表，元素字段见下方 |
+        | SampleRate | double | 是 | 1000 | 采样率 Hz |
+        | SamplesPerChannel | int | 是 | 100 | 每通道采样数 |
+        | SampleMode | 枚举 | 否 | FiniteSamples | 可选值：FiniteSamples, ContinuousSamples |
         | ClockSource | string | 否 | 空 | 时钟源，空为内部时钟 |
-        | UseTrigger | bool | 否 | false | 是否使用触发 |
+        | UseTrigger | bool | 否 | false | 是否使用触发；TriggerSource 为空时不配置触发 |
         | TriggerSource | string | 否 | 空 | 触发源 |
         | TriggerEdge | 枚举 | 否 | Rising | 可选值：Rising, Falling |
 
-        AiChannels 元素 JSON 示例：
+        AiChannels 元素字段：
 
-        ```json
-        {"PhysicalChannel":"Dev1/ai0","ColumnName":"CH1","MinValue":-10.0,"MaxValue":10.0,"Terminal":"Differential"}
-        ```
+        - PhysicalChannel：string，物理通道（普通文本，如 Dev1/ai0）
+        - ColumnName：string，该通道在采集数据中的列名（如 CH1）
+        - MinValue / MaxValue：double，量程下限/上限，默认 -10 / 10
+        - Terminal：枚举，终端配置，可选值：Differential, RSE, NRSE, Pseudodifferential，默认 Differential
 
-        - Terminal 可选值：Differential, RSE, NRSE, Pseudodifferential
+        EncoderChannels 元素字段：
 
-        EncoderChannels 元素 JSON 示例：
-
-        ```json
-        {"CounterChannel":"Dev1/ctr0","ColumnName":"ENC1","DecodingType":"X4","PulsesPerRevolution":1024,"DistancePerPulse":0.3515625,"Unit":"Degrees","ZIndexEnable":false}
-        ```
-
-        - DecodingType 可选值：X1, X2, X4；Unit 可选值：Pulses, Degrees, Millimeters
+        - CounterChannel：string，计数器通道（普通文本，如 Dev1/ctr0）
+        - ColumnName：string，该通道在采集数据中的列名（如 ENC1）
+        - DecodingType：枚举，解码类型，可选值：X1, X2, X4，默认 X4
+        - PulsesPerRevolution：int，每转脉冲数，默认 1024
+        - DistancePerPulse：double，默认 0.3515625；本插件当前未使用该字段
+        - Unit：枚举，可选值：Pulses, Degrees, Millimeters，默认 Degrees；本插件当前未使用该字段，编码器通道固定按计数（Ticks）采集
+        - ZIndexEnable：bool，是否启用 Z 索引，默认 false
 
         ## 物理通道命名规则
 
@@ -59,6 +60,8 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
         ## 行为
 
         - 仅创建任务，不启动采集
+        - 已存在同名任务时先释放旧任务再创建
+        - AiChannels 或 EncoderChannels 为空时步骤报错
 
         ## 相关插件
 

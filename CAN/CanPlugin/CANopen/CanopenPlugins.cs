@@ -29,14 +29,14 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | NodeId | string([ExpressionField] -> object) | 是 | 1 | 节点 ID，1~127 |
-        | Index | string([ExpressionField] -> object) | 是 | 0x1000 | 对象索引，0x0000~0xFFFF |
-        | SubIndex | string([ExpressionField] -> object) | 是 | 0 | 子索引，0~255 |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，1~127，求值结果为 object |
+        | Index | string([ExpressionField]) | 是 | 0x1000 | 对象索引，0x0000~0xFFFF，求值结果为 object |
+        | SubIndex | string([ExpressionField]) | 是 | 0 | 子索引，0~255，求值结果为 object |
         | DataType | CanopenDataType | 是 | Unsigned32 | Boolean/Integer8~64/Unsigned8~64/Real32/Real64/VisibleString/OctetString |
         | TransferMode | CanopenSdoTransferMode | 否 | Auto | Auto：由节点决定快速或分段传输；Block：块传输 |
         | ResponseTimeoutMs | int | 否 | 1000 | 每帧 SDO 响应超时毫秒数，必须大于 0 |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量，如 Locals.deviceType；写入类型与 DataType 对应（整数/浮点/bool/string，OctetString 为十六进制字符串） |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量，如 Locals.deviceType；写入类型与 DataType 对应（整数/浮点/bool/string，OctetString 为十六进制字符串） |
         | EdsFilePath | string | 否 | 空 | EDS 文件路径，仅用于编辑器中选择对象，运行时不读取 |
 
         ## 行为
@@ -45,10 +45,6 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
         - 节点返回 SDO 中止时步骤结果为 Failed，Value 为中止码
         - 超过 ResponseTimeoutMs 未收到响应时步骤报错（Error）
         - 块传输时若节点支持 CRC，会校验 CRC；节点退回普通上传时自动兼容
-
-        ## 示例
-
-        读取设备类型：NodeId=`1`，Index=`0x1000`，SubIndex=`0`，DataType=Unsigned32，ResultVariable=`Locals.deviceType`
 
         ## 相关插件
 
@@ -82,12 +78,12 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | NodeId | string([ExpressionField] -> object) | 是 | 1 | 节点 ID，1~127 |
-        | Index | string([ExpressionField] -> object) | 是 | 0x1000 | 对象索引，0x0000~0xFFFF |
-        | SubIndex | string([ExpressionField] -> object) | 是 | 0 | 子索引，0~255 |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，1~127，求值结果为 object |
+        | Index | string([ExpressionField]) | 是 | 0x1000 | 对象索引，0x0000~0xFFFF，求值结果为 object |
+        | SubIndex | string([ExpressionField]) | 是 | 0 | 子索引，0~255，求值结果为 object |
         | DataType | CanopenDataType | 是 | Unsigned32 | 写入值的编码类型 |
-        | Value | string([ExpressionField] -> object) | 是 | 0 | 写入值；整数支持 0x 前缀，OctetString 为十六进制字符串或 byte[] |
+        | Value | string([ExpressionField]) | 是 | 0 | 写入值；整数支持 0x 前缀，OctetString 为十六进制字符串或 byte[]，求值结果为 object |
         | TransferMode | CanopenSdoTransferMode | 否 | Auto | Auto：≤4 字节快速传输，否则分段传输；Block：块传输 |
         | ResponseTimeoutMs | int | 否 | 1000 | 每帧 SDO 响应超时毫秒数，必须大于 0 |
         | EdsFilePath | string | 否 | 空 | EDS 文件路径，仅用于编辑器中选择对象，运行时不读取 |
@@ -97,10 +93,6 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
         - 写入值超出数据类型范围时步骤报错（Error）
         - 节点返回 SDO 中止时步骤结果为 Failed，Value 为中止码
         - 超过 ResponseTimeoutMs 未收到响应时步骤报错（Error）
-
-        ## 示例
-
-        写控制字：NodeId=`1`，Index=`0x6040`，SubIndex=`0`，DataType=Unsigned16，Value=`0x0F`
 
         ## 相关插件
 
@@ -134,18 +126,14 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | NodeId | string([ExpressionField] -> object) | 是 | 1 | 节点 ID，0~127，0 表示所有节点 |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，0~127，0 表示所有节点，求值结果为 object |
         | Command | CanopenNmtCommand | 是 | Start | Start/Stop/EnterPreOperational/ResetNode/ResetCommunication |
 
         ## 行为
 
         - 以 COB-ID 0x000 发送两字节 NMT 报文，NMT 无应答，发送成功即通过
         - 如需确认节点状态，请在其后使用 `CANopen_WaitHeartbeat`
-
-        ## 示例
-
-        启动所有节点：NodeId=`0`，Command=Start
 
         ## 相关插件
 
@@ -178,20 +166,16 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | NodeId | string([ExpressionField] -> object) | 是 | 1 | 节点 ID，1~127 |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，1~127，求值结果为 object |
         | ExpectedState | CanopenNmtState | 否 | Operational | Any/BootUp/Stopped/Operational/PreOperational；Any 表示收到任意心跳即通过 |
         | TimeoutMs | int | 否 | 3000 | 等待超时毫秒数，必须大于 0 |
-        | StateVariable | string(变量路径) | 否 | 空 | 节点状态写入的变量，如 Locals.nmtState，写入类型为 string（状态名） |
+        | StateVariable | string(VariablePathField) | 否 | 空 | 节点状态写入的变量，如 Locals.nmtState，写入类型为 string（状态名） |
 
         ## 行为
 
         - 监听 COB-ID 0x700+NodeId，直到收到期望状态
         - 超时仍未收到期望状态时步骤报错（Error），错误信息包含最后收到的状态
-
-        ## 示例
-
-        NMT Start 后确认节点进入运行状态：ExpectedState=Operational，TimeoutMs=`3000`
 
         ## 相关插件
 
@@ -224,18 +208,14 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | CobId | string([ExpressionField] -> object) | 是 | 0x201 | PDO 的 COB-ID，0x000~0x7FF |
-        | Data | string([ExpressionField] -> object) | 是 | "00 00 00 00 00 00 00 00" | 十六进制字符串或 byte[]，0~8 字节 |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | CobId | string([ExpressionField]) | 是 | 0x201 | PDO 的 COB-ID，0x000~0x7FF，求值结果为 object |
+        | Data | string([ExpressionField]) | 是 | "00 00 00 00 00 00 00 00" | 十六进制字符串或 byte[]，0~8 字节，求值结果为 object |
 
         ## 行为
 
         - 以标准帧发送，数据按 PDO 映射由用户自行组织（小端）
         - 数据超过 8 字节或 COB-ID 超出范围时步骤报错（Error）
-
-        ## 示例
-
-        向节点 1 的 RPDO1 发送控制字 0x000F：CobId=`0x201`，Data=`"0F 00"`
 
         ## 相关插件
 
@@ -268,18 +248,14 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "CAN1" | 已打开的 CAN 连接名 |
-        | CobId | string([ExpressionField] -> object) | 是 | 0x181 | PDO 的 COB-ID，0x000~0x7FF |
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | CobId | string([ExpressionField]) | 是 | 0x181 | PDO 的 COB-ID，0x000~0x7FF，求值结果为 object |
         | TimeoutMs | int | 否 | 1000 | 等待超时毫秒数，必须大于 0 |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量，如 Locals.tpdo1，写入类型为 string（十六进制） |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量，如 Locals.tpdo1，写入类型为 string（十六进制） |
 
         ## 行为
 
         - 超时未收到报文时步骤报错（Error）
-
-        ## 示例
-
-        读取节点 1 的 TPDO1：CobId=`0x181`，ResultVariable=`Locals.tpdo1`
 
         ## 相关插件
 

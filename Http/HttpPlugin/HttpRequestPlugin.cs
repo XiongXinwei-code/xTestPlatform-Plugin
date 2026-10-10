@@ -24,15 +24,15 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ClientName | string([ExpressionField] -> string) | 是 | "Mes" | 由 Http_ClientCreate 创建的客户端标识名 |
+        | ClientName | string([ExpressionField]) | 是 | "Mes" | 由 Http_ClientCreate 创建的客户端标识名，求值结果为 string |
         | Method | 枚举 | 否 | Get | 请求方法，可选值：Get, Post, Put, Patch, Delete, Head, Options |
-        | Path | string([ExpressionField] -> string) | 是 | "/" | 相对基地址的路径，也可填写完整绝对 URL |
+        | Path | string([ExpressionField]) | 是 | "/" | 相对基地址的路径，也可填写完整绝对 URL，求值结果为 string |
         | ContentType | 枚举 | 否 | None | 请求体类型，可选值：None, Json, Xml, Text, FormUrlEncoded |
-        | Body | string([ExpressionField] -> string) | 否 | — | 请求体内容，可用表达式拼接变量生成 JSON |
-        | Headers | 集合 | 否 | 空 | 本次请求附加的请求头，元素含 Name 与 Value（string([ExpressionField] -> string)），结构见示例 |
-        | ResponseVariable | string(变量路径) | 否 | Locals.HttpResponse |
-        | StatusCodeVariable | string(变量路径) | 否 | — | 响应状态码写入的变量名，写入类型为 int |
-        | ElapsedVariable | string(变量路径) | 否 | — | 请求耗时毫秒数写入的变量名，写入类型为 int |
+        | Body | string([ExpressionField]) | 否 | — | 请求体内容，可用表达式拼接变量生成 JSON，求值结果为 string |
+        | Headers | 集合 | 否 | 空 | 本次请求附加的请求头；Name 为请求头名称，Value 为请求头值（string([ExpressionField])，求值结果为 string） |
+        | ResponseVariable | string(VariablePathField) | 否 | Locals.HttpResponse | 响应体文本写入的变量名，写入类型为 string |
+        | StatusCodeVariable | string(VariablePathField) | 否 | — | 响应状态码写入的变量名，写入类型为 int；如 Locals.statusCode |
+        | ElapsedVariable | string(VariablePathField) | 否 | — | 请求耗时毫秒数写入的变量名，写入类型为 int；如 Locals.elapsed |
         | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 状态码是否判定步骤失败 |
         | LogPayload | bool | 否 | true | 是否将请求与响应内容写入运行日志 |
 
@@ -44,25 +44,6 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
         - 状态码为 2xx 时步骤通过；非 2xx 时按 TreatNonSuccessAsFailure 判定为失败或通过
         - 请求超时、网络异常、取消操作分别返回错误或中止状态
         - 变量名留空的输出项会被跳过，不做写入
-
-        ## 示例
-
-        ```json
-        {
-          "ClientName": "\"Mes\"",
-          "Method": "Post",
-          "Path": "\"/testresult\"",
-          "ContentType": "Json",
-          "Body": "$\"{{\\\"sn\\\":\\\"{Locals.SerialNumber}\\\",\\\"result\\\":\\\"PASS\\\"}}\"",
-          "Headers": [
-            { "Name": "X-Request-Id", "Value": "Locals.RequestId" }
-          ],
-          "ResponseVariable": "Locals.HttpResponse",
-          "StatusCodeVariable": "Locals.HttpStatus",
-          "TreatNonSuccessAsFailure": true,
-          "LogPayload": true
-        }
-        ```
 
         ## 相关插件
 

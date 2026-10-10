@@ -21,11 +21,11 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | LocalPort | string([ExpressionField] -> string) | 是 | "30502" | 本地监听 UDP 端口 |
-        | ServiceId | string([ExpressionField] -> string) | 是 | "0x1234" | 服务 ID 过滤 |
-        | EventId | string([ExpressionField] -> string) | 是 | "0x8001" | 事件 ID 过滤 |
+        | LocalPort | string([ExpressionField]) | 是 | "30502" | 本地监听 UDP 端口，求值结果为 string |
+        | ServiceId | string([ExpressionField]) | 是 | "0x1234" | 服务 ID 过滤，求值结果为 string |
+        | EventId | string([ExpressionField]) | 是 | "0x8001" | 事件 ID 过滤，求值结果为 string |
         | TimeoutMs | int | 否 | 5000 | 等待通知超时毫秒数 |
-        | ResultVariable | string(变量路径) | 否 | 空 | 存储通知负载的变量路径 |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 存储通知负载的变量路径；如 Locals.result |
 
         ## 行为
 
