@@ -270,3 +270,94 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
         return $"PDO 接收 {s.CobId} → {s.ResultVariable}";
     }
 }
+
+/// <summary>CANopen_SyncSend：发送一帧 SYNC</summary>
+public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSetting>
+{
+    public override string StepTypeId => "CANopen.SyncSend";
+    public override string DisplayName => "CANopen_SyncSend";
+    public override string Category => CanopenPluginInfo.Category;
+    public override string IconPath => CanopenPluginInfo.IconPath;
+
+    public override string Description => """
+        ## 功能
+
+        发送一帧 CANopen SYNC 同步报文，触发使用同步传输类型（1~240）的 TPDO 刷新或 RPDO 生效。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | CobId | string([ExpressionField]) | 是 | 0x80 | SYNC 的 COB-ID，0x000~0x7FF，求值结果为 object |
+        | Counter | string([ExpressionField]) | 否 | 0 | SYNC 计数器，0 表示不带数据（0 字节），1~240 时发送 1 字节计数器，求值结果为 object |
+
+        ## 行为
+
+        - 每次执行只发送一帧，SYNC 无应答，发送成功即通过
+        - 不提供周期发送；如需多次同步，请在序列中循环调用本步骤
+        - COB-ID 或计数器超出范围时步骤报错（Error）
+
+        ## 相关插件
+
+        - `CANopen_PdoReceive`：发送 SYNC 后接收同步 TPDO
+        - `CANopen_PdoSend`：发送 RPDO
+        """;
+
+    public override IStepExecutor CreateExecutor() => new CanopenSyncSendExecutor();
+
+    public override string GenerateDescription(byte[] setting)
+    {
+        var s = DeserializeSetting(setting);
+        return $"SYNC 发送 {s.CobId}，计数器 {s.Counter}";
+    }
+}
+
+/// <summary>CANopen_EmcyReceive：等待并解析节点 EMCY 紧急报文</summary>
+public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceiveSetting>
+{
+    public override string StepTypeId => "CANopen.EmcyReceive";
+    public override string DisplayName => "CANopen_EmcyReceive";
+    public override string Category => CanopenPluginInfo.Category;
+    public override string IconPath => CanopenPluginInfo.IconPath;
+
+    public override string Description => """
+        ## 功能
+
+        等待指定节点上报的 CANopen EMCY 紧急报文，解析错误码、错误寄存器与厂商数据并写入变量；可校验是否为期望的错误码。
+
+        ## 参数
+
+        | 参数 | 类型 | 必填 | 默认值 | 说明 |
+        |------|------|------|--------|------|
+        | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
+        | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，1~127，求值结果为 object |
+        | ExpectedErrorCode | string([ExpressionField]) | 否 | 空 | 期望错误码，0x0000~0xFFFF，留空表示收到任意 EMCY 即通过，求值结果为 object |
+        | TimeoutMs | int | 否 | 3000 | 等待超时毫秒数，必须大于 0 |
+        | ErrorCodeVariable | string(VariablePathField) | 否 | 空 | 错误码写入的变量，如 Locals.emcyCode，写入类型为 string（如 0x3210） |
+        | ErrorRegisterVariable | string(VariablePathField) | 否 | 空 | 错误寄存器（1001h）写入的变量，如 Locals.emcyReg，写入类型为 string（如 0x04） |
+        | ManufacturerDataVariable | string(VariablePathField) | 否 | 空 | 厂商自定义数据（5 字节）写入的变量，如 Locals.emcyData，写入类型为 string（十六进制） |
+
+        ## 行为
+
+        - 监听 COB-ID 0x80+NodeId，报文按 CiA 301 解析：字节 0~1 为错误码（小端），字节 2 为错误寄存器，字节 3~7 为厂商数据
+        - 设置了 ExpectedErrorCode 时，收到其他错误码的 EMCY 仅记录日志并继续等待
+        - 错误码 0x0000 表示错误复位（故障已清除），同样按收到的错误码处理
+        - 超时仍未收到符合条件的 EMCY 时步骤报错（Error），错误信息包含最后收到的错误码
+        - 本步骤仅在执行期间接收，不做后台持续监测
+
+        ## 相关插件
+
+        - `CANopen_SdoRead`：读取 1001h 错误寄存器、1003h 错误历史
+        - `CANopen_WaitHeartbeat`：等待节点心跳/Boot-up
+        """;
+
+    public override IStepExecutor CreateExecutor() => new CanopenEmcyReceiveExecutor();
+
+    public override string GenerateDescription(byte[] setting)
+    {
+        var s = DeserializeSetting(setting);
+        var expect = string.IsNullOrWhiteSpace(s.ExpectedErrorCode) ? "任意" : s.ExpectedErrorCode;
+        return $"等待节点{s.NodeId} EMCY（{expect}），超时 {s.TimeoutMs} ms";
+    }
+}

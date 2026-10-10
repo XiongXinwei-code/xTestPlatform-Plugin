@@ -140,6 +140,24 @@ public class CanopenSdoReadViewModel : CanopenSdoViewModelBase<CanopenSdoReadSet
     public string ResultVariable { get => Setting?.ResultVariable ?? ""; set { if (Setting == null || Setting.ResultVariable == value) return; Setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }
 }
 
+/// <summary>CANopen_SyncSend 编辑器 ViewModel</summary>
+public class CanopenSyncSendViewModel : CanopenViewModelBase<CanopenSyncSendSetting>
+{
+    public string CobId { get => Setting?.CobId ?? ""; set { if (Setting == null || Setting.CobId == value) return; Setting.CobId = value; OnPropertyChanged(); QueueSave(); } }
+    public string Counter { get => Setting?.Counter ?? ""; set { if (Setting == null || Setting.Counter == value) return; Setting.Counter = value; OnPropertyChanged(); QueueSave(); } }
+}
+
+/// <summary>CANopen_EmcyReceive 编辑器 ViewModel</summary>
+public class CanopenEmcyReceiveViewModel : CanopenViewModelBase<CanopenEmcyReceiveSetting>
+{
+    public string NodeId { get => Setting?.NodeId ?? ""; set { if (Setting == null || Setting.NodeId == value) return; Setting.NodeId = value; OnPropertyChanged(); QueueSave(); } }
+    public string ExpectedErrorCode { get => Setting?.ExpectedErrorCode ?? ""; set { if (Setting == null || Setting.ExpectedErrorCode == value) return; Setting.ExpectedErrorCode = value; OnPropertyChanged(); QueueSave(); } }
+    public int TimeoutMs { get => Setting?.TimeoutMs ?? 3000; set { if (Setting == null || Setting.TimeoutMs == value) return; Setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+    public string ErrorCodeVariable { get => Setting?.ErrorCodeVariable ?? ""; set { if (Setting == null || Setting.ErrorCodeVariable == value) return; Setting.ErrorCodeVariable = value; OnPropertyChanged(); QueueSave(); } }
+    public string ErrorRegisterVariable { get => Setting?.ErrorRegisterVariable ?? ""; set { if (Setting == null || Setting.ErrorRegisterVariable == value) return; Setting.ErrorRegisterVariable = value; OnPropertyChanged(); QueueSave(); } }
+    public string ManufacturerDataVariable { get => Setting?.ManufacturerDataVariable ?? ""; set { if (Setting == null || Setting.ManufacturerDataVariable == value) return; Setting.ManufacturerDataVariable = value; OnPropertyChanged(); QueueSave(); } }
+}
+
 /// <summary>CANopen_SdoWrite 编辑器 ViewModel</summary>
 public class CanopenSdoWriteViewModel : CanopenSdoViewModelBase<CanopenSdoWriteSetting>
 {

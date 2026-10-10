@@ -103,6 +103,47 @@ public class CanopenPdoSendSetting : CanopenCommonSetting
     public string Data { get; set; } = "\"00 00 00 00 00 00 00 00\"";
 }
 
+/// <summary>CANopen_SyncSend 步骤设置</summary>
+[MessagePackObject(true)]
+public class CanopenSyncSendSetting : CanopenCommonSetting
+{
+    /// <summary>SYNC 的 COB-ID（默认 0x80）</summary>
+    [ExpressionField]
+    public string CobId { get; set; } = "0x80";
+
+    /// <summary>SYNC 计数器（0 表示不带计数器，1~240 时发送 1 字节计数器）</summary>
+    [ExpressionField]
+    public string Counter { get; set; } = "0";
+}
+
+/// <summary>CANopen_EmcyReceive 步骤设置</summary>
+[MessagePackObject(true)]
+public class CanopenEmcyReceiveSetting : CanopenCommonSetting
+{
+    /// <summary>目标节点 ID（1~127）</summary>
+    [ExpressionField]
+    public string NodeId { get; set; } = "1";
+
+    /// <summary>期望的错误码（留空表示收到任意 EMCY 即通过）</summary>
+    [ExpressionField]
+    public string ExpectedErrorCode { get; set; } = string.Empty;
+
+    /// <summary>等待超时 (ms)</summary>
+    public int TimeoutMs { get; set; } = 3000;
+
+    /// <summary>错误码写入的变量（十六进制字符串，如 0x3210）</summary>
+    [VariablePathField]
+    public string ErrorCodeVariable { get; set; } = string.Empty;
+
+    /// <summary>错误寄存器写入的变量（十六进制字符串，如 0x04）</summary>
+    [VariablePathField]
+    public string ErrorRegisterVariable { get; set; } = string.Empty;
+
+    /// <summary>厂商自定义数据写入的变量（十六进制字符串）</summary>
+    [VariablePathField]
+    public string ManufacturerDataVariable { get; set; } = string.Empty;
+}
+
 /// <summary>CANopen_PdoReceive 步骤设置</summary>
 [MessagePackObject(true)]
 public class CanopenPdoReceiveSetting : CanopenCommonSetting

@@ -1,0 +1,73 @@
+<UserControl x:Class="CAN.UI.Views.CanopenEmcyReceiveEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
+             mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800">
+    <!-- CANopen EMCY 接收步骤编辑器：等待节点紧急报文，解析错误码/错误寄存器/厂商数据并写入变量 -->
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="CANopen EMCY Receive"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- 连接名称：需与前序 CAN_Open 步骤中的连接名称一致 -->
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <!-- 节点 ID：1~127，监听 COB-ID 0x80 + NodeId -->
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="NodeId:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding NodeId, Mode=TwoWay}" ExpectedResultType="Object"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <!-- 期望错误码：0x0000~0xFFFF，留空表示收到任意 EMCY 即通过 -->
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Expected Error Code:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,8"
+                    ScriptText="{Binding ExpectedErrorCode, Mode=TwoWay}" ExpectedResultType="Object"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <!-- 等待超时（毫秒）：超时未收到符合条件的 EMCY 时步骤返回 Error -->
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <!-- 错误码变量：用户已声明的 string 变量路径，留空则不写入 -->
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Error Code Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ErrorCodeVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <!-- 错误寄存器变量：用户已声明的 string 变量路径，留空则不写入 -->
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Error Register Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ErrorRegisterVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+                <!-- 厂商数据变量：用户已声明的 string 变量路径，以十六进制写入；留空则不写入 -->
+                <TextBlock Grid.Row="6" Grid.Column="0" Text="Manufacturer Data Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ManufacturerDataVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+
+            </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

@@ -1,5 +1,9 @@
 # 更新记录
 
+## v1.3.1 - 2026-09-03
+- 新增：CANopen_SyncSend，发送单帧 SYNC（可选计数器），配合同步传输类型的 PDO 使用。
+- 新增：CANopen_EmcyReceive，等待并解析节点 EMCY 紧急报文（错误码、错误寄存器、厂商数据），支持校验期望错误码。
+
 ## v1.3.0 - 2026-09-02
 - 新增：CANopen 协议步骤 CANopen_SdoRead、CANopen_SdoWrite（快速/分段/块传输，含 CRC 校验与 SDO 中止码中文说明）、CANopen_NmtControl、CANopen_WaitHeartbeat、CANopen_PdoSend、CANopen_PdoReceive。
 - 新增：SDO 编辑器支持导入 EDS/DCF 文件并选择对象，自动填入 Index、SubIndex 和数据类型。
