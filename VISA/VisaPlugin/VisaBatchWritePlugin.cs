@@ -24,27 +24,20 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 VISA 连接标识名 |
-        | Items | 集合 | 是 | — | 命令列表，元素结构见示例 |
+        | ConnectionName | string([ExpressionField]) | 是 | "VISA1" |
+        | Items | 集合 | 是 | — | 命令列表，按顺序逐条发送 |
 
-        Items 元素字段：Command(string([ExpressionField] -> string), SCPI 命令)，DelayMs(int, 发送后延时毫秒，0 表示不延时)。
+        Items 元素字段：
 
-        ## 行为
+        - Command：string([ExpressionField])，SCPI 命令（如 *RST），求值结果为 string
+        默认 0（0 表示不延时）
 
-        - 按列表顺序逐条发送，每条发送后等待 DelayMs 毫秒
+                ## 行为
+
+                - 按列表顺序逐条发送，每条发送后等待 DelayMs 毫秒
+                - Command 求值结果为空时跳过该条，不发送也不延时
+                - 发送超时由连接的 IO 超时控制
         - 任意一条发送失败则步骤报错并停止后续发送
-
-        ## 示例
-
-        ```json
-        {
-          "ConnectionName": "\"VISA1\"",
-          "Items": [
-            { "Command": "\"*RST\"", "DelayMs": 100 },
-            { "Command": "\":CONF:VOLT:DC\"", "DelayMs": 0 }
-          ]
-        }
-        ```
 
         ## 相关插件
 

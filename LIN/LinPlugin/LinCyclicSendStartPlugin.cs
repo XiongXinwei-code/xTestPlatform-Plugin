@@ -21,22 +21,25 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "LIN1" | 已打开的连接标识名 |
-        | TaskName | string([ExpressionField] -> string) | 是 | "LinCyclicTask1" | 任务标识名，Stop 步骤用此名称停止 |
-        | Frames | 集合 | 是 | — | 周期发送帧列表，元素结构见下方示例 |
+        | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名，求值结果为 string |
+        | TaskName | string([ExpressionField]) | 是 | "LinCyclicTask1" | 任务标识名，Stop 步骤用此名称停止，求值结果为 string |
+        | Frames | 集合 | 是 | — | 周期发送帧列表，元素字段见下方 |
 
-        Frames 元素 JSON 示例：
+        Frames 元素字段：
 
-        ```json
-        {"FrameId":"0","Data":"\"FF FF FF FF FF FF FF FF\"","CycleTimeMs":100,"ChecksumType":"Enhanced","Enabled":true}
-        ```
-
-        - ChecksumType 可选值：Classic, Enhanced
-        - FrameId 和 Data 为表达式字段，字面量字符串需用引号包裹
+        - FrameId：string([ExpressionField])，LIN 帧 ID，求值结果为 string，支持 0x 前缀十六进制或十进制，范围 0-63，默认 "0"
+        - Data：string([ExpressionField])，发送数据，求值结果为空格分隔的十六进制 string（如 "FF FF FF FF FF FF FF FF"）
+        - CycleTimeMs：int，发送周期毫秒数，默认 100
+        - ChecksumType：枚举，校验类型，可选值：Classic, Enhanced，默认 Enhanced
+        - Enabled：bool，是否启用该帧，默认 true；未启用的帧不发送
 
         ## 行为
 
-        - 任务在后台运行，会以 `TaskName` 为标识名注册到运行期资源表，供 LIN_Cyclic_SendStop 步骤取用
+        - 步骤启动任务后立即返回，每条启用的帧在后台独立按各自 CycleTimeMs 发送，每次发送前重新求值 FrameId 和 Data
+        - 没有启用的帧时步骤直接通过，不启动发送
+        - 后台发送异常（如帧 ID 超出 0-63）仅记录警告日志，该帧的发送循环随即结束，不影响步骤结果
+        - 连接名未找到时步骤报错
+        - 任务会以
         - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会先被停止并从表中移除，再注册新任务，不会报错
 
         ## 相关插件

@@ -57,7 +57,7 @@
 
 ## 资源生命周期
 
-客户端以 `Engine` 生命周期注册到 `context.Resources`，键为 `Http.Client.{ClientName}`。引擎停止时会自动释放，`Http_ClientClose` 用于提前主动释放。
+客户端以默认的 `Execution` 生命周期注册到 `context.Resources`，键为 `Http.Client.{ClientName}`。本次执行（主线程与所有子线程）结束时会自动释放，下次执行需重新创建；`Http_ClientClose` 用于提前主动释放。
 
 ## 提取路径语法
 

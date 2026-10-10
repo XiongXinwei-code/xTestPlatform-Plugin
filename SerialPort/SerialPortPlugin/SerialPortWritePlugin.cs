@@ -21,8 +21,8 @@ public sealed class SerialPortWritePlugin : StepPluginBase<SerialPortWriteSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | PortName | string([ExpressionField] -> string) | 是 | — | 已打开的端口名 |
-        | WriteData | string([ExpressionField] -> string) | 是 | — | 要写入的数据 |
+        | PortName | string([ExpressionField]) | 是 | — | 已打开的端口名，求值结果为 string |
+        | WriteData | string([ExpressionField]) | 是 | — | 要写入的数据，求值结果为 string |
         | DataFormat | 枚举 | 否 | String | 可选值：String, Hex, Bin |
 
         ## 行为

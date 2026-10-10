@@ -21,11 +21,11 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
-        | FilterId | string([ExpressionField] -> string) | 否 | 空 | 过滤 CAN ID，如 0x7E8，为空则接收任意帧 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
+        | FilterId | string([ExpressionField]) | 否 | 空 | 过滤 CAN ID，如 0x7E8，为空则接收任意帧，求值结果为 string |
         | ReadTimeoutMs | int | 否 | — | 读取超时毫秒数 |
-        | ResultVariable | string(变量路径) | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据） |
-        | IdVariable | string(变量路径) | 否 | 空 | 接收帧 CAN ID 存入的变量名 |
+        | ResultVariable | string(VariablePathField) | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据）；如 Locals.result |
+        | IdVariable | string(VariablePathField) | 否 | 空 | 接收帧 CAN ID 存入的变量名；如 Locals.id |
 
         ## 行为
 

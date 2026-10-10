@@ -22,12 +22,12 @@ public sealed class UdsSecurityAccessPlugin : StepPluginBase<UdsSecurityAccessSe
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | SecurityLevel | int | 否 | 1 | 安全等级，奇数如 1/3/5 |
-        | SeedVariable | string(变量路径) | 是 | — | 存储 ECU 返回 Seed 的变量名，KeyExpression 中通过此名引用 |
-        | KeyExpression | string([ExpressionField] -> byte[]) | 是 | — | Key 计算表达式，如 new byte[]{(byte)(Seed[0]^0xA5)} |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 bool（解锁是否成功） |
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 CAN 连接名 |
-        | TxId | string([ExpressionField] -> string) | 是 | — | 请求 CAN ID，如 0x7DF |
-        | RxId | string([ExpressionField] -> string) | 是 | — | 响应 CAN ID，如 0x7E8 |
+        | SeedVariable | string(VariablePathField) | 是 | — | 存储 ECU 返回 Seed 的变量名，KeyExpression 中通过此名引用；如 Locals.seed |
+        | KeyExpression | string([ExpressionField]) | 是 | — | Key 计算表达式，如 new byte[]{(byte)(Seed[0]^0xA5)}，求值结果为 byte[] |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量名，写入类型为 bool（解锁是否成功）；如 Locals.result |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
+        | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID，如 0x7DF，求值结果为 string |
+        | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID，如 0x7E8，求值结果为 string |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
 
         ## 行为

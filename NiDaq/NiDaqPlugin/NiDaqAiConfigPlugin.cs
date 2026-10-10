@@ -21,23 +21,22 @@ public sealed class NiDaqAiConfigPlugin : StepPluginBase<NiDaqAiConfigSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | TaskName | string([ExpressionField] -> string) | 是 | — | 任务名称 |
-        | Channels | 集合 | 是 | — | AI 通道列表，元素结构见下方示例 |
-        | SampleRate | double | 是 | — | 采样率 Hz |
-        | SamplesPerChannel | int | 是 | — | 每通道采样数 |
-        | SampleMode | 枚举 | 否 | — | 可选值：FiniteSamples, ContinuousSamples |
+        | TaskName | string([ExpressionField]) | 是 | "AiTask1" | 任务名称，求值结果为 string |
+        | Channels | 集合 | 是 | — | AI 通道列表，元素字段见下方 |
+        | SampleRate | double | 是 | 1000 | 采样率 Hz |
+        | SamplesPerChannel | int | 是 | 100 | 每通道采样数 |
+        | SampleMode | 枚举 | 否 | FiniteSamples | 可选值：FiniteSamples, ContinuousSamples |
         | ClockSource | string | 否 | 空 | 时钟源，空为内部时钟 |
-        | UseTrigger | bool | 否 | false | 是否使用触发 |
+        | UseTrigger | bool | 否 | false | 是否使用触发；TriggerSource 为空时不配置触发 |
         | TriggerSource | string | 否 | 空 | 触发源 |
         | TriggerEdge | 枚举 | 否 | Rising | 可选值：Rising, Falling |
 
-        Channels 元素 JSON 示例：
+        Channels 元素字段：
 
-        ```json
-        {"PhysicalChannel":"Dev1/ai0","ColumnName":"CH1","MinValue":-10.0,"MaxValue":10.0,"Terminal":"Differential"}
-        ```
-
-        - Terminal 可选值：Differential, RSE, NRSE, Pseudodifferential
+        - PhysicalChannel：string，物理通道（普通文本，如 Dev1/ai0）
+        - ColumnName：string，该通道在采集数据中的列名（如 CH1）
+        - MinValue / MaxValue：double，量程下限/上限，默认 -10 / 10
+        - Terminal：枚举，终端配置，可选值：Differential, RSE, NRSE, Pseudodifferential，默认 Differential
 
         ## 物理通道命名规则
 
@@ -51,6 +50,8 @@ public sealed class NiDaqAiConfigPlugin : StepPluginBase<NiDaqAiConfigSetting>
         ## 行为
 
         - 仅创建任务，不启动采集
+        - 已存在同名任务时先释放旧任务再创建
+        - Channels 为空或 NI 驱动不可用时步骤报错
 
         ## 相关插件
 

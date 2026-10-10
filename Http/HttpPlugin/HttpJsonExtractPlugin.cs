@@ -24,8 +24,8 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SourceJson | string([ExpressionField] -> string) | 是 | HttpResponse | 待解析的 JSON 文本，通常填写存放响应体的变量名 |
-        | Items | 集合 | 是 | 空 | 提取映射列表，元素含 Path、TargetVariable、DefaultValue，结构见示例 |
+        | SourceJson | string([ExpressionField]) | 是 | HttpResponse | 待解析的 JSON 文本，通常填写存放响应体的变量名，求值结果为 string |
+        | Items | 集合 | 是 | 空 | 提取映射列表；Path 为点号路径（如 data.items[0].sn），TargetVariable 为提取结果写入的变量（string(VariablePathField)，如 Locals.WorkOrder），DefaultValue 为路径未命中时写入的默认值（普通文本） |
         | FailOnMissingPath | bool | 否 | true | 任一路径未命中时是否判定步骤失败 |
 
         ## 行为
@@ -36,19 +36,6 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
         - 路径未命中时写入该项的 DefaultValue；若 FailOnMissingPath 为 true 则同时判定步骤失败
         - SourceJson 不是合法 JSON 时步骤报错
         - 不支持完整 JSONPath 的过滤器与递归下降语法
-
-        ## 示例
-
-        ```json
-        {
-          "SourceJson": "HttpResponse",
-          "Items": [
-            { "Path": "data.workOrder", "TargetVariable": "Locals.WorkOrder", "DefaultValue": "" },
-            { "Path": "data.limits[0].upper", "TargetVariable": "Locals.UpperLimit", "DefaultValue": "0" }
-          ],
-          "FailOnMissingPath": true
-        }
-        ```
 
         ## 相关插件
 

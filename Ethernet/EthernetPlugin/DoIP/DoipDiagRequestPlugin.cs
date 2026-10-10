@@ -21,11 +21,11 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | SessionName | string([ExpressionField] -> string) | 是 | "DOIP1" | 已建立的会话标识名 |
-        | TargetAddress | string([ExpressionField] -> string) | 是 | "0x1000" | ECU 逻辑地址 |
-        | RequestData | string([ExpressionField] -> string) | 是 | "22 F1 90" | UDS 请求十六进制数据 |
+        | SessionName | string([ExpressionField]) | 是 | "DOIP1" | 已建立的会话标识名，求值结果为 string |
+        | TargetAddress | string([ExpressionField]) | 是 | "0x1000" | ECU 逻辑地址，求值结果为 string |
+        | RequestData | string([ExpressionField]) | 是 | "22 F1 90" | UDS 请求十六进制数据，求值结果为 string |
         | TimeoutMs | int | 否 | 3000 | 响应超时毫秒数 |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据） |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量名，写入类型为 string（十六进制响应数据）；如 Locals.result |
 
         ## 行为
 

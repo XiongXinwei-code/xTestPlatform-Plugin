@@ -22,11 +22,11 @@ public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已建立的 OPC UA 连接名 |
+        | ConnectionName | string([ExpressionField]) | 是 | — | 已建立的 OPC UA 连接名，求值结果为 string |
         | NodeId | string | 是 | — | 节点标识，如 ns=2;s=Status |
-        | ExpectedValue | string([ExpressionField] -> string) | 是 | — | 期望值 |
+        | ExpectedValue | string([ExpressionField]) | 是 | — | 期望值，求值结果为 string |
         | CompareMode | 枚举 | 否 | Equal | 可选值：Equal, NotEqual, GreaterThan, LessThan, Contains |
-        | ResultVariable | string(变量路径) | 否 | 空 | 节点当前值存入的变量名 |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 节点当前值存入的变量名；如 Locals.result |
         | TimeoutMs | int | 否 | 10000 | 等待超时毫秒数 |
         | SamplingIntervalMs | int | 否 | 100 | 采样间隔毫秒数 |
 

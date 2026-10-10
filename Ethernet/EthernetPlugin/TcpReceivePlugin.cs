@@ -21,11 +21,11 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField] -> string) | 是 | "TCP1" | 已打开的连接标识名 |
+        | ConnectionName | string([ExpressionField]) | 是 | "TCP1" | 已打开的连接标识名，求值结果为 string |
         | ExpectedLength | int | 否 | 0 | 期望字节数，0 表示接收任意长度 |
         | TimeoutMs | int | 否 | 3000 | 接收超时毫秒数 |
         | Encoding | 枚举 | 否 | Hex | 结果编码格式，可选值：Hex, Utf8, Ascii |
-        | ResultVariable | string(变量路径) | 否 | 空 | 结果变量名（名称由使用者自定义），写入类型为 string |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量名（名称由使用者自定义），写入类型为 string；如 Locals.result |
 
         ## 行为
 

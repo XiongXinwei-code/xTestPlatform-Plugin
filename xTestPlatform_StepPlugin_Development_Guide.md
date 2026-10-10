@@ -1,4 +1,4 @@
-﻿# xTestPlatform 步骤插件开发手册
+# xTestPlatform 步骤插件开发手册
 
 > **版本**：3.4.0 | **框架**：.NET 8 / WPF | **日期**：2026-08-13
 
@@ -121,14 +121,14 @@
 - [ ] Setting 类标记 `[MessagePackObject(true)]`（§12）
 - [ ] `StepTypeId` 格式为 `分类.步骤名` 且全局唯一（§2.1）
 - [ ] `DisplayName`、`Category`、`IconPath`、`Description` 均已填写（§2.1）
-- [ ] `Description` 使用 Markdown 五章节标准结构：`## 功能` → `## 参数` → `## 行为` → `## 示例` → `## 相关插件`，前两节必填（§2.1.1）
+- [ ] `Description` 使用 Markdown 四章节标准结构：`## 功能` → `## 参数` → `## 行为` → `## 相关插件`，前两节必填，不写 JSON 结构示例（§2.1.1）
 - [ ] 所有插件枚举类型已标注 `[JsonConverter(typeof(JsonStringEnumConverter))]`，确保 AI 可用字符串名称传枚举值（§2.1.1）
 - [ ] 所有运行时经 Roslyn 求值的 string 字段已标记 `[ExpressionField]`（§12.2）
 - [ ] `[ExpressionField]` 字符串属性的默认值为合法表达式格式：字符串默认值须加引号包裹（如 `"\"CAN1\""`），数字默认值直接写数字字符串（如 `"0"`），空值用 `string.Empty`（§12.2）
 - [ ] 所有作为"结果写入目标"的 string 字段已标记 `[VariablePathField]`（判断依据：Executor 中该字段被传给 `ctx.SetVariable`），且默认值/示例使用带作用域前缀的完整路径（如 `Locals.rxData`）（§12.3）
 - [ ] 插件只读写变量列表中已声明、且由用户明确配置的完整变量路径；禁止硬编码变量路径，禁止通过拼接前后缀等方式构造隐式变量路径，禁止将表达式求值得到的普通字符串值再次作为变量路径（§12.3）
-- [ ] `[ExpressionField]` 与 `[VariablePathField]` 未同时标记在同一属性上；`Description` 参数表格中类型列已相应写成 `string([ExpressionField] -> 求值类型)` 或 `string(变量路径)`（§12.3）
-- [ ] 每个 `[ExpressionField]` 参数在 `Description` 类型列中已标注求值后的返回类型（如 `string([ExpressionField] -> string)`、`string([ExpressionField] -> byte[])`），返回类型以 Executor 中实际求值调用为准，不得凭字段名臆测（§2.1.1）
+类型列已相应写成 `string([ExpressionField])` 或 `string(VariablePathField)`（§12.3）
+- [ ] 每个 `[ExpressionField]` 参数在 `Description` 说明列中已写明求值结果类型（如“求值结果为 string”“求值结果为 byte[]”），结果类型以 Executor 中实际求值调用为准，不得凭字段名臆测（§2.1.1）
 - [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
 - [ ] **阻塞式 I/O 必须做软超时兜底**：若底层 API 是同步阻塞调用，或其异步重载不响应 `CancellationToken`（如 `System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync`、NModbus 的 `Read*Async`、NI-VISA 的 `FormattedIO`、NI-DAQmx 的 `Reader/Writer`、LabVIEW 的 VI 调用），必须在插件层用 `Task.Run(...) + WaitAsync(TimeSpan, token)` 或同步读写 + 截止时间循环做软超时，**不能只在 Setting 里声明超时字段就认为超时生效**
@@ -274,9 +274,9 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 `Description` 是 AI 编程助手选择和配置步骤的**唯一依据**。序列编辑器中的 AI 助手会读取每个插件的 `Description` 来理解插件功能、选择合适的步骤类型、并自动生成正确的 Setting 参数。**如果 Description 不准确或不完整，AI 将无法正确使用该插件。**
 
-**标准结构（Markdown 格式，五个固定章节，顺序固定）：**
+**标准结构（Markdown 格式，四个固定章节，顺序固定）：**
 
-`Description` 必须使用 Markdown 编写，按 `## 功能` → `## 参数` → `## 行为` → `## 示例` → `## 相关插件` 五个章节组织。**前两节必填**，后三节按需（简单插件可以只有功能+行为）。**不放一级标题**——Description 从 `##` 开始，因为弹窗标题栏已显示插件名，避免重复。
+`Description` 必须使用 Markdown 编写，按 `## 功能` → `## 参数` → `## 行为` → `## 相关插件` 四个章节组织。**前两节必填**，后两节按需（简单插件可以只有功能+行为）。**不放一级标题**——Description 从 `##` 开始，因为弹窗标题栏已显示插件名，避免重复。
 
 ```markdown
 ## 功能
@@ -287,28 +287,16 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 | 参数 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| ConnectionName | string([ExpressionField] -> string) | 是 | — | 已建立的连接名 |
+| ConnectionName | string([ExpressionField]) | 是 | — | 已建立的连接名，求值结果为 string |
 | TimeoutMs | int | 否 | 0 | 超时毫秒数，0 表示不限制 |
 | DataFormat | 枚举 | 否 | UInt16 | 可选值：UInt16, Int16, Float_AB_CD |
-| Items | 集合 | 是 | — | 读取项列表，元素结构见示例 |
+| Items | 集合 | 是 | — | 读取项列表；SlaveAddress 为从站地址(1~247)，RegisterType 为寄存器类型，StartAddress 为起始地址 |
 
 ## 行为
 
 - 执行时的关键规则，用列表逐条写
 - 错误条件：什么情况下步骤报错
 - 容器类插件说明子步骤如何被调度
-
-## 示例
-
-```json
-{
-  "ConnectionName": "\"modbus1\"",
-  "Items": [
-    { "SlaveAddress": 1, "RegisterType": "HoldingRegister", "StartAddress": 0 }
-  ],
-  "TimeoutMs": 0
-}
-```
 
 ## 相关插件
 
@@ -318,9 +306,9 @@ public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin
 
 **设计要点：**
 
-1. **五个固定章节，顺序固定**：`功能` → `参数` → `行为` → `示例` → `相关插件`。前两节必填，后三节按需。
-2. **参数用表格**：类型列区分 `string / int / bool / 枚举 / 集合`——标了 `[ExpressionField]` 的字段写成 `string([ExpressionField] -> 求值类型)` 这种形式，即“声明类型([ExpressionField] -> 求值后返回类型)”。外层 `string` 表示 Setting 中该属性的声明类型（表达式字段恒为 `string`，AI 生成 JSON 时要填字符串字面量）；箭头后是该表达式**求值后应当返回的类型**，AI 据此知道表达式该算出什么，而不必猜测。返回类型用 C# 小写写法（`string`、`int`、`bool`、`byte[]`、`object`），并**必须与 Executor 中实际的求值调用一致**：`EvalStringAsync` → `string`，`EvaluateAsync<byte[]>` → `byte[]`，依此类推。标了 `[VariablePathField]` 的字段写成 `string(变量路径)`，说明列给出带作用域前缀的示例（如 `Locals.rxData`），AI 就知道要填完整变量路径而不是裸变量名或表达式（§12.3）。枚举字段在说明列列出全部可选值。复杂集合在表格里给一行概述，细节靠示例 JSON 展示。
-3. **示例用 ```json 代码块**：渲染成等宽代码块，AI 也能直接照抄结构。含集合的 Setting 必须给示例。
+1. **四个固定章节，顺序固定**：`功能` → `参数` → `行为` → `相关插件`。前两节必填，后两节按需。
+标了 `[ExpressionField]` 的字段类型列统一写成 `string([ExpressionField])`，表示 Setting 中该属性声明为 `string`、内容为表达式（AI 生成 JSON 时要填字符串字面量）。该表达式**求值后应当返回的类型**写在说明列中（如“求值结果为 string”“求值结果为 byte[]”），AI 据此知道表达式该算出什么，而不必猜测。结果类型用 C# 小写写法（`string`、`int`、`bool`、`byte[]`、`object`），并**必须与 Executor 中实际的求值调用一致**：`EvalStringAsync` → `string`，`EvaluateAsync<byte[]>` → `byte[]`，依此类推。
+3. **不写 JSON 结构示例**：Setting 的字段名、类型、嵌套对象及集合元素结构由 AI 助手的 `get_step_schema` 工具对 Setting 类反射生成，始终与代码一致。手写的 JSON 示例不被任何程序使用，但会被 AI 照抄；一旦与 Setting 类不一致（字段改名、多写字段），AI 写入参数时会被校验拒绝。Description 只负责反射表达不了的语义。
 4. **相关插件**：对成组使用的插件族（连接/断开、启动/停止、配置/读取）特别有价值，帮助 AI 和用户理解组合用法。
 5. **代码实现用 C# 原始字符串字面量**（`"""..."""`）书写多行 Markdown，避免转义。
 
@@ -336,9 +324,9 @@ public override string Description => """
 
     | 参数 | 类型 | 必填 | 默认值 | 说明 |
     |------|------|------|--------|------|
-    | ConnectionName | string([ExpressionField] -> string) | 是 | — | 已打开的 VISA 连接标识名 |
-    | Command | string([ExpressionField] -> string) | 是 | — | SCPI 查询命令，如 *IDN? |
-    | ResultVariable | string(变量路径) | 是 | — | 结果存入的变量，如 Locals.idn |
+    | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 VISA 连接标识名，求值结果为 string |
+    | Command | string([ExpressionField]) | 是 | — | SCPI 查询命令，如 *IDN?，求值结果为 string |
+    | ResultVariable | string(VariablePathField) | 是 | — | 结果存入的变量，如 Locals.idn |
     | TrimResponse | bool | 否 | true | 是否去除响应首尾空白 |
 
     ## 行为
@@ -359,17 +347,17 @@ public override string Description => """
 // ❌ 太简略，AI 无法知道 Setting 有哪些字段
 public override string Description => "读取 Modbus 数据。";
 
-// ❌ 未用 Markdown 五章节结构，仍用旧的拼接字符串格式
+// ❌ 未用 Markdown 四章节结构，仍用旧的拼接字符串格式
 public override string Description => "Setting 字段：DataFormat(枚举,数据格式)。";
 
-// ❌ 集合字段没有 JSON 示例，AI 无法知道元素结构
+// ❌ 集合元素只列字段名、不说明含义（结构由 get_step_schema 提供，语义必须由 Description 提供）
 public override string Description => "Setting 字段：Items(列表,每项含NodeId和ResultVariable)。";
 
 // ❌ 在描述中暴露 C# 类型名（如 List<T>），应使用"集合"
 public override string Description => "Messages(List<CyclicMessageItem>,报文列表)。";
 ```
 
-> 📝 **检查要点**：每次新建或修改插件时，必须检查 `Description` 是否满足以上五章节 Markdown 规范。不完整的 Description 会导致 AI 编程助手无法正确配置步骤参数。
+> 📝 **检查要点**：每次新建或修改插件时，必须检查 `Description` 是否满足以上四章节 Markdown 规范。不完整的 Description 会导致 AI 编程助手无法正确配置步骤参数。
 
 #### 枚举类型 JSON 序列化规范
 
@@ -394,17 +382,11 @@ public enum AiTerminalConfig
 public enum AiTerminalConfig { ... }
 ```
 
-`Description` 中的枚举 JSON 示例统一使用**字符串名称**，不使用整数：
-
-```csharp
-// ✅ 正确
-"\"Terminal\":\"Differential\""
-
-// ❌ 错误（AI 看不懂整数代表什么）
-"\"Terminal\":0"
-```
+`Description` 中提到枚举取值时统一写**字符串名称**，不写整数（AI 看不懂整数代表什么）。
 
 > ⚠️ 这条规范也适用于 Setting 类中嵌套对象（如集合元素）里的枚举字段。只要枚举出现在 Setting 的 JSON 序列化路径上，就必须加此特性。
+>
+> AI 写入参数时校验是严格的：未知字段（包括嵌套对象、集合元素内部的字段）、只读字段、非可空类型传 null、类型不匹配、未定义的枚举值都会报错，并且该步骤整体不写入。
 
 ### 2.2 IStepExecutor — 执行器契约
 
@@ -579,7 +561,7 @@ public abstract string        IconPath { get; }
 public abstract IStepExecutor CreateExecutor();
 
 // 插件功能描述（⚠️ 详见 §2.1.1 Description 规范）
-// AI 助手依赖此字段选择步骤和生成参数，必须包含：功能说明、所有Setting字段、枚举可选值、集合元素JSON示例
+// AI 助手依赖此字段理解步骤语义，必须包含：功能说明、所有Setting字段含义、枚举可选值（字段结构由 get_step_schema 反射提供，不写 JSON 示例）
 public virtual string Description => string.Empty;
 ```
 
@@ -866,19 +848,20 @@ public class StepExecutionInfo {
 ```csharp
 /// <summary>资源生命周期</summary>
 public enum ResourceLifetime {
-    Run,     // 一次运行结束时释放
-    Engine   // 引擎停止时释放（默认，适用于跨运行的持久资源）
+    Execution, // 一次执行结束时释放（默认）：主线程与所有 NewThread 子线程都结束后清理，适用于跨线程共享的资源
+    Thread     // 创建它的线程结束时释放；主线程的资源在本次执行结束时清理，Normal 子序列与调用方属于同一线程
 }
+// 引擎停止时会兜底释放注册表内全部剩余资源；不存在跨执行保留的生命周期档位。
 
 public interface IResourceRegistry {
     /// <summary>注册资源；同名旧资源若实现 IDisposable 会先被释放</summary>
-    void Set(string key, object resource, ResourceLifetime lifetime = ResourceLifetime.Engine);
+    void Set(string key, object resource, ResourceLifetime lifetime = ResourceLifetime.Execution);
 
     /// <summary>仅当键不存在时注册资源，已存在时返回 false（不覆盖、不释放旧资源）</summary>
-    bool TryAdd(string key, object resource, ResourceLifetime lifetime = ResourceLifetime.Engine);
+    bool TryAdd(string key, object resource, ResourceLifetime lifetime = ResourceLifetime.Execution);
 
     /// <summary>取出已注册资源，不存在时用工厂创建并注册（并发冲突时多余实例自动释放）</summary>
-    T GetOrAdd<T>(string key, Func<T> factory, ResourceLifetime lifetime = ResourceLifetime.Engine) where T : class;
+    ResourceLifetime lifetime = ResourceLifetime.Execution) where T : class;
 
     /// <summary>按类型取出资源，不存在或类型不符返回 false</summary>
     bool TryGet<T>(string key, out T resource) where T : class;
@@ -894,18 +877,18 @@ public interface IResourceRegistry {
 **使用示例（Executor 中共享设备连接）：**
 
 ```csharp
-// 打开步骤：注册连接（硬件会话使用默认 Engine 生命周期，跨运行持久保持，引擎停止时释放）
+// 打开步骤：注册连接（默认 Execution 生命周期，本次执行内各线程共享，执行结束时自动释放）
 var port = new SerialPortConnection(portName, baudRate);
 port.Open();
-ctx.Resources.Set($"SerialPort.{portName}", port);  // 默认 ResourceLifetime.Engine
+ctx.Resources.Set($"SerialPort.{portName}", port);  // 默认 ResourceLifetime.Execution
 
 // 读写步骤：取出已注册的连接
 if (!ctx.Resources.TryGet<SerialPortConnection>($"SerialPort.{portName}", out var conn))
     return Error("串口未打开，请先执行 SerialPort_Open 步骤");
 
-// 惰性创建：不存在则创建并注册（临时资源可用 Run 生命周期，本次运行结束自动释放）
+// 惰性创建：不存在则创建并注册（仅当前线程使用的资源可用 Thread 生命周期，线程结束自动释放）
 var session = ctx.Resources.GetOrAdd("Device.Session",
-    () => new DeviceSession(address), ResourceLifetime.Run);
+    () => new DeviceSession(address), ResourceLifetime.Thread);
 
 // 关闭步骤：移除并释放
 ctx.Resources.Remove($"SerialPort.{portName}");  // dispose 默认 true
@@ -1869,10 +1852,10 @@ result.Title = setting.Title;
 
 #### 同步要求
 
-标记了 `[VariablePathField]` 的字段，插件 `Description` 的"## 参数"表格中类型列必须写成 `string(变量路径)`，与 `[ExpressionField]` 写成 `string([ExpressionField] -> 求值类型)` 的规则对应（§2.1.1）：
+与 `[ExpressionField]` 写成 `string([ExpressionField])` 的规则对应
 
 ```markdown
-| ResultVariable | string(变量路径) | 否 | — | 存储接收数据的变量（如 Locals.rxData） |
+| ResultVariable | string(VariablePathField) | 否 | — | 存储接收数据的变量（如 Locals.rxData） |
 ```
 
 ### 12.4 设置版本管理
