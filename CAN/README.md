@@ -29,6 +29,8 @@
 | CANopen_WaitHeartbeat | 等待指定节点的心跳/Boot-up 报文，可校验 NMT 状态并写入变量。 |
 | CANopen_PdoSend | 按 COB-ID 发送一帧 PDO（0~8 字节）。 |
 | CANopen_PdoReceive | 等待指定 COB-ID 的 PDO，数据以十六进制字符串写入变量。 |
+| CANopen_SyncSend | 发送一帧 SYNC 同步报文（可选 1 字节计数器），用于触发同步 PDO。 |
+| CANopen_EmcyReceive | 等待节点 EMCY 紧急报文，解析错误码、错误寄存器与厂商数据，可校验期望错误码。 |
 | UDS_ClearDTC | 清除 ECU 故障码（UDS 服务 0x14）。 |
 | UDS_DiagSession | 切换 ECU 诊断会话模式（UDS 服务 0x10）。 |
 | UDS_Flash | 通过 UDS 擦除、下载、传输、校验烧录 Intel HEX、S-Record 或 BIN 固件；支持连续映射范围、地址空洞填充、自动块大小与 FlashDriver 激活延时。 |
