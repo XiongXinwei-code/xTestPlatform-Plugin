@@ -32,10 +32,31 @@ $Packages = [ordered]@{
 }
 
 function New-PackageIcon($Pkg, [int]$Size) {
+	# 插件管理器图标：统一正方形浅色底板
 	switch ($Pkg.Kind) {
-		'letter' { New-Icon $Pkg.Text $Pkg.Color '' $Size '' }
-		'serial' { New-SerialIcon $SerialDraw '' $Size }
-		'daq'    { New-DaqIcon $DaqDraw 'sine' '' $Size }
+		'letter' {
+			$script:Square = $true
+			try { New-Icon $Pkg.Text $Pkg.Color '' $Size '' } finally { $script:Square = $false }
+		}
+		default {
+			$bmp = New-Object System.Drawing.Bitmap($Size, $Size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+			$g = [System.Drawing.Graphics]::FromImage($bmp)
+			$g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+			$g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+			$g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+			$g.Clear([System.Drawing.Color]::Transparent)
+			$g.ScaleTransform($Size / 24.0, $Size / 24.0)
+			$p = New-RoundRect 1 1 22 22 3.5
+			$br = New-Object System.Drawing.SolidBrush($Paper); $g.FillPath($br, $p); $br.Dispose()
+			$pen = New-Object System.Drawing.Pen($PlateEdge, 1); $g.DrawPath($pen, $p); $pen.Dispose(); $p.Dispose()
+			$g.ResetTransform()
+			# 图形缩放后居中放在底板内
+			$inner = if ($Pkg.Kind -eq 'serial') { New-SerialIcon $SerialDraw '' ($Size * 4) } else { New-DaqIcon $DaqDraw 'sine' '' ($Size * 4) }
+			$s = $Size * 0.82
+			$g.DrawImage($inner, ($Size - $s) / 2, ($Size - $s) / 2 + $Size * 0.03, $s, $s)
+			$inner.Dispose(); $g.Dispose()
+			$bmp
+		}
 	}
 }
 

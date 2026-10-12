@@ -9,7 +9,7 @@
 	powershell -NoProfile -File tools\Icons\New-PluginLetterIcons.ps1 -Group UDS
 #>
 [CmdletBinding()]
-param([string[]]$Group, [switch]$LibraryOnly)
+param([string[]]$Group, [switch]$LibraryOnly, [switch]$Square, [switch]$PreviewOnly)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -476,29 +476,46 @@ function Add-Badge($G, [string]$Badge, [single]$cx, [single]$cy, [single]$r) {
 }
 
 function Draw-Icon($G, [string]$Text, $GroupColor, [string]$Badge, [string]$Bar) {
-	$p = New-RoundRect 1 2 22 16 2.5
+	if ($Square) {
+		# 正方形底板：文字更大，底条下移
+		$p = New-RoundRect 1 1 22 22 3.5
+		$dy = 1.5
+		if ($Text.Length -ge 4) { $tr = New-Object System.Drawing.RectangleF(2.5, 4, 19, 8.5) } else { $tr = New-Object System.Drawing.RectangleF(3, 3.5, 18, 10) }
+	}
+	else {
+		$p = New-RoundRect 1 2 22 16 2.5
+		$dy = 0
+		if ($Text.Length -ge 4) { $tr = New-Object System.Drawing.RectangleF(2, 4, 20, 8) } else { $tr = New-Object System.Drawing.RectangleF(3, 5, 18, 7.5) }
+	}
 	$br = New-Object System.Drawing.SolidBrush($Paper); $G.FillPath($br, $p); $br.Dispose()
 	$pen = New-Object System.Drawing.Pen($PlateEdge, 1); $G.DrawPath($pen, $p); $pen.Dispose(); $p.Dispose()
-	if ($Text.Length -ge 4) { Add-FitText $G $Text (New-Object System.Drawing.RectangleF(2, 4, 20, 8)) $Ink } else { Add-FitText $G $Text (New-Object System.Drawing.RectangleF(3, 5, 18, 7.5)) $Ink }
+	if ($Square -and $Text.Contains('|')) {
+		# 正方形两行显示全名：用 | 分行
+		$parts = $Text.Split('|')
+		Add-FitText $G $parts[0] (New-Object System.Drawing.RectangleF(3, 2.6, 18, 5.4)) $Ink
+		Add-FitText $G $parts[1] (New-Object System.Drawing.RectangleF(3, 9, 18, 5.4)) $Ink
+		$Text = ''
+	}
+	if ($Text) { Add-FitText $G $Text $tr $Ink }
 	if ($Bar -eq 'double') {
-		Fill-Rect $G 3 13 10 1 $GroupColor
-		Fill-Rect $G 3 15 10 2 $GroupColor
+		Fill-Rect $G 3 (13 + $dy) 10 1 $GroupColor
+		Fill-Rect $G 3 (15 + $dy) 10 2 $GroupColor
 	}
 	elseif ($Bar -eq 'solid') {
-		Fill-Rect $G 3 14 10 2 $GroupColor
+		Fill-Rect $G 3 (14 + $dy) 10 2 $GroupColor
 	}
 	elseif ($Bar -eq 'dashed') {
-		foreach ($x in @(3, 7, 11)) { Fill-Rect $G $x 14 2 2 $GroupColor }
+		foreach ($x in @(3, 7, 11)) { Fill-Rect $G $x (14 + $dy) 2 2 $GroupColor }
 	}
 	elseif ($Bar -eq 'triple') {
-		foreach ($y in @(13, 15, 17)) { Fill-Rect $G 3 $y 8 1 $GroupColor }
+		foreach ($y in @(13, 15, 17)) { Fill-Rect $G 3 ($y + $dy) 8 1 $GroupColor }
 	}
 	elseif (-not $Badge) {
 		# 无角标（插件管理器用）：底条通栏
-		Fill-Rect $G 3 14.5 18 1.8 $GroupColor
+		Fill-Rect $G 3 (14.5 + $dy) 18 1.8 $GroupColor
 	}
 	else {
-		Fill-Rect $G 3 14.5 10 1.8 $GroupColor
+		Fill-Rect $G 3 (14.5 + $dy) 10 1.8 $GroupColor
 	}
 	if ($Badge) { Add-Badge $G $Badge 18 18 5 }
 }
@@ -543,14 +560,14 @@ $targets = if ($Group) { $Group } else { @($Groups.Keys) }
 foreach ($key in $targets) {
 	$grp = $Groups[$key]
 	$outDir = Join-Path $repo $grp.Dir
-	$pvDir = Join-Path $root ("preview\" + $key.ToLowerInvariant())
+	$pvDir = Join-Path $root ("preview\" + $(if ($Square) { 'square\' } else { '' }) + $key.ToLowerInvariant())
 	foreach ($d in @($outDir, $pvDir)) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null } }
 
 	foreach ($name in $grp.Icons.Keys) {
 		foreach ($size in @(24, 48)) {
 			$b = New-Icon $grp.Text $grp.Color $grp.Icons[$name] $size $(if ($grp.ContainsKey('Bar')) { $grp.Bar } else { '' })
 			$b.Save((Join-Path $pvDir "${name}_$size.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-			if ($size -eq 24) { $b.Save((Join-Path $outDir "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png) }
+			if ($size -eq 24 -and -not $PreviewOnly) { $b.Save((Join-Path $outDir "$name.png"), [System.Drawing.Imaging.ImageFormat]::Png) }
 			$b.Dispose()
 		}
 	}
