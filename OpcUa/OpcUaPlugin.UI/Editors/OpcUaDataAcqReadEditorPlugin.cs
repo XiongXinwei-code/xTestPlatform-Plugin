@@ -11,7 +11,7 @@ namespace OpcUa.UI;
 public sealed class OpcUaDataAcqReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "OpcUa.DataAcqRead";
-    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

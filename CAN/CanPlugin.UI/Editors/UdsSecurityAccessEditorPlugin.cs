@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 {
 	public string StepTypeId => "UDS.SecurityAccess";
-	public string IconPath => string.Empty;
+	public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_security_access.png";
 
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{

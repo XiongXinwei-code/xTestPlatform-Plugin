@@ -13,7 +13,7 @@ public sealed class VisaReadPlugin : StepPluginBase<VisaReadSetting>
     public override string StepTypeId => "IO.VisaRead";
     public override string DisplayName => "VISA_Read";
     public override string Category => "Instrument";
-    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_read.png";
 
     public override string Description => """
         ## 功能

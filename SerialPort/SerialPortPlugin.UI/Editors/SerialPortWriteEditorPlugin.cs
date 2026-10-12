@@ -11,7 +11,7 @@ namespace SerialPort.UI;
 public sealed class SerialPortWriteEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.SerialPortWrite";
-    public string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+    public string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_write.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

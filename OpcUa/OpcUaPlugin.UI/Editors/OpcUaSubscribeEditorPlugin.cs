@@ -12,7 +12,7 @@ namespace OpcUa.UI;
 public sealed class OpcUaSubscribeEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "OpcUa.Subscribe";
-    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_subscribe.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

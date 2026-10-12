@@ -11,7 +11,7 @@ namespace Http.UI;
 public sealed class HttpClientCloseEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.HttpClientClose";
-    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_client_close.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

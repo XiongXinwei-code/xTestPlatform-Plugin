@@ -10,7 +10,7 @@
              mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="UDS ReadDataById"
-                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_read_did.png"
                                            ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

@@ -13,7 +13,7 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
     public override string StepTypeId => "IO.HttpSoapRequest";
     public override string DisplayName => "Http_SoapRequest";
     public override string Category => "Network";
-    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_soap_request.png";
 
     public override string Description => """
         ## 功能

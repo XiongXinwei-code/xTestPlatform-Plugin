@@ -10,7 +10,7 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
     public override string StepTypeId => "NiDaq.SyncConfig";
     public override string DisplayName => "NiDaq_Sync_Config";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png";
 
     public override string Description => """
         ## 功能

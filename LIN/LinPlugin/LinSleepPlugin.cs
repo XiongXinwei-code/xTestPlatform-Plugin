@@ -10,7 +10,7 @@ public sealed class LinSleepPlugin : StepPluginBase<LinSleepSetting>
     public override string StepTypeId   => "IO.LinSleep";
     public override string DisplayName  => "LIN_Sleep";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_sleep.png";
 
     public override string Description => """
         ## 功能

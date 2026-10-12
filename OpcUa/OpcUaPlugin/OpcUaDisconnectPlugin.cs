@@ -11,7 +11,7 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
     public override string StepTypeId => "OpcUa.Disconnect";
     public override string DisplayName => "OpcUa_Disconnect";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_disconnect.png";
 
     public override string Description => """
         ## 功能

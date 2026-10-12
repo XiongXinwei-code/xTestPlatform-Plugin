@@ -11,7 +11,7 @@ namespace NiDaq.UI;
 public sealed class NiDaqAiReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "NiDaq.AiRead";
-    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

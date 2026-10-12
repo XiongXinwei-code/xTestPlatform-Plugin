@@ -10,7 +10,7 @@ namespace Ethernet.UI.Editors;
 public sealed class SomeIpSdDiscoverEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "SomeIp.SdDiscover";
-    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_sd_discover.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

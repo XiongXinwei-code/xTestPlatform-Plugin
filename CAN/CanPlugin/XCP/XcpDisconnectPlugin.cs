@@ -10,7 +10,7 @@ public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
     public override string StepTypeId  => "XCP.Disconnect";
     public override string DisplayName => "XCP_Disconnect";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_disconnect.png";
 
     public override string Description => """
         ## 功能

@@ -10,7 +10,7 @@
 			 mc:Ignorable="d" d:DesignHeight="200" d:DesignWidth="800">
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="LIN CyclicSendStop"
-							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png"
+							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_cyclic_stop.png"
 							   ImageHeight="20" ImageWidth="20">
 			<Grid Margin="16">
 				<Grid.ColumnDefinitions>

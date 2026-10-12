@@ -9,7 +9,7 @@ namespace Ethernet.UI.Editors;
 public sealed class UdpSendEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "Ethernet.UdpSend";
-    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/udp_send.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

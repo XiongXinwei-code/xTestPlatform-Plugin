@@ -10,7 +10,7 @@ namespace NiDaq.UI;
 public sealed class NiDaqAiConfigEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "NiDaq.AiConfig";
-    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

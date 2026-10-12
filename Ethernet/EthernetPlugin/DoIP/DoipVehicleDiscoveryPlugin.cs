@@ -10,7 +10,7 @@ public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDisco
     public override string StepTypeId  => "DoIP.VehicleDiscovery";
     public override string DisplayName => "DoIP_VehicleDiscovery";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_vehicle_discovery.png";
 
     public override string Description => """
         ## 功能

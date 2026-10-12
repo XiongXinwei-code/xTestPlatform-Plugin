@@ -13,7 +13,7 @@ public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSettin
     public override string StepTypeId => "IO.HttpClientClose";
     public override string DisplayName => "Http_ClientClose";
     public override string Category => "Network";
-    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_client_close.png";
 
     public override string Description => """
         ## 功能

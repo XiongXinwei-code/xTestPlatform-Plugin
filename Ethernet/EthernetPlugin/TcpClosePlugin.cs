@@ -10,7 +10,7 @@ public sealed class TcpClosePlugin : StepPluginBase<TcpCloseSetting>
     public override string StepTypeId  => "Ethernet.TcpClose";
     public override string DisplayName => "Ethernet_TcpClose";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_close.png";
 
     public override string Description => """
         ## 功能

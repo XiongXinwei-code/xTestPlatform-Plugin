@@ -10,7 +10,7 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
     public override string StepTypeId  => "DoIP.Connect";
     public override string DisplayName => "DoIP_Connect";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_connect.png";
 
     public override string Description => """
         ## 功能

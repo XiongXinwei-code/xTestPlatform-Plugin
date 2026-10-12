@@ -10,7 +10,7 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
     public override string StepTypeId  => "DoIP.DiagRequest";
     public override string DisplayName => "DoIP_DiagRequest";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_diag_request.png";
 
     public override string Description => """
         ## 功能

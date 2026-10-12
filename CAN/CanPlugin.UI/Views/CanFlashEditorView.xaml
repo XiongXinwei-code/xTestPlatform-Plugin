@@ -25,7 +25,7 @@
 
         <!-- 页签一：连接与固件 -->
         <syncfusion:TabItemExt Header="连接与固件"
-                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_flash.png"
                                ImageHeight="20" ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
@@ -144,7 +144,7 @@
 
         <!-- 页签二：映射与填充 -->
         <syncfusion:TabItemExt Header="映射与填充"
-                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_flash.png"
                                ImageHeight="20" ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">

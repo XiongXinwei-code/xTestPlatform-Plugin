@@ -13,7 +13,7 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
     public override string StepTypeId => "IO.HttpJsonExtract";
     public override string DisplayName => "Http_JsonExtract";
     public override string Category => "Network";
-    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_json_extract.png";
 
     public override string Description => """
         ## 功能

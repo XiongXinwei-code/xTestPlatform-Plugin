@@ -11,7 +11,7 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="CAN CyclicSend Start"
-                                   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                                   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_cyclic_start.png"
                                    ImageHeight="20" ImageWidth="20">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.RowDefinitions>

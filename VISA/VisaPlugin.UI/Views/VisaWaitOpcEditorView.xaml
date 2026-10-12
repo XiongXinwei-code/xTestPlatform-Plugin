@@ -10,7 +10,7 @@
              x:Class="VISA.UI.Views.VisaWaitOpcEditorView">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="VISA WaitOPC"
-                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png"
+                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_wait_opc.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

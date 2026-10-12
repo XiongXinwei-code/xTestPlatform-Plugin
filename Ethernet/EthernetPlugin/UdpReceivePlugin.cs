@@ -10,7 +10,7 @@ public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
     public override string StepTypeId  => "Ethernet.UdpReceive";
     public override string DisplayName => "Ethernet_UdpReceive";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/udp_receive.png";
 
     public override string Description => """
         ## 功能

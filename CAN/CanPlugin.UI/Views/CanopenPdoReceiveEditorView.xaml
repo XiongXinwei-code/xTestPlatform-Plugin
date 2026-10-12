@@ -11,7 +11,7 @@
 	<!-- CANopen PDO 接收步骤编辑器：等待指定 COB-ID 的 PDO 报文，并将数据写入结果变量 -->
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="CANopen PDO Receive"
-							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_pdo_receive.png"
 							   ImageHeight="20" ImageWidth="20">
 			<ScrollViewer VerticalScrollBarVisibility="Auto">
 			<Grid Margin="16">

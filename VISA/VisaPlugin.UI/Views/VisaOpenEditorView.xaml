@@ -10,7 +10,7 @@
              x:Class="VISA.UI.Views.VisaOpenEditorView">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="VISA Open"
-                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png"
+                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_open.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

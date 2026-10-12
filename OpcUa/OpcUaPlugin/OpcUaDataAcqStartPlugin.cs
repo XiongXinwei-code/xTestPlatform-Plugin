@@ -11,7 +11,7 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
     public override string StepTypeId => "OpcUa.DataAcqStart";
     public override string DisplayName => "OpcUa_DataAcq_Start";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_start.png";
 
     public override string Description => """
         ## 功能

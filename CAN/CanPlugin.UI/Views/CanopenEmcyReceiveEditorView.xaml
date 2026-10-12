@@ -11,7 +11,7 @@
     <!-- CANopen EMCY 接收步骤编辑器：等待节点紧急报文，解析错误码/错误寄存器/厂商数据并写入变量 -->
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="CANopen EMCY Receive"
-                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_emcy_receive.png"
                                ImageHeight="20" ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Grid Margin="16">

@@ -10,7 +10,7 @@ public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
     public override string StepTypeId   => "IO.LinRead";
     public override string DisplayName  => "LIN_Read";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_read.png";
 
     public override string Description => """
         ## 功能

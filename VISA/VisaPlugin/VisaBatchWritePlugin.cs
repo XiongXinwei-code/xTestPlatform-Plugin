@@ -13,7 +13,7 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
     public override string StepTypeId => "IO.VisaBatchWrite";
     public override string DisplayName => "VISA_BatchWrite";
     public override string Category => "Instrument";
-    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_batch_write.png";
 
     public override string Description => """
         ## 功能

@@ -11,7 +11,7 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
     public override string StepTypeId => "OpcUa.BatchRead";
     public override string DisplayName => "OpcUa_BatchRead";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_batch_read.png";
 
     public override string Description => """
         ## 功能

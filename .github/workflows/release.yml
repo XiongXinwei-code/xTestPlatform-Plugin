@@ -189,6 +189,16 @@ jobs:
           $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
           $pluginVersions = Get-Content "$env:GITHUB_WORKSPACE\plugin-versions.json" -Raw | ConvertFrom-Json
 
+          # ⓪ 插件图标：将顶层 icon.png 复制到发布目录，使 zip 根目录包含 icon.png
+          foreach ($dir in Get-ChildItem $publishRoot -Directory) {
+              $iconSrc = Join-Path "$env:GITHUB_WORKSPACE\$($dir.Name)" "icon.png"
+              if (Test-Path $iconSrc) {
+                  Copy-Item $iconSrc (Join-Path $dir.FullName "icon.png") -Force
+              } else {
+                  Write-Warning "$($dir.Name) 缺少 icon.png，插件管理器将显示默认图标"
+              }
+          }
+
           # ① 整包（离线全量包 / 兼容旧流程）
           Compress-Archive `
             -Path "$publishRoot\*" `
@@ -249,6 +259,11 @@ jobs:
               $changelogPath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "CHANGELOG.md"
               if (Test-Path $readmePath) { $readme = Get-Content $readmePath -Raw -Encoding UTF8 }
 
+              # 插件图标：顶层 icon.png 转 Base64，供插件管理器在未安装时显示
+              $icon = ""
+              $iconPath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "icon.png"
+              if (Test-Path $iconPath) { $icon = [Convert]::ToBase64String([IO.File]::ReadAllBytes($iconPath)) }
+
               if (Test-Path $changelogPath) {
                   # 优先：手写 CHANGELOG
                   $changelog = Get-Content $changelogPath -Raw -Encoding UTF8
@@ -292,6 +307,7 @@ jobs:
                   minPlatformVersion = ""
                   readme             = $readme
                   changelog          = $changelog
+                  icon               = $icon
                   steps              = $steps
               }
               Write-Host "  📦 $pluginZip  v$pluginVersion  ($([math]::Round($size/1KB,1)) KB)"

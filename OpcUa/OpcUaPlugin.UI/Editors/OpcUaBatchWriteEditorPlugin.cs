@@ -12,7 +12,7 @@ namespace OpcUa.UI;
 public sealed class OpcUaBatchWriteEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "OpcUa.BatchWrite";
-    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_batch_write.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

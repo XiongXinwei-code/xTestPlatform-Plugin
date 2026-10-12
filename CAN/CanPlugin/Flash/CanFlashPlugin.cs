@@ -17,7 +17,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
     public override string StepTypeId => "UDS.Flash";
     public override string DisplayName => "UDS_Flash";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_flash.png";
 
     public override string Description => """
         ## 功能

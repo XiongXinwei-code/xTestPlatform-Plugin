@@ -13,7 +13,7 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 	public override string StepTypeId => "IO.ModbusBatchWrite";
 	public override string DisplayName => "Modbus_BatchWrite";
 	public override string Category => "Communication";
-	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_batch_write.png";
 
 	public override string Description => """
 		## 功能

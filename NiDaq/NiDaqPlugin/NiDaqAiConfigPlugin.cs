@@ -10,7 +10,7 @@ public sealed class NiDaqAiConfigPlugin : StepPluginBase<NiDaqAiConfigSetting>
     public override string StepTypeId => "NiDaq.AiConfig";
     public override string DisplayName => "NiDaq_AI_Config";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png";
 
     public override string Description => """
         ## 功能

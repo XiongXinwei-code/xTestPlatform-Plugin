@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class XcpDisconnectEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "XCP.Disconnect";
-    public string IconPath   => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public string IconPath   => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_disconnect.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

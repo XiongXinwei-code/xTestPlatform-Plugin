@@ -11,7 +11,7 @@ public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
     public override string StepTypeId => "OpcUa.Connect";
     public override string DisplayName => "OpcUa_Connect";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_connect.png";
 
     public override string Description => """
         ## 功能

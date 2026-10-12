@@ -10,7 +10,7 @@ public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>
     public override string StepTypeId => "NiDaq.TaskStop";
     public override string DisplayName => "NiDaq_Task_Stop";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_task_stop.png";
 
     public override string Description => """
         ## 功能

@@ -13,7 +13,7 @@
 	</UserControl.Resources>
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="Http JsonExtract"
-							   Image="pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png"
+							   Image="pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_json_extract.png"
 							   ImageHeight="20" ImageWidth="20">
 			<ScrollViewer VerticalScrollBarVisibility="Auto">
 				<Grid Margin="16">

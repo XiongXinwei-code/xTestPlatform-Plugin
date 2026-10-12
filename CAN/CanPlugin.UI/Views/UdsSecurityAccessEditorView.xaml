@@ -10,7 +10,7 @@
              mc:Ignorable="d" d:DesignHeight="450" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="UDS SecurityAccess"
-                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_security_access.png"
                                            ImageHeight="20" ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">

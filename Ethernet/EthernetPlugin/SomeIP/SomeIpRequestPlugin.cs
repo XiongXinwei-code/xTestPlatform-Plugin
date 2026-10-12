@@ -10,7 +10,7 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
     public override string StepTypeId  => "SomeIp.Request";
     public override string DisplayName => "SomeIp_Request";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_request.png";
 
     public override string Description => """
         ## 功能

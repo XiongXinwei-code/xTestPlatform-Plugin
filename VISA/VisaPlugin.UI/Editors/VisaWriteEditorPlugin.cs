@@ -11,7 +11,7 @@ namespace VISA.UI;
 public sealed class VisaWriteEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.VisaWrite";
-    public string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_write.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

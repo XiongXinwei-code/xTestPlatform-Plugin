@@ -11,7 +11,7 @@ namespace LIN.UI.Editors;
 public sealed class LinCyclicSendStopEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.LinCyclicSendStop";
-    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_cyclic_stop.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

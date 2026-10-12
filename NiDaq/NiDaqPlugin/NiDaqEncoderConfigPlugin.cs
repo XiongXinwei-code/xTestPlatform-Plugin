@@ -10,7 +10,7 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
     public override string StepTypeId => "NiDaq.EncoderConfig";
     public override string DisplayName => "NiDaq_Encoder_Config";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_encoder_config.png";
 
     public override string Description => """
         ## 功能

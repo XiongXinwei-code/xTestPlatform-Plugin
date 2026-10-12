@@ -10,7 +10,7 @@ namespace Ethernet.UI.Editors;
 public sealed class SomeIpRequestEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "SomeIp.Request";
-    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_request.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

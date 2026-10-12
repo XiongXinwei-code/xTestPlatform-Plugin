@@ -13,7 +13,7 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
     public override string StepTypeId => "IO.HttpRequest";
     public override string DisplayName => "Http_Request";
     public override string Category => "Network";
-    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_request.png";
 
     public override string Description => """
         ## 功能

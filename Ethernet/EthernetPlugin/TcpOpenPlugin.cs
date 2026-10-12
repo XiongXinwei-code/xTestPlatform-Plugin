@@ -10,7 +10,7 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
     public override string StepTypeId  => "Ethernet.TcpOpen";
     public override string DisplayName => "Ethernet_TcpOpen";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_open.png";
 
     public override string Description => """
         ## 功能

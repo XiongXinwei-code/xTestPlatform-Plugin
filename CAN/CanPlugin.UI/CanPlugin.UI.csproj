@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<Resource Include="Resources\Icons\can.png">
+	<Resource Include="Resources\Icons\*.png">
 	  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 	</Resource>
   </ItemGroup>

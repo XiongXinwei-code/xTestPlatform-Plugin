@@ -13,7 +13,7 @@ public sealed class VisaQueryPlugin : StepPluginBase<VisaQuerySetting>
     public override string StepTypeId => "IO.VisaQuery";
     public override string DisplayName => "VISA_Query";
     public override string Category => "Instrument";
-    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_query.png";
 
     public override string Description => """
         ## 功能

@@ -10,7 +10,7 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
     public override string StepTypeId  => "Ethernet.TcpReceive";
     public override string DisplayName => "Ethernet_TcpReceive";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_receive.png";
 
     public override string Description => """
         ## 功能

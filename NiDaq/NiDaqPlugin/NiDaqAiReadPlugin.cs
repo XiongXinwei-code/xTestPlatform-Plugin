@@ -10,7 +10,7 @@ public sealed class NiDaqAiReadPlugin : StepPluginBase<NiDaqAiReadSetting>
     public override string StepTypeId => "NiDaq.AiRead";
     public override string DisplayName => "NiDaq_AI_Read";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_read.png";
 
     public override string Description => """
         ## 功能

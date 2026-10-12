@@ -13,7 +13,7 @@ public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>
     public override string StepTypeId => "IO.VisaWaitOpc";
     public override string DisplayName => "VISA_WaitOPC";
     public override string Category => "Instrument";
-    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_wait_opc.png";
 
     public override string Description => """
         ## 功能

@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class UdsClearDtcEditorPlugin : IStepEditorPlugin
 {
 	public string StepTypeId => "UDS.ClearDTC";
-	public string IconPath => string.Empty;
+	public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_clear_dtc.png";
 
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{

@@ -10,7 +10,7 @@ namespace LIN.UI.Editors;
 public sealed class LinOpenEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.LinOpen";
-    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_open.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

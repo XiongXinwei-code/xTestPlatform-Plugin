@@ -10,7 +10,7 @@ public sealed class DoipDisconnectPlugin : StepPluginBase<DoipDisconnectSetting>
     public override string StepTypeId  => "DoIP.Disconnect";
     public override string DisplayName => "DoIP_Disconnect";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_disconnect.png";
 
     public override string Description => """
         ## 功能

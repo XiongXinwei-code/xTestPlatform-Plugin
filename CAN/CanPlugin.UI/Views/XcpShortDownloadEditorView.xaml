@@ -10,7 +10,7 @@
              mc:Ignorable="d" d:DesignHeight="500" d:DesignWidth="800">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="XCP ShortDownload"
-                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_short_download.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

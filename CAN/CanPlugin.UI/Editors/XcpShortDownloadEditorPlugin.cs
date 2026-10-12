@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class XcpShortDownloadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "XCP.ShortDownload";
-    public string IconPath   => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public string IconPath   => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_short_download.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

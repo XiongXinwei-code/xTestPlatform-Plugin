@@ -10,7 +10,7 @@ namespace NiDaq.UI;
 public sealed class NiDaqDiReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "NiDaq.DiRead";
-    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_di_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

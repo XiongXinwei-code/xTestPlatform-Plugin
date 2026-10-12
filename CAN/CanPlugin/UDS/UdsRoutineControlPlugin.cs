@@ -10,7 +10,7 @@ public sealed class UdsRoutineControlPlugin : StepPluginBase<UdsRoutineControlSe
     public override string StepTypeId => "UDS.RoutineControl";
     public override string DisplayName => "UDS_RoutineControl";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_routine_control.png";
 
     public override string Description => """
         ## 功能

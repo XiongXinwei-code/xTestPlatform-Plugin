@@ -10,7 +10,7 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
     public override string StepTypeId => "IO.CanCyclicSendStart";
     public override string DisplayName => "CAN_Cyclic_SendStart";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_cyclic_start.png";
 
     public override string Description => """
         ## 功能

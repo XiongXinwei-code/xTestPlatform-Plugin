@@ -161,6 +161,8 @@
 
 **资源与部署**
 - [ ] 提供图标（无正式图标也放占位图，`IconPath` 不留空）（§2.1）
+- [ ] 每个步骤使用独立的 24px 带角标图标，命名 `{协议}_{操作}.png`（§2.1 图标设计与交付规范）
+- [ ] 插件顶层目录提供 64px 无角标 `icon.png`，UI 资源提供 24px `{包名}.png`（§2.1 图标设计与交付规范）
 - [ ] 部署时 DLL 及私有依赖（`MessagePack.dll` 等）复制到 `Plugins` 目录（§8.3、§8.4）
 - [ ] 日志消息、Description、校验错误使用中文
 
@@ -261,14 +263,82 @@ pack://application:,,,/{UI程序集名};component/Resources/Icons/{图标文件�
 **示例：**
 
 ```csharp
-// CAN 插件（UI 程序集名 = CAN.StepPlugin.UI）
-public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+// CAN 打开步骤（UI 程序集名 = CAN.StepPlugin.UI）
+public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_open.png";
 
-// SerialPort 插件（UI 程序集名 = SerialPort.StepPlugin.UI）
-public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+// SerialPort 读取步骤（UI 程序集名 = SerialPort.StepPlugin.UI）
+public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_read.png";
 ```
 
 > ⚠️ **每个插件都应提供图标**。即使暂时没有设计好的图标，也应放一个占位图片（如通用齿轮图标），不要留 `string.Empty`。没有图标的插件在工具箱和步骤列表中会显示空白，影响用户体验。
+
+#### 图标设计与交付规范
+
+图标分两类：**步骤图标**（每个步骤一个，带操作角标）和**插件包图标**（每套插件一个，无角标，供插件管理器使用）。
+
+**1. 步骤图标（IconPath 使用）**
+
+| 项目 | 要求 |
+|------|------|
+| 尺寸/格式 | 24×24 PNG，透明背景 |
+| 位置 | `{插件}/{插件}Plugin.UI/Resources/Icons/` |
+| 命名 | `{协议}_{操作}.png`，全小写下划线，如 `can_open.png`、`uds_read_did.png`、`visa_wait_opc.png` |
+| 唯一性 | **每个步骤使用自己的图标**，禁止多个步骤共用同一张通用图标 |
+| 引用 | 插件类、编辑器插件类、编辑器 View 三处的图标路径必须一致 |
+| 资源包含 | UI 项目 `.csproj` 使用通配 `<Resource Include="Resources\Icons\*.png" />`，新增图标无需改 csproj |
+
+**视觉语言（统一风格）：**
+
+- **主体**：浅色圆角底板 + 深色协议缩写（如 `CAN`、`UDS`、`VISA`、`MB`）+ 协议色底条；同协议族（如 TCP/UDP/DoIP/SOME/IP）用相同色系、不同底条样式（实线/虚线/双线/三线）区分。有直观实物形象的可用图形代替文字（如串口用 DB9 接口、NI-DAQ 用示波器屏幕波形）。
+- **角标**：右下角圆形角标表示操作类型，同一含义在所有插件中保持一致：
+
+| 操作 | 颜色 | 符号 |
+|------|------|------|
+| 打开/连接 | 蓝 | → |
+| 关闭/断开 | 红 | × |
+| 读取/接收 | 绿 | ↓ / ← |
+| 写入/发送 | 橙 | ↑ / → |
+| 批量读/写 | 绿/橙 | 双箭头 |
+| 启动/停止 | 绿/红 | ▶ / ■ |
+| 查询/原始请求 | 灰 | ⇄ |
+| 等待 | 青 | 时钟 |
+| 配置 | 灰 | 齿轮 |
+| 发现/搜索 | 青 | 放大镜 |
+| 订阅 | 琥珀 | + |
+
+**2. 插件包图标（插件管理器使用）**
+
+| 项目 | 要求 |
+|------|------|
+| 内容 | 与步骤图标主体一致，**无角标**（文字类图标底条改为通栏） |
+| 顶层文件 | `{插件}/icon.png`，**64×64 PNG**，与 `README.md`、`CHANGELOG.md` 同级 |
+| UI 资源文件 | `{插件}Plugin.UI/Resources/Icons/{包名}.png`，24×24 PNG（如 `can.png`、`serialport.png`） |
+
+插件管理器图标取用顺序：
+
+1. 本地已安装目录 `Plugins/<名称>/icon.png`；
+2. 远端 `manifest.json` 中的 `icon` 字段（`icon.png` 的 Base64）；
+3. 以上都没有或无法解析时，显示默认图标。
+
+CI（`.github/workflows/release.yml`）发布时会自动：
+
+- 将顶层 `icon.png` 复制进发布目录，使插件 zip 根目录包含 `icon.png`；
+- 将 `icon.png` 转为 Base64 写入 manifest 条目的 `icon` 字段。
+
+> ⚠️ 顶层目录名必须与发布目录名一致，否则 CI 找不到 `icon.png`（与 README/CHANGELOG 相同规则）。缺少时 CI 仅警告，插件管理器显示默认图标。
+
+**3. 生成工具**
+
+图标统一由 `tools/Icons/` 下的 PowerShell 脚本生成，**不要手工绘制或复制改名**：
+
+| 脚本 | 用途 |
+|------|------|
+| `New-PluginLetterIcons.ps1` | 文字类协议的步骤图标（在 `$Groups` 中增加协议和操作映射），`-Group CAN` 可只生成指定组 |
+| `New-SerialIconStyles.ps1` | 串口图形图标方案预览 |
+| `New-DaqIconStyles.ps1` | NI-DAQ 示波器图标方案预览 |
+| `New-PackageIcons.ps1` | 所有插件包图标（顶层 `icon.png` 64px + UI 资源 24px），新增插件需在 `$Packages` 中登记 |
+
+预览图输出到 `tools/Icons/preview/`，请同时检查浅色与深色背景下 24px 的清晰度。
 
 #### Description 插件描述规范
 

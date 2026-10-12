@@ -11,7 +11,7 @@ public sealed class OpcUaBatchWritePlugin : StepPluginBase<OpcUaBatchWriteSettin
     public override string StepTypeId => "OpcUa.BatchWrite";
     public override string DisplayName => "OpcUa_BatchWrite";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_batch_write.png";
 
     public override string Description => """
         ## 功能

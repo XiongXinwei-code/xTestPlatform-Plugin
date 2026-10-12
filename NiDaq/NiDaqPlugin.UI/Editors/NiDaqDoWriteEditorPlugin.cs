@@ -10,7 +10,7 @@ namespace NiDaq.UI;
 public sealed class NiDaqDoWriteEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "NiDaq.DoWrite";
-    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_do_write.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
