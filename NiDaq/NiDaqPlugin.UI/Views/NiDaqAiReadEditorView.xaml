@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="NiDaq.UI.Views.NiDaqAiReadEditorView"
+<UserControl x:Class="NiDaq.UI.Views.NiDaqAiReadEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
@@ -19,7 +19,7 @@
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="AI 读取"
-                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_read.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.ColumnDefinitions>

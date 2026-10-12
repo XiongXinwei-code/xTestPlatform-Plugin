@@ -11,7 +11,7 @@ namespace NiDaq.UI;
 public sealed class NiDaqTaskStopEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "NiDaq.TaskStop";
-    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_task_stop.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

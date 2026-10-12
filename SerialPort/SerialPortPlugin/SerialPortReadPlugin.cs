@@ -10,7 +10,7 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
     public override string StepTypeId => "IO.SerialPortRead";
     public override string DisplayName => "SerialPort_Read";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+    public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_read.png";
 
     public override string Description => """
         ## 功能

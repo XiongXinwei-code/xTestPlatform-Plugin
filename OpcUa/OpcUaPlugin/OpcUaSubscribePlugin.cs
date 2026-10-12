@@ -11,7 +11,7 @@ public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
     public override string StepTypeId => "OpcUa.Subscribe";
     public override string DisplayName => "OpcUa_Subscribe";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_subscribe.png";
 
     public override string Description => """
         ## 功能

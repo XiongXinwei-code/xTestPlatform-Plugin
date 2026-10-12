@@ -13,7 +13,7 @@ public sealed class HttpClientCreatePlugin : StepPluginBase<HttpClientCreateSett
     public override string StepTypeId => "IO.HttpClientCreate";
     public override string DisplayName => "Http_ClientCreate";
     public override string Category => "Network";
-    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_client_create.png";
 
     public override string Description => """
         ## 功能

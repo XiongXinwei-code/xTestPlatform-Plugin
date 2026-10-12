@@ -11,7 +11,7 @@ public sealed class OpcUaDataAcqReadPlugin : StepPluginBase<OpcUaDataAcqReadSett
     public override string StepTypeId => "OpcUa.DataAcqRead";
     public override string DisplayName => "OpcUa_DataAcq_Read";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_read.png";
 
     public override string Description => """
         ## 功能

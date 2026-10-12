@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class UdsRawRequestEditorPlugin : IStepEditorPlugin
 {
 	public string StepTypeId => "UDS.RawRequest";
-	public string IconPath => string.Empty;
+	public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_raw_request.png";
 
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{

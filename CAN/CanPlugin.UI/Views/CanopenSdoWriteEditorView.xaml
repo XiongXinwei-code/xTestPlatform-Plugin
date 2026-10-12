@@ -11,7 +11,7 @@
 	<!-- CANopen SDO 写入步骤编辑器：通过 SDO 下载写入对象字典条目 -->
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="CANopen SDO Write"
-							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_sdo_write.png"
 							   ImageHeight="20" ImageWidth="20">
 			<ScrollViewer VerticalScrollBarVisibility="Auto">
 			<Grid Margin="16">

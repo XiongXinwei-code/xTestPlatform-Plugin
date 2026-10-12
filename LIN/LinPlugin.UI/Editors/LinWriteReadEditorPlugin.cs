@@ -11,7 +11,7 @@ namespace LIN.UI.Editors;
 public sealed class LinWriteReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.LinWriteRead";
-    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_write_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

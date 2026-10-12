@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class UdsWriteDataByIdEditorPlugin : IStepEditorPlugin
 {
 	public string StepTypeId => "UDS.WriteDataByID";
-	public string IconPath => string.Empty;
+	public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_write_did.png";
 
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{

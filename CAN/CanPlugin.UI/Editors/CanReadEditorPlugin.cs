@@ -11,7 +11,7 @@ namespace CAN.UI;
 public sealed class CanReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.CanRead";
-    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

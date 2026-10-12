@@ -10,7 +10,7 @@ public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
     public override string StepTypeId   => "IO.LinOpen";
     public override string DisplayName  => "LIN_Open";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_open.png";
 
     public override string Description => """
         ## 功能

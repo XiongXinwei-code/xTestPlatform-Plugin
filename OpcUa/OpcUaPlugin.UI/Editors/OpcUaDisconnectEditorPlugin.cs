@@ -11,7 +11,7 @@ namespace OpcUa.UI;
 public sealed class OpcUaDisconnectEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "OpcUa.Disconnect";
-    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_disconnect.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

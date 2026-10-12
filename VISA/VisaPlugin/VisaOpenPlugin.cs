@@ -13,7 +13,7 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
     public override string StepTypeId => "IO.VisaOpen";
     public override string DisplayName => "VISA_Open";
     public override string Category => "Instrument";
-    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_open.png";
 
     public override string Description => """
         ## 功能

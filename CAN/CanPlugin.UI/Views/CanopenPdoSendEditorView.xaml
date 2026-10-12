@@ -11,7 +11,7 @@
 	<!-- CANopen PDO 发送步骤编辑器：按 COB-ID 发送一帧 PDO -->
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="CANopen PDO Send"
-							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_pdo_send.png"
 							   ImageHeight="20" ImageWidth="20">
 			<ScrollViewer VerticalScrollBarVisibility="Auto">
 			<Grid Margin="16">

@@ -11,7 +11,7 @@ namespace CAN.UI;
 public sealed class CanCloseEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.CanClose";
-    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_close.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

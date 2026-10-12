@@ -11,7 +11,7 @@ namespace LIN.UI.Editors;
 public sealed class LinSleepEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.LinSleep";
-    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public string IconPath   => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_sleep.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

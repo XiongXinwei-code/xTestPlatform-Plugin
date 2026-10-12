@@ -10,7 +10,7 @@ namespace Ethernet.UI.Editors;
 public sealed class DoipVehicleDiscoveryEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "DoIP.VehicleDiscovery";
-    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_vehicle_discovery.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

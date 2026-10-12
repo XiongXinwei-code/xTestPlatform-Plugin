@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="Modbus.UI.Views.ModbusBatchReadEditorView"
+<UserControl x:Class="Modbus.UI.Views.ModbusBatchReadEditorView"
 			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -10,7 +10,7 @@
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="Modbus BatchRead"
-								   Image="pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png"
+								   Image="pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_batch_read.png"
 								   ImageHeight="20" ImageWidth="20">
 			<DockPanel Margin="16">
 				<Grid DockPanel.Dock="Top" Margin="0,0,0,8">

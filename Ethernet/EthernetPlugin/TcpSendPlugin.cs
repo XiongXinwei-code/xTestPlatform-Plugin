@@ -10,7 +10,7 @@ public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>
     public override string StepTypeId  => "Ethernet.TcpSend";
     public override string DisplayName => "Ethernet_TcpSend";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_send.png";
 
     public override string Description => """
         ## 功能

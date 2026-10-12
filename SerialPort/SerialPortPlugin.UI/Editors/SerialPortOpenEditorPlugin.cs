@@ -10,7 +10,7 @@ namespace SerialPort.UI;
 public sealed class SerialPortOpenEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.SerialPortOpen";
-    public string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+    public string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_open.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

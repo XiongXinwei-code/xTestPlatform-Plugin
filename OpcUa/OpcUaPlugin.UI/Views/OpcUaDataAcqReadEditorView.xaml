@@ -10,7 +10,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="OpcUa DataAcq Read"
-                               Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png"
+                               Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_read.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

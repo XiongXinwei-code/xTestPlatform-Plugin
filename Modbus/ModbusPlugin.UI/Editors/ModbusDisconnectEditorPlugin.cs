@@ -11,7 +11,7 @@ namespace Modbus.UI;
 public sealed class ModbusDisconnectEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.ModbusDisconnect";
-    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_disconnect.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

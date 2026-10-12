@@ -10,7 +10,7 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
     public override string StepTypeId  => "XCP.Connect";
     public override string DisplayName => "XCP_Connect";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_connect.png";
 
     public override string Description => """
         ## 功能

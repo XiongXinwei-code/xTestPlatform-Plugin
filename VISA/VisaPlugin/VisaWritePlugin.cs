@@ -13,7 +13,7 @@ public sealed class VisaWritePlugin : StepPluginBase<VisaWriteSetting>
     public override string StepTypeId => "IO.VisaWrite";
     public override string DisplayName => "VISA_Write";
     public override string Category => "Instrument";
-    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_write.png";
 
     public override string Description => """
         ## 功能

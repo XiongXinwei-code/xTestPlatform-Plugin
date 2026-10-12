@@ -10,7 +10,7 @@ public sealed class UdpSendPlugin : StepPluginBase<UdpSendSetting>
     public override string StepTypeId  => "Ethernet.UdpSend";
     public override string DisplayName => "Ethernet_UdpSend";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/udp_send.png";
 
     public override string Description => """
         ## 功能

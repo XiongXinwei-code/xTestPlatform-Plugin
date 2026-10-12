@@ -10,7 +10,7 @@ public sealed class UdsRawRequestPlugin : StepPluginBase<UdsRawRequestSetting>
     public override string StepTypeId => "UDS.RawRequest";
     public override string DisplayName => "UDS_RawRequest";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_raw_request.png";
 
     public override string Description => """
         ## 功能

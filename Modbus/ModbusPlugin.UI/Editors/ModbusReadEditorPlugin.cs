@@ -11,7 +11,7 @@ namespace Modbus.UI;
 public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.ModbusRead";
-    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

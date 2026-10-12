@@ -10,7 +10,7 @@ public sealed class UdsReadDtcPlugin : StepPluginBase<UdsReadDtcSetting>
     public override string StepTypeId => "UDS.ReadDTC";
     public override string DisplayName => "UDS_ReadDTC";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_read_dtc.png";
 
     public override string Description => """
         ## 功能

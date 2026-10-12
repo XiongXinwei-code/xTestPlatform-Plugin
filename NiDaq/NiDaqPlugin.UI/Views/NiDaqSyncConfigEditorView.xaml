@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="NiDaq.UI.Views.NiDaqSyncConfigEditorView"
+<UserControl x:Class="NiDaq.UI.Views.NiDaqSyncConfigEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
@@ -34,7 +34,7 @@
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="基本配置"
-                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.ColumnDefinitions>

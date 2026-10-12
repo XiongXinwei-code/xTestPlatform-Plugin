@@ -11,7 +11,7 @@ namespace Modbus.UI;
 public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.ModbusBatchRead";
-    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_batch_read.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

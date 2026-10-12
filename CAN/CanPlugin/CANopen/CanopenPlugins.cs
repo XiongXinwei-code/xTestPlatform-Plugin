@@ -9,7 +9,7 @@ namespace CAN.CANopen;
 internal static class CanopenPluginInfo
 {
     public const string Category = "Communication";
-    public const string IconPath = "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public const string IconBase = "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/";
 }
 
 /// <summary>CANopen_SdoRead：SDO 读取对象字典条目</summary>
@@ -18,7 +18,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
     public override string StepTypeId => "CANopen.SdoRead";
     public override string DisplayName => "CANopen_SdoRead";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sdo_read.png";
 
     public override string Description => """
         ## 功能
@@ -67,7 +67,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
     public override string StepTypeId => "CANopen.SdoWrite";
     public override string DisplayName => "CANopen_SdoWrite";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sdo_write.png";
 
     public override string Description => """
         ## 功能
@@ -115,7 +115,7 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
     public override string StepTypeId => "CANopen.NmtControl";
     public override string DisplayName => "CANopen_NmtControl";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_nmt_control.png";
 
     public override string Description => """
         ## 功能
@@ -155,7 +155,7 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
     public override string StepTypeId => "CANopen.WaitHeartbeat";
     public override string DisplayName => "CANopen_WaitHeartbeat";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_wait_heartbeat.png";
 
     public override string Description => """
         ## 功能
@@ -197,7 +197,7 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
     public override string StepTypeId => "CANopen.PdoSend";
     public override string DisplayName => "CANopen_PdoSend";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_send.png";
 
     public override string Description => """
         ## 功能
@@ -237,7 +237,7 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
     public override string StepTypeId => "CANopen.PdoReceive";
     public override string DisplayName => "CANopen_PdoReceive";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_receive.png";
 
     public override string Description => """
         ## 功能
@@ -277,7 +277,7 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
     public override string StepTypeId => "CANopen.SyncSend";
     public override string DisplayName => "CANopen_SyncSend";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sync_send.png";
 
     public override string Description => """
         ## 功能
@@ -319,7 +319,7 @@ public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceive
     public override string StepTypeId => "CANopen.EmcyReceive";
     public override string DisplayName => "CANopen_EmcyReceive";
     public override string Category => CanopenPluginInfo.Category;
-    public override string IconPath => CanopenPluginInfo.IconPath;
+    public override string IconPath => CanopenPluginInfo.IconBase + "canopen_emcy_receive.png";
 
     public override string Description => """
         ## 功能

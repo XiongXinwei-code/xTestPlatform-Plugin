@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class CanFlashEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "UDS.Flash";
-    public string IconPath => string.Empty;
+    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_flash.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

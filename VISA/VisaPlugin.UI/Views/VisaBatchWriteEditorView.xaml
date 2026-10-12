@@ -10,7 +10,7 @@
              x:Class="VISA.UI.Views.VisaBatchWriteEditorView">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="VISA BatchWrite"
-                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png"
+                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_batch_write.png"
                                ImageHeight="20" ImageWidth="20">
             <DockPanel Margin="16">
                 <!-- 连接名称 -->

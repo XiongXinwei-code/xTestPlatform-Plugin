@@ -10,7 +10,7 @@ namespace NiDaq.UI;
 public sealed class NiDaqSyncConfigEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "NiDaq.SyncConfig";
-    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

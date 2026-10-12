@@ -10,7 +10,7 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
     public override string StepTypeId  => "SomeIp.SdDiscover";
     public override string DisplayName => "SomeIp_SdDiscover";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_sd_discover.png";
 
     public override string Description => """
         ## 功能

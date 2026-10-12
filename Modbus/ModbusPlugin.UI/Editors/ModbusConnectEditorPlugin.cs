@@ -10,7 +10,7 @@ namespace Modbus.UI;
 public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.ModbusConnect";
-    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+    public string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_connect.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

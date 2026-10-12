@@ -13,7 +13,7 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 	public override string StepTypeId => "IO.ModbusConnect";
 	public override string DisplayName => "Modbus_Connect";
 	public override string Category => "Communication";
-	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_connect.png";
 
 	public override string Description => """
 		## 功能

@@ -14,7 +14,7 @@
 	</UserControl.Resources>
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="LIN Open"
-							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png"
+							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_open.png"
 							   ImageHeight="20" ImageWidth="20">
 			<Grid Margin="16">
 				<Grid.ColumnDefinitions>

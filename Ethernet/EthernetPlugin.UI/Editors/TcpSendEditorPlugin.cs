@@ -9,7 +9,7 @@ namespace Ethernet.UI.Editors;
 public sealed class TcpSendEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "Ethernet.TcpSend";
-    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_send.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

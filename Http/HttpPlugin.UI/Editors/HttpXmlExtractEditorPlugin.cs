@@ -12,7 +12,7 @@ namespace Http.UI;
 public sealed class HttpXmlExtractEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.HttpXmlExtract";
-    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_xml_extract.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

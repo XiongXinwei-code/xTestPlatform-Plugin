@@ -10,7 +10,7 @@ public sealed class LinWritePlugin : StepPluginBase<LinWriteSetting>
     public override string StepTypeId   => "IO.LinWrite";
     public override string DisplayName  => "LIN_Write";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_write.png";
 
     public override string Description => """
         ## 功能

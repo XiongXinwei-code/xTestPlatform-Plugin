@@ -9,7 +9,7 @@ namespace Ethernet.UI.Editors;
 public sealed class TcpCloseEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "Ethernet.TcpClose";
-    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public string IconPath   => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_close.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

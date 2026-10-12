@@ -11,7 +11,7 @@
 	<!-- CANopen 心跳等待步骤编辑器：等待节点心跳并校验 NMT 状态 -->
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="CANopen Heartbeat"
-							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_wait_heartbeat.png"
 							   ImageHeight="20" ImageWidth="20">
 			<ScrollViewer VerticalScrollBarVisibility="Auto">
 			<Grid Margin="16">

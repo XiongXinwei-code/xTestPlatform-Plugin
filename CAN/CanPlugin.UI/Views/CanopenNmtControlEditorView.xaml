@@ -11,7 +11,7 @@
 	<!-- CANopen NMT 控制步骤编辑器：发送网络管理命令 -->
 	<syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
 		<syncfusion:TabItemExt Header="CANopen NMT"
-							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+							   Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_nmt_control.png"
 							   ImageHeight="20" ImageWidth="20">
 			<ScrollViewer VerticalScrollBarVisibility="Auto">
 			<Grid Margin="16">

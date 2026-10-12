@@ -10,7 +10,7 @@
              x:Class="VISA.UI.Views.VisaWriteEditorView">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="VISA Write"
-                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png"
+                               Image="pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_write.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

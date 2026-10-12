@@ -11,7 +11,7 @@
     <!-- CANopen SYNC 发送步骤编辑器：发送一帧 SYNC 同步报文，可选 1 字节计数器 -->
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="CANopen SYNC Send"
-                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_sync_send.png"
                                ImageHeight="20" ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Grid Margin="16">

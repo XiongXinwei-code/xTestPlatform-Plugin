@@ -10,7 +10,7 @@ public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForg
     public override string StepTypeId  => "SomeIp.FireAndForget";
     public override string DisplayName => "SomeIp_FireAndForget";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png";
+    public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_fire_and_forget.png";
 
     public override string Description => """
         ## 功能

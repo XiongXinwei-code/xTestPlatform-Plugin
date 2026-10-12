@@ -10,7 +10,7 @@ public sealed class UdsSecurityAccessPlugin : StepPluginBase<UdsSecurityAccessSe
     public override string StepTypeId => "UDS.SecurityAccess";
     public override string DisplayName => "UDS_SecurityAccess";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_security_access.png";
 
     public override string Description => """
         ## 功能

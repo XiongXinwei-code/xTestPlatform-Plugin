@@ -10,7 +10,7 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
     public override string StepTypeId   => "IO.LinWakeup";
     public override string DisplayName  => "LIN_Wakeup";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_wakeup.png";
 
     public override string Description => """
         ## 功能

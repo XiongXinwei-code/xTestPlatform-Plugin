@@ -11,7 +11,7 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
     public override string StepTypeId => "OpcUa.DataAcqStop";
     public override string DisplayName => "OpcUa_DataAcq_Stop";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_stop.png";
 
     public override string Description => """
         ## 功能

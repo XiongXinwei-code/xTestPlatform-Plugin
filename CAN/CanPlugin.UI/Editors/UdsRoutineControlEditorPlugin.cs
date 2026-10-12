@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class UdsRoutineControlEditorPlugin : IStepEditorPlugin
 {
 	public string StepTypeId => "UDS.RoutineControl";
-	public string IconPath => string.Empty;
+	public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_routine_control.png";
 
 	public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
 	{

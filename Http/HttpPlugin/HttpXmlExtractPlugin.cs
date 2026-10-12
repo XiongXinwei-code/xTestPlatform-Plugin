@@ -13,7 +13,7 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
     public override string StepTypeId => "IO.HttpXmlExtract";
     public override string DisplayName => "Http_XmlExtract";
     public override string Category => "Network";
-    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_xml_extract.png";
 
     public override string Description => """
         ## 功能

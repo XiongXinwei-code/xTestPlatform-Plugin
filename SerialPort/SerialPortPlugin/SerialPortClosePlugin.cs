@@ -10,7 +10,7 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
     public override string StepTypeId => "IO.SerialPortClose";
     public override string DisplayName => "SerialPort_Close";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+    public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_close.png";
 
     public override string Description => """
         ## 功能

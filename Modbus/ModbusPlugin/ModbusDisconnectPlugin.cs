@@ -13,7 +13,7 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 	public override string StepTypeId => "IO.ModbusDisconnect";
 	public override string DisplayName => "Modbus_Disconnect";
 	public override string Category => "Communication";
-	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_disconnect.png";
 
 	public override string Description => """
 		## 功能

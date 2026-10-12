@@ -11,7 +11,7 @@ namespace Http.UI;
 public sealed class HttpSoapRequestEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.HttpSoapRequest";
-    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_soap_request.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

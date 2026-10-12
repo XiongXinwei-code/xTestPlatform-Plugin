@@ -10,7 +10,7 @@ public sealed class SerialPortWritePlugin : StepPluginBase<SerialPortWriteSettin
     public override string StepTypeId => "IO.SerialPortWrite";
     public override string DisplayName => "SerialPort_Write";
     public override string Category => "Communication";
-    public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+    public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_write.png";
 
     public override string Description => """
         ## 功能

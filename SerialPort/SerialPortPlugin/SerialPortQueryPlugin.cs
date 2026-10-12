@@ -10,7 +10,7 @@ public sealed class SerialPortQueryPlugin : StepPluginBase<SerialPortQuerySettin
 	public override string StepTypeId => "IO.SerialPortQuery";
 	public override string DisplayName => "SerialPort_Query";
 	public override string Category => "Communication";
-	public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport.png";
+	public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_query.png";
 
 	public override string Description => """
 		## 功能

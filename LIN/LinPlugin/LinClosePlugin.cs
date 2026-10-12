@@ -10,7 +10,7 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
     public override string StepTypeId   => "IO.LinClose";
     public override string DisplayName  => "LIN_Close";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_close.png";
 
     public override string Description => """
         ## 功能

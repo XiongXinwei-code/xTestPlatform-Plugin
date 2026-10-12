@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<Resource Include="Resources\Icons\nidaq.png">
+	<Resource Include="Resources\Icons\*.png">
 	  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 	</Resource>
   </ItemGroup>

@@ -15,7 +15,7 @@
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="CAN Write"
-                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_write.png"
                                            ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

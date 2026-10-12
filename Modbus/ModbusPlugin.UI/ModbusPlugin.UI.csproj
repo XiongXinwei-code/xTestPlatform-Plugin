@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<Resource Include="Resources\Icons\modbus.png">
+	<Resource Include="Resources\Icons\*.png">
 	  <CopyToOutputDirectory>Never</CopyToOutputDirectory>
 	</Resource>
   </ItemGroup>

@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="CAN.UI.Views.CanOpenEditorView"
+<UserControl x:Class="CAN.UI.Views.CanOpenEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -16,7 +16,7 @@
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="CAN Open"
-                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png"
+                                           Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_open.png"
                                            ImageHeight="20" ImageWidth="20">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">

@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class UdsDiagSessionEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "UDS.DiagSession";
-    public string IconPath => string.Empty;
+    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_diag_session.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

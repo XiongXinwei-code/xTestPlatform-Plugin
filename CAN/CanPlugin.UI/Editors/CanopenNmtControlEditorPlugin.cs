@@ -13,7 +13,7 @@ namespace CAN.UI;
 public sealed class CanopenNmtControlEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "CANopen.NmtControl";
-    public string IconPath => string.Empty;
+    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/canopen_nmt_control.png";
 
     /// <summary>创建编辑器视图并加载步骤设置</summary>
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)

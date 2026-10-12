@@ -10,7 +10,7 @@ public sealed class XcpShortDownloadPlugin : StepPluginBase<XcpShortDownloadSett
     public override string StepTypeId  => "XCP.ShortDownload";
     public override string DisplayName => "XCP_ShortDownload";
     public override string Category    => "Communication";
-    public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_short_download.png";
 
     public override string Description => """
         ## 功能

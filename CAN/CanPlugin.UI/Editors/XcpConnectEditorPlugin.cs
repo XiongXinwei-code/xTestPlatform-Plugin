@@ -12,7 +12,7 @@ namespace CAN.UI;
 public sealed class XcpConnectEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "XCP.Connect";
-    public string IconPath   => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public string IconPath   => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_connect.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

@@ -10,7 +10,7 @@ public sealed class NiDaqTaskStartPlugin : StepPluginBase<NiDaqTaskStartSetting>
     public override string StepTypeId => "NiDaq.TaskStart";
     public override string DisplayName => "NiDaq_Task_Start";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_task_start.png";
 
     public override string Description => """
         ## 功能

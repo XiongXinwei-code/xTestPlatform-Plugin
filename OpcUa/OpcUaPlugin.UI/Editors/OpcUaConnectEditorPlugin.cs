@@ -10,7 +10,7 @@ namespace OpcUa.UI;
 public sealed class OpcUaConnectEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "OpcUa.Connect";
-    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua.png";
+    public string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_connect.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

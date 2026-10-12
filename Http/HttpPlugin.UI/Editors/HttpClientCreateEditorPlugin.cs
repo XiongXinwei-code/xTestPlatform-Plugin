@@ -10,7 +10,7 @@ namespace Http.UI;
 public sealed class HttpClientCreateEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.HttpClientCreate";
-    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http.png";
+    public string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_client_create.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

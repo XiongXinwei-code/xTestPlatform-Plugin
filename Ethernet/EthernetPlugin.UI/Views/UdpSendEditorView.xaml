@@ -10,7 +10,7 @@
              mc:Ignorable="d" d:DesignHeight="280" d:DesignWidth="600">
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="UDP Send"
-                               Image="pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/ethernet.png"
+                               Image="pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/udp_send.png"
                                ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>

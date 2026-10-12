@@ -10,7 +10,7 @@ public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
     public override string StepTypeId => "NiDaq.DoWrite";
     public override string DisplayName => "NiDaq_DO_Write";
     public override string Category => "DataAcquisition";
-    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq.png";
+    public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_do_write.png";
 
     public override string Description => """
         ## 功能

@@ -11,7 +11,7 @@ namespace VISA.UI;
 public sealed class VisaWaitOpcEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.VisaWaitOpc";
-    public string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa.png";
+    public string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_wait_opc.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

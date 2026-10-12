@@ -13,7 +13,7 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 	public override string StepTypeId => "IO.ModbusBatchRead";
 	public override string DisplayName => "Modbus_BatchRead";
 	public override string Category => "Communication";
-	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus.png";
+	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_batch_read.png";
 
 	public override string Description => """
 		## 功能

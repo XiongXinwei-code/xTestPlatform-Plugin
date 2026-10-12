@@ -11,7 +11,7 @@ namespace CAN.UI;
 public sealed class CanCyclicSendStopEditorPlugin : IStepEditorPlugin
 {
     public string StepTypeId => "IO.CanCyclicSendStop";
-    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can.png";
+    public string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_cyclic_stop.png";
 
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {

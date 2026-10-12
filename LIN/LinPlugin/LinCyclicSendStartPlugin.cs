@@ -10,7 +10,7 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
     public override string StepTypeId   => "IO.LinCyclicSendStart";
     public override string DisplayName  => "LIN_Cyclic_SendStart";
     public override string Category     => "Communication";
-    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin.png";
+    public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_cyclic_start.png";
 
     public override string Description => """
         ## 功能
