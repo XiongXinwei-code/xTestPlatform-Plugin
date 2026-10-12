@@ -493,10 +493,14 @@ function Draw-Icon($G, [string]$Text, $GroupColor, [string]$Badge, [string]$Bar)
 	elseif ($Bar -eq 'triple') {
 		foreach ($y in @(13, 15, 17)) { Fill-Rect $G 3 $y 8 1 $GroupColor }
 	}
+	elseif (-not $Badge) {
+		# 无角标（插件管理器用）：底条通栏
+		Fill-Rect $G 3 14.5 18 1.8 $GroupColor
+	}
 	else {
 		Fill-Rect $G 3 14.5 10 1.8 $GroupColor
 	}
-	Add-Badge $G $Badge 18 18 5
+	if ($Badge) { Add-Badge $G $Badge 18 18 5 }
 }
 
 function New-Icon([string]$Text, $GroupColor, [string]$Badge, [int]$Size, [string]$Bar) {

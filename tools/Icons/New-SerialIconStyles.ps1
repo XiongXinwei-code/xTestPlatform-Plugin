@@ -5,7 +5,7 @@
 	复用 New-PluginLetterIcons.ps1 中的角标与绘图函数，仅输出到 tools\Icons\preview\serial\，不覆盖正式图标。
 #>
 [CmdletBinding()]
-param()
+param([switch]$LibraryOnly)
 
 $ErrorActionPreference = 'Stop'
 $root = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
@@ -109,11 +109,12 @@ function New-StyleIcon($Draw, [string]$Badge, [int]$Size) {
 	$g.Clear([System.Drawing.Color]::Transparent)
 	$g.ScaleTransform($Size / 24.0, $Size / 24.0)
 	& $Draw $g
-	Add-Badge $g $Badge 18 18 5
+	if ($Badge) { Add-Badge $g $Badge 18 18 5 }
 	$g.Dispose()
 	$bmp
 }
 
+if ($LibraryOnly) { return }
 $pv = Join-Path $root 'preview\serial'
 if (-not (Test-Path $pv)) { New-Item -ItemType Directory -Path $pv -Force | Out-Null }
 
