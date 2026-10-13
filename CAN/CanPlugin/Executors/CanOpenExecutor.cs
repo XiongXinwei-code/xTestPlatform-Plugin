@@ -66,6 +66,13 @@ public sealed class CanOpenExecutor : IStepExecutor
                     $"目标采样点={setting.ArbitrationSamplePoint:F2}%, " +
                     $"实际采样点={adapterConfig.AppliedArbitrationSamplePoint:F2}%";
             }
+            else if (setting.AdapterType == CanAdapterType.ZLG &&
+                     adapterConfig.AppliedArbitrationBitRate.HasValue)
+            {
+                timingDetails =
+                    $"仲裁段={adapterConfig.AppliedArbitrationBitRate:F0} bps, 使用驱动标准波特率；" +
+                    $"采样点由驱动决定，未应用目标采样点 {setting.ArbitrationSamplePoint:F2}%";
+            }
             else
             {
                 timingDetails =

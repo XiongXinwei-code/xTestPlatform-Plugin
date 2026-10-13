@@ -9,7 +9,7 @@
 - Vector（需安装 XL Driver Library）
 - PEAK PCAN
 - NI-XNET
-- ZLG 周立功
+- ZLG 周立功（USB 及当前 SDK 定义的 PCI / PCIe 型号，含 PCIe CAN FD 系列）
 - Kvaser
 - TOSUN 同星
 
@@ -51,9 +51,24 @@ UDS/XCP/CANopen 步骤需先通过 CAN_Open 打开通道（CANopen 使用标准 
 
 CANopen SDO 步骤可在编辑器中导入设备 EDS/DCF 文件，从对象列表中选择后自动填入 Index、SubIndex 与数据类型；EDS 仅用于编辑时选择，运行时不依赖该文件。
 
-其中 **ZLG 周立功** 的二次开发库（zlgcan.dll、kerneldlls 内核驱动及其依赖的 VC++ 2013 运行库）已随插件一起发布，位于插件目录下的 `Native\Zlg`，无需额外配置 PATH 或安装运行库。
+其中 **ZLG 周立功** 的通用二次开发库（zlgcan.dll、现有 USB 板卡库及 VC++ 2013 运行库）随插件发布，位于插件目录下的 `Native\Zlg`，无需额外配置 PATH。
+**当前仓库尚未包含 PCI / PCIe 专用板卡 DLL**，使用这些卡前需从官方 x64 二次开发包补齐所需库及依赖，保持 `kerneldlls` 目录结构后重新构建；设备 XML 不代表依赖完整。
 
 但需注意：**CAN 卡设备本身的 Windows 驱动（.inf/.sys）仍需在测试机安装**。这类内核态驱动必须经系统安装并由设备管理器加载，无法随应用程序目录分发；未安装时设备无法枚举，表现为“打开设备失败”而非“找不到 dll”。
+
+### ZLG PCI / PCIe 配置
+
+`AdapterType` 选择 `ZLG`，`Channel` 表达式填写完整通道名，如 `"PCI5010U/0/0"`、
+`"PCIe9120/0/1"`、`"PCIE-CANFD-200U/0/1"`。索引从 0 开始，型号不区分大小写，
+也接受 SDK 的 `ZCAN_*` 名称。
+
+- 支持 SDK 中全部 PCI / PCIe 型号码，包括 PCIe CAN FD 的 100U / 200U / 400U、
+  EX / MINI / M2、800U / 1200U 及 MINI-PCIE-CANFD；EX 与 M2 按 SDK 共用设备码。
+- PCI5010U / PCI5020U 使用驱动标准波特率，**采样点由驱动决定，不应用目标采样点**，日志会明确说明。
+- PCIe CAN FD 型号在 Classic / FD 下均使用 80% 仲裁段采样点；FD 的 5 Mbps 数据段使用 75%，
+  其他 SDK 标准数据段使用 80%。超出型号标准波特率范围时明确报错。
+- 板卡库缺失时，打开失败会提示所需 DLL；PCIe9220 在当前 SDK 的 `dll_cfg.ini` 中没有映射，需使用包含该型号的官方 SDK。
+- 完整型号、波特率和 DLL 对照表见 [ZLG 原生库说明](CanPlugin/Native/Zlg/x64/README.md)。本次未进行 PCI / PCIe 实卡收发验证。
 
 ## UDS_Flash 映射范围
 
