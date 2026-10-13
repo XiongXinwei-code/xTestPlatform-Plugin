@@ -42,7 +42,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - NI（NI-XNET）：接口名格式为 `CAN<编号>`，如 `CAN1`、`CAN2`，编号从 1 开始，在 NI MAX 的"设备和接口"中查看（多端口板卡每个端口一个接口名）
         - PEAK（PCAN-Basic）：通道名格式为 `PCAN_USBBUS<编号>`，如 `PCAN_USBBUS1`（也可简写为数字 `1`~`16`），在 PCAN-View 中查看
         - Vector（XL Driver Library）：全局通道索引，如 `0`、`1`，在 Vector Hardware Config 中查看
-        - ZLG（周立功）：格式为 `<设备类型>/<设备索引>/<通道索引>`，如 `USBCAN2/0/0`、`USBCANFD-200U/0/1`；设备类型支持 USBCAN1, USBCAN2, USBCAN-E-U, USBCAN-2E-U, USBCANFD-200U, USBCANFD-100U, USBCANFD-MINI
+        - ZLG（周立功）：格式为 `<设备类型>/<设备索引>/<通道索引>`，如 `USBCAN2/0/0`、`USBCANFD-200U/0/1`、`PCI5010U/0/0`、`PCIe9120/0/1`、`PCIE-CANFD-200U/0/1`；设备索引、通道索引从 0 开始。支持现有 USB 型号和当前 SDK 全部 PCI / PCIe 型号，含 PCIe CAN FD 的 EX、MINI、M2、800U、1200U、MINI-PCIE-CANFD；型号不区分大小写，兼容 SDK 的 `ZCAN_*` 名称，完整列表见 ZLG 原生库 README
         - Kvaser（CANlib）：通道索引，如 `0`、`1`，在 Kvaser Hardware 工具中查看
         - TOSUN（同星）：通道索引，如 `0`、`1`，默认连接第一个 USB 设备
 
@@ -55,9 +55,10 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - 硬件不存在或通道被占用时步骤报错
         - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
         - 界面只配置采样点百分比，不暴露厂商专用的 BRP/SJW/TSEG1/TSEG2；适配器内部根据设备时钟与驱动能力换算
-        - 运行日志会分别输出 Nominal/Data 两段的目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略
+        - 运行日志会分别输出 Nominal/Data 两段的目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略。PCI5010U / PCI5020U 为明确例外：使用驱动标准波特率，采样点由驱动决定，日志明确提示目标采样点未应用，不虚报实际采样点
         - 经典 CAN 仅使用仲裁段采样点；CAN FD 的仲裁段（Nominal Bit Rate）和数据段（Data Bit Rate）分别使用 ArbitrationSamplePoint 与 DataSamplePoint
-        - NI、PEAK、Vector、Kvaser 支持分别按百分比换算仲裁段与 CAN FD 数据段；当前 libTSCAN 及 ZLG CAN FD 标准波特率接口使用 80% 仲裁段和 80% 数据段采样点
+        - NI、PEAK、Vector、Kvaser 支持分别按百分比换算仲裁段与 CAN FD 数据段；当前 libTSCAN 及 ZLG USB CAN FD 标准波特率接口使用 80% 仲裁段和 80% 数据段采样点。ZLG PCIe CAN FD 型号在 Classic / FD 下均使用 80% 仲裁段采样点；FD 的 5 Mbps 数据段使用 75%，其他 SDK 标准数据段使用 80%，超出 SDK 标准波特率范围时报错
+        - PCI / PCIe 设备需要对应型号的 x64 二次开发板卡库和 Windows 驱动；仅存在 zlgcan.dll 或设备 XML 不代表依赖完整，打开失败时会提示板卡库缺失。PCIe9220 在当前 dll_cfg.ini 中没有映射，需使用包含该型号的官方 SDK
         - 软件终端电阻当前接入 NI-XNET、ZLGCAN 与 libTSCAN；PEAK、Vector、Kvaser 请使用外置 120 Ω 电阻
         - NI-XNET 接收会话启动后由后台接收泵持续抽取总线帧，UDS/普通读取按目标 ID 从内存队列路由取帧，未匹配 ID 的帧会保留给后续读取；后台泵异常或队列达到上限丢帧会立即记录诊断
 
@@ -66,7 +67,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         CAN、CAN bus、CAN 总线、CAN 2.0、CAN FD、CANFD、DBC、
         NI-XNET、XNET、PEAK、PCAN、PCAN-Basic、PCAN-USB、
         Vector、XL Driver Library、vxlapi、VN1610、
-        ZLG、周立功、ZLGCAN、USBCAN、USBCANFD、CANalyst、
+        ZLG、周立功、ZLGCAN、USBCAN、USBCANFD、PCI、PCIe、PCIE-CANFD、CANalyst、
         Kvaser、CANlib、TOSUN、同星、TSMaster
 
         ## 相关插件

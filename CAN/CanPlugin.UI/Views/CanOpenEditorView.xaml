@@ -56,8 +56,11 @@
                             • Vector：全局通道索引，如 0、1<LineBreak/>
                             • Kvaser / TOSUN：通道索引，如 0、1<LineBreak/>
                             • ZLG：&lt;设备类型&gt;/&lt;设备索引&gt;/&lt;通道索引&gt;，如 USBCAN2/0/0、USBCANFD-200U/0/1<LineBreak/>
-                            &#160;&#160;设备类型须与实际型号完全一致（区分短横线），支持：USBCAN1、USBCAN2、<LineBreak/>
-                            &#160;&#160;USBCAN-E-U、USBCAN-2E-U、USBCANFD-200U、USBCANFD-100U、USBCANFD-MINI
+                            &#160;&#160;PCI / PCIe 示例：PCI5010U/0/0、PCIe9120/0/1、PCIE-CANFD-200U/0/1<LineBreak/>
+                            &#160;&#160;支持 SDK 全部 PCI / PCIe 型号及现有 USB 型号；完整型号和依赖库见 ZLG 原生库 README。<LineBreak/>
+                            &#160;&#160;型号不区分大小写，支持 SDK 的 ZCAN_* 名称；设备索引和通道索引从 0 开始。<LineBreak/>
+                            &#160;&#160;PCIe CAN FD 型号仲裁段采样点为 80%，5 Mbps 数据段为 75%，其他标准数据段为 80%。<LineBreak/>
+                            &#160;&#160;PCI5010U / PCI5020U 使用驱动标准波特率，仲裁段采样点由驱动决定，不应用目标采样点。
                         </TextBlock>
                     </expr:ExpressionTextBox.ToolTip>
                 </expr:ExpressionTextBox>

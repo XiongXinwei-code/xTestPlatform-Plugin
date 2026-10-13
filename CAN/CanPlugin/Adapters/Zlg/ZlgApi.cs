@@ -166,6 +166,30 @@ internal static class ZlgApi
     public const uint ZCAN_USBCANFD_100U = 42;   // USBCANFD-100U
     public const uint ZCAN_USBCANFD_MINI = 43;   // USBCANFD-MINI
 
+    public const uint ZCAN_PCI5121 = 1;
+    public const uint ZCAN_PCI9810 = 2;
+    public const uint ZCAN_PCI9820 = 5;
+    public const uint ZCAN_PCI5110 = 7;
+    public const uint ZCAN_PCI9840 = 14;
+    public const uint ZCAN_PCI9820I = 16;
+    public const uint ZCAN_PCIE_9220 = 18;
+    public const uint ZCAN_PCI5010U = 19;
+    public const uint ZCAN_PCI5020U = 22;
+    public const uint ZCAN_PCIE9221 = 24;
+    public const uint ZCAN_PCIE9120 = 27;
+    public const uint ZCAN_PCIE9110 = 28;
+    public const uint ZCAN_PCIE9140 = 29;
+    public const uint ZCAN_PCIE_CANFD_100U = 38;
+    public const uint ZCAN_PCIE_CANFD_200U = 39;
+    public const uint ZCAN_PCIE_CANFD_400U = 40;
+    public const uint ZCAN_PCIE_CANFD_100U_EX = 60;
+    public const uint ZCAN_PCIE_CANFD_400U_EX = 61;
+    public const uint ZCAN_PCIE_CANFD_200U_MINI = 62;
+    public const uint ZCAN_PCIE_CANFD_200U_EX = 63; // SDK 中 200U-M2 与 200U-EX 共用设备码
+    public const uint ZCAN_PCIE_CANFD_800U = 82;
+    public const uint ZCAN_PCIE_CANFD_1200U = 83;
+    public const uint ZCAN_MINI_PCIE_CANFD = 84;
+
     // ── 帧类型 ────────────────────────────────────────────
     public const uint ZCAN_TYPE_CAN = 0;
     public const uint ZCAN_TYPE_CANFD = 1;
@@ -358,23 +382,121 @@ internal static class ZlgApi
         }
     }
 
-    /// <summary>判断是否为 USBCANFD 系列设备（波特率须用 SetValue 配置）</summary>
+    /// <summary>判断设备是否支持 CAN FD。</summary>
     public static bool IsCanFdDevice(uint deviceType) =>
-        deviceType is ZCAN_USBCANFD_200U or ZCAN_USBCANFD_100U or ZCAN_USBCANFD_MINI;
+        deviceType is ZCAN_USBCANFD_200U or ZCAN_USBCANFD_100U or ZCAN_USBCANFD_MINI ||
+        IsPcieCanFdDevice(deviceType);
+
+    public static bool IsPcieCanFdDevice(uint deviceType) => deviceType is
+        ZCAN_PCIE_CANFD_100U or ZCAN_PCIE_CANFD_200U or ZCAN_PCIE_CANFD_400U or
+        ZCAN_PCIE_CANFD_100U_EX or ZCAN_PCIE_CANFD_400U_EX or
+        ZCAN_PCIE_CANFD_200U_MINI or ZCAN_PCIE_CANFD_200U_EX or
+        ZCAN_PCIE_CANFD_800U or ZCAN_PCIE_CANFD_1200U or ZCAN_MINI_PCIE_CANFD;
+
+    // 这些型号的 SDK XML 仅提供 protocol=1；Classic 报文也使用 CAN FD 控制器初始化。
+    public static bool UsesCanFdOnlyController(uint deviceType) =>
+        IsPcieCanFdDevice(deviceType) && deviceType is not
+            (ZCAN_PCIE_CANFD_100U or ZCAN_PCIE_CANFD_200U or ZCAN_PCIE_CANFD_400U);
+
+    public static bool UsesDriverClassicBitRate(uint deviceType) =>
+        deviceType is ZCAN_PCI5010U or ZCAN_PCI5020U;
+
+    public static double GetStandardDataSamplePoint(uint deviceType, int bitRate) =>
+        IsPcieCanFdDevice(deviceType) && bitRate == 5_000_000 ? 75d : 80d;
+
+    public static void ValidatePcieBitRates(uint deviceType, int arbitrationBitRate, int? dataBitRate)
+    {
+        bool extendedRates = UsesCanFdOnlyController(deviceType);
+        if (arbitrationBitRate is not (1_000_000 or 800_000 or 500_000 or 250_000 or 125_000) &&
+            !(extendedRates && arbitrationBitRate is (100_000 or 50_000)))
+        {
+            throw new ArgumentException(
+                $"当前 PCIe CAN FD 型号的 SDK 不支持 {arbitrationBitRate} bps 标准仲裁段波特率；" +
+                "请使用设备 XML 中的标准波特率，或提供厂商自定义时序规则。");
+        }
+        if (dataBitRate.HasValue &&
+            dataBitRate.Value is not (5_000_000 or 4_000_000 or 2_000_000 or 1_000_000) &&
+            !(extendedRates && dataBitRate.Value is (800_000 or 500_000 or 250_000)))
+        {
+            throw new ArgumentException(
+                $"当前 PCIe CAN FD 型号的 SDK 不支持 {dataBitRate} bps 标准数据段波特率；" +
+                "请使用设备 XML 中的标准波特率，或提供厂商自定义时序规则。");
+        }
+    }
+
+    public static string GetDeviceOpenDiagnostics(uint deviceType)
+    {
+        string? kernelDll = deviceType switch
+        {
+            ZCAN_PCI5121 or ZCAN_PCI5110 => "PCI51XXE.dll",
+            ZCAN_PCI9810 => "PCI9810.dll",
+            ZCAN_PCI9820 => "PCI9820.dll",
+            ZCAN_PCI9840 => "PCI9840B.dll",
+            ZCAN_PCI9820I => "PCI9820I.dll",
+            ZCAN_PCI5010U or ZCAN_PCI5020U => "pci50xx_u.dll",
+            ZCAN_PCIE9221 => "pcie9221.dll",
+            ZCAN_PCIE9120 => "pcie9120.dll",
+            ZCAN_PCIE9110 => "pcie9110.dll",
+            ZCAN_PCIE9140 => "pcie9140.dll",
+            ZCAN_PCIE_CANFD_100U or ZCAN_PCIE_CANFD_200U or ZCAN_PCIE_CANFD_400U => "zpcfd.dll",
+            _ when IsPcieCanFdDevice(deviceType) => "xpcfd.dll",
+            _ => null
+        };
+        if (deviceType == ZCAN_PCIE_9220)
+            return "当前 SDK 的 dll_cfg.ini 未配置 PCIe9220，请使用包含该型号的官方 x64 二次开发库。";
+        if (kernelDll is null)
+            return "";
+        if (NativeDir is null)
+            return $"请确认官方 x64 二次开发库的 kerneldlls 中包含 {kernelDll}。";
+
+        string path = Path.Combine(NativeDir, "kerneldlls", kernelDll);
+        return File.Exists(path)
+            ? $"板卡库已找到：{path}；请检查其依赖和 Windows 板卡驱动。"
+            : $"插件原生库目录缺少板卡库：{path}；请补充官方 x64 二次开发包（保持 kerneldlls 目录结构）。";
+    }
 
     /// <summary>设备类型名转设备类型码</summary>
-    public static uint ParseDeviceType(string name) => name.Trim().ToUpperInvariant() switch
+    public static uint ParseDeviceType(string name)
     {
-        "USBCAN1" or "USBCAN-I" => ZCAN_USBCAN1,
-        "USBCAN2" or "USBCAN-II" => ZCAN_USBCAN2,
-        "USBCAN-E-U" => ZCAN_USBCAN_E_U,
-        "USBCAN-2E-U" => ZCAN_USBCAN_2E_U,
-        "USBCANFD-200U" => ZCAN_USBCANFD_200U,
-        "USBCANFD-100U" => ZCAN_USBCANFD_100U,
-        "USBCANFD-MINI" => ZCAN_USBCANFD_MINI,
-        _ => throw new ArgumentException(
-            $"未知的 ZLG 设备类型 '{name}'，支持：USBCAN1, USBCAN2, USBCAN-E-U, USBCAN-2E-U, USBCANFD-200U, USBCANFD-100U, USBCANFD-MINI")
-    };
+        string normalized = name.Trim().ToUpperInvariant();
+        if (normalized.StartsWith("ZCAN_", StringComparison.Ordinal))
+            normalized = normalized[5..];
+        return normalized.Replace('_', '-') switch
+        {
+            "USBCAN1" or "USBCAN-I" => ZCAN_USBCAN1,
+            "USBCAN2" or "USBCAN-II" => ZCAN_USBCAN2,
+            "USBCAN-E-U" => ZCAN_USBCAN_E_U,
+            "USBCAN-2E-U" => ZCAN_USBCAN_2E_U,
+            "USBCANFD-200U" => ZCAN_USBCANFD_200U,
+            "USBCANFD-100U" => ZCAN_USBCANFD_100U,
+            "USBCANFD-MINI" => ZCAN_USBCANFD_MINI,
+            "PCI5121" or "PCI-5121" => ZCAN_PCI5121,
+            "PCI9810" or "PCI-9810" => ZCAN_PCI9810,
+            "PCI9820" or "PCI-9820" => ZCAN_PCI9820,
+            "PCI5110" or "PCI-5110" => ZCAN_PCI5110,
+            "PCI9840" or "PCI-9840" => ZCAN_PCI9840,
+            "PCI9820I" or "PCI-9820I" => ZCAN_PCI9820I,
+            "PCIE9220" or "PCIE-9220" => ZCAN_PCIE_9220,
+            "PCI5010U" or "PCI-5010-U" => ZCAN_PCI5010U,
+            "PCI5020U" or "PCI-5020-U" => ZCAN_PCI5020U,
+            "PCIE9221" or "PCIE-9221" => ZCAN_PCIE9221,
+            "PCIE9120" or "PCIE-9120" => ZCAN_PCIE9120,
+            "PCIE9110" or "PCIE-9110" => ZCAN_PCIE9110,
+            "PCIE9140" or "PCIE-9140" => ZCAN_PCIE9140,
+            "PCIE-CANFD-100U" => ZCAN_PCIE_CANFD_100U,
+            "PCIE-CANFD-200U" => ZCAN_PCIE_CANFD_200U,
+            "PCIE-CANFD-400U" => ZCAN_PCIE_CANFD_400U,
+            "PCIE-CANFD-100U-EX" => ZCAN_PCIE_CANFD_100U_EX,
+            "PCIE-CANFD-400U-EX" => ZCAN_PCIE_CANFD_400U_EX,
+            "PCIE-CANFD-200U-MINI" => ZCAN_PCIE_CANFD_200U_MINI,
+            "PCIE-CANFD-200U-EX" or "PCIE-CANFD-200U-M2" => ZCAN_PCIE_CANFD_200U_EX,
+            "PCIE-CANFD-800U" => ZCAN_PCIE_CANFD_800U,
+            "PCIE-CANFD-1200U" => ZCAN_PCIE_CANFD_1200U,
+            "MINI-PCIE-CANFD" => ZCAN_MINI_PCIE_CANFD,
+            _ => throw new ArgumentException(
+                $"未知的 ZLG 设备类型 '{name}'，支持已接入的 USBCAN、USBCANFD、PCI 和 PCIe 型号；完整列表请查看 ZLG 原生库 README。")
+        };
+    }
 
     /// <summary>Classic 波特率和采样点转 SJA1000 BTR0/BTR1 编码。</summary>
     public static (byte Timing0, byte Timing1) ToTiming(int baudRate, double samplePoint)

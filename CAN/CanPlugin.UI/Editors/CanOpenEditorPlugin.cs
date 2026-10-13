@@ -1,4 +1,6 @@
+using System.Text.Json;
 using System.Windows;
+using CAN.Adapters.Zlg;
 using CAN.Helpers;
 using CAN.Models;
 using CAN.UI.Views;
@@ -50,6 +52,25 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         else if (s.RxQueueSize < 8192)
             errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于 NI-XNET 建议值 8192 帧，高负载总线下可能丢帧"));
 
+        bool? isPcieFd = null;
+        if (s.AdapterType == CanAdapterType.ZLG && !string.IsNullOrWhiteSpace(s.Channel))
+        {
+            try
+            {
+                string? channel = JsonSerializer.Deserialize<string>(s.Channel);
+                if (channel is not null)
+                    isPcieFd = ZlgAdapter.IsPcieCanFdChannel(channel);
+            }
+            catch (JsonException)
+            {
+                // 动态表达式不在编辑时求值，具体型号由运行时校验。
+            }
+            catch (ArgumentException ex)
+            {
+                errors.Add(StepSettingError.Error("CAN_013", ex.Message));
+            }
+        }
+
         if (double.IsNaN(s.ArbitrationSamplePoint) || double.IsInfinity(s.ArbitrationSamplePoint) ||
             s.ArbitrationSamplePoint < 7.5 || s.ArbitrationSamplePoint > 97.5)
         {
@@ -83,18 +104,41 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error(
                 "CAN_008", "当前 libTSCAN 波特率接口仅能可靠使用 80% 仲裁段采样点"));
         }
-        else if (s.AdapterType == CanAdapterType.ZLG && s.Protocol == CanProtocolType.FD &&
+        else if (s.AdapterType == CanAdapterType.ZLG &&
+                 (s.Protocol == CanProtocolType.FD || isPcieFd == true) &&
                  Math.Abs(s.ArbitrationSamplePoint - 80d) > 0.01)
         {
             errors.Add(StepSettingError.Error(
-                "CAN_009", "当前内置 ZLGCAN 的 CAN FD 标准波特率接口仅支持 80% 仲裁段采样点"));
+                "CAN_009", "ZLG CAN FD 及 PCIe CAN FD 型号的 Classic 标准波特率接口仅支持 80% 仲裁段采样点"));
+        }
+        else if (s.AdapterType == CanAdapterType.ZLG && isPcieFd is null &&
+                 s.Protocol == CanProtocolType.Classic && Math.Abs(s.ArbitrationSamplePoint - 80d) > 0.01)
+        {
+            errors.Add(StepSettingError.Warning(
+                "CAN_W03", "通道表达式将在运行时确定型号；PCIe CAN FD 型号在 Classic 下要求 80% 仲裁段采样点，PCI5010U / PCI5020U 的采样点由驱动决定"));
         }
         if (s.Protocol == CanProtocolType.FD &&
-            (s.AdapterType is CanAdapterType.TOSUN or CanAdapterType.ZLG) &&
+            s.AdapterType == CanAdapterType.TOSUN &&
             Math.Abs(s.DataSamplePoint - 80d) > 0.01)
         {
             errors.Add(StepSettingError.Error(
                 "CAN_012", $"当前 {s.AdapterType} 的通用 CAN FD 波特率接口仅能可靠使用 80% 数据段采样点"));
+        }
+        if (s.Protocol == CanProtocolType.FD && s.AdapterType == CanAdapterType.ZLG)
+        {
+            if (s.DataBitRate == 5_000_000 && isPcieFd is null &&
+                (Math.Abs(s.DataSamplePoint - 75d) <= 0.01 || Math.Abs(s.DataSamplePoint - 80d) <= 0.01))
+            {
+                errors.Add(StepSettingError.Warning(
+                    "CAN_W04", "5 Mbps 数据段采样点取决于运行时通道型号：PCIe CAN FD 为 75%，当前 USB CAN FD 接口为 80%"));
+            }
+            else
+            {
+                double expected = s.DataBitRate == 5_000_000 && isPcieFd == true ? 75d : 80d;
+                if (Math.Abs(s.DataSamplePoint - expected) > 0.01)
+                    errors.Add(StepSettingError.Error(
+                        "CAN_012", $"当前 ZLG 型号在 {s.DataBitRate} bps 标准数据段波特率下要求 {expected:F0}% 采样点"));
+            }
         }
 
         if (s.EnableTermination && s.AdapterType is
