@@ -23,7 +23,7 @@ public sealed class XcpDisconnectExecutor : IStepExecutor
 
             context.Log("XCP DISCONNECT 成功");
 
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
         }
         catch (OperationCanceledException)
         {

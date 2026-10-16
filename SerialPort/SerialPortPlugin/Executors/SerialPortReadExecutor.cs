@@ -58,7 +58,7 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = result
                 }
             };

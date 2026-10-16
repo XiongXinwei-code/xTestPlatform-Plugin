@@ -33,7 +33,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Error = new ErrorInfo { Message = $"Request Seed 失败: {seedResponse.GetNrcDescription()}" },
                         Value = seedResponse.GetFailureValue()
                     }
@@ -90,7 +90,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
             if (unlocked)
             {
                 context.Log($"UDS SecurityAccess: 解锁成功 (Level {setting.SecurityLevel})");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = "Unlocked" } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = "Unlocked" } };
             }
             else
             {
@@ -98,7 +98,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Error = new ErrorInfo { Message = $"Send Key 失败: {keyResponse.GetNrcDescription()}" },
                         Value = keyResponse.GetFailureValue()
                     }

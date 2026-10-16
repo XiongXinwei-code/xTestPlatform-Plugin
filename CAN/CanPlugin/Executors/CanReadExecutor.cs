@@ -56,7 +56,7 @@ public sealed class CanReadExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Error = new ErrorInfo { Message = $"读取超时 ({setting.ReadTimeoutMs}ms)" }
                     }
                 };
@@ -76,7 +76,7 @@ public sealed class CanReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"0x{msg.Id:X}: {dataHex}"
                 }
             };

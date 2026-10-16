@@ -34,7 +34,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
                 if (setting.IgnoreIfNotFound)
                 {
                     context.Log(LogLevel.Warn, $"HTTP 客户端不存在，已忽略关闭操作: {clientName}");
-                    return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
+                    return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
                 }
 
                 return Error($"未找到 HTTP 客户端: {clientName}");
@@ -45,7 +45,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = clientName }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = clientName }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

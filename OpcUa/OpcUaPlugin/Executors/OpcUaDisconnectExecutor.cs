@@ -37,7 +37,7 @@ public sealed class OpcUaDisconnectExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已断开: {connName}" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已断开: {connName}" }
             };
         }
         catch (OperationCanceledException)

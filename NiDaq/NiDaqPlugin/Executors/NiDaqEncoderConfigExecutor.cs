@@ -63,7 +63,7 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"编码器任务 '{taskName}' 已配置 ({counterCh}, {setting.DecodingType})"
                 }
             };

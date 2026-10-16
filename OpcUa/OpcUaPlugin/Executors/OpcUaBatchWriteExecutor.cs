@@ -41,7 +41,7 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
             {
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Passed, Value = "无节点需要写入" }
+                    StepResult = new StepResult { Status = TestStatus.Completed, Value = "无节点需要写入" }
                 };
             }
 
@@ -99,7 +99,7 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已写入 {setting.Items.Count} 个节点" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已写入 {setting.Items.Count} 个节点" }
             };
         }
         catch (OperationCanceledException)

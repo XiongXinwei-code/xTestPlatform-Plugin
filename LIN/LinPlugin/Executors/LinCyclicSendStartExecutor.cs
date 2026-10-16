@@ -51,7 +51,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Passed,
+                        Status = TestStatus.Completed,
                         Value  = "没有启用的帧，跳过周期发送"
                     }
                 };
@@ -105,7 +105,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value  = $"已启动 {enabledFrames.Count} 个周期发送任务: {taskName}"
                 }
             };

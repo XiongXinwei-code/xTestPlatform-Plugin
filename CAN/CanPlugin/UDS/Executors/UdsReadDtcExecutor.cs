@@ -28,11 +28,11 @@ public sealed class UdsReadDtcExecutor : IStepExecutor
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     context.SetVariable(setting.ResultVariable, hex);
                 context.Log($"UDS ReadDTC: SubFunc=0x{setting.SubFunction:X2}, Data=[{hex}]");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
             }
             else
             {
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
             }
         }
         catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }

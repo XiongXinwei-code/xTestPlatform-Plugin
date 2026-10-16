@@ -55,7 +55,7 @@ public sealed class SerialPortWriteExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"{bytes.Length} bytes"
                 }
             };

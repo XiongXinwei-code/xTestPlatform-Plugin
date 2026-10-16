@@ -50,7 +50,7 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = portName
                 }
             };

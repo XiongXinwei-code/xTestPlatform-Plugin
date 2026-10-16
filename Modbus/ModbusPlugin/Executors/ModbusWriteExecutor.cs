@@ -86,7 +86,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已写入: Addr={startAddr}" }
+				StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已写入: Addr={startAddr}" }
 			};
 		}
 		catch (OperationCanceledException)

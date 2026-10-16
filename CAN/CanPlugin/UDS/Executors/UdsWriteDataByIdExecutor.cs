@@ -39,11 +39,11 @@ public sealed class UdsWriteDataByIdExecutor : IStepExecutor
             if (response.IsPositive)
             {
                 context.Log($"UDS WriteDataByID: DID=0x{did:X4} 写入成功");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = $"DID=0x{did:X4}" } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = $"DID=0x{did:X4}" } };
             }
             else
             {
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
             }
         }
         catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }

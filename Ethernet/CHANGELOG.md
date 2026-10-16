@@ -1,5 +1,8 @@
 ﻿# 更新记录
 
+## 未发布
+- 变更：全部步骤正常执行返回 `Completed`，执行有问题返回 `Error`，用户主动取消保留 `Aborted`；依赖原通过/失败状态的序列需相应调整。
+
 ## v1.1.0 - 2026-08-18
 - 新增：`Ethernet_TcpSend` 增加 `SendTimeoutMs` 参数（默认 3000 ms），可在编辑器中配置
 - 修复：对端不接收数据导致发送缓冲区写满时，`TcpSend` 会永久阻塞序列；现超过 `SendTimeoutMs` 立即终止并返回 `Error`

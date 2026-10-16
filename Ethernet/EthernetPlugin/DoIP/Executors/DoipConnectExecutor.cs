@@ -37,7 +37,7 @@ public sealed class DoipConnectExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"DoIP 已连接: {name} -> {host}:{port}"
                 }
             };

@@ -94,7 +94,7 @@ public sealed class CanOpenExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed }
+                StepResult = new StepResult { Status = TestStatus.Completed }
             };
         }
         catch (OperationCanceledException)

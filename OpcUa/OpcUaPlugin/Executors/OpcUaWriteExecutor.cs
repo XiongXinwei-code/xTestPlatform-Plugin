@@ -88,7 +88,7 @@ public sealed class OpcUaWriteExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = writeValueStr }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = writeValueStr }
             };
         }
         catch (OperationCanceledException)

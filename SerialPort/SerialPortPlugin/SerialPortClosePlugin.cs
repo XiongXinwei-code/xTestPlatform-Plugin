@@ -26,7 +26,7 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
         ## 行为
 
         - 从运行期资源表中查找 `PortName` 对应的端口对象，关闭端口并从表中移除
-        - 端口名不存在或已关闭时**不报错**，仅记录日志并按 Passed 返回
+        - 端口名不存在或已关闭时**不报错**，仅记录日志并按 Completed 返回
 
         ## 相关插件
 

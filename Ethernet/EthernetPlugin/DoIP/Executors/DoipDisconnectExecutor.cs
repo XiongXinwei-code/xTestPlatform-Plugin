@@ -25,7 +25,7 @@ public sealed class DoipDisconnectExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"DoIP 已断开: {name}"
                 }
             };

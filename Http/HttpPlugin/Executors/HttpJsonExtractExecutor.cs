@@ -66,7 +66,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Value = $"{setting.Items.Count - missing.Count}/{setting.Items.Count}",
                         Error = new ErrorInfo { Message = $"以下 JSON 路径未命中: {string.Join(", ", missing)}" }
                     }
@@ -77,7 +77,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"{setting.Items.Count - missing.Count}/{setting.Items.Count}"
                 }
             };

@@ -36,7 +36,7 @@ public sealed class NiDaqTaskStartExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"任务 '{taskName}' 已启动"
                 }
             };

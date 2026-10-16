@@ -27,7 +27,7 @@ public sealed class CanCyclicSendStopPlugin : StepPluginBase<CanCyclicSendStopSe
         ## 行为
 
         - 从运行期资源表中查找 `TaskName` 对应的任务，取消发送并从表中移除
-        - 任务名不存在时**不报错**，按 Passed 返回
+        - 任务名不存在时**不报错**，按 Completed 返回
 
         ## 相关插件
 

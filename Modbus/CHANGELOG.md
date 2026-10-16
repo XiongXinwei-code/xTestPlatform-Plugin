@@ -1,5 +1,8 @@
 ﻿# 更新记录
 
+## 未发布
+- 变更：全部步骤正常执行返回 `Completed`，执行有问题返回 `Error`，用户主动取消保留 `Aborted`；依赖原通过/失败状态的序列需相应调整。
+
 ## v1.1.0 - 2026-08-18
 - 修复：`ModbusRead` / `ModbusWrite` / `ModbusBatchRead` / `ModbusBatchWrite` 超时不生效的问题。NModbus 的 `Read*Async` / `Write*Async` 不接收 `CancellationToken`，现统一通过 `ModbusHelper.WithTimeoutAsync` 施加软超时
 - 新增：`ModbusConnect` 将连接阶段的 `TimeoutMs` 保存到运行时资源，供后续读写步骤复用

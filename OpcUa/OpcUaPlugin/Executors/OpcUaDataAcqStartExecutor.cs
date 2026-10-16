@@ -69,7 +69,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"采集已启动: {taskName}" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"采集已启动: {taskName}" }
             };
         }
         catch (OperationCanceledException)

@@ -60,7 +60,7 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Value = responseHex,
                         Error = new ErrorInfo { Message = $"SOME/IP 错误响应: ReturnCode=0x{response.ReturnCode:X2}" }
                     }
@@ -68,7 +68,7 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = responseHex }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = responseHex }
             };
         }
         catch (OperationCanceledException)

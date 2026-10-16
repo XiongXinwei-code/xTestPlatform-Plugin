@@ -58,7 +58,7 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
 
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Passed, Value = "操作完成" }
+                    StepResult = new StepResult { Status = TestStatus.Completed, Value = "操作完成" }
                 };
             }
             finally

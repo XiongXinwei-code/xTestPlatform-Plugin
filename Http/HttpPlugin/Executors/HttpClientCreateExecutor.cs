@@ -81,7 +81,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = baseUrl }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = baseUrl }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

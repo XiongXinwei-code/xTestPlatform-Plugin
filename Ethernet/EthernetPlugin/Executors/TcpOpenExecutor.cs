@@ -39,7 +39,7 @@ public sealed class TcpOpenExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"TCP 已连接: {name} -> {host}:{port}"
                 }
             };

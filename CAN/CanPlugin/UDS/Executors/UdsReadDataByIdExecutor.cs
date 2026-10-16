@@ -38,13 +38,13 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
                     context.SetVariable(setting.ResultVariable, hex);
 
                 context.Log($"UDS ReadDataByID: DID=0x{did:X4}, Data=[{hex}]");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
             }
             else
             {
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() }, Value = response.GetFailureValue() }
+                    StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() }, Value = response.GetFailureValue() }
                 };
             }
         }

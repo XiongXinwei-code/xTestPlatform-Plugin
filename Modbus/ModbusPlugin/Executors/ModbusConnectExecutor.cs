@@ -70,7 +70,7 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已连接: {connName}" }
+				StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已连接: {connName}" }
 			};
 		}
 		catch (OperationCanceledException)

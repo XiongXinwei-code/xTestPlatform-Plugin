@@ -79,7 +79,7 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"{items.Count} ch × {records.Count} samples" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"{items.Count} ch × {records.Count} samples" }
             };
         }
         catch (OperationCanceledException)

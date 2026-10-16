@@ -84,7 +84,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = succeeded ? TestStatus.Passed : TestStatus.Failed,
+                    Status = succeeded ? TestStatus.Completed : TestStatus.Error,
                     Value = statusCode.ToString(),
                     Condition = "2xx",
                     ElapsedMs = elapsedMs,

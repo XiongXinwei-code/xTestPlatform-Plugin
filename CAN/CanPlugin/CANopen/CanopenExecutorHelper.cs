@@ -97,11 +97,11 @@ internal static class CanopenExecutorHelper
         }
     };
 
-    /// <summary>异常映射：取消 → Aborted；SDO 中止 → Failed（设备明确拒绝）；超时及其他 → Error</summary>
+    /// <summary>异常映射：用户取消 → Aborted；SDO 中止、超时及其他异常 → Error</summary>
     public static ExecutionResult FromException(Exception ex, CancellationToken ct) => ex switch
     {
         OperationCanceledException when ct.IsCancellationRequested => Result(TestStatus.Aborted),
-        CanopenSdoAbortException abort => Result(TestStatus.Failed, $"0x{abort.AbortCode:X8}", abort.Message),
+        CanopenSdoAbortException abort => Result(TestStatus.Error, $"0x{abort.AbortCode:X8}", abort.Message),
         TimeoutException timeout => Result(TestStatus.Error, error: timeout.Message),
         _ => new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }
     };

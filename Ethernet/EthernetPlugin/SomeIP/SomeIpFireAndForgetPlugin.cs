@@ -32,7 +32,7 @@ public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForg
 
         ## 行为
 
-        - 发送成功即判定为 Passed，不等待响应
+        - 发送成功即返回 Completed，不等待响应
 
         ## 相关插件
 

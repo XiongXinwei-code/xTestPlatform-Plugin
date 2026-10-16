@@ -35,13 +35,13 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, responseHex);
 
-            // UDS 负响应 0x7F 判定为失败
+            // UDS 负响应 0x7F 返回执行错误
             if (response.Length >= 3 && response[0] == 0x7F)
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Value = responseHex,
                         Error = new ErrorInfo { Message = $"UDS 负响应: NRC=0x{response[2]:X2}" }
                     }
@@ -51,7 +51,7 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = responseHex
                 }
             };

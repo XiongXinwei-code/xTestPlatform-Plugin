@@ -102,7 +102,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Value = statusCode.ToString(),
                         ElapsedMs = elapsedMs,
                         Error = new ErrorInfo { ErrorCode = statusCode, Message = $"服务端返回 SOAP Fault: {faultMessage}" }
@@ -116,7 +116,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = succeeded ? TestStatus.Passed : TestStatus.Failed,
+                    Status = succeeded ? TestStatus.Completed : TestStatus.Error,
                     Value = statusCode.ToString(),
                     Condition = "2xx",
                     ElapsedMs = elapsedMs,

@@ -58,7 +58,7 @@ public sealed class CanWriteExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"0x{canId:X}: {BitConverter.ToString(data).Replace("-", " ")}"
                 }
             };

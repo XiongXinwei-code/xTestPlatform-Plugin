@@ -7,6 +7,10 @@
 > 日志等级改由 `LogLevel` 枚举显式携带，时间戳由引擎在日志产生时生成。
 > 所有插件需按 §13.5 的迁移对照表更新调用点。
 
+> **执行结果状态规范（强制）**：插件正常执行返回 `TestStatus.Completed`；执行有问题返回
+> `TestStatus.Error` 并填写中文错误信息；用户主动取消返回 `TestStatus.Aborted`。
+> 插件不得使用 `Passed`、`Failed` 作为步骤执行结果。详见 §2.4。
+
 ---
 
 ## 目录
@@ -129,10 +133,11 @@
 - [ ] 插件只读写变量列表中已声明、且由用户明确配置的完整变量路径；禁止硬编码变量路径，禁止通过拼接前后缀等方式构造隐式变量路径，禁止将表达式求值得到的普通字符串值再次作为变量路径（§12.3）
 类型列已相应写成 `string([ExpressionField])` 或 `string(VariablePathField)`（§12.3）
 - [ ] 每个 `[ExpressionField]` 参数在 `Description` 说明列中已写明求值结果类型（如“求值结果为 string”“求值结果为 byte[]”），结果类型以 Executor 中实际求值调用为准，不得凭字段名臆测（§2.1.1）
-- [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达结论（§2.4）
+- [ ] Executor 返回 `ExecutionResult`，通过 `StepResult.Status` 表达执行状态，而非测试通过/失败结论：正常为 `Completed`，执行有问题为 `Error`，用户主动取消为 `Aborted`（§2.4）
+- [ ] 所有执行器、共享结果方法和插件说明均不使用 `Passed`、`Failed` 或 `Warning` 作为步骤执行结果；返回 `Error` 时填写中文 `ErrorInfo`（§2.4）
 - [ ] `CancellationToken` 传递给所有 `Task.Delay`、I/O 等异步操作（§2.2、§14.5）
 - [ ] **阻塞式 I/O 必须做软超时兜底**：若底层 API 是同步阻塞调用，或其异步重载不响应 `CancellationToken`（如 `System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync`、NModbus 的 `Read*Async`、NI-VISA 的 `FormattedIO`、NI-DAQmx 的 `Reader/Writer`、LabVIEW 的 VI 调用），必须在插件层用 `Task.Run(...) + WaitAsync(TimeSpan, token)` 或同步读写 + 截止时间循环做软超时，**不能只在 Setting 里声明超时字段就认为超时生效**
-- [ ] 超时必须让步骤终止并返回 `TestStatus.Error`（附带含超时毫秒数的中文错误信息）；只有用户主动取消才返回 `Aborted`。禁止把"超时未收到数据"当作正常结束返回 `Passed`
+- [ ] 超时必须让步骤终止并返回 `TestStatus.Error`（附带含超时毫秒数的中文错误信息）；只有用户主动取消才返回 `Aborted`。禁止把"超时未收到数据"当作正常结束返回 `Completed`
 - [ ] 每个会发生等待的步骤都应提供可配置的超时字段（如 `SendTimeoutMs`、`ReadTimeoutMs`、`TimeoutMs`），并在编辑器 UI 中暴露；未配置时使用合理的默认值而非无限等待
 - [ ] **新增或修改 Setting 字段时必须同步四处**：① Setting 类属性；② 插件 `Description` 的"## 参数"表格（含类型/必填/默认值/说明）与"## 行为"节；③ 编辑器 ViewModel + XAML 绑定；④ `ValidateWithContextAsync` 的取值范围校验。四者缺一都算未交付（§2.1.1、§13.1）
 - [ ] Executor 不抛出未捕获异常：内部 try/catch，取消返回 `Aborted`、异常返回 `Error`（§13.4）
@@ -486,7 +491,20 @@ public interface IStepSettingSerializer {
 
 ### 2.4 ExecutionResult — 执行结果
 
-执行器必须返回 `ExecutionResult`，通过 `StepResult.Status` 表达测试结论：
+执行器必须返回 `ExecutionResult`，通过 `StepResult.Status` 表达**执行状态**，不能用它判定测试通过或失败。
+
+**全部步骤插件必须遵守以下规则，执行器及其共享结果方法、Description 和示例均适用：**
+
+| 场景 | 步骤执行结果 | 要求 |
+|---|---|---|
+| 操作正常完成 | `TestStatus.Completed` | 返回实际数据，不代表测试通过 |
+| 执行有问题 | `TestStatus.Error` | 填写中文 `ErrorInfo`，例如参数无效、连接失败、超时、设备拒绝请求或协议错误 |
+| 用户主动取消 | `TestStatus.Aborted` | 保留取消语义，不得把普通超时当作用户取消 |
+
+- **禁止返回 `TestStatus.Passed` 或 `TestStatus.Failed`**。测试值是否符合期望，应交由后续独立判定步骤或宿主的判定机制处理，不能把测量值不符合期望直接改写成执行错误。
+- **执行问题统一返回 `Error`。此约束不影响 `StepSettingError.Warning(...)` 编辑器校验或 `LogLevel.Warn` 日志等级。
+- 已明确配置为忽略的情况（如关闭不存在的连接且 `IgnoreIfNotFound = true`），按约定正常结束时返回 `Completed`；配置为报错时返回 `Error`，须在 Description 中写明。
+- 以下枚举展示 SDK 的完整契约；其中的 `Passed`、`Failed` 等成员不表示允许插件返回这些状态。
 
 ```csharp
 // 命名空间：xTestPlatform.Core.Models
@@ -500,7 +518,7 @@ public class StepResult {
     public string     StepName    { get; set; }
     public string     StepAddress { get; set; }
     public string     StepType    { get; set; }
-    public TestStatus Status      { get; set; }   // ← 测试结论
+    public TestStatus Status      { get; set; }   // ← 执行状态，不是测试结论
     public string     Value       { get; set; }   // 实测值（字符串）
     public string     LowerBound  { get; set; }   // 下限
     public string     UpperBound  { get; set; }   // 上限
@@ -527,21 +545,22 @@ public enum ExecutionSignal {
 **典型写法：**
 
 ```csharp
-// ✅ 测试通过
+// ✅ 操作正常完成（不代表测试通过）
 return new ExecutionResult {
     StepResult = new StepResult {
-        Status = TestStatus.Passed,
+        Status = TestStatus.Completed,
         Value  = actual.ToString(),
         LowerBound = setting.LimitLow.ToString(),
         UpperBound = setting.LimitHigh.ToString()
     }
 };
 
-// ✅ 测试失败
+// ✅ 设备拒绝请求（执行有问题）
 return new ExecutionResult {
     StepResult = new StepResult {
-        Status = TestStatus.Failed,
-        Value = actual.ToString()
+        Status = TestStatus.Error,
+        Value = actual.ToString(),
+        Error = new ErrorInfo { Message = "设备拒绝请求" }
     }
 };
 
@@ -998,10 +1017,10 @@ ctx.Resources.Remove($"SerialPort.{portName}");  // dispose 默认 true
 ## 行为
 
 - 从运行期资源表中查找 `<字段名>` 对应的对象，<关闭/清理动作> 并从表中移除
-- 标识名不存在时<按实际行为：不报错仅记录日志并返回 Passed / 步骤报错>
+- 标识名不存在时<按实际行为：不报错仅记录日志并返回 Completed / 返回 Error>
 ```
 
-判定依据：看 Executor 里 `TryGet` 失败时走哪条路——只打日志照常返回 `Passed`，还是返回 `Error`。若行为由开关字段控制（如 `ReplaceIfExists`、`IgnoreIfNotFound`），必须把两种取值下的结果都写出来。
+判定依据：看 Executor 里 `TryGet` 失败时走哪条路——只打日志照常返回 `Completed`，还是返回 `Error`。若行为由开关字段控制（如 `ReplaceIfExists`、`IgnoreIfNotFound`），必须把两种取值下的结果都写出来。
 
 **额外约束：**
 
@@ -1052,7 +1071,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
     return new ExecutionResult {
         StepResult = new StepResult {
-            Status = TestStatus.Passed,
+            Status = TestStatus.Completed,
             Value = voltage.ToString("F3")
         }
     };
@@ -2118,10 +2137,10 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
     try {
         // ... 业务逻辑 ...
         return new ExecutionResult {
-            StepResult = new StepResult { Status = TestStatus.Passed }
+            StepResult = new StepResult { Status = TestStatus.Completed }
         };
     }
-    catch (OperationCanceledException) {
+    catch (OperationCanceledException) when (ct.IsCancellationRequested) {
         return new ExecutionResult {
             StepResult = new StepResult { Status = TestStatus.Aborted }
         };
@@ -2141,7 +2160,8 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 | 异常类型                         | 处理方式                              |
 | ---------------------------- | --------------------------------- |
-| `OperationCanceledException` | 设置 `TestStatus.Aborted`，正常返回      |
+| `OperationCanceledException` 且用户取消令牌已取消 | 设置 `TestStatus.Aborted`，正常返回 |
+| 超时（包括非用户取消导致的取消异常） | 设置 `TestStatus.Error` + 中文错误信息，正常返回 |
 | 其他 `Exception`               | 设置 `TestStatus.Error` + `ErrorInfo.FromException(ex)`，正常返回 |
 | 绝不允许                         | 直接 `throw` 导致引擎崩溃                 |
 
@@ -2425,7 +2445,7 @@ public sealed class DelayCheckPlugin : StepPluginBase<DelayCheckSetting> {
     public override string IconPath    => "pack://application:,,,/DelayCheck.StepPlugin.UI;component/Resources/Icons/delaycheck.png";
 
     public override string Description =>
-        "等待指定毫秒后读取目标变量并与期望值比较。" +
+        "等待指定毫秒后读取目标变量，返回实际值供后续步骤判定。" +
         "Setting 字段：DelayMs(int,延时毫秒), TargetVariable(string,要读取的变量路径), " +
         "ExpectedValue(string,期望值), LogResult(bool,是否记录结果)。";
 
@@ -2463,23 +2483,19 @@ public sealed class DelayCheckExecutor : IStepExecutor {
         var actual = ctx.GetVariable(s.TargetVariable)?.ToString() ?? string.Empty;
 
         if (s.LogResult)
-            ctx.SetVariable("Step.ActualValue", actual);
-
-        bool passed = string.Equals(actual, s.ExpectedValue, StringComparison.OrdinalIgnoreCase);
+            ctx.Log($"延时读取完成：实际值={actual}，期望值={s.ExpectedValue}");
 
         return new ExecutionResult {
             StepResult = new StepResult {
-                Status     = passed ? TestStatus.Passed : TestStatus.Failed,
-                Value      = actual,
-                UpperBound = s.ExpectedValue,
-                Condition  = "=="
+                Status = TestStatus.Completed,
+                Value  = actual
             }
         };
     }
 }
 ```
 
-> 上例的 `Task.Delay(s.DelayMs, ct)` 已正确传递 `CancellationToken`。涉及其他 I/O（网络、串口、文件等）时同样必须传递，并用 try/catch 处理取消与异常：
+> 上例仅演示正常读取路径，实际值是否符合期望不改变执行状态；读取正常完成即返回 `Completed`，比较结论由后续独立判定步骤处理。`Task.Delay(s.DelayMs, ct)` 已正确传递 `CancellationToken`。完整执行器还必须按 §13.4 包裹 try/catch，涉及其他 I/O（网络、串口、文件等）时同样必须传递令牌并处理取消与异常：
 
 ```csharp
 try {
@@ -2488,10 +2504,10 @@ try {
     var body = await resp.Content.ReadAsStringAsync(ct);  // 传递 ct
     // ... 业务逻辑 ...
     return new ExecutionResult {
-        StepResult = new StepResult { Status = TestStatus.Passed }
+        StepResult = new StepResult { Status = TestStatus.Completed }
     };
 }
-catch (OperationCanceledException) {
+catch (OperationCanceledException) when (ct.IsCancellationRequested) {
     return new ExecutionResult {
         StepResult = new StepResult { Status = TestStatus.Aborted }
     };
@@ -2795,14 +2811,14 @@ private void Load() {
 
 ---
 
-**Q4：执行器返回什么表示"通过"？**
+**Q4：执行器返回什么表示"执行完成"？**
 
-设置 `StepResult.Status = TestStatus.Passed`：
+正常执行设置 `StepResult.Status = TestStatus.Completed`，执行有问题设置 `TestStatus.Error` 并填写中文错误信息，用户主动取消使用 `Aborted`。插件不得使用 `Passed`、`Failed` 或 `Warning` 作为步骤执行结果；`Completed` 不代表测试通过：
 
 ```csharp
 return new ExecutionResult {
     StepResult = new StepResult {
-        Status = TestStatus.Passed,
+        Status = TestStatus.Completed,
         Value = actual.ToString()
     }
 };

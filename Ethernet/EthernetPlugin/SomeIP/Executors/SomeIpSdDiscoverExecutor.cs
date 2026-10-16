@@ -63,7 +63,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Failed,
+                        Status = TestStatus.Error,
                         Error = new ErrorInfo { Message = $"未发现服务 0x{findServiceId:X4}（{setting.TimeoutMs}ms 内无 OfferService 响应）" }
                     }
                 };
@@ -76,7 +76,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = result }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = result }
             };
         }
         catch (OperationCanceledException)

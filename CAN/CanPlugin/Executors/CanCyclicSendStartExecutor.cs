@@ -55,7 +55,7 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Passed,
+                        Status = TestStatus.Completed,
                         Value = "没有启用的报文，跳过周期发送"
                     }
                 };
@@ -109,7 +109,7 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"已启动 {enabledMessages.Count} 个周期发送任务: {taskName}"
                 }
             };

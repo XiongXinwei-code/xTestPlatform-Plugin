@@ -81,7 +81,7 @@ public sealed class NiDaqAiReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"{channels} ch × {samples} samples"
                 }
             };

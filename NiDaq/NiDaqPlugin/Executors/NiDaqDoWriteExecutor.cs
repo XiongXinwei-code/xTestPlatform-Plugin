@@ -56,7 +56,7 @@ public sealed class NiDaqDoWriteExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = valueStr
                 }
             };

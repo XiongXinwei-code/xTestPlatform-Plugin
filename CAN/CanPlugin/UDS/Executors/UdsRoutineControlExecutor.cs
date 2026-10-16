@@ -45,11 +45,11 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     context.SetVariable(setting.ResultVariable, hex);
                 context.Log($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
             }
             else
             {
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
             }
         }
         catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }

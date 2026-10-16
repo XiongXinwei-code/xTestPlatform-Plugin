@@ -1,5 +1,8 @@
 ﻿# 更新记录
 
+## 未发布
+- 变更：全部步骤正常执行返回 `Completed`，执行有问题返回 `Error`，用户主动取消保留 `Aborted`；依赖原通过/失败状态的序列需相应调整。
+
 ## v1.1.0 - 2026-08-18
 - 修复：`NiDaqAiRead` / `NiDaqSyncRead` / `NiDaqEncoderRead` / `NiDaqDiRead` / `NiDaqDoWrite` 会永久阻塞序列的问题。DAQmx 的 Reader/Writer 为同步阻塞 API，且未配置超时时 `Stream.Timeout` 被设为 -1（无限等待）
 - 新增：`NiDaqTimeoutHelper` 软超时辅助类，未配置超时的步骤使用 10 秒默认软超时

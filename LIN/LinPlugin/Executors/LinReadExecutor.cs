@@ -72,7 +72,7 @@ public sealed class LinReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value  = $"0x{frame.FrameId:X2}: {dataHex}"
                 }
             };

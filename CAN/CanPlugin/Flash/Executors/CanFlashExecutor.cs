@@ -123,7 +123,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     var eraseResponse = await eraseClient.RequestAsync(eraseRequest.ToArray(), cancellationToken);
                     context.Log(LogLevel.Trace, $"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                     if (!eraseResponse.IsPositive)
-                        return Failed($"擦除失败: {eraseResponse.GetNrcDescription()}",
+                        return Error($"擦除失败: {eraseResponse.GetNrcDescription()}",
                             $"{eraseResponse.GetFailureValue()}; " +
                             $"TX=[{UdsExecutorHelper.ToHex(eraseRequest.ToArray())}]; " +
                             $"RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
@@ -139,7 +139,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 var downloadResponse = await client.RequestAsync(downloadRequest.ToArray(), cancellationToken);
                 context.Log(LogLevel.Trace, $"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
                 if (!downloadResponse.IsPositive)
-                    return Failed($"请求下载失败: {downloadResponse.GetNrcDescription()}",
+                    return Error($"请求下载失败: {downloadResponse.GetNrcDescription()}",
                         downloadResponse.GetFailureValue());
 
                 int blockSize = ResolveBlockSize(downloadResponse.Data, setting.MaxBlockSize);
@@ -175,7 +175,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                     }
 
                     if (transferResponse is null || !transferResponse.IsPositive)
-                        return Failed(
+                        return Error(
                             $"数据传输失败于地址 0x{segment.StartAddress + (uint)offset:X8}: {transferResponse?.GetNrcDescription()}",
                             transferResponse?.GetFailureValue() ?? "未获得 UDS 响应");
 
@@ -192,7 +192,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 // 结束传输 (0x37)
                 var exitResponse = await client.RequestAsync([0x37], cancellationToken);
                 if (!exitResponse.IsPositive)
-                    return Failed($"结束传输失败: {exitResponse.GetNrcDescription()}",
+                    return Error($"结束传输失败: {exitResponse.GetNrcDescription()}",
                         exitResponse.GetFailureValue());
 
                 context.Log($"UDS Flash: 数据段 0x{segment.StartAddress:X8} 传输完成");
@@ -221,7 +221,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 var checkResponse = await eraseClient.RequestAsync(checkRequest.ToArray(), cancellationToken);
                 context.Log(LogLevel.Trace, $"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
                 if (!checkResponse.IsPositive)
-                    return Failed($"固件校验失败: {checkResponse.GetNrcDescription()}",
+                    return Error($"固件校验失败: {checkResponse.GetNrcDescription()}",
                         checkResponse.GetFailureValue());
 
                 // 本项目 ECU 的 0x0202 校验例程在正响应最后附带厂商结果码：
@@ -230,7 +230,7 @@ public sealed class CanFlashExecutor : IStepExecutor
                 if (checkResponse.Data.Length >= 4 && checkResponse.Data[^1] != 0x00)
                 {
                     byte routineResult = checkResponse.Data[^1];
-                    return Failed(
+                    return Error(
                         $"固件校验例程返回失败状态 0x{routineResult:X2}",
                         $"RoutineResult=0x{routineResult:X2}; " +
                         $"TX=[{UdsExecutorHelper.ToHex(checkRequest.ToArray())}]; " +
@@ -248,7 +248,7 @@ public sealed class CanFlashExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"{writtenBytes} 字节" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"{writtenBytes} 字节" }
             };
         }
         catch (OperationCanceledException)
@@ -391,11 +391,11 @@ public sealed class CanFlashExecutor : IStepExecutor
         }
     };
 
-    private static ExecutionResult Failed(string message, string value) => new()
+    private static ExecutionResult Error(string message, string value) => new()
     {
         StepResult = new StepResult
         {
-            Status = TestStatus.Failed,
+            Status = TestStatus.Error,
             Error = new ErrorInfo { Message = message },
             Value = value
         }

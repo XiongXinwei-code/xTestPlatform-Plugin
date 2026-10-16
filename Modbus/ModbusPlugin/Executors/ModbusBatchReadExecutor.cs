@@ -89,7 +89,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = summary }
+				StepResult = new StepResult { Status = TestStatus.Completed, Value = summary }
 			};
 		}
 		catch (OperationCanceledException)

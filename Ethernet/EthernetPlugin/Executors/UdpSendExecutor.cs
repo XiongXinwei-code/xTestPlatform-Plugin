@@ -42,7 +42,7 @@ public sealed class UdpSendExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"UDP 已发送 {bytes.Length} 字节 -> {host}:{port}"
                 }
             };

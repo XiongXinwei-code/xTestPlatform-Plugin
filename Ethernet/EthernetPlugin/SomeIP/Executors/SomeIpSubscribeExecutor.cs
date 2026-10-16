@@ -58,7 +58,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = payloadHex }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = payloadHex }
             };
         }
         catch (OperationCanceledException)

@@ -55,7 +55,7 @@ public sealed class LinWriteExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value  = $"0x{frameId:X2}: {BitConverter.ToString(data).Replace("-", " ")}"
                 }
             };
