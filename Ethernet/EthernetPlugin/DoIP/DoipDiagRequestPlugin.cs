@@ -29,7 +29,7 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
 
         ## 行为
 
-        - 收到 UDS 负响应（0x7F）时步骤判定为 Failed
+        - 收到 UDS 负响应（0x7F）时步骤返回 Error
         - 超时未收到响应时步骤报错
 
         ## 相关插件

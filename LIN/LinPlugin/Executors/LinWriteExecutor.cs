@@ -55,12 +55,12 @@ public sealed class LinWriteExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value  = $"0x{frameId:X2}: {BitConverter.ToString(data).Replace("-", " ")}"
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult
             {

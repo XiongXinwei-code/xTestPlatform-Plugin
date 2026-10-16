@@ -1,0 +1,2119 @@
+{
+  "settings": {
+    "components": {
+      "code": true,
+      "binaries": false
+    },
+    "targetId": ""
+  },
+  "analysisStartTime": "2026-10-16T07:28:12.1120372Z",
+  "analysisEndTime": "2026-10-16T07:28:12.161391Z",
+  "privacyModeHelpUrl": "https://go.microsoft.com/fwlink/?linkid=2270980",
+  "stats": {
+    "summary": {
+      "projects": 20,
+      "issues": 3,
+      "incidents": 60,
+      "effort": 40
+    },
+    "charts": {
+      "severity": {
+        "Mandatory": 0,
+        "Optional": 0,
+        "Potential": 40,
+        "Information": 20
+      },
+      "category": {
+        "Pkg": 60
+      }
+    }
+  },
+  "projects": [
+    {
+      "path": "CAN\\CanPlugin\\CanPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "CanPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 102,
+        "numberOfCodeFiles": 102,
+        "linesTotal": 10162,
+        "linesOfCode": 10162,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "525eb988-3fe3-4954-8669-13eef994d528",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "CAN\\CanPlugin\\CanPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "CAN\\CanPlugin\\CanPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "07125e3a-19d1-44bc-8958-196092bf0f30",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "CAN\\CanPlugin\\CanPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "CAN\\CanPlugin\\CanPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "16aa0c2d-17ea-4d98-acdb-25be6abd7dcb",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "CAN\\CanPlugin\\CanPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "CAN\\CanPlugin\\CanPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "CanPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 84,
+        "numberOfCodeFiles": 84,
+        "linesTotal": 4506,
+        "linesOfCode": 4506,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "c0dcfba3-eaf1-4055-a526-2fd68e031d88",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5a94f217-b78d-4961-83c4-bb15f3a272b0",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "b928a985-05c8-435b-9561-ee317275cd94",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "CAN\\CanPlugin.UI\\CanPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "EthernetPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 53,
+        "numberOfCodeFiles": 53,
+        "linesTotal": 2885,
+        "linesOfCode": 2885,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "4132a689-52fe-436a-ae0d-a045ddbf3569",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "57d8b8a8-dc6e-4b74-9844-381c4daceabb",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "2575d13e-11fc-42d3-84f3-882962d21809",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Ethernet\\EthernetPlugin\\EthernetPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "EthernetPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 43,
+        "numberOfCodeFiles": 43,
+        "linesTotal": 1789,
+        "linesOfCode": 1789,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "be35a21e-532e-4e48-a823-071fd15f2290",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "a3a444d4-aa36-4424-be12-e7a9e58765ca",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "6bc3b0aa-cbcb-462c-96cd-7353aa126f34",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Ethernet\\EthernetPlugin.UI\\EthernetPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Http\\HttpPlugin\\HttpPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "HttpPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 23,
+        "numberOfCodeFiles": 23,
+        "linesTotal": 1690,
+        "linesOfCode": 1690,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "f469a390-b347-42ce-bb5a-fa9cb16f726f",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "Http\\HttpPlugin\\HttpPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Http\\HttpPlugin\\HttpPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "bbb860fd-fdff-423f-84f1-16fed80753f9",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "Http\\HttpPlugin\\HttpPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Http\\HttpPlugin\\HttpPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5efb03f6-050e-4172-b2ba-10485d9a4770",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "Http\\HttpPlugin\\HttpPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Http\\HttpPlugin\\HttpPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "HttpPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 20,
+        "numberOfCodeFiles": 20,
+        "linesTotal": 1195,
+        "linesOfCode": 1195,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "e9a741ad-cc0c-4aa6-8e75-c9e7ba327d3f",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "e12a662e-9594-4b62-93be-c9f5398916b0",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "f204c619-90d9-469f-b555-1751dabba99a",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Http\\HttpPlugin.UI\\HttpPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "LabVIEWCallPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 9,
+        "numberOfCodeFiles": 7,
+        "linesTotal": 18175,
+        "linesOfCode": 2465,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "7855019a-0cea-4f4f-8257-61ae0a8cbe3b",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "e4e98672-b8ac-4bf7-9d63-2dd1205ebebc",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "70d82f21-f9e3-4cf0-9c55-c445dc581d2a",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LabVIEWCall\\LabVIEWCallPlugin\\LabVIEWCallPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "LabVIEWCallPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 35,
+        "numberOfCodeFiles": 13,
+        "linesTotal": 68564,
+        "linesOfCode": 2795,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "5d07a820-15f6-415a-8b3e-d7706dde856a",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "a965cb3d-a6e2-4bb6-bc0b-c7257526a86f",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5f0cdb18-21fa-431b-b114-91ee8baab56e",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LabVIEWCall\\LabVIEWCallPlugin.UI\\LabVIEWCallPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "LIN\\LinPlugin\\LinPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "LinPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 36,
+        "numberOfCodeFiles": 36,
+        "linesTotal": 2031,
+        "linesOfCode": 2031,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "07f3685d-9d33-48bb-bed5-ef5cde3a8acd",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "LIN\\LinPlugin\\LinPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LIN\\LinPlugin\\LinPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "eea3016b-a478-4bf1-b418-e33a4181ffbf",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "LIN\\LinPlugin\\LinPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LIN\\LinPlugin\\LinPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "4147b947-3339-492a-8bb8-875ecc0620c5",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "LIN\\LinPlugin\\LinPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LIN\\LinPlugin\\LinPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "LinPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 29,
+        "numberOfCodeFiles": 29,
+        "linesTotal": 1550,
+        "linesOfCode": 1550,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "62f48090-e747-4b52-8d38-cbe272fde0dd",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "d2f1c93a-0606-4710-8e40-3814b8368a24",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "ba03f8ee-062c-47fc-adb4-b2b2b64c38ec",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "LIN\\LinPlugin.UI\\LinPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "ModbusPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 26,
+        "numberOfCodeFiles": 26,
+        "linesTotal": 1476,
+        "linesOfCode": 1476,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "1bd4080b-e903-4d4c-9111-674d238eb343",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "a2d91972-bdc0-44b9-b042-675d526a62d1",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5078cd8c-8f0d-4210-a721-8d9dfe56ad0a",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Modbus\\ModbusPlugin\\ModbusPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "ModbusPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 19,
+        "numberOfCodeFiles": 19,
+        "linesTotal": 953,
+        "linesOfCode": 953,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "29a3e2a6-b1e3-4717-b078-960f8647e593",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "6e6c4430-192a-4cfd-a725-5c66664cd3c3",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "bfb0bf85-1762-49cf-8ee3-e00b8454eb8f",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "Modbus\\ModbusPlugin.UI\\ModbusPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "NiDaqPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 38,
+        "numberOfCodeFiles": 38,
+        "linesTotal": 2180,
+        "linesOfCode": 2180,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "a4353a22-3b69-4732-82d1-7a48cb7e7421",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "cb0c5741-6e90-4f98-92cc-80335e502b08",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "646ba2c5-02d9-448b-8271-5a15fd2367af",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "NiDaq\\NiDaqPlugin\\NiDaqPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "NiDaqPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 32,
+        "numberOfCodeFiles": 32,
+        "linesTotal": 1476,
+        "linesOfCode": 1476,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "ff180a71-5dc6-469e-ba8a-5a491558d24a",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "44c6d9c5-0255-4b62-9a2c-c40fc138bc60",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "3040ebab-1854-4300-a75f-c557874ab12a",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "NiDaq\\NiDaqPlugin.UI\\NiDaqPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "OpcUaPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 34,
+        "numberOfCodeFiles": 34,
+        "linesTotal": 2171,
+        "linesOfCode": 2171,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "d84a7a53-9915-478e-8f90-567ace67673b",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "c60eee8e-a6df-4050-b651-225abfaa2276",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "abeadca2-d602-4ed0-bc5a-964987cbce29",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "OpcUa\\OpcUaPlugin\\OpcUaPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "OpcUaPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 32,
+        "numberOfCodeFiles": 32,
+        "linesTotal": 1492,
+        "linesOfCode": 1492,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "c125bcf2-24ef-4711-80c2-1aa77da0d7ce",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "b02332dd-2617-4706-8c03-f969fbe388db",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "36d158c3-35b5-4c90-a2c5-d683fd764dc2",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "OpcUa\\OpcUaPlugin.UI\\OpcUaPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "SerialPortPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 18,
+        "numberOfCodeFiles": 18,
+        "linesTotal": 1011,
+        "linesOfCode": 1011,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "79a975f2-84b8-4bc8-9ebc-429f53ebb7c5",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "7b2519f6-d4be-423e-9256-ac5ab4e008ad",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "ab2589f8-bcde-466a-ae62-27563fe3f728",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "SerialPort\\SerialPortPlugin\\SerialPortPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "SerialPortPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 19,
+        "numberOfCodeFiles": 19,
+        "linesTotal": 908,
+        "linesOfCode": 908,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "94b0f0b1-05ee-4fb6-8e1c-621e2b7535a3",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "527e2d4b-283b-46cf-853a-0d0da2eaa234",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "5ff4951c-009e-431e-a67c-9913e222d186",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "SerialPort\\SerialPortPlugin.UI\\SerialPortPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "VisaPlugin",
+        "projectKind": "ClassLibrary",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 23,
+        "numberOfCodeFiles": 23,
+        "linesTotal": 1282,
+        "linesOfCode": 1282,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "9e028df7-46d8-42a6-af87-1f1f8e680d99",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "14925275-ca25-4a00-9e3b-41b9f96ca9af",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "8cc22c9b-7873-47af-ac09-da6a08498861",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "VISA\\VisaPlugin\\VisaPlugin.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    },
+    {
+      "path": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+      "startingProject": true,
+      "issues": 3,
+      "storyPoints": 2,
+      "properties": {
+        "appName": "VisaPlugin.UI",
+        "projectKind": "Wpf",
+        "frameworks": [
+          "net8.0-windows"
+        ],
+        "languages": [
+          "C#"
+        ],
+        "tools": [
+          "MSBuild"
+        ],
+        "isSdkStyle": true,
+        "isTestProject": false,
+        "numberOfFiles": 22,
+        "numberOfCodeFiles": 22,
+        "linesTotal": 1090,
+        "linesOfCode": 1090,
+        "totalApiScanned": 0,
+        "minLinesOfCodeToChange": 0,
+        "maxLinesOfCodeToChange": 0
+      },
+      "ruleInstances": [
+        {
+          "incidentId": "15349cff-52ba-46e2-bd14-cec76469e5fe",
+          "ruleId": "Pkg.0001",
+          "description": "Project references \u0027xTestPlatform.StepEditor.SDK\u0027 1.2.7, but no supported upgrade version could be resolved for it; this project must stay on 1.2.7.",
+          "projectPath": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "4e331dd5-e4d0-4057-a321-f536545cbdc7",
+          "ruleId": "Pkg.0003",
+          "description": "Package \u0027xTestPlatform.StepEditor.SDK\u0027 could not be unified to a single version across the scoped projects; no available version supports this project\u0027s target framework(s), so this project cannot be upgraded and must stay on 1.2.7.",
+          "projectPath": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        },
+        {
+          "incidentId": "d3e02378-76a6-464e-a743-8445a5f058a1",
+          "ruleId": "Pkg.0002",
+          "description": "The requested version 1.2.8 of \u0027xTestPlatform.StepEditor.SDK\u0027 is not supported by this project\u0027s target framework (.NETCoreApp,Version=v8.0); analysis uses (no supported version) instead.",
+          "projectPath": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+          "state": "Active",
+          "location": {
+            "snippetModel": {
+              "unrestricted": "xTestPlatform.StepEditor.SDK, 1.2.7",
+              "protected": "xTestPlatform.StepEditor.SDK, 1.2.7"
+            },
+            "kind": "File",
+            "path": "VISA\\VisaPlugin.UI\\VisaPlugin.UI.csproj",
+            "snippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "protectedSnippet": "xTestPlatform.StepEditor.SDK, 1.2.7",
+            "label": "xTestPlatform.StepEditor.SDK 1.2.7",
+            "properties": {
+              "PackageId": "xTestPlatform.StepEditor.SDK",
+              "PackageVersion": "1.2.7",
+              "PackageNewVersion": null,
+              "PackageReplacements": null
+            }
+          }
+        }
+      ],
+      "features": []
+    }
+  ],
+  "rules": {
+    "Pkg.0001": {
+      "id": "Pkg.0001",
+      "isFeature": false,
+      "description": "Project references a package included in this upgrade.\n\nThe project references one of the packages being upgraded. This finding records the reference (current and proposed version) so the assessment lists every affected project even when no breaking API changes were detected.",
+      "label": "Project references an upgraded package",
+      "severity": "Information",
+      "effort": 0
+    },
+    "Pkg.0003": {
+      "id": "Pkg.0003",
+      "isFeature": false,
+      "description": "NuGet package version diverges across the scoped projects.\n\nDifferent projects need or support different versions of the package, so a single unified upgrade version could not be selected. Review the per-project breakdown and decide whether to align the projects on a common version or upgrade them independently.",
+      "label": "NuGet package version diverges across projects",
+      "severity": "Potential",
+      "effort": 1
+    },
+    "Pkg.0002": {
+      "id": "Pkg.0002",
+      "isFeature": false,
+      "description": "The requested upgrade version is not supported by this project.\n\nThe version requested for the package does not support one or more of the project\u0027s target frameworks, so the assessment resolved a different (newest supported) version for this project instead. Review whether to keep the requested version and adjust the project, or accept the resolved version.",
+      "label": "Requested package version not supported by project",
+      "severity": "Potential",
+      "effort": 1
+    }
+  }
+}

@@ -29,7 +29,7 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
 
         ## 行为
 
-        - 超时内未发现服务时步骤判定为 Failed
+        - 超时内未发现服务时步骤返回 Error
 
         ## 相关插件
 

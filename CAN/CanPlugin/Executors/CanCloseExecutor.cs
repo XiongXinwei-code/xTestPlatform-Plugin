@@ -36,7 +36,7 @@ public sealed class CanCloseExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed }
+                StepResult = new StepResult { Status = TestStatus.Completed }
             };
         }
         catch (Exception ex)

@@ -78,12 +78,12 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value  = $"请求 0x{frameId:X2} → 响应: {responseHex}"
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult
             {

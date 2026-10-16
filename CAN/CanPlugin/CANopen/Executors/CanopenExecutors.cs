@@ -10,6 +10,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var operation = "CANopen SDO 读取";
         try
         {
             var step = context.CurrentStep!.Step;
@@ -28,6 +29,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
             if (index > 0xFFFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"Index 超出范围 0x0000~0xFFFF: 0x{index:X}");
             if (sub > 0xFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"SubIndex 超出范围 0~255: {sub}");
 
+            operation = $"CANopen SDO 读取节点 {node}，Index=0x{index:X4}，SubIndex={sub}";
             var client = new CanopenSdoClient(bus, node, setting.ResponseTimeoutMs);
             bool block = setting.TransferMode == CanopenSdoTransferMode.Block;
             var raw = await client.UploadAsync((ushort)index, (byte)sub, block, cancellationToken);
@@ -37,11 +39,11 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
                 context.SetVariable(setting.ResultVariable, value);
 
             context.Log($"SDO 读取 节点{node} 0x{index:X4}sub{sub}：{value}（原始数据 [{CanopenExecutorHelper.ToHex(raw)}]）");
-            return CanopenExecutorHelper.Result(TestStatus.Passed, value);
+            return CanopenExecutorHelper.Result(TestStatus.Completed, value);
         }
         catch (Exception ex)
         {
-            return CanopenExecutorHelper.FromException(ex, cancellationToken);
+            return CanopenExecutorHelper.FromException(ex, cancellationToken, operation);
         }
     }
 }
@@ -51,6 +53,7 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var operation = "CANopen SDO 写入";
         try
         {
             var step = context.CurrentStep!.Step;
@@ -69,12 +72,13 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
             if (index > 0xFFFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"Index 超出范围 0x0000~0xFFFF: 0x{index:X}");
             if (sub > 0xFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"SubIndex 超出范围 0~255: {sub}");
 
+            operation = $"CANopen SDO 写入节点 {node}，Index=0x{index:X4}，SubIndex={sub}";
             var text = await CanopenExecutorHelper.EvalTextAsync(setting.Value, context);
             byte[] data;
             try { data = CanopenDataCodec.Encode(setting.DataType, text); }
             catch (Exception ex) when (ex is FormatException or OverflowException)
             {
-                return CanopenExecutorHelper.Result(TestStatus.Error, error: $"写入值 \"{text}\" 无法转换为 {setting.DataType}: {ex.Message}");
+                return ExecutionResults.FromException(ex, $"{operation}失败：写入值无法转换为 {setting.DataType}");
             }
 
             var client = new CanopenSdoClient(bus, node, setting.ResponseTimeoutMs);
@@ -82,11 +86,11 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
             await client.DownloadAsync((ushort)index, (byte)sub, data, block, cancellationToken);
 
             context.Log($"SDO 写入 节点{node} 0x{index:X4}sub{sub}：{text}（数据 [{CanopenExecutorHelper.ToHex(data)}]）");
-            return CanopenExecutorHelper.Result(TestStatus.Passed, text);
+            return CanopenExecutorHelper.Result(TestStatus.Completed, text);
         }
         catch (Exception ex)
         {
-            return CanopenExecutorHelper.FromException(ex, cancellationToken);
+            return CanopenExecutorHelper.FromException(ex, cancellationToken, operation);
         }
     }
 }
@@ -121,7 +125,7 @@ public sealed class CanopenNmtControlExecutor : IStepExecutor
             // NMT 报文：[命令字, 节点 ID]，节点 ID 0 表示广播
             bus.Send(0x000, [cs, node]);
             context.Log($"NMT {setting.Command} → {(node == 0 ? "所有节点" : $"节点{node}")}");
-            return CanopenExecutorHelper.Result(TestStatus.Passed, setting.Command.ToString());
+            return CanopenExecutorHelper.Result(TestStatus.Completed, setting.Command.ToString());
         }
         catch (Exception ex)
         {
@@ -174,7 +178,7 @@ public sealed class CanopenWaitHeartbeatExecutor : IStepExecutor
                     if (!string.IsNullOrWhiteSpace(setting.StateVariable))
                         context.SetVariable(setting.StateVariable, name);
                     context.Log($"收到节点{node}心跳，状态 {name}");
-                    return CanopenExecutorHelper.Result(TestStatus.Passed, name);
+                    return CanopenExecutorHelper.Result(TestStatus.Completed, name);
                 }
             }
 
@@ -224,7 +228,7 @@ public sealed class CanopenPdoSendExecutor : IStepExecutor
             bus.Send(cobId, data);
             var hex = CanopenExecutorHelper.ToHex(data);
             context.Log($"PDO 发送 0x{cobId:X3}: [{hex}]");
-            return CanopenExecutorHelper.Result(TestStatus.Passed, hex);
+            return CanopenExecutorHelper.Result(TestStatus.Completed, hex);
         }
         catch (Exception ex)
         {
@@ -263,7 +267,7 @@ public sealed class CanopenPdoReceiveExecutor : IStepExecutor
                 context.SetVariable(setting.ResultVariable, hex);
 
             context.Log($"PDO 接收 0x{cobId:X3}: [{hex}]");
-            return CanopenExecutorHelper.Result(TestStatus.Passed, hex);
+            return CanopenExecutorHelper.Result(TestStatus.Completed, hex);
         }
         catch (Exception ex)
         {
@@ -302,7 +306,7 @@ public sealed class CanopenSyncSendExecutor : IStepExecutor
             context.Log(counter == 0
                 ? $"SYNC 发送 0x{cobId:X3}"
                 : $"SYNC 发送 0x{cobId:X3}，计数器 {counter}");
-            return CanopenExecutorHelper.Result(TestStatus.Passed, counter);
+            return CanopenExecutorHelper.Result(TestStatus.Completed, counter);
         }
         catch (Exception ex)
         {
@@ -377,7 +381,7 @@ public sealed class CanopenEmcyReceiveExecutor : IStepExecutor
 
                 var resetHint = errorCode == 0 ? "（错误复位）" : string.Empty;
                 context.Log($"收到节点{node} EMCY 错误码 {codeText}{resetHint}，错误寄存器 {regText}，厂商数据 [{mfrText}]");
-                return CanopenExecutorHelper.Result(TestStatus.Passed, codeText);
+                return CanopenExecutorHelper.Result(TestStatus.Completed, codeText);
             }
 
             var target = expected == null ? "EMCY" : $"错误码 0x{expected:X4} 的 EMCY";

@@ -63,7 +63,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = summary
                 }
             };

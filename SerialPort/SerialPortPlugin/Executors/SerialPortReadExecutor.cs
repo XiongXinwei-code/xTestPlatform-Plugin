@@ -58,12 +58,12 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = result
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

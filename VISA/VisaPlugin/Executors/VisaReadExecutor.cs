@@ -59,7 +59,7 @@ public sealed class VisaReadExecutor : IStepExecutor
             context.Log($"VISA Read: {response}");
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = response }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = response }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

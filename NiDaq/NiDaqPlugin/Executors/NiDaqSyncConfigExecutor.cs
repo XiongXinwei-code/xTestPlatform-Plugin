@@ -97,7 +97,7 @@ public sealed class NiDaqSyncConfigExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"同步任务 '{taskName}' 已配置 ({setting.AiChannels.Count} AI + {setting.EncoderChannels.Count} Enc)"
                 }
             };

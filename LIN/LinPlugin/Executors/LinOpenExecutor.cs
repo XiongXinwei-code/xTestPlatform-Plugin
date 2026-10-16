@@ -41,10 +41,10 @@ public sealed class LinOpenExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed }
+                StepResult = new StepResult { Status = TestStatus.Completed }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult
             {

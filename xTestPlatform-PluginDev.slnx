@@ -16,14 +16,6 @@
     <Project Path="Http/HttpPlugin.UI/HttpPlugin.UI.csproj" />
     <Project Path="Http/HttpPlugin/HttpPlugin.csproj" />
   </Folder>
-  <Folder Name="/LabVIEW_Call/">
-    <Project Path="LabVIEWCall/LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj">
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
-    <Project Path="LabVIEWCall/LabVIEWCallPlugin/LabVIEWCallPlugin.csproj">
-      <Platform Solution="*|x64" Project="x64" />
-    </Project>
-  </Folder>
   <Folder Name="/LIN/">
     <Project Path="LIN/LinPlugin.UI/LinPlugin.UI.csproj" />
     <Project Path="LIN/LinPlugin/LinPlugin.csproj" />

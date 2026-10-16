@@ -34,7 +34,7 @@ public sealed class VisaCloseExecutor : IStepExecutor
             context.Log($"VISA 会话已关闭: {connName}");
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已关闭: {connName}" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已关闭: {connName}" }
             };
         }
         catch (Exception ex)

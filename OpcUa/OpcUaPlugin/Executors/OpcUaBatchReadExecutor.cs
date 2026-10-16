@@ -41,7 +41,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
             {
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Passed, Value = "无节点需要读取" }
+                    StepResult = new StepResult { Status = TestStatus.Completed, Value = "无节点需要读取" }
                 };
             }
 
@@ -110,10 +110,10 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = string.Join(", ", results) }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = string.Join(", ", results) }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

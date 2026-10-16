@@ -38,7 +38,7 @@ public sealed class NiDaqDiReadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = data.ToString()
                 }
             };

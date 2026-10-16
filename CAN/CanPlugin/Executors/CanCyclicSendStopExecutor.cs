@@ -33,7 +33,7 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
                 {
                     StepResult = new StepResult
                     {
-                        Status = TestStatus.Passed,
+                        Status = TestStatus.Completed,
                         Value = $"已停止周期发送任务: {taskName}"
                     }
                 };
@@ -43,7 +43,7 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"未找到运行中的周期发送任务: {taskName}"
                 }
             };

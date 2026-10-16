@@ -1,5 +1,9 @@
 ﻿# 更新记录
 
+## 未发布
+- 修复：Aborted 仅用于用户取消，内部取消异常保留为 Error，由配套宿主统一记录最终错误。
+- 变更：全部步骤正常执行返回 `Completed`，执行有问题返回 `Error`，用户主动取消保留 `Aborted`；依赖原通过/失败状态的序列需相应调整。
+
 ## v1.1.0 - 2026-08-18
 - 修复：`SerialPortWrite` / `SerialPortRead` / `SerialPortQuery` 超时不生效导致序列永久阻塞的问题。`System.IO.Ports` 的 `BaseStream.ReadAsync/WriteAsync` 不响应 `CancellationToken`，现改为同步读写 + 软超时兜底
 - 变更：读写超时后步骤状态返回 `Error`（含超时毫秒数的中文错误信息），仅用户主动中止才返回 `Aborted`；不再把"超时未收到数据"当作正常结束

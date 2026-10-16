@@ -83,10 +83,10 @@ public sealed class ModbusReadExecutor : IStepExecutor
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Passed, Value = result?.ToString() }
+				StepResult = new StepResult { Status = TestStatus.Completed, Value = result?.ToString() }
 			};
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
 		}

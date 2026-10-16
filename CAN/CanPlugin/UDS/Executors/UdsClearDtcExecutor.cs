@@ -31,14 +31,15 @@ public sealed class UdsClearDtcExecutor : IStepExecutor
             if (response.IsPositive)
             {
                 context.Log($"UDS ClearDTC: 清除成功 (Group=0x{group:X6})");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = $"0x{group:X6}" } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = $"0x{group:X6}" } };
             }
             else
             {
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Failed, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return UdsExecutorHelper.Failure($"UDS 清除 DTC 组 0x{group:X6}", response);
             }
         }
-        catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return ExecutionResults.Aborted(); }
         catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }; }
     }
 }

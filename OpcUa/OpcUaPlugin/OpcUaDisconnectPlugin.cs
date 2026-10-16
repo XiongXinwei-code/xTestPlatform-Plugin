@@ -27,7 +27,7 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
         ## 行为
 
         - 从运行期资源表中查找 `ConnectionName` 对应的会话，关闭会话并从表中移除
-        - 连接名不存在或已断开时**不报错**，仅记录日志并按 Passed 返回
+        - 连接名不存在或已断开时**不报错**，仅记录日志并按 Completed 返回
 
         ## 相关插件
 

@@ -48,9 +48,9 @@ public sealed class XcpShortDownloadExecutor : IStepExecutor
 
             context.Log($"XCP SHORT_DOWNLOAD 0x{address:X8} ← {XcpExecutorHelper.ToHex(data)}");
 
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

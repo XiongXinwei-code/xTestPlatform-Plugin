@@ -78,7 +78,7 @@ public sealed class NiDaqAiConfigExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"AI 任务 '{taskName}' 已配置 ({setting.Channels.Count} 通道, {setting.SampleRate} Hz)"
                 }
             };

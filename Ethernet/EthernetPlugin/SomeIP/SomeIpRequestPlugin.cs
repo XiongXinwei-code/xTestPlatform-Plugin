@@ -34,7 +34,7 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
 
         ## 行为
 
-        - ReturnCode 非 0x00 或错误响应时步骤判定为 Failed
+        - ReturnCode 非 0x00 或错误响应时步骤返回 Error
 
         ## 相关插件
 

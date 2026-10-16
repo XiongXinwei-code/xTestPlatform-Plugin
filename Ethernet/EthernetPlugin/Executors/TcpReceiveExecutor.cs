@@ -75,7 +75,7 @@ public sealed class TcpReceiveExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = result
                 }
             };

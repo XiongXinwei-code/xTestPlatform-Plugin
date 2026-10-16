@@ -58,7 +58,7 @@ public sealed class VisaWriteExecutor : IStepExecutor
             context.Log($"VISA Write: {command}");
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = command }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = command }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

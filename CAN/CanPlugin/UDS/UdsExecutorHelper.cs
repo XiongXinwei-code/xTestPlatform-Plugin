@@ -3,6 +3,7 @@ using CAN.Helpers;
 using CAN.Models;
 using CAN.UDS.Models;
 using xTestPlatform.Core.Engine;
+using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace CAN.UDS;
@@ -44,4 +45,8 @@ internal static class UdsExecutorHelper
 
     public static string ToHex(byte[] data) =>
         BitConverter.ToString(data).Replace("-", " ");
+
+    public static ExecutionResult Failure(string operation, UdsResponse response, string value = "")
+        => ExecutionResults.Error($"{operation}失败：{response.GetNrcDescription()}",
+            detail: $"{response.RequestDescription}；{response.GetFailureValue()}", value: value);
 }

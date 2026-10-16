@@ -61,7 +61,7 @@ public sealed class VisaQueryExecutor : IStepExecutor
             context.Log($"VISA Query: {command} => {response}");
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = response }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = response }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -27,6 +27,21 @@ internal static class HttpHelper
     /// <summary>拼接客户端在资源注册表中的键</summary>
     public static string GetClientKey(string clientName) => $"Http.Client.{clientName}";
 
+    /// <summary>错误诊断仅记录目标主机，不记录认证信息、路径、查询参数或请求负载。</summary>
+    public static string DescribeRequest(string clientName, HttpClient client, HttpRequestMessage request)
+    {
+        var uri = request.RequestUri;
+        if (uri is { IsAbsoluteUri: false } && client.BaseAddress != null)
+            uri = new Uri(client.BaseAddress, uri);
+        var target = uri is { IsAbsoluteUri: true }
+            ? uri.GetComponents(UriComponents.SchemeAndServer, UriFormat.UriEscaped)
+            : "未配置绝对目标地址";
+        var timeout = client.Timeout == Timeout.InfiniteTimeSpan
+            ? "无限制"
+            : $"{client.Timeout.TotalMilliseconds} ms";
+        return $"客户端={clientName}，方法={request.Method}，目标={target}，超时={timeout}";
+    }
+
     /// <summary>
     /// 按认证方式与 TLS 选项构建 HttpClient。
     /// 四种认证方式与 TLS 选项相互正交，未使用的字段全部忽略。

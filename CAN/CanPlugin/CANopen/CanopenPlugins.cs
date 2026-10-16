@@ -42,7 +42,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
         ## 行为
 
         - 请求 COB-ID 为 0x600+NodeId，响应 COB-ID 为 0x580+NodeId
-        - 节点返回 SDO 中止时步骤结果为 Failed，Value 为中止码
+        - 节点返回 SDO 中止时步骤结果为 Error，Value 为中止码
         - 超过 ResponseTimeoutMs 未收到响应时步骤报错（Error）
         - 块传输时若节点支持 CRC，会校验 CRC；节点退回普通上传时自动兼容
 
@@ -91,7 +91,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
         ## 行为
 
         - 写入值超出数据类型范围时步骤报错（Error）
-        - 节点返回 SDO 中止时步骤结果为 Failed，Value 为中止码
+        - 节点返回 SDO 中止时步骤结果为 Error，Value 为中止码
         - 超过 ResponseTimeoutMs 未收到响应时步骤报错（Error）
 
         ## 相关插件

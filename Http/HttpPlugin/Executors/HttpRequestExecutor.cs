@@ -18,6 +18,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var operation = "HTTP 请求";
         var step = context.CurrentStep!.Step;
         var serializer = new HttpRequestPlugin().CreateSerializer();
         var setting = (HttpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -40,6 +41,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
             using var request = new HttpRequestMessage(
                 HttpHelper.ToHttpMethod(setting.Method),
                 BuildRequestUri(path));
+            operation = HttpHelper.DescribeRequest(clientName, resource.Client, request);
 
             foreach (var header in setting.Headers)
             {
@@ -80,19 +82,14 @@ public sealed class HttpRequestExecutor : IStepExecutor
 
             var succeeded = response.IsSuccessStatusCode || !setting.TreatNonSuccessAsFailure;
 
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = succeeded ? TestStatus.Passed : TestStatus.Failed,
-                    Value = statusCode.ToString(),
-                    Condition = "2xx",
-                    ElapsedMs = elapsedMs,
-                    Error = succeeded
-                        ? null
-                        : new ErrorInfo { ErrorCode = statusCode, Message = $"HTTP 请求返回非成功状态码 {statusCode}: {content}" }
-                }
-            };
+            var result = succeeded
+                ? ExecutionResults.Completed(statusCode.ToString())
+                : ExecutionResults.Error($"HTTP 请求返回非成功状态码 {statusCode}；{operation}",
+                    detail: $"响应长度={content.Length} 字符；响应内容请查看已配置的结果变量",
+                    errorCode: statusCode, value: statusCode.ToString());
+            result.StepResult.Condition = "2xx";
+            result.StepResult.ElapsedMs = elapsedMs;
+            return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -100,14 +97,11 @@ public sealed class HttpRequestExecutor : IStepExecutor
         }
         catch (TaskCanceledException ex)
         {
-            var detail = ex.InnerException?.Message;
-            return Error(string.IsNullOrWhiteSpace(detail)
-                ? "HTTP 请求超时，请检查服务端是否可达"
-                : $"HTTP 请求超时，请检查服务端是否可达: {detail}");
+            return Error($"HTTP 请求超时；{operation}", ex);
         }
         catch (Exception ex)
         {
-            return Error($"HTTP 请求失败: {ex.Message}", ex);
+            return Error($"HTTP 请求失败；{operation}", ex);
         }
     }
 
@@ -117,12 +111,6 @@ public sealed class HttpRequestExecutor : IStepExecutor
             ? absolute
             : new Uri(path.TrimStart('/'), UriKind.Relative);
 
-    private static ExecutionResult Error(string message, Exception? ex = null) => new()
-    {
-        StepResult = new StepResult
-        {
-            Status = TestStatus.Error,
-            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
-        }
-    };
+    private static ExecutionResult Error(string message, Exception? ex = null)
+        => ex is null ? ExecutionResults.Error(message) : ExecutionResults.FromException(ex, message);
 }

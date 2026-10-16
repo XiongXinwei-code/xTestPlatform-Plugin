@@ -38,7 +38,7 @@ public sealed class VisaOpenExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已连接: {resource}" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已连接: {resource}" }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -29,20 +29,13 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
 
             if (!seedResponse.IsPositive)
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Failed,
-                        Error = new ErrorInfo { Message = $"Request Seed 失败: {seedResponse.GetNrcDescription()}" },
-                        Value = seedResponse.GetFailureValue()
-                    }
-                };
+                return UdsExecutorHelper.Failure($"UDS 请求种子，访问级别 {setting.SecurityLevel}",
+                    seedResponse, seedResponse.GetFailureValue());
             }
 
             // 提取 Seed (响应: 67 [subFunc] [seed bytes...])
             byte[] seed = seedResponse.Data.Length > 1 ? seedResponse.Data[1..] : [];
-            context.Log($"UDS SecurityAccess: Seed=[{UdsExecutorHelper.ToHex(seed)}]");
+            context.Log($"UDS 已接收种子，共 {seed.Length} 字节（内容不记录）");
 
             // 将 Seed 存入用户配置的变量名供表达式使用
             if (!string.IsNullOrWhiteSpace(setting.SeedVariable))
@@ -71,7 +64,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
                 };
             }
 
-            context.Log($"UDS SecurityAccess: Key=[{UdsExecutorHelper.ToHex(key)}]");
+            context.Log($"UDS 密钥计算完成，共 {key.Length} 字节（内容不记录）");
 
             // Step 3: Send Key (偶数子功能)
             byte keySubFunc = (byte)(setting.SecurityLevel * 2);
@@ -90,22 +83,15 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
             if (unlocked)
             {
                 context.Log($"UDS SecurityAccess: 解锁成功 (Level {setting.SecurityLevel})");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = "Unlocked" } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = "Unlocked" } };
             }
             else
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Failed,
-                        Error = new ErrorInfo { Message = $"Send Key 失败: {keyResponse.GetNrcDescription()}" },
-                        Value = keyResponse.GetFailureValue()
-                    }
-                };
+                return UdsExecutorHelper.Failure($"UDS 提交密钥，访问级别 {setting.SecurityLevel}",
+                    keyResponse, keyResponse.GetFailureValue());
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

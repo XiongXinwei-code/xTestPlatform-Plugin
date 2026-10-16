@@ -69,7 +69,7 @@ public sealed class VisaBatchWriteExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"已发送 {sent} 条命令" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已发送 {sent} 条命令" }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

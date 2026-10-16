@@ -54,9 +54,9 @@ public sealed class SomeIpFireAndForgetExecutor : IStepExecutor
             context.Log(
                 $"SOME/IP FireAndForget 已发送({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
 
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed } };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

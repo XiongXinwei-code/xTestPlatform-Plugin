@@ -37,7 +37,7 @@ public sealed class NiDaqTaskStopExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Passed,
+                    Status = TestStatus.Completed,
                     Value = $"任务 '{taskName}' 已停止并释放"
                 }
             };

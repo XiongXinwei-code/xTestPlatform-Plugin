@@ -50,7 +50,7 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
                 context.Log($"OPC UA 订阅: {nodeIdStr} 当前值 {currentStr} 已满足条件");
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Passed, Value = currentStr }
+                    StepResult = new StepResult { Status = TestStatus.Completed, Value = currentStr }
                 };
             }
 
@@ -104,7 +104,7 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
 
                 return new ExecutionResult
                 {
-                    StepResult = new StepResult { Status = TestStatus.Passed, Value = resultValue }
+                    StepResult = new StepResult { Status = TestStatus.Completed, Value = resultValue }
                 };
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -126,7 +126,7 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
                 session.RemoveSubscription(subscription);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
