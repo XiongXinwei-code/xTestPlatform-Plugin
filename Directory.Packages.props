@@ -8,7 +8,7 @@
 	<PackageVersion Include="xTestPlatform.StepEditor.SDK" Version="1.2.8" />
 
 	<!-- 序列化：须 ≥ xTestPlatform.Core 引用的版本，否则报 CS1705 -->
-	<PackageVersion Include="MessagePack" Version="3.1.8" />
+	<PackageVersion Include="MessagePack" Version="3.1.9" />
 
 	<!-- UI / MVVM -->
 	<PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
@@ -26,6 +26,7 @@
 	<PackageVersion Include="NModbus" Version="3.0.81" />
 	<PackageVersion Include="System.IO.Ports" Version="8.0.0" />
 	<PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.374.126" />
+	<PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua.Core" Version="1.5.374.158" />
 	<PackageVersion Include="IviFoundation.Visa" Version="8.0.2" />
   </ItemGroup>
 </Project>

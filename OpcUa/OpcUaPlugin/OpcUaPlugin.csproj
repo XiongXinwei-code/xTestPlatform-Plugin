@@ -16,6 +16,7 @@
 	<PackageReference Include="MessagePack" />
 	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
 	<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" />
+	<PackageReference Include="OPCFoundation.NetStandard.Opc.Ua.Core" />
   </ItemGroup>
 
 </Project>
