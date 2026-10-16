@@ -61,7 +61,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = payloadHex }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

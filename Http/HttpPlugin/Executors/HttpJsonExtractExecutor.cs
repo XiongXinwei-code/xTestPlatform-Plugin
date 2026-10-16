@@ -92,12 +92,6 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
         }
     }
 
-    private static ExecutionResult Error(string message, Exception? ex = null) => new()
-    {
-        StepResult = new StepResult
-        {
-            Status = TestStatus.Error,
-            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
-        }
-    };
+    private static ExecutionResult Error(string message, Exception? ex = null)
+        => ex is null ? ExecutionResults.Error(message) : ExecutionResults.FromException(ex, message);
 }

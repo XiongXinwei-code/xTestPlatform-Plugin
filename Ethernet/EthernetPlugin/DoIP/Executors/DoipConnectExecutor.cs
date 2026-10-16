@@ -46,22 +46,16 @@ public sealed class DoipConnectExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            return Error($"DoIP 连接超时({setting.TimeoutMs}ms): {host}:{port}");
+            return Error($"DoIP 连接超时({setting.TimeoutMs}ms): {host}:{port}", ex);
         }
         catch (Exception ex)
         {
-            return Error($"DoIP CONNECT 失败: {ex.Message}", ex);
+            return Error($"DoIP 连接 {host}:{port} 失败：{ex.Message}", ex);
         }
     }
 
-    private static ExecutionResult Error(string message, Exception? ex = null) => new()
-    {
-        StepResult = new StepResult
-        {
-            Status = TestStatus.Error,
-            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
-        }
-    };
+    private static ExecutionResult Error(string message, Exception? ex = null)
+        => ex is null ? ExecutionResults.Error(message) : ExecutionResults.FromException(ex, message);
 }

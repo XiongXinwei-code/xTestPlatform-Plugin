@@ -25,7 +25,7 @@ public sealed class XcpDisconnectExecutor : IStepExecutor
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

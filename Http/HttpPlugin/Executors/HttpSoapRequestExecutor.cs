@@ -20,6 +20,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var operation = "SOAP 请求";
         var step = context.CurrentStep!.Step;
         var serializer = new HttpSoapRequestPlugin().CreateSerializer();
         var setting = (HttpSoapRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -46,6 +47,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             var soapAction = await Evaluator.EvalStringAsync(setting.SoapAction, context);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, BuildRequestUri(path));
+            operation = HttpHelper.DescribeRequest(clientName, resource.Client, request);
 
             var mediaType = setting.SoapVersion == SoapVersion.Soap12
                 ? "application/soap+xml"
@@ -98,33 +100,23 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             var faultMessage = setting.TreatSoapFaultAsFailure ? TryGetFaultMessage(responseXml) : null;
             if (faultMessage != null)
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Value = statusCode.ToString(),
-                        ElapsedMs = elapsedMs,
-                        Error = new ErrorInfo { ErrorCode = statusCode, Message = $"服务端返回 SOAP Fault: {faultMessage}" }
-                    }
-                };
+                var faultResult = ExecutionResults.Error($"服务端返回 SOAP Fault；{operation}",
+                    detail: "服务端包含 Fault；具体内容请查看已配置的响应结果变量",
+                    errorCode: statusCode, value: statusCode.ToString());
+                faultResult.StepResult.ElapsedMs = elapsedMs;
+                return faultResult;
             }
 
             var succeeded = response.IsSuccessStatusCode || !setting.TreatNonSuccessAsFailure;
 
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = succeeded ? TestStatus.Completed : TestStatus.Error,
-                    Value = statusCode.ToString(),
-                    Condition = "2xx",
-                    ElapsedMs = elapsedMs,
-                    Error = succeeded
-                        ? null
-                        : new ErrorInfo { ErrorCode = statusCode, Message = $"SOAP 调用返回非成功状态码 {statusCode}: {responseXml}" }
-                }
-            };
+            var result = succeeded
+                ? ExecutionResults.Completed(statusCode.ToString())
+                : ExecutionResults.Error($"SOAP 调用返回非成功状态码 {statusCode}；{operation}",
+                    detail: $"响应长度={responseXml.Length} 字符；响应内容请查看已配置的结果变量",
+                    errorCode: statusCode, value: statusCode.ToString());
+            result.StepResult.Condition = "2xx";
+            result.StepResult.ElapsedMs = elapsedMs;
+            return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -132,14 +124,11 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
         }
         catch (TaskCanceledException ex)
         {
-            var detail = ex.InnerException?.Message;
-            return Error(string.IsNullOrWhiteSpace(detail)
-                ? "SOAP 调用超时，请检查服务端是否可达"
-                : $"SOAP 调用超时，请检查服务端是否可达: {detail}");
+            return Error($"SOAP 调用超时；{operation}", ex);
         }
         catch (Exception ex)
         {
-            return Error($"SOAP 调用失败: {ex.Message}", ex);
+            return Error($"SOAP 调用失败；{operation}", ex);
         }
     }
 
@@ -173,12 +162,6 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             ? absolute
             : new Uri(path.TrimStart('/'), UriKind.Relative);
 
-    private static ExecutionResult Error(string message, Exception? ex = null) => new()
-    {
-        StepResult = new StepResult
-        {
-            Status = TestStatus.Error,
-            Error = ex is null ? new ErrorInfo { Message = message } : ErrorInfo.FromException(ex, message)
-        }
-    };
+    private static ExecutionResult Error(string message, Exception? ex = null)
+        => ex is null ? ExecutionResults.Error(message) : ExecutionResults.FromException(ex, message);
 }

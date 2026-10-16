@@ -50,7 +50,7 @@ public sealed class LinWakeupExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Completed }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult
             {

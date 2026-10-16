@@ -502,7 +502,7 @@ public interface IStepSettingSerializer {
 | 用户主动取消 | `TestStatus.Aborted` | 保留取消语义，不得把普通超时当作用户取消 |
 
 - **禁止返回 `TestStatus.Passed` 或 `TestStatus.Failed`**。测试值是否符合期望，应交由后续独立判定步骤或宿主的判定机制处理，不能把测量值不符合期望直接改写成执行错误。
-- **执行问题统一返回 `Error`。此约束不影响 `StepSettingError.Warning(...)` 编辑器校验或 `LogLevel.Warn` 日志等级。
+- **执行问题统一返回 `Error`。** 此约束不影响 `StepSettingError.Warning(...)` 编辑器校验或 `LogLevel.Warn` 日志等级。
 - 已明确配置为忽略的情况（如关闭不存在的连接且 `IgnoreIfNotFound = true`），按约定正常结束时返回 `Completed`；配置为报错时返回 `Error`，须在 Description 中写明。
 - 以下枚举展示 SDK 的完整契约；其中的 `Passed`、`Failed` 等成员不表示允许插件返回这些状态。
 
@@ -542,7 +542,26 @@ public enum ExecutionSignal {
 }
 ```
 
-**典型写法：**
+**SDK 1.2.8 推荐入口：** `xTestPlatform.Core.Models.ExecutionResults` 提供
+`Completed(string? value = null)`、`Error(string message, string? detail = null, int errorCode = 0, string? value = null)`、
+`FromException(Exception exception, string? message = null, string? value = null)` 和 `Aborted(string? value = null)`。
+不要误用旧的 `ExecutionResult.Success/Fail` 工厂。直接构造结果仍兼容，尤其要保留单位、边界、条件和实际值等已有字段。
+
+工厂每次创建独立结果，默认信号为 `CollectResult`，不记录日志、不设置执行耗时或步骤元信息。
+`Error` 拒绝空白消息；`FromException` 保留完整异常链和堆栈，未提供有效消息时使用中文兜底；它不会自动把取消异常转为 `Aborted`。
+未传实际值保持原 SDK 空字符串默认约定；迁移已有显式 null 值时须自行保持原语义。
+
+```csharp
+return ExecutionResults.Completed(actual.ToString());
+return ExecutionResults.Error("节点 3 的 SDO 读取被设备拒绝",
+    detail: "Index=0x2000，SubIndex=0，AbortCode=0x06020000", value: "0x06020000");
+return ExecutionResults.FromException(ex, "读取串口 COM3 失败");
+return ExecutionResults.Aborted();
+```
+
+使用新工厂的插件要求宿主包含匹配的 Core 契约，须先升级宿主再部署插件；回退也应成套进行，禁止复制冲突 Core 到插件目录规避版本不匹配。
+
+**兼容的直接构造写法：**
 
 ```csharp
 // ✅ 操作正常完成（不代表测试通过）
@@ -2127,31 +2146,22 @@ public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
 
 ### 13.4 异常处理规范
 
-**插件执行器（IStepExecutor）绝不能抛出未捕获的异常中断程序。**
+**插件执行异常必须形成可诊断的 Error 结果，不能使异常逃出宿主的执行边界。**
 
 框架的 `PluginStepHandler` 已在外层提供兜底保护，但最佳实践是在执行器内部自行处理：
 
 ```csharp
 public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, CancellationToken ct) {
-    var result = ctx.CurrentStep!.Step.StepSetting;  // 获取设置
     try {
+        var result = ctx.CurrentStep!.Step.StepSetting;  // 获取并解析设置也放入保护范围
         // ... 业务逻辑 ...
-        return new ExecutionResult {
-            StepResult = new StepResult { Status = TestStatus.Completed }
-        };
+        return ExecutionResults.Completed();
     }
     catch (OperationCanceledException) when (ct.IsCancellationRequested) {
-        return new ExecutionResult {
-            StepResult = new StepResult { Status = TestStatus.Aborted }
-        };
+        return ExecutionResults.Aborted();
     }
     catch (Exception ex) {
-        return new ExecutionResult {
-            StepResult = new StepResult {
-                Status = TestStatus.Error,
-                Error  = ErrorInfo.FromException(ex)
-            }
-        };
+        return ExecutionResults.FromException(ex, "执行设备操作失败");
     }
 }
 ```
@@ -2163,13 +2173,20 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 | `OperationCanceledException` 且用户取消令牌已取消 | 设置 `TestStatus.Aborted`，正常返回 |
 | 超时（包括非用户取消导致的取消异常） | 设置 `TestStatus.Error` + 中文错误信息，正常返回 |
 | 其他 `Exception`               | 设置 `TestStatus.Error` + `ErrorInfo.FromException(ex)`，正常返回 |
-| 绝不允许                         | 直接 `throw` 导致引擎崩溃                 |
+| 宿主兜底 | 未捕获异常（含配置解析、执行器创建异常）由执行边界转换为 Error，插件仍应尽可能补齐业务上下文 |
 
 > ⚠️ 即使框架有兜底 try/catch，插件内部处理异常可以提供更精确的错误信息和上下文。
 
-> 💡 务必使用 `ErrorInfo.FromException(ex)` 而不是 `new ErrorInfo { Message = ex.Message }`。前者会自动提取最内层异常作为 `Message`，并把完整异常链与调用堆栈写入 `Detail`，供调试工具和 AI 助手排障；测试报告仍只显示 `Message`，不会被堆栈污染。
+> 💡 使用 `ExecutionResults.FromException(ex, "中文操作上下文")` 或 `ErrorInfo.FromException(ex, message)`，不要只复制 `ex.Message`。有效的自定义主消息会被保留，完整异常链与调用堆栈进入 `Detail`；测试报告仍只显示主消息。
+
+只根据原始用户取消令牌判断 `Aborted`，不能根据包含超时的链接令牌判断。已经明确返回的 Error 不应因并发取消而被无条件覆盖。
 
 ### 13.5 调试日志输出
+
+**SDK 1.2.8 最终错误责任：** 引擎在发布普通插件的最终 Error 前统一记录一次 Error 日志，主消息和详情分别与 `ErrorInfo.Message`、`Detail` 一致。
+插件返回 Error 或通过 FromException 返回异常时，不要再记录同一份最终错误；过程日志、重试 Warn 和清理日志仍由插件负责。
+后台任务在启动步骤返回后的故障不受本次结果工厂覆盖，保留自身日志与资源清理职责，不能事后改写启动结果或构造隐式变量路径上报。
+密码、Token、认证头、密钥及敏感请求/响应不应直接写入 Message、Detail 或过程日志；HTTP 诊断只记录脱敏目标与方法，UDS 密钥不记录明文。
 
 插件开发完成后，在测试平台调试时可通过 `IExecutionContext.Log(...)` 输出日志到平台的调试界面（LogMonitor）：
 
@@ -2209,7 +2226,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 #### 三条硬性约定
 
 1. **不要在消息里手写等级前缀**。旧写法 `ctx.LogAction?.Invoke("[Error] 打开串口失败")` 必须改成
-   `ctx.Log(LogLevel.Error, "打开串口失败")`。平台靠 `LogLevel` 字段做着色、计数与过滤，
+   结构化的日志调用；如果它是本步骤的最终错误，改为 `return ExecutionResults.Error("打开串口失败")`，交给引擎记录。平台靠 `LogLevel` 字段做着色、计数与过滤，
    正文里的 `[Error]` 不但不会被识别，还会让日志行出现重复前缀。
 2. **不要自己打时间戳**。时间戳由引擎在日志产生的那一刻生成（`DateTimeOffset`），
    精度和顺序都比插件自己取 `DateTime.Now` 更可靠。
@@ -2217,7 +2234,7 @@ public async Task<ExecutionResult> ExecuteAsync(IExecutionContext ctx, Cancellat
 
 ```csharp
 catch (Exception ex) {
-    ctx.Log(LogLevel.Error, $"打开串口 {s.PortName} 失败：{ex.Message}", ex.ToString());
+    return ExecutionResults.FromException(ex, $"打开串口 {s.PortName} 失败");
 }
 ```
 
@@ -2230,7 +2247,7 @@ catch (Exception ex) {
 |--------|--------|
 | `ctx.LogAction?.Invoke("正在连接")` | `ctx.Log("正在连接")` |
 | `ctx.LogAction?.Invoke("[Warn] 重试第 1 次")` | `ctx.Log(LogLevel.Warn, "重试第 1 次")` |
-| `ctx.LogAction?.Invoke("[Error] " + ex.Message)` | `ctx.Log(LogLevel.Error, ex.Message, ex.ToString())` |
+| 即将返回 Error 前的 `ctx.LogAction?.Invoke("[Error] " + ex.Message)` | `return ExecutionResults.FromException(ex, "中文操作失败信息")`，不重复记录最终日志 |
 
 > ⚠️ `IExecutionContext.LogAction` 已移除。`Log` 是接口上的方法而非可空委托，
 > 因此不需要再写 `?.Invoke`，直接调用即可。

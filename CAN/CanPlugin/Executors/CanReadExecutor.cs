@@ -24,14 +24,7 @@ public sealed class CanReadExecutor : IStepExecutor
             var key = CanHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {connName}" }
-                    }
-                };
+                return ExecutionResults.Error($"CAN 连接未找到: {connName}");
             }
 
             // 解析过滤 ID
@@ -52,14 +45,8 @@ public sealed class CanReadExecutor : IStepExecutor
 
             if (msg == null)
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"读取超时 ({setting.ReadTimeoutMs}ms)" }
-                    }
-                };
+                return ExecutionResults.Error($"CAN 连接 {connName} 读取超时 ({setting.ReadTimeoutMs}ms)",
+                    detail: $"过滤ID={(filterId.HasValue ? $"0x{filterId.Value:X}" : "不限")}");
             }
 
             var dataHex = BitConverter.ToString(msg.Data).Replace("-", " ");
@@ -72,32 +59,15 @@ public sealed class CanReadExecutor : IStepExecutor
 
             context.Log($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
 
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Completed,
-                    Value = $"0x{msg.Id:X}: {dataHex}"
-                }
-            };
+            return ExecutionResults.Completed($"0x{msg.Id:X}: {dataHex}");
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult { Status = TestStatus.Aborted }
-            };
+            return ExecutionResults.Aborted();
         }
         catch (Exception ex)
         {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex, $"CAN 读取失败: {ex.Message}")
-                }
-            };
+            return ExecutionResults.FromException(ex, $"CAN 读取失败: {ex.Message}");
         }
     }
 

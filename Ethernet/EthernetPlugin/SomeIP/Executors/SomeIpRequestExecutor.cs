@@ -71,7 +71,7 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = responseHex }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

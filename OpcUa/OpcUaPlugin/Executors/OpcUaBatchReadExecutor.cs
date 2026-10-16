@@ -113,7 +113,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = string.Join(", ", results) }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

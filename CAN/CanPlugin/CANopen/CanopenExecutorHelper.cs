@@ -82,27 +82,31 @@ internal static class CanopenExecutorHelper
     public static string ToHex(byte[] data) => BitConverter.ToString(data).Replace("-", " ");
 
     /// <summary>构造步骤执行结果，结果值统一按不变区域格式化为字符串</summary>
-    public static ExecutionResult Result(TestStatus status, object? value = null, string? error = null) => new()
+    public static ExecutionResult Result(TestStatus status, object? value = null, string? error = null)
     {
-        StepResult = new StepResult
+        var text = value switch
         {
-            Status = status,
-            Value = value switch
-            {
-                null => null,
-                IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
-                _ => value.ToString()
-            },
-            Error = error == null ? null : new ErrorInfo { Message = error }
-        }
-    };
+            null => null,
+            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
+            _ => value.ToString()
+        };
+        var result = status switch
+        {
+            TestStatus.Completed => ExecutionResults.Completed(text),
+            TestStatus.Aborted => ExecutionResults.Aborted(text),
+            TestStatus.Error => ExecutionResults.Error(error ?? "CANopen 执行失败，未提供错误描述", value: text),
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, "不支持的 CANopen 执行状态")
+        };
+        result.StepResult.Value = text;
+        return result;
+    }
 
     /// <summary>异常映射：用户取消 → Aborted；SDO 中止、超时及其他异常 → Error</summary>
-    public static ExecutionResult FromException(Exception ex, CancellationToken ct) => ex switch
+    public static ExecutionResult FromException(Exception ex, CancellationToken ct, string? operation = null) => ex switch
     {
-        OperationCanceledException when ct.IsCancellationRequested => Result(TestStatus.Aborted),
-        CanopenSdoAbortException abort => Result(TestStatus.Error, $"0x{abort.AbortCode:X8}", abort.Message),
-        TimeoutException timeout => Result(TestStatus.Error, error: timeout.Message),
-        _ => new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }
+        OperationCanceledException when ct.IsCancellationRequested => ExecutionResults.Aborted(),
+        CanopenSdoAbortException abort => ExecutionResults.FromException(abort,
+            $"{operation ?? "CANopen SDO 操作"}失败：{abort.Message}", value: $"0x{abort.AbortCode:X8}"),
+        _ => ExecutionResults.FromException(ex, $"{operation ?? "CANopen 操作"}失败：{ex.Message}")
     };
 }

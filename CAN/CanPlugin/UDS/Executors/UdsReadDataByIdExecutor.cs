@@ -42,13 +42,11 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
             }
             else
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() }, Value = response.GetFailureValue() }
-                };
+                return UdsExecutorHelper.Failure($"UDS 读取 DID 0x{did:X4}", response, response.GetFailureValue());
             }
         }
-        catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return ExecutionResults.Aborted(); }
         catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }; }
     }
 }

@@ -49,10 +49,11 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
             }
             else
             {
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return UdsExecutorHelper.Failure($"UDS 例程 {setting.ControlType}，RID=0x{rid:X4}", response);
             }
         }
-        catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return ExecutionResults.Aborted(); }
         catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }; }
     }
 

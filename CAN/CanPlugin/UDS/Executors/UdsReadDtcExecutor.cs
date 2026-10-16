@@ -32,10 +32,11 @@ public sealed class UdsReadDtcExecutor : IStepExecutor
             }
             else
             {
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return UdsExecutorHelper.Failure($"UDS 读取 DTC，子功能 0x{setting.SubFunction:X2}", response);
             }
         }
-        catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return ExecutionResults.Aborted(); }
         catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }; }
     }
 }

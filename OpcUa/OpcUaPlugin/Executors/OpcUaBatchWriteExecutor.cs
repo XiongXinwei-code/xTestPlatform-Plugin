@@ -75,24 +75,22 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
 
             var response = await session.WriteAsync(null, writeValues, cancellationToken);
 
+            if (response.Results.Count != writeValues.Count)
+                return ExecutionResults.Error($"OPC UA 连接 {connName} 批量写入响应数量不匹配",
+                    detail: $"请求节点数={writeValues.Count}，响应结果数={response.Results.Count}");
+
             // 检查结果
-            var failedCount = 0;
+            var failures = new List<string>();
             for (int i = 0; i < response.Results.Count; i++)
             {
                 if (StatusCode.IsBad(response.Results[i]))
-                    failedCount++;
+                    failures.Add($"第 {i + 1} 项，NodeId={writeValues[i].NodeId}，StatusCode={response.Results[i]} (0x{response.Results[i].Code:X8})");
             }
 
-            if (failedCount > 0)
+            if (failures.Count > 0)
             {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"批量写入部分失败: {failedCount}/{setting.Items.Count} 个节点写入失败" }
-                    }
-                };
+                return ExecutionResults.Error($"OPC UA 连接 {connName} 批量写入失败：{failures.Count}/{setting.Items.Count} 个节点写入失败",
+                    detail: string.Join(Environment.NewLine, failures));
             }
 
             context.Log($"OPC UA 批量写入: {setting.Items.Count} 个节点完成");
@@ -102,7 +100,7 @@ public sealed class OpcUaBatchWriteExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已写入 {setting.Items.Count} 个节点" }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

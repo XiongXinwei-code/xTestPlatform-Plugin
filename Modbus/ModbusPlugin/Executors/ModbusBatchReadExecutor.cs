@@ -92,7 +92,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 				StepResult = new StepResult { Status = TestStatus.Completed, Value = summary }
 			};
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
 		}

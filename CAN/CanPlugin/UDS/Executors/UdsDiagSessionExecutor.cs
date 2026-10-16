@@ -41,26 +41,10 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
             }
             else
             {
-                if (response.IsTimeout)
-                    context.Log(LogLevel.Warn, $"UDS DiagSession 接收超时: {response.DiagnosticMessage}");
-
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Error = new ErrorInfo
-                        {
-                            Message = response.IsTimeout
-                                ? response.GetNrcDescription()
-                                : $"否定响应: {response.GetNrcDescription()}"
-                        },
-                        Value = response.GetFailureValue()
-                    }
-                };
+                return UdsExecutorHelper.Failure($"UDS 切换会话 {setting.SessionType}", response, response.GetFailureValue());
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

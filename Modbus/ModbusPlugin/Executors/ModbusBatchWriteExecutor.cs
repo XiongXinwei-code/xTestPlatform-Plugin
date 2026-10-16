@@ -96,7 +96,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已写入 {setting.Items.Count} 项" }
 			};
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 			return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
 		}

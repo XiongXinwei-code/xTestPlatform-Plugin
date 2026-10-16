@@ -251,16 +251,13 @@ public sealed class CanFlashExecutor : IStepExecutor
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = $"{writtenBytes} 字节" }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
         catch (Exception ex)
         {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) }
-            };
+            return ExecutionResults.FromException(ex, $"UDS 刷写失败：{ex.Message}");
         }
     }
 
@@ -382,22 +379,9 @@ public sealed class CanFlashExecutor : IStepExecutor
         }
     }
 
-    private static ExecutionResult Error(string message) => new()
-    {
-        StepResult = new StepResult
-        {
-            Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message }
-        }
-    };
+    private static ExecutionResult Error(string message)
+        => ExecutionResults.Error($"UDS 刷写失败：{message}");
 
-    private static ExecutionResult Error(string message, string value) => new()
-    {
-        StepResult = new StepResult
-        {
-            Status = TestStatus.Error,
-            Error = new ErrorInfo { Message = message },
-            Value = value
-        }
-    };
+    private static ExecutionResult Error(string message, string value)
+        => ExecutionResults.Error($"UDS 刷写失败：{message}", detail: value, value: value);
 }

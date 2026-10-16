@@ -46,9 +46,10 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
             if (response.IsPositive)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = responseHex } };
             else
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Value = responseHex, Error = new ErrorInfo { Message = response.GetNrcDescription() } } };
+                return UdsExecutorHelper.Failure($"UDS 原始请求 SID=0x{requestData[0]:X2}", response, responseHex);
         }
-        catch (OperationCanceledException) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return ExecutionResults.Aborted(); }
         catch (Exception ex) { return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex) } }; }
     }
 

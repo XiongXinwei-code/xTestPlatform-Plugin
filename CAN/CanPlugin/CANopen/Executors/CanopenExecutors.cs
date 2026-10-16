@@ -10,6 +10,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var operation = "CANopen SDO 读取";
         try
         {
             var step = context.CurrentStep!.Step;
@@ -28,6 +29,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
             if (index > 0xFFFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"Index 超出范围 0x0000~0xFFFF: 0x{index:X}");
             if (sub > 0xFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"SubIndex 超出范围 0~255: {sub}");
 
+            operation = $"CANopen SDO 读取节点 {node}，Index=0x{index:X4}，SubIndex={sub}";
             var client = new CanopenSdoClient(bus, node, setting.ResponseTimeoutMs);
             bool block = setting.TransferMode == CanopenSdoTransferMode.Block;
             var raw = await client.UploadAsync((ushort)index, (byte)sub, block, cancellationToken);
@@ -41,7 +43,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return CanopenExecutorHelper.FromException(ex, cancellationToken);
+            return CanopenExecutorHelper.FromException(ex, cancellationToken, operation);
         }
     }
 }
@@ -51,6 +53,7 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        var operation = "CANopen SDO 写入";
         try
         {
             var step = context.CurrentStep!.Step;
@@ -69,12 +72,13 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
             if (index > 0xFFFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"Index 超出范围 0x0000~0xFFFF: 0x{index:X}");
             if (sub > 0xFF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"SubIndex 超出范围 0~255: {sub}");
 
+            operation = $"CANopen SDO 写入节点 {node}，Index=0x{index:X4}，SubIndex={sub}";
             var text = await CanopenExecutorHelper.EvalTextAsync(setting.Value, context);
             byte[] data;
             try { data = CanopenDataCodec.Encode(setting.DataType, text); }
             catch (Exception ex) when (ex is FormatException or OverflowException)
             {
-                return CanopenExecutorHelper.Result(TestStatus.Error, error: $"写入值 \"{text}\" 无法转换为 {setting.DataType}: {ex.Message}");
+                return ExecutionResults.FromException(ex, $"{operation}失败：写入值无法转换为 {setting.DataType}");
             }
 
             var client = new CanopenSdoClient(bus, node, setting.ResponseTimeoutMs);
@@ -86,7 +90,7 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return CanopenExecutorHelper.FromException(ex, cancellationToken);
+            return CanopenExecutorHelper.FromException(ex, cancellationToken, operation);
         }
     }
 }
