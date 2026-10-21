@@ -79,10 +79,14 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
 
     private void Release()
     {
-        try
-        {
-            if (Volatile.Read(ref _disposed) != 0) DisposeInner();
-        }
+        _ioGate.Release();
+        if (Volatile.Read(ref _disposed) != 0) TryDisposeInner();
+    }
+
+    private void TryDisposeInner()
+    {
+        if (!_ioGate.Wait(0)) return;
+        try { DisposeInner(); }
         finally { _ioGate.Release(); }
     }
 
@@ -99,6 +103,6 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-        if (_ioGate.Wait(0)) Release();
+        TryDisposeInner();
     }
 }

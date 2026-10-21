@@ -380,5 +380,6 @@ internal static class Program
             var result = await plugin.CreateExecutor().ExecuteAsync(context, default);
             Check(result.StepResult.Status == TestStatus.Error && result.StepResult.Error?.Message.Contains("超时") == true);
         });
+        await ConcurrencyAndModeTests.RunAsync(Test);
     }
 }
