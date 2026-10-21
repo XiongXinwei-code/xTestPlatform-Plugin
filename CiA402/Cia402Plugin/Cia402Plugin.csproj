@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<Version>1.0.0</Version>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>CiA402.StepPlugin</AssemblyName>
+	<RootNamespace>CiA402</RootNamespace>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<OutputPath>..\..\artifacts\$(Configuration)\Plugins\CiA402\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+	<PackageReference Include="MessagePack" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+	<ProjectReference Include="..\..\CAN\CanPlugin\CanPlugin.csproj" />
+	<None Include="..\README.md" Link="README.md" CopyToOutputDirectory="PreserveNewest" />
+	<None Include="..\CHANGELOG.md" Link="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" />
+	<None Include="..\icon.png" Link="icon.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

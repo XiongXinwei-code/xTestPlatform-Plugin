@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<OutputType>Exe</OutputType>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<UseWPF>true</UseWPF>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>CiA402.ContractTests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+	<ProjectReference Include="..\Cia402Plugin\Cia402Plugin.csproj" />
+	<ProjectReference Include="..\Cia402Plugin.UI\Cia402Plugin.UI.csproj" />
+  </ItemGroup>
+</Project>
