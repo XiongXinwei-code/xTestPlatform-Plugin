@@ -5,10 +5,11 @@ namespace CiA402.Core;
 
 public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetting configuration)
 {
+    private readonly ICia402AxisTransport _transport = new CoordinatedAxisTransport(transport, configuration.CommunicationTimeoutMs);
     private readonly Dictionary<OperationMode, long> _cyclicTargets = new();
     private ushort _control;
     private OperationMode? _mode;
-    public ICia402AxisTransport Transport => transport;
+    public ICia402AxisTransport Transport => _transport;
     public int PollIntervalMs { get; set; } = 20;
     private ushort Index(int index) => checked((ushort)(index + configuration.ObjectIndexOffset));
 
@@ -30,9 +31,9 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
     }
 
     public async Task<long> ReadAsync(int index, int bytes, bool signed, CancellationToken ct, byte subIndex = 0)
-        => ObjectCodec.Decode(await transport.ReadObjectAsync(Index(index), subIndex, ct).ConfigureAwait(false), bytes, signed);
+        => ObjectCodec.Decode(await _transport.ReadObjectAsync(Index(index), subIndex, ct).ConfigureAwait(false), bytes, signed);
     public Task WriteAsync(int index, long value, int bytes, bool signed, CancellationToken ct, byte subIndex = 0)
-        => transport.WriteObjectAsync(Index(index), subIndex, ObjectCodec.Encode(value, bytes, signed), ct);
+        => _transport.WriteObjectAsync(Index(index), subIndex, ObjectCodec.Encode(value, bytes, signed), ct);
 
     public async Task InitializeAsync(CancellationToken ct)
     {
@@ -48,7 +49,7 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
     public async Task<long> ReadHardwareAsync(CancellationToken ct)
     {
         if (configuration.DiagnosticIndex == 0) throw new InvalidOperationException("未配置硬件诊断对象，不能推断硬件状态");
-        return ObjectCodec.Decode(await transport.ReadObjectAsync((ushort)configuration.DiagnosticIndex,
+        return ObjectCodec.Decode(await _transport.ReadObjectAsync((ushort)configuration.DiagnosticIndex,
             (byte)configuration.DiagnosticSubIndex, ct).ConfigureAwait(false), configuration.DiagnosticBytes, false);
     }
     public bool HardwareActive(long value) => configuration.DiagnosticMask != 0 &&
@@ -72,7 +73,7 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
         _control = next;
         // 将已提交的周期目标同步为新的控制字，防止后续 SYNC 应用旧的使能位。
         if (_mode is { } mode && _cyclicTargets.TryGetValue(mode, out var target))
-            await transport.WriteTargetAsync(mode, target, _control, ct).ConfigureAwait(false);
+            await _transport.WriteTargetAsync(mode, target, _control, ct).ConfigureAwait(false);
     }
 
     private async Task WaitAsync(Func<ushort, bool> reached, CancellationToken ct, bool allowFault = false, bool motion = false)
@@ -105,7 +106,7 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
         _mode = (OperationMode)modeValue;
         if (_mode is OperationMode.CSP or OperationMode.CSV or OperationMode.CST)
         {
-            transport.RequireCyclicMode(_mode.Value);
+            _transport.RequireCyclicMode(_mode.Value);
             if (!_cyclicTargets.TryGetValue(_mode.Value, out var initialTarget)) throw new InvalidOperationException("周期模式使能前必须先写入初始目标，并按设备要求完成 SYNC");
             var expected = _mode == OperationMode.CSP ? await ReadAsync(0x6064, 4, true, ct).ConfigureAwait(false) : 0;
             if (initialTarget != expected) throw new InvalidOperationException("使能前周期目标与当前位置或零目标不一致，请重新准备初始目标");
@@ -154,13 +155,20 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
         }
     }
 
-    public async Task SetModeAsync(OperationMode mode, CancellationToken ct)
+    public Task SetModeAsync(OperationMode mode, CancellationToken ct) => SetModeAsync(mode, false, ct);
+
+    public async Task SetModeAsync(OperationMode mode, bool allowWhileEnabled, CancellationToken ct)
     {
         if (!Enum.IsDefined(mode)) throw new ArgumentException("运行模式无效");
         var state = DecodeState(await ReadStatusAsync(ct).ConfigureAwait(false));
+        if (state == DriveState.OperationEnabled && allowWhileEnabled)
+        {
+            await SetEnabledModeAsync(mode, ct).ConfigureAwait(false);
+            return;
+        }
         if (state is not (DriveState.SwitchOnDisabled or DriveState.ReadyToSwitchOn or DriveState.SwitchedOn))
             throw new InvalidOperationException("切换模式前必须释放运行使能，并确认驱动无故障");
-        if (mode is OperationMode.CSP or OperationMode.CSV or OperationMode.CST) transport.RequireCyclicMode(mode);
+        if (mode is OperationMode.CSP or OperationMode.CSV or OperationMode.CST) _transport.RequireCyclicMode(mode);
         await ControlAsync(0x01F0, 0, ct).ConfigureAwait(false);
         await WriteAsync(0x6060, (sbyte)mode, 1, true, ct).ConfigureAwait(false);
         while (await ReadModeAsync(ct).ConfigureAwait(false) != (sbyte)mode)
@@ -170,6 +178,82 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
         }
         _mode = mode;
         _cyclicTargets.Clear();
+    }
+
+    private async Task CheckEnabledSwitchAsync(CancellationToken ct)
+    {
+        var status = await ReadStatusAsync(ct).ConfigureAwait(false);
+        CheckFault(status);
+        if (DecodeState(status) != DriveState.OperationEnabled)
+            throw new InvalidOperationException("模式切换期间驱动退出运行使能状态，不能视为使能态切换成功");
+        if (await ReadAsync(0x606C, 4, true, ct).ConfigureAwait(false) != 0)
+            throw new InvalidOperationException("使能态切换要求实际速度为零，请先停止运动；本步骤不会自动停轴");
+        await CheckHardwareAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task SetEnabledModeAsync(OperationMode mode, CancellationToken ct)
+    {
+        var currentValue = await ReadModeAsync(ct).ConfigureAwait(false);
+        if (!Enum.IsDefined(typeof(OperationMode), currentValue)) throw new InvalidOperationException("当前实际模式不在支持范围，不能执行使能态切换");
+        var current = (OperationMode)currentValue;
+        await CheckEnabledSwitchAsync(ct).ConfigureAwait(false);
+        if (current == mode) return;
+        if (mode is OperationMode.CSP or OperationMode.CSV or OperationMode.CST) _transport.RequireCyclicMode(mode);
+
+        _control = (ushort)await ReadAsync(0x6040, 2, false, ct).ConfigureAwait(false);
+        if ((_control & 0x0190) != 0)
+            throw new InvalidOperationException("使能态切换前必须撤销运动启动、复位和 Halt 标记；本步骤不隐式恢复运动");
+        var status = await ReadStatusAsync(ct).ConfigureAwait(false);
+        if ((status & 0x0800) != 0 || (current is OperationMode.PP or OperationMode.CSP or OperationMode.HM && (status & 0x2000) != 0))
+            throw new InvalidOperationException("驱动报告限幅或模式错误，不能切换模式");
+        if (current == OperationMode.PP && (status & 0x0400) == 0)
+            throw new InvalidOperationException("PP 运动尚未确认到位，不能执行使能态切换");
+        var position = await ReadAsync(0x6064, 4, true, ct).ConfigureAwait(false);
+        if (current is OperationMode.PV or OperationMode.CSV && await ReadAsync(0x60FF, 4, true, ct).ConfigureAwait(false) != 0)
+            throw new InvalidOperationException("切换前速度模式目标必须为零");
+        if (current is OperationMode.PT or OperationMode.CST && await ReadAsync(0x6071, 2, true, ct).ConfigureAwait(false) != 0)
+            throw new InvalidOperationException("切换前转矩模式目标必须为零");
+        if (current == OperationMode.CSP && await ReadAsync(0x607A, 4, true, ct).ConfigureAwait(false) != position)
+            throw new InvalidOperationException("切换前 CSP 目标必须等于当前位置");
+        if (_cyclicTargets.TryGetValue(current, out var previousTarget) && previousTarget != (current == OperationMode.CSP ? position : 0))
+            throw new InvalidOperationException("尚有非静止周期目标，请先停止更新并完成上一周期 PDO/SYNC");
+
+        // 只撤销旧模式的目标选项，不改变使能位，不重新排队旧模式的 PDO。
+        var nextControl = (ushort)(_control & ~0x0070);
+        if (nextControl != _control)
+        {
+            await WriteAsync(0x6040, nextControl, 2, false, ct).ConfigureAwait(false);
+            _control = nextControl;
+        }
+        var initialTarget = mode is OperationMode.PP or OperationMode.CSP ? position : 0;
+        switch (mode)
+        {
+            case OperationMode.PP or OperationMode.CSP:
+                await WriteAsync(0x607A, initialTarget, 4, true, ct).ConfigureAwait(false); break;
+            case OperationMode.PV or OperationMode.CSV:
+                await WriteAsync(0x60FF, 0, 4, true, ct).ConfigureAwait(false); break;
+            case OperationMode.PT or OperationMode.CST:
+                await WriteAsync(0x6071, 0, 2, true, ct).ConfigureAwait(false); break;
+            case OperationMode.HM: break;
+        }
+        await CheckEnabledSwitchAsync(ct).ConfigureAwait(false);
+        if (mode is OperationMode.PP or OperationMode.CSP && await ReadAsync(0x6064, 4, true, ct).ConfigureAwait(false) != initialTarget)
+            throw new InvalidOperationException("准备初始位置期间实际位置发生变化，不能继续切换");
+        await WriteAsync(0x6060, (sbyte)mode, 1, true, ct).ConfigureAwait(false);
+        while (true)
+        {
+            var displayed = await ReadModeAsync(ct).ConfigureAwait(false);
+            await CheckEnabledSwitchAsync(ct).ConfigureAwait(false);
+            if (displayed == (sbyte)mode) break;
+            await Task.Delay(PollIntervalMs, ct).ConfigureAwait(false);
+        }
+        _mode = mode;
+        _cyclicTargets.Clear();
+        if (mode is OperationMode.CSP or OperationMode.CSV or OperationMode.CST)
+        {
+            _cyclicTargets[mode] = initialTarget;
+            await _transport.WriteTargetAsync(mode, initialTarget, _control, ct).ConfigureAwait(false);
+        }
     }
 
     private async Task RequireMotionAsync(OperationMode mode, CancellationToken ct, bool allowDisabled = false)
@@ -241,13 +325,13 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
     public async Task WriteCyclicAsync(OperationMode mode, long target, CancellationToken ct)
     {
         await RequireMotionAsync(mode, ct, allowDisabled: true).ConfigureAwait(false);
-        transport.RequireCyclicMode(mode);
+        _transport.RequireCyclicMode(mode);
         if (!_cyclicTargets.ContainsKey(mode))
         {
             var initial = mode == OperationMode.CSP ? await ReadAsync(0x6064, 4, true, ct).ConfigureAwait(false) : 0;
             if (target != initial) throw new InvalidOperationException("首次周期目标必须为当前位置（CSP）或零（CSV/CST），避免使能时目标突变");
         }
-        await transport.WriteTargetAsync(mode, target, _control, ct).ConfigureAwait(false);
+        await _transport.WriteTargetAsync(mode, target, _control, ct).ConfigureAwait(false);
         _cyclicTargets[mode] = target;
     }
 
