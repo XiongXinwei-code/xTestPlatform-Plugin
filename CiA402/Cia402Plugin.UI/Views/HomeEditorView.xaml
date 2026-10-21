@@ -1,0 +1,64 @@
+<UserControl x:Class="CiA402.UI.Views.HomeEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="Visible" />
+    </UserControl.Resources>
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="CiA402_Home" Image="pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_home.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <TextBlock Text="周期目标由序列循环编排：非实时控制，不保证确定性周期。EtherCAT 需另行接入主站适配器。" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="回零方式" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox ScriptText="{Binding Method, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Double"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="求值结果为整数；按设备手册配置有效方式" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="搜索速度" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox ScriptText="{Binding SearchVelocity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Double"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="求值结果为整数，设备原始单位" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="零点速度" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox ScriptText="{Binding ZeroVelocity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Double"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="求值结果为整数，设备原始单位" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="回零加速度" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox ScriptText="{Binding Acceleration, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Double"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="求值结果为整数，设备原始单位" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="轴会话名" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox ScriptText="{Binding AxisName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="求值结果为 string；必须先绑定该轴" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="步骤总超时（ms）" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="包括通信和轮询的总超时" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="轮询间隔（ms）" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox Text="{Binding PollIntervalMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="非实时轮询间隔，不代表完整周期" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

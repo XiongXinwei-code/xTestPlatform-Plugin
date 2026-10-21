@@ -9,6 +9,10 @@
 
 	<!-- 序列化：须 ≥ xTestPlatform.Core 引用的版本，否则报 CS1705 -->
 	<PackageVersion Include="MessagePack" Version="3.1.9" />
+	<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+	<PackageVersion Include="xunit" Version="2.9.3" />
+	<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.1" />
+	<PackageVersion Include="Xunit.StaFact" Version="1.1.11" />
 
 	<!-- UI / MVVM -->
 	<PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />

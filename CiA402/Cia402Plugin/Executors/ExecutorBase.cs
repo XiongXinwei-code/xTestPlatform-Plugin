@@ -16,7 +16,7 @@ public abstract class ExecutorBase<T> : IStepExecutor where T : AxisSetting, new
             cancellationToken.ThrowIfCancellationRequested();
             if (context.IsAbortRequested) return ExecutionResults.Aborted();
             var step = context.CurrentStep?.Step ?? throw new InvalidOperationException("当前步骤不存在");
-            var serializer = StepCatalog.ForSetting(typeof(T)).CreateSerializer();
+            var serializer = AxisSettingSerializers.For(new T());
             setting = step.StepSetting.Setting is { Length: > 0 } data
                 ? (T)serializer.Deserialize(data, step.StepSetting.SettingVersion) : (T)serializer.CreateDefault();
             var validation = SettingValidation.Validate(setting);
