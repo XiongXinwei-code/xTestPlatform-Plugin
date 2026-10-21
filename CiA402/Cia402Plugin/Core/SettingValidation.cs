@@ -16,22 +16,62 @@ public static class SettingValidation
     public static IReadOnlyList<string> Validate(AxisSetting setting)
     {
         var errors = new List<string>();
-        foreach (var field in SettingFields.Get(setting.GetType()).Where(f => f.IsActive(setting)))
+        Required(setting.AxisName, "轴会话名", errors);
+        Range(setting.TimeoutMs, "步骤总超时（ms）", 1, 3600000, errors);
+        Range(setting.PollIntervalMs, "轮询间隔（ms）", 1, 60000, errors);
+        switch (setting)
         {
-            var value = field.Property.GetValue(setting);
-            var metadata = field.Metadata;
-            if (metadata.Required && (value == null || value is string text && string.IsNullOrWhiteSpace(text)))
-                errors.Add($"{metadata.Label}不能为空");
-            if (field.IsExpression || field.IsOutput || value is string || value is bool) continue;
-            if (value is Enum e)
-            {
-                if (!Enum.IsDefined(e.GetType(), e)) errors.Add($"{metadata.Label}枚举值无效");
-            }
-            else if (value != null)
-            {
-                var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
-                if (number < metadata.Min || number > metadata.Max) errors.Add($"{metadata.Label}必须在 {metadata.Min}~{metadata.Max} 范围内");
-            }
+            case BindAxisSetting s:
+                if (!Enum.IsDefined(s.Transport)) errors.Add("通信后端枚举值无效");
+                Required(s.ConnectionName, "连接名", errors);
+                if (s.Transport == TransportKind.CANopen) Required(s.NodeId, "CANopen 节点", errors);
+                if (s.Transport == TransportKind.EtherCAT) Required(s.SlaveAddress, "EtherCAT 从站地址", errors);
+                Range(s.ObjectIndexOffset, "轴对象索引偏移", 0, 38912, errors);
+                Range(s.CommunicationTimeoutMs, "单次通信超时（ms）", 1, 60000, errors);
+                Range(s.FeedbackMaxAgeMs, "反馈有效期（ms）", 1, 60000, errors);
+                if (s.Transport == TransportKind.CANopen) Range(s.CspPdoNumber, "CSP RPDO 编号", 0, 512, errors);
+                if (s.Transport == TransportKind.CANopen) Range(s.CsvPdoNumber, "CSV RPDO 编号", 0, 512, errors);
+                if (s.Transport == TransportKind.CANopen) Range(s.CstPdoNumber, "CST RPDO 编号", 0, 512, errors);
+                if (s.Transport == TransportKind.CANopen) Range(s.FeedbackPdoNumber, "反馈 TPDO 编号", 0, 512, errors);
+                Range(s.DiagnosticIndex, "硬件诊断对象索引", 0, 65535, errors);
+                Range(s.DiagnosticSubIndex, "硬件诊断子索引", 0, 255, errors);
+                Range(s.DiagnosticBytes, "硬件诊断字节数", 1, 4, errors);
+                Range(s.DiagnosticMask, "硬件异常位掩码", 0, 4294967295, errors);
+                Range(s.DiagnosticActiveValue, "硬件异常匹配值", 0, 4294967295, errors);
+                break;
+            case HomeSetting s:
+                Required(s.Method, "回零方式", errors);
+                Required(s.SearchVelocity, "搜索速度", errors);
+                Required(s.ZeroVelocity, "零点速度", errors);
+                Required(s.Acceleration, "回零加速度", errors);
+                break;
+            case MovePositionSetting s:
+                Required(s.TargetPosition, "目标位置", errors);
+                Required(s.ProfileVelocity, "轮廓速度", errors);
+                Required(s.Acceleration, "加速度", errors);
+                Required(s.Deceleration, "减速度", errors);
+                break;
+            case RunTorqueSetting s:
+                Required(s.TargetTorque, "目标转矩", errors);
+                Required(s.TorqueSlope, "转矩斜率", errors);
+                break;
+            case RunVelocitySetting s:
+                Required(s.TargetVelocity, "目标速度", errors);
+                Required(s.Acceleration, "加速度", errors);
+                Required(s.Deceleration, "减速度", errors);
+                break;
+            case SetModeSetting s:
+                if (!Enum.IsDefined(s.Mode)) errors.Add("运行模式枚举值无效");
+                break;
+            case WriteCspTargetSetting s:
+                Required(s.TargetPosition, "周期目标位置", errors);
+                break;
+            case WriteCstTargetSetting s:
+                Required(s.TargetTorque, "周期目标转矩", errors);
+                break;
+            case WriteCsvTargetSetting s:
+                Required(s.TargetVelocity, "周期目标速度", errors);
+                break;
         }
         if (setting.PollIntervalMs > setting.TimeoutMs) errors.Add("轮询间隔不能大于步骤总超时");
         if (setting is BindAxisSetting b)
@@ -49,6 +89,16 @@ public static class SettingValidation
             }
         }
         return errors;
+    }
+
+    private static void Required(string value, string label, List<string> errors)
+    {
+        if (string.IsNullOrWhiteSpace(value)) errors.Add($"{label}不能为空");
+    }
+
+    private static void Range(long value, string label, long min, long max, List<string> errors)
+    {
+        if (value < min || value > max) errors.Add($"{label}必须在 {min}~{max} 范围内");
     }
 
     public static long Integer(object? value, string label, double min, double max)
@@ -86,19 +136,77 @@ public static class SettingValidation
         var errors = Validate(setting);
         if (errors.Count > 0) throw new ArgumentException(string.Join("；", errors));
         var values = new Dictionary<string, object>();
-        foreach (var field in SettingFields.Get(setting.GetType()).Where(f => f.IsActive(setting)))
+        await TextAsync(nameof(setting.AxisName), setting.AxisName, "轴会话名");
+        switch (setting)
+        {
+            case BindAxisSetting s:
+                await TextAsync(nameof(s.ConnectionName), s.ConnectionName, "连接名");
+                if (s.Transport == TransportKind.CANopen) await NumberAsync(nameof(s.NodeId), s.NodeId, "CANopen 节点", 1, 127);
+                if (s.Transport == TransportKind.EtherCAT) await NumberAsync(nameof(s.SlaveAddress), s.SlaveAddress, "EtherCAT 从站地址", 0, 65535);
+                break;
+            case HomeSetting s:
+                await NumberAsync(nameof(s.Method), s.Method, "回零方式", -128, 127);
+                await NumberAsync(nameof(s.SearchVelocity), s.SearchVelocity, "搜索速度", 1, 4294967295);
+                await NumberAsync(nameof(s.ZeroVelocity), s.ZeroVelocity, "零点速度", 1, 4294967295);
+                await NumberAsync(nameof(s.Acceleration), s.Acceleration, "回零加速度", 1, 4294967295);
+                break;
+            case MovePositionSetting s:
+                await NumberAsync(nameof(s.TargetPosition), s.TargetPosition, "目标位置", -2147483648, 2147483647);
+                await NumberAsync(nameof(s.ProfileVelocity), s.ProfileVelocity, "轮廓速度", 1, 4294967295);
+                await NumberAsync(nameof(s.Acceleration), s.Acceleration, "加速度", 1, 4294967295);
+                await NumberAsync(nameof(s.Deceleration), s.Deceleration, "减速度", 1, 4294967295);
+                break;
+            case ReadDiagnosticsSetting s:
+                ValidateOutput(context, s.ErrorCodeVariable, typeof(double));
+                ValidateOutput(context, s.HardwareValueVariable, typeof(double));
+                ValidateOutput(context, s.HardwareActiveVariable, typeof(bool));
+                break;
+            case ReadFeedbackSetting s:
+                ValidateOutput(context, s.StatusWordVariable, typeof(double));
+                ValidateOutput(context, s.PositionVariable, typeof(double));
+                ValidateOutput(context, s.VelocityVariable, typeof(double));
+                ValidateOutput(context, s.TorqueVariable, typeof(double));
+                break;
+            case ReadModeSetting s:
+                ValidateOutput(context, s.ModeVariable, typeof(double));
+                break;
+            case ReadStateSetting s:
+                ValidateOutput(context, s.StatusWordVariable, typeof(double));
+                ValidateOutput(context, s.StateVariable, typeof(string));
+                break;
+            case RunTorqueSetting s:
+                await NumberAsync(nameof(s.TargetTorque), s.TargetTorque, "目标转矩", -32768, 32767);
+                await NumberAsync(nameof(s.TorqueSlope), s.TorqueSlope, "转矩斜率", 1, 4294967295);
+                break;
+            case RunVelocitySetting s:
+                await NumberAsync(nameof(s.TargetVelocity), s.TargetVelocity, "目标速度", -2147483648, 2147483647);
+                await NumberAsync(nameof(s.Acceleration), s.Acceleration, "加速度", 1, 4294967295);
+                await NumberAsync(nameof(s.Deceleration), s.Deceleration, "减速度", 1, 4294967295);
+                break;
+            case WriteCspTargetSetting s:
+                await NumberAsync(nameof(s.TargetPosition), s.TargetPosition, "周期目标位置", -2147483648, 2147483647);
+                break;
+            case WriteCstTargetSetting s:
+                await NumberAsync(nameof(s.TargetTorque), s.TargetTorque, "周期目标转矩", -32768, 32767);
+                break;
+            case WriteCsvTargetSetting s:
+                await NumberAsync(nameof(s.TargetVelocity), s.TargetVelocity, "周期目标速度", -2147483648, 2147483647);
+                break;
+        }
+
+        async Task TextAsync(string name, string expression, string label)
         {
             ct.ThrowIfCancellationRequested();
-            var text = field.Property.GetValue(setting) as string ?? "";
-            if (field.IsOutput) { ValidateOutput(context, text, field.Metadata.OutputType!); continue; }
-            if (!field.IsExpression) continue;
-            var raw = await ExpressionEvaluatorFactory.Default.EvaluateAsync<object>(text, context).WaitAsync(ct).ConfigureAwait(false);
-            if (field.Metadata.ResultType == typeof(string))
-            {
-                if (raw is not string result || string.IsNullOrWhiteSpace(result)) throw new ArgumentException($"{field.Metadata.Label}必须求值为非空 string");
-                values[field.Property.Name] = result;
-            }
-            else values[field.Property.Name] = Integer(raw, field.Metadata.Label, field.Metadata.Min, field.Metadata.Max);
+            var raw = await ExpressionEvaluatorFactory.Default.EvaluateAsync<object>(expression, context).WaitAsync(ct).ConfigureAwait(false);
+            if (raw is not string text || string.IsNullOrWhiteSpace(text)) throw new ArgumentException($"{label}必须求值为非空 string");
+            values[name] = text;
+        }
+
+        async Task NumberAsync(string name, string expression, string label, double min, double max)
+        {
+            ct.ThrowIfCancellationRequested();
+            var raw = await ExpressionEvaluatorFactory.Default.EvaluateAsync<object>(expression, context).WaitAsync(ct).ConfigureAwait(false);
+            values[name] = Integer(raw, label, min, max);
         }
         return new(values);
     }

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<OutputType>Exe</OutputType>
+	<IsTestProject>true</IsTestProject>
+	<IsPackable>false</IsPackable>
 	<TargetFramework>net8.0-windows</TargetFramework>
 	<UseWPF>true</UseWPF>
 	<Nullable>enable</Nullable>
@@ -8,6 +9,10 @@
 	<AssemblyName>CiA402.ContractTests</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+	<PackageReference Include="Microsoft.NET.Test.Sdk" PrivateAssets="all" />
+	<PackageReference Include="xunit" PrivateAssets="all" />
+	<PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+	<PackageReference Include="Xunit.StaFact" PrivateAssets="all" />
 	<ProjectReference Include="..\Cia402Plugin\Cia402Plugin.csproj" />
 	<ProjectReference Include="..\Cia402Plugin.UI\Cia402Plugin.UI.csproj" />
   </ItemGroup>

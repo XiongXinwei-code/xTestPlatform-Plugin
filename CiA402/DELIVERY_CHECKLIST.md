@@ -19,7 +19,7 @@
 - [x] 自定义设置枚举使用 JsonStringEnumConverter。
 - [x] 运行时字符串表达式标记 ExpressionField，字符串默认值使用合法带引号表达式。
 - [x] 输出标记 VariablePathField，要求用户声明且明确配置的完整路径，不新增隐式变量。
-- [x] 参数说明、编辑器、静态校验和运行时求值共享字段元数据。
+- [x] 参数说明、独立编辑器绑定、静态校验和运行时求值显式声明并同步；移除自定义 Field 元数据及反射驱动框架。
 - [x] 正常 Completed、错误 Error、用户取消 Aborted，不返回 Passed/Failed/Warning 作为执行结果。
 - [x] 异常被执行器捕获；中文错误信息；日志使用 ctx.Log，异常详情进入 detail。
 - [x] 异步操作传递取消令牌；阻塞 CAN 收发使用 Task.Run 和有界 WaitAsync。
@@ -31,7 +31,7 @@
 
 ## 三处校验
 
-- [x] 每个独立 EditorPlugin 继承实际实现的 ValidateWithContextAsync。
+- [x] 每个独立 EditorPlugin 直接实现 IStepEditorPlugin，显式实现 ValidateWithContextAsync。
 - [x] 参数范围、表达式语法、输出声明与类型检查。
 - [x] 执行器重新检查表达式结果、会话存在、模式、状态和可用能力。
 - [x] 生命周期检查 CAN_Open、BindAxis、SetMode、Enable；动态分支静态结果为警告，运行时严格验证。
@@ -41,12 +41,12 @@
 ## UI
 
 - [x] 十八个 EditorPlugin 各自独立文件，同前缀 View/ViewModel 入口。
-- [x] 共享 XAML 含 TabControlExt 和业务 Tab，框架仍负责 Properties。
+- [x] 每个步骤有独立 XAML，含 TabControlExt 和业务 Tab，框架仍负责 Properties。
 - [x] TabItemExt 绑定各步骤独立图标并设置宽高。
 - [x] View 实现 IRefreshableEditor。
 - [x] SequenceFile/EditPosition 为依赖属性，CreateEditor 传入 SequenceFile。
 - [x] 表达式字段使用 ExpressionTextBox，其他配置使用对应控件。
-- [x] 防抖保存、固定字段集合项 PropertyChanged 订阅及退订。
+- [x] 强类型属性触发 PropertyChanged 及防抖保存；无动态字段集合，保存回调固定原步骤。
 - [x] 回归验证隐藏控件不会覆盖其他字段，刷新不会覆盖外部已保存修改。
 - [ ] 尚未在主程序实际编辑器界面做完整人工交互验收。
 
@@ -61,7 +61,8 @@
 
 ## 测试与设备边界
 
-- [x] 70 项无硬件仿真/契约测试通过，包括七种模式的 49 个源/目标组合。
+- [x] 通过 Test Explorer 运行 114 个无硬件用例，全部通过，包括独立发现的 49 个源/目标模式组合、18 个独立编辑器加载与逐字段 XAML 绑定检查。
+- [x] 测试依赖仅用于不可打包的测试项目；WPF 用例使用 StaFact，保留用例内部并发验证。
 - [x] 覆盖状态掩码、转换、复位脉冲、模式确认、PP/PV/PT/HM 和三种周期目标。
 - [x] 覆盖并发拒绝、取消清理、延后释放、超时结果、输出路径、SDO 编码及 PDO 核对。
 - [x] 覆盖运动等待中的独立硬件读取、多个读取共存、监控不改变控制轮询间隔、单个监控取消不终止控制。

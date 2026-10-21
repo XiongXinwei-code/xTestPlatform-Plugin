@@ -13,7 +13,7 @@ public class TestContext : DispatchProxy
     private object? _registry;
     private readonly Dictionary<Type, object> _scopes = new();
 
-    public static (IExecutionContext Context, TestContext State) Create(ICia402Plugin plugin, object setting)
+    public static (IExecutionContext Context, TestContext State) Create(IStepPlugin plugin, object setting)
     {
         var context = DispatchProxy.Create<IExecutionContext, TestContext>();
         var state = (TestContext)(object)context;

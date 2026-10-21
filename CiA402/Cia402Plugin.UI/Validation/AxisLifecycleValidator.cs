@@ -1,5 +1,6 @@
 using CAN;
 using CAN.Models;
+using CiA402.Core;
 using CiA402.Models;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -38,8 +39,7 @@ public static class AxisLifecycleValidator
             if (!step.StepSetting.StepType.StartsWith("Motion.CiA402", StringComparison.Ordinal)) continue;
             try
             {
-                var plugin = StepCatalog.ForId(step.StepSetting.StepType);
-                var serializer = plugin.CreateSerializer();
+                var serializer = AxisSettingSerializers.ForId(step.StepSetting.StepType);
                 var prior = step.StepSetting.Setting is { Length: > 0 } data
                     ? (AxisSetting)serializer.Deserialize(data, step.StepSetting.SettingVersion) : (AxisSetting)serializer.CreateDefault();
                 if (prior.AxisName != setting.AxisName) continue;

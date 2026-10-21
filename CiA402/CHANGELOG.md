@@ -2,6 +2,11 @@
 
 ## 未发布
 
+- 按仓库显式插件风格重构：18 个入口直接继承 StepPluginBase，设置移除自定义 Field 标记，各步骤独立 ViewModel/XAML/EditorPlugin，校验与求值显式声明；移除运行时字段反射及 StepDefinition/StepCatalog 框架，保留步骤标识、默认值和设置版本。
+- 新增独立编辑器加载、逐字段绑定与固定原步骤保存验证，xUnit 用例增至 114 项。
+
+- 将自定义可执行测试入口迁移到 xUnit，支持 Test Explorer 和 dotnet test；保留原覆盖，49 个模式组合独立展开后共 112 个用例，WPF 用例显式使用 STA 线程。
+
 - SetMode 新增默认关闭的 AllowWhileEnabled 选项，旧设置保持原行为；开启后检查静止与目标条件、预置目的模式目标并确认模式显示，不自动释放再恢复使能。
 - 支持后端能力声明下的同轴独立硬件监控，仍只允许一个控制流程；CANopen 已声明支持，EtherCAT 适配器默认不支持。
 - 新增单次轴 I/O 串行协调与软超时，未结束的阻塞调用禁止重入并延后释放；CANopen 轴 PDO 与 SDO 共享事务协调。
