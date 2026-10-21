@@ -23,7 +23,9 @@ if (args.Length < 1 || !Directory.Exists(args[0]))
 var pluginDir = Path.GetFullPath(args[0]);
 var steps = new List<StepInfo>();
 
-var dlls = Directory.GetFiles(pluginDir, "*.StepPlugin.dll");
+// 有同名主程序集时，只提取本插件步骤，其他 StepPlugin.dll 作为私有依赖加载。
+var primaryAssembly = Path.Combine(pluginDir, new DirectoryInfo(pluginDir).Name + ".StepPlugin.dll");
+var dlls = File.Exists(primaryAssembly) ? new[] { primaryAssembly } : Directory.GetFiles(pluginDir, "*.StepPlugin.dll");
 if (dlls.Length == 0)
 {
     Console.Error.WriteLine($"警告: {pluginDir} 中未找到 *.StepPlugin.dll");

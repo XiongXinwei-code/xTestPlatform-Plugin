@@ -130,7 +130,8 @@ jobs:
               $v = $versions.$($dir.Name)
               Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
               Write-Host "📦 编译插件: $($dir.Name)  (v$v)"
-              $projects = Get-ChildItem "$($dir.FullName)" -Recurse -Filter "*.csproj"
+              $projects = Get-ChildItem "$($dir.FullName)" -Recurse -Filter "*.csproj" |
+                  Where-Object { $_.Name -like '*Plugin.csproj' -or $_.Name -like '*Plugin.UI.csproj' }
               foreach ($proj in $projects) {
                   Write-Host "   🔨 $($proj.Name)"
                   dotnet build $proj.FullName `
@@ -233,7 +234,7 @@ jobs:
               $pluginVersion = $pluginVersions.$pluginName
               if (-not $pluginVersion) { $pluginVersion = $version }
               $desc = ""
-              $csproj = Get-ChildItem "$env:GITHUB_WORKSPACE\$pluginName" -Recurse -Filter "*.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
+              $csproj = Get-ChildItem "$env:GITHUB_WORKSPACE\$pluginName" -Recurse -Filter "*Plugin.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
               if ($csproj) {
                   $content = Get-Content $csproj.FullName -Raw
                   if ($content -match '<Description>([^<]+)</Description>') { $desc = $Matches[1].Trim() }
@@ -241,7 +242,8 @@ jobs:
 
               # 作者/公司：从插件主 DLL 的 CompanyName 提取（由 csproj/Directory.Build.props 的 <Company> 写入）
               $author = ""
-              $mainDll = Get-ChildItem $dir.FullName -Filter "*.StepPlugin.dll" | Select-Object -First 1
+              $mainDll = Get-ChildItem $dir.FullName -Filter "$pluginName.StepPlugin.dll" | Select-Object -First 1
+              if (-not $mainDll) { $mainDll = Get-ChildItem $dir.FullName -Filter "*.StepPlugin.dll" | Select-Object -First 1 }
               if (-not $mainDll) { $mainDll = Get-ChildItem $dir.FullName -Filter "*.dll" | Select-Object -First 1 }
               if ($mainDll) {
                   $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($mainDll.FullName)

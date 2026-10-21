@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<Version>1.0.0</Version>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<UseWPF>true</UseWPF>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>CiA402.StepPlugin.UI</AssemblyName>
+	<RootNamespace>CiA402.UI</RootNamespace>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<OutputPath>..\..\artifacts\$(Configuration)\Plugins\CiA402\</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+	<ProjectReference Include="..\Cia402Plugin\Cia402Plugin.csproj" />
+	<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+	<PackageReference Include="MessagePack" />
+	<PackageReference Include="CommunityToolkit.Mvvm" />
+	<PackageReference Include="AvalonEdit" />
+	<PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" />
+	<PackageReference Include="Syncfusion.SfSkinManager.WPF" />
+	<PackageReference Include="Syncfusion.Tools.WPF" />
+	<Resource Include="Resources\Icons\*.png" />
+  </ItemGroup>
+</Project>

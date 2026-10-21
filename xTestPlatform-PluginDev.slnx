@@ -8,6 +8,11 @@
     <Project Path="CAN/CanPlugin.UI/CanPlugin.UI.csproj" />
     <Project Path="CAN/CanPlugin/CanPlugin.csproj" />
   </Folder>
+  <Folder Name="/CiA402/">
+    <Project Path="CiA402/Cia402Plugin.Tests/Cia402Plugin.Tests.csproj" />
+    <Project Path="CiA402/Cia402Plugin.UI/Cia402Plugin.UI.csproj" />
+    <Project Path="CiA402/Cia402Plugin/Cia402Plugin.csproj" />
+  </Folder>
   <Folder Name="/Ethernet/">
     <Project Path="Ethernet/EthernetPlugin.UI/EthernetPlugin.UI.csproj" />
     <Project Path="Ethernet/EthernetPlugin/EthernetPlugin.csproj" />

@@ -57,28 +57,25 @@ public sealed class CanopenSdoAbortException : Exception
 /// <summary>CANopen 总线收发封装，对阻塞式适配器读取做软超时兜底</summary>
 internal sealed class CanopenBus
 {
-    private readonly ICanAdapter _adapter;
+    internal CanopenConnectionAccess Access { get; }
+    internal object? Owner { get; }
 
-    public CanopenBus(ICanAdapter adapter) => _adapter = adapter;
+    public CanopenBus(ICanAdapter adapter, object? owner = null)
+        => (Access, Owner) = (CanopenConnectionAccess.For(adapter), owner);
 
     /// <summary>以 11 位标准帧发送一帧报文</summary>
     public void Send(uint cobId, byte[] data) =>
-        _adapter.Write(new CanMessage { Id = cobId, FrameType = CanFrameType.Standard, Data = data });
+        Access.SendAsync(cobId, data, 1000, CancellationToken.None).GetAwaiter().GetResult();
+
+    public Task SendAsync(uint cobId, byte[] data, int timeoutMs, CancellationToken ct) =>
+        Access.SendAsync(cobId, data, timeoutMs, ct);
 
     /// <summary>接收指定 COB-ID 的报文，超时返回 null</summary>
     public async Task<CanMessage?> ReceiveAsync(uint cobId, int timeoutMs, CancellationToken ct)
     {
         if (timeoutMs <= 0) return null;
-        // 适配器 Read 为阻塞调用，放到线程池执行，并额外留 1 s 余量做软超时，防止驱动不返回导致步骤卡死
-        var readTask = Task.Run(() => _adapter.Read(cobId, timeoutMs, ct), ct);
-        try
-        {
-            return await readTask.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs + 1000), ct);
-        }
-        catch (TimeoutException)
-        {
-            return null;
-        }
+        var received = await Access.ReceiveAsync(cobId, timeoutMs, ct).ConfigureAwait(false);
+        return received?.Frame;
     }
 }
 
@@ -109,6 +106,17 @@ internal sealed class CanopenSdoClient
     /// <param name="block">true 使用块上传；false 由服务器决定快速或分段上传</param>
     public async Task<byte[]> UploadAsync(ushort index, byte subIndex, bool block, CancellationToken ct)
     {
+        using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct).ConfigureAwait(false);
+        try { return await UploadCoreAsync(index, subIndex, block, ct).ConfigureAwait(false); }
+        catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or InvalidOperationException)
+        {
+            _bus.Access.InvalidateSdoTransaction();
+            throw;
+        }
+    }
+
+    private async Task<byte[]> UploadCoreAsync(ushort index, byte subIndex, bool block, CancellationToken ct)
+    {
         if (!block)
         {
             // 0x40：上传初始化请求
@@ -134,7 +142,7 @@ internal sealed class CanopenSdoClient
         int? size = (blockResp[0] & 0x02) != 0 ? BinaryPrimitives.ReadInt32LittleEndian(blockResp.AsSpan(4)) : null;
 
         // 0xA3：通知服务器开始发送数据段
-        _bus.Send(TxCobId, [0xA3, 0, 0, 0, 0, 0, 0, 0]);
+        await _bus.SendAsync(TxCobId, [0xA3, 0, 0, 0, 0, 0, 0, 0], _timeoutMs, ct);
 
         var data = new List<byte>();
         bool finished = false;
@@ -161,7 +169,7 @@ internal sealed class CanopenSdoClient
             }
 
             // 0xA2：块确认，byte1 = 最后正确接收的序号，byte2 = 下一块大小
-            _bus.Send(TxCobId, [0xA2, (byte)(expected - 1), MaxBlockSize, 0, 0, 0, 0, 0]);
+            await _bus.SendAsync(TxCobId, [0xA2, (byte)(expected - 1), MaxBlockSize, 0, 0, 0, 0, 0], _timeoutMs, ct);
         }
 
         var end = await ExpectAsync(ct);
@@ -182,7 +190,7 @@ internal sealed class CanopenSdoClient
         }
 
         // 0xA1：块上传结束确认
-        _bus.Send(TxCobId, [0xA1, 0, 0, 0, 0, 0, 0, 0]);
+        await _bus.SendAsync(TxCobId, [0xA1, 0, 0, 0, 0, 0, 0, 0], _timeoutMs, ct);
 
         if (size.HasValue && size.Value != result.Length)
             throw new InvalidOperationException($"SDO 块上传长度不一致：声明 {size} 字节，实际 {result.Length} 字节");
@@ -232,6 +240,17 @@ internal sealed class CanopenSdoClient
     /// <param name="block">true 使用块下载；false 时 ≤4 字节快速下载，否则分段下载</param>
     public async Task DownloadAsync(ushort index, byte subIndex, byte[] data, bool block, CancellationToken ct)
     {
+        using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct).ConfigureAwait(false);
+        try { await DownloadCoreAsync(index, subIndex, data, block, ct).ConfigureAwait(false); }
+        catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or InvalidOperationException)
+        {
+            _bus.Access.InvalidateSdoTransaction();
+            throw;
+        }
+    }
+
+    private async Task DownloadCoreAsync(ushort index, byte subIndex, byte[] data, bool block, CancellationToken ct)
+    {
         if (data.Length == 0)
             throw new ArgumentException("SDO 写入数据不能为空");
 
@@ -248,6 +267,7 @@ internal sealed class CanopenSdoClient
             Buffer.BlockCopy(data, 0, frame, 4, data.Length);
             var resp = await RequestAsync(frame, ct);
             if (resp[0] != 0x60) throw Protocol(resp, "快速下载");
+            CheckMultiplexer(resp, index, subIndex);
             CheckMultiplexer(resp, index, subIndex);
             return;
         }
@@ -310,7 +330,7 @@ internal sealed class CanopenSdoClient
                 var seg = new byte[8];
                 seg[0] = (byte)(seq | (last ? 0x80 : 0x00));
                 Buffer.BlockCopy(data, pos, seg, 1, n);
-                _bus.Send(TxCobId, seg);
+                await _bus.SendAsync(TxCobId, seg, _timeoutMs, ct);
                 pos += n;
             }
 
@@ -346,11 +366,11 @@ internal sealed class CanopenSdoClient
     /// <summary>发送请求并等待一帧响应</summary>
     private async Task<byte[]> RequestAsync(byte[] frame, CancellationToken ct)
     {
-        _bus.Send(TxCobId, frame);
+        await _bus.SendAsync(TxCobId, frame, _timeoutMs, ct);
         return await ExpectAsync(ct);
     }
 
-    /// <summary>等待一帧 SDO 响应，补齐为 8 字节；收到 Abort 时抛出中止异常</summary>
+    /// <summary>等待一帧完整的 8 字节 SDO 响应；收到 Abort 时抛出中止异常</summary>
     /// <param name="allowAbortCheck">块上传数据段中 0x80 可能是合法序号，需由调用方自行判断</param>
     private async Task<byte[]> ExpectAsync(CancellationToken ct, bool allowAbortCheck = true)
     {
@@ -358,8 +378,9 @@ internal sealed class CanopenSdoClient
         if (msg == null)
             throw new TimeoutException($"节点 {_nodeId} 在 {_timeoutMs} ms 内未返回 SDO 响应");
 
-        var data = new byte[8];
-        Buffer.BlockCopy(msg.Data, 0, data, 0, Math.Min(8, msg.Data.Length));
+        if (msg.Data.Length != 8)
+            throw new InvalidOperationException($"SDO 响应必须为 8 字节，实际为 {msg.Data.Length} 字节");
+        var data = msg.Data;
 
         if (allowAbortCheck && IsAbort(data))
             throw new CanopenSdoAbortException(BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(4)));
