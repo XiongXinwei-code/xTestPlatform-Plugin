@@ -7,6 +7,7 @@ namespace CiA402.Transport;
 
 public sealed class CanopenAxisTransport : ICia402AxisTransport
 {
+    public bool SupportsConcurrentMonitoring => true;
     private sealed record Pdo(uint CobId, IReadOnlyList<PdoEntry> Entries);
     private readonly CanopenNodeAccess _node;
     private readonly BindAxisSetting _config;

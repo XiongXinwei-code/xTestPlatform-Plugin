@@ -64,7 +64,10 @@ public static class AxisLifecycleValidator
         if (required != null && mode != required) errors.Add(StepSettingError.Warning("C402_103", $"未发现匹配的 {required} 模式设置步骤"));
         if (setting is MovePositionSetting or RunVelocitySetting or RunTorqueSetting or HomeSetting && !enabled)
             errors.Add(StepSettingError.Warning("C402_104", "未发现匹配的 CiA402_Enable 前置步骤"));
-        if (setting is SetModeSetting && enabled) errors.Add(StepSettingError.Warning("C402_105", "切换模式前应先释放运行使能"));
+        if (setting is SetModeSetting { AllowWhileEnabled: false } && enabled)
+            errors.Add(StepSettingError.Warning("C402_105", "当前未允许使能态切换；请先释放运行使能，或核实驱动支持后显式开启选项"));
+        if (setting is SetModeSetting { AllowWhileEnabled: true })
+            errors.Add(StepSettingError.Warning("C402_108", "允许使能态切换不代表设备兼容保证；须核实驱动支持、轴已静止且已停止周期目标更新并完成上一周期 PDO/SYNC"));
         if (precedingBind != null && setting is ReadDiagnosticsSetting diagnostic)
         {
             if ((!string.IsNullOrWhiteSpace(diagnostic.HardwareValueVariable) || !string.IsNullOrWhiteSpace(diagnostic.HardwareActiveVariable)) && precedingBind.DiagnosticIndex == 0)

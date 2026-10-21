@@ -53,6 +53,7 @@ public abstract class Cia402Plugin<TSetting, TExecutor> : StepPluginBase<TSettin
             text.AppendLine("\n- 正常执行返回 Completed；参数、通信、设备状态问题及超时返回 Error；用户取消返回 Aborted。");
             text.AppendLine("- 仅写入用户已声明并明确配置的完整变量路径，空输出路径不写入。");
             text.AppendLine("- 周期目标由测试序列循环编排，属于非实时周期控制，不保证确定性周期；不启动后台周期任务或隐式发送 SYNC。");
+            text.AppendLine("- 后端声明支持时，运动等待期间可由并行序列调用 CiA402 读取步骤独立请求硬件反馈；同轴仅一个控制流程，底层传输逐次协调。排队和通信受超时约束，不以缓存值替代失败读取。");
             text.AppendLine("- CANopen 轴占用期间不要混用同节点原始 SDO/PDO、CAN 接收或后台周期写入。关闭 CAN 前先解除轴绑定。");
             text.AppendLine("\n## 相关插件\n\n- CiA402_BindAxis、CiA402_SetMode、CiA402_Enable\n- CiA402_ReadState、CiA402_StopMotion、CiA402_Disable、CiA402_UnbindAxis\n- CAN_Open、CANopen_SyncSend");
             return text.ToString();

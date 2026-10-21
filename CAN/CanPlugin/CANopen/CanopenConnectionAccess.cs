@@ -152,15 +152,17 @@ public sealed class CanopenNodeAccess : IDisposable
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
         return _client.DownloadAsync(index, subIndex, value, false, ct);
     }
-    public Task SendPdoAsync(uint cobId, byte[] value, CancellationToken ct)
+    public async Task SendPdoAsync(uint cobId, byte[] value, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
-        return _connection.SendAsync(cobId, value, TimeoutMs, ct);
+        using var transaction = await _connection.EnterSdoAsync(_node, _owner, TimeoutMs, ct).ConfigureAwait(false);
+        await _connection.SendAsync(cobId, value, TimeoutMs, ct).ConfigureAwait(false);
     }
-    public Task<CanopenReceivedFrame?> ReceivePdoAsync(uint cobId, CancellationToken ct)
+    public async Task<CanopenReceivedFrame?> ReceivePdoAsync(uint cobId, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
-        return _connection.ReceiveAsync(cobId, TimeoutMs, ct);
+        using var transaction = await _connection.EnterSdoAsync(_node, _owner, TimeoutMs, ct).ConfigureAwait(false);
+        return await _connection.ReceiveAsync(cobId, TimeoutMs, ct).ConfigureAwait(false);
     }
     public void Dispose()
     {

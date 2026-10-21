@@ -8,6 +8,6 @@ public sealed class SetModeExecutor : AxisActionExecutor<SetModeSetting>
 {
     protected override async Task OperateAsync(SetModeSetting setting, EvaluatedSettings values, AxisSession session, IExecutionContext context, CancellationToken ct)
     {
-        await session.Controller.SetModeAsync(setting.Mode, ct).ConfigureAwait(false);
+        await session.Controller.SetModeAsync(setting.Mode, setting.AllowWhileEnabled, ct).ConfigureAwait(false);
     }
 }
