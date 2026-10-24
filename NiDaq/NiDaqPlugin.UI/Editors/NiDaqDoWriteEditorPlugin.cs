@@ -15,6 +15,7 @@ public sealed class NiDaqDoWriteEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new NiDaqDoWriteEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new NiDaqDoWritePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -31,6 +32,7 @@ public sealed class NiDaqDoWriteEditorPlugin : IStepEditorPlugin
         if (string.IsNullOrWhiteSpace(s.Value)) errors.Add(StepSettingError.Error("DAQ_101", "输出值不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.Value, context.ExecutionContext, out var valErr))
             errors.Add(StepSettingError.Error("DAQ_101E", $"Value 表达式无效: {valErr}"));
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("DAQ_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

@@ -1,6 +1,9 @@
 using System.ComponentModel;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using System.Windows.Threading;
+using CommunityToolkit.Mvvm.Input;
 using CiA402.Core;
 using CiA402.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -15,14 +18,28 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 	private Step? _step;
 	private BindAxisSetting? _setting;
 	private bool _dirty;
+	private bool _saveFailed;
+	private readonly PluginCommon.EditorSaveScheduler _pendingSave = new();
+	private readonly HashSet<FeedbackPdoSetting> _observedFeedback = new();
+	private ObservableCollection<FeedbackPdoSetting>? _observedCollection;
+	private FeedbackPdoSetting? _selectedFeedbackPdo;
+	public IRelayCommand AddFeedbackPdoCommand { get; }
+	public IRelayCommand RemoveFeedbackPdoCommand { get; }
 	public string Error { get; private set; } = "";
 	public Action<string, Action>? ExecuteCommand { get; set; }
 
-	public BindAxisViewModel() => _saveTimer.Tick += (_, _) => Flush();
-	public void AttachSerializer(IStepSettingSerializer serializer) { Flush(); _serializer = serializer; }
+	public BindAxisViewModel()
+	{
+		_saveTimer.Tick += (_, _) => Flush();
+		AddFeedbackPdoCommand = new RelayCommand(AddFeedbackPdo);
+		RemoveFeedbackPdoCommand = new RelayCommand(RemoveFeedbackPdo, () => SelectedFeedbackPdo != null);
+	}
+	public void AttachSerializer(IStepSettingSerializer serializer) { Flush(); EnsureSaved(); _serializer = serializer; }
 	public void AttachStep(Step step)
 	{
 		Flush();
+		EnsureSaved();
+		DetachFeedback();
 		_step = step;
 		_dirty = false;
 		try
@@ -33,6 +50,8 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 			Error = _setting == null ? "设置不存在" : string.Join("；", SettingValidation.Validate(_setting));
 		}
 		catch (Exception ex) { _setting = null; Error = $"读取设置失败：{ex.Message}"; }
+		AttachFeedback();
+		SelectedFeedbackPdo = null;
 		OnPropertyChanged(string.Empty);
 	}
 
@@ -48,23 +67,38 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 	public void Flush()
 	{
 		_saveTimer.Stop();
-		if (!_dirty || _step == null || _serializer == null || _setting == null) return;
+		_saveFailed = false;
 		try
 		{
-			var bytes = _serializer.Serialize(_setting);
-			_dirty = false;
-			if (bytes.SequenceEqual(_step.StepSetting.Setting ?? [])) return;
-			var step = _step;
-			void Save() { step.StepSetting.Setting = bytes; step.StepSetting.SettingVersion = 1; }
-			if (ExecuteCommand != null) ExecuteCommand("修改 CiA402 参数", Save); else Save();
+			if (_dirty && _step != null && _serializer != null && _setting != null)
+			{
+				var bytes = _serializer.Serialize(_setting);
+				var step = _step;
+				var version = _serializer.SettingVersion;
+				_dirty = false;
+				_pendingSave.Queue(() =>
+				{
+					if (bytes.SequenceEqual(step.StepSetting.Setting ?? [])) return;
+					void Save() { step.StepSetting.Setting = bytes; step.StepSetting.SettingVersion = version; }
+					if (ExecuteCommand != null) ExecuteCommand("修改 CiA402 参数", Save); else Save();
+				});
+			}
+			_pendingSave.Flush();
+			Error = _setting == null ? "设置不存在" : string.Join("；", SettingValidation.Validate(_setting));
+			OnPropertyChanged(nameof(Error));
 		}
-		catch (Exception ex) { Error = $"保存设置失败：{ex.Message}"; OnPropertyChanged(nameof(Error)); }
+		catch (Exception ex) { _saveFailed = true; Error = $"保存设置失败：{ex.Message}"; OnPropertyChanged(nameof(Error)); }
+	}
+
+	private void EnsureSaved()
+	{
+		if (_saveFailed) throw new InvalidOperationException("上一步配置保存失败，已保留待重试内容；请先重试保存再切换步骤", _pendingSave.LastError);
 	}
 
     public TransportKind Transport
     {
         get => _setting?.Transport ?? default;
-        set { if (_setting == null || _setting.Transport == value) return; _setting.Transport = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsCANopen)); OnPropertyChanged(nameof(IsEtherCAT)); QueueSave(); }
+        set { if (_setting == null || _setting.Transport == value) return; _setting.Transport = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsCANopen)); OnPropertyChanged(nameof(IsEtherCAT)); OnPropertyChanged(nameof(IsSingleFeedbackPdo)); OnPropertyChanged(nameof(IsMultipleFeedbackPdos)); QueueSave(); }
     }
 
     public Array TransportOptions { get; } = Enum.GetValues<TransportKind>();
@@ -103,6 +137,12 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
     {
         get => _setting?.FeedbackMaxAgeMs ?? default;
         set { if (_setting == null || _setting.FeedbackMaxAgeMs == value) return; _setting.FeedbackMaxAgeMs = value; OnPropertyChanged(); QueueSave(); }
+    }
+
+    public int ShutdownTimeoutMs
+    {
+        get => _setting?.ShutdownTimeoutMs ?? 2000;
+        set { if (_setting == null || _setting.ShutdownTimeoutMs == value) return; _setting.ShutdownTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
     }
 
     public int CspPdoNumber
@@ -203,6 +243,97 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 
     public bool IsCANopen => Transport == TransportKind.CANopen;
     public bool IsEtherCAT => Transport == TransportKind.EtherCAT;
+    public bool IsSingleFeedbackPdo => IsCANopen && !UseMultipleFeedbackPdos;
+    public bool IsMultipleFeedbackPdos => IsCANopen && UseMultipleFeedbackPdos;
+
+    public bool UseMultipleFeedbackPdos
+    {
+        get => _setting?.UseMultipleFeedbackPdos ?? false;
+        set
+        {
+            if (_setting == null || _setting.UseMultipleFeedbackPdos == value) return;
+            _setting.UseMultipleFeedbackPdos = value;
+            if (value && FeedbackPdos.Count == 0 && FeedbackPdoNumber != 0)
+                FeedbackPdos.Add(new() { Number = FeedbackPdoNumber, Layout = FeedbackPdoLayout });
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsSingleFeedbackPdo));
+            OnPropertyChanged(nameof(IsMultipleFeedbackPdos));
+            QueueSave();
+        }
+    }
+
+    public ObservableCollection<FeedbackPdoSetting> FeedbackPdos
+    {
+        get => _setting?.FeedbackPdos ?? [];
+        set
+        {
+            if (_setting == null || ReferenceEquals(_setting.FeedbackPdos, value)) return;
+            DetachFeedback();
+            _setting.FeedbackPdos = value ?? [];
+            AttachFeedback();
+            SelectedFeedbackPdo = null;
+            OnPropertyChanged();
+            QueueSave();
+        }
+    }
+
+    public FeedbackPdoSetting? SelectedFeedbackPdo
+    {
+        get => _selectedFeedbackPdo;
+        set { _selectedFeedbackPdo = value; OnPropertyChanged(); RemoveFeedbackPdoCommand.NotifyCanExecuteChanged(); }
+    }
+
+    private void AddFeedbackPdo()
+    {
+        if (_setting == null) return;
+        var number = Enumerable.Range(1, 512).FirstOrDefault(n => !FeedbackPdos.Any(p => p?.Number == n));
+        if (number == 0) return;
+        var row = new FeedbackPdoSetting { Number = number };
+        if (FeedbackPdos.Count > 0) row.Layout = "0x606C:0:32,0x6077:0:16";
+        FeedbackPdos.Add(row);
+        SelectedFeedbackPdo = row;
+    }
+
+    private void RemoveFeedbackPdo()
+    {
+        if (_setting == null || SelectedFeedbackPdo == null) return;
+        FeedbackPdos.Remove(SelectedFeedbackPdo);
+        SelectedFeedbackPdo = null;
+    }
+
+    private void AttachFeedback()
+    {
+        _observedCollection = _setting?.FeedbackPdos;
+        if (_observedCollection == null) return;
+        _observedCollection.CollectionChanged += FeedbackCollectionChanged;
+        ObserveItems();
+    }
+
+    private void DetachFeedback()
+    {
+        if (_observedCollection != null) _observedCollection.CollectionChanged -= FeedbackCollectionChanged;
+        foreach (var item in _observedFeedback) item.PropertyChanged -= FeedbackItemChanged;
+        _observedFeedback.Clear();
+        _observedCollection = null;
+    }
+
+    private void ObserveItems()
+    {
+        foreach (var item in _observedFeedback) item.PropertyChanged -= FeedbackItemChanged;
+        _observedFeedback.Clear();
+        if (_observedCollection == null) return;
+        foreach (var item in _observedCollection.OfType<FeedbackPdoSetting>())
+            if (_observedFeedback.Add(item)) item.PropertyChanged += FeedbackItemChanged;
+    }
+
+    private void FeedbackCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        ObserveItems(); // Clear 的 Reset 事件不提供 OldItems，也必须撤销旧行订阅。
+        if (SelectedFeedbackPdo != null && !FeedbackPdos.Contains(SelectedFeedbackPdo)) SelectedFeedbackPdo = null;
+        QueueSave();
+    }
+
+    private void FeedbackItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 	public event PropertyChangedEventHandler? PropertyChanged;
 	private void OnPropertyChanged([CallerMemberName] string? name = null) => PropertyChanged?.Invoke(this, new(name));
 }

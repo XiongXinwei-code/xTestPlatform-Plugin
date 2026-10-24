@@ -15,65 +15,30 @@ public sealed class NiDaqAiConfigExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new NiDaqAiConfigPlugin().CreateSerializer();
-        var setting = (NiDaqAiConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
+        DaqTaskResource? configuredOwner = null;
         try
         {
-            NiDriverCheck.EnsureDriver();
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new DaqExecutionGuard(context, cancellationToken);
+            var epoch = guard.Epoch;
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new NiDaqAiConfigPlugin().CreateSerializer();
+            var setting = (NiDaqAiConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
-
-            if (string.IsNullOrWhiteSpace(taskName))
-                return ErrorResult("任务名称不能为空");
-
-            if (setting.Channels.Count == 0)
-                return ErrorResult("AI 通道列表为空");
-
-            // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
-            var existingTask = NiDaqTaskRegistry.Remove(taskName);
-            if (existingTask is DaqTask oldTask)
+            guard.Check();
+            var owner = await DaqTaskFactory.CreateAndRegisterAsync(context, taskName, resource =>
             {
-                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
-                context.Log($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
-            }
+                var task = resource.AddTask();
+                DaqTaskFactory.ConfigureAi(resource, task, setting.Channels);
+                DaqTaskFactory.ConfigureClock(resource, task, setting.ClockSource, setting.SampleRate, setting.SampleMode, setting.SamplesPerChannel);
+                DaqTaskFactory.ConfigureTrigger(resource, task, setting.UseTrigger, setting.TriggerSource, setting.TriggerEdge);
+            }, cancellationToken, physicalChannels: setting.Channels.Select(c => c.PhysicalChannel), timeoutMs: setting.TimeoutMs, epoch: epoch);
+            configuredOwner = owner;
 
-            var task = new DaqTask(taskName);
-
-            foreach (var ch in setting.Channels)
-            {
-                var termConfig = ch.Terminal switch
-                {
-                    AiTerminalConfig.RSE => AITerminalConfiguration.Rse,
-                    AiTerminalConfig.NRSE => AITerminalConfiguration.Nrse,
-                    AiTerminalConfig.Pseudodifferential => AITerminalConfiguration.Pseudodifferential,
-                    _ => AITerminalConfiguration.Differential
-                };
-
-                task.AIChannels.CreateVoltageChannel(
-                    ch.PhysicalChannel, ch.ColumnName,
-                    termConfig, ch.MinValue, ch.MaxValue, AIVoltageUnits.Volts);
-            }
-
-            var sampleMode = setting.SampleMode == AiSampleMode.ContinuousSamples
-                ? SampleQuantityMode.ContinuousSamples
-                : SampleQuantityMode.FiniteSamples;
-
-            var clockSource = string.IsNullOrWhiteSpace(setting.ClockSource) ? "" : setting.ClockSource;
-
-            task.Timing.ConfigureSampleClock(clockSource, setting.SampleRate,
-                SampleClockActiveEdge.Rising, sampleMode, setting.SamplesPerChannel);
-
-            if (setting.UseTrigger && !string.IsNullOrWhiteSpace(setting.TriggerSource))
-            {
-                var edge = setting.TriggerEdge == TriggerEdge.Falling
-                    ? DigitalEdgeStartTriggerEdge.Falling
-                    : DigitalEdgeStartTriggerEdge.Rising;
-                task.Triggers.StartTrigger.ConfigureDigitalEdgeTrigger(setting.TriggerSource, edge);
-            }
-
-            NiDaqTaskRegistry.Set(taskName, task);
-
+            guard.EnsureCurrent(taskName, owner);
+            epoch.ThrowIfExpired();
             return new ExecutionResult
             {
                 StepResult = new StepResult
@@ -83,8 +48,14 @@ public sealed class NiDaqAiConfigExecutor : IStepExecutor
                 }
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
+            configuredOwner?.Dispose();
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (Exception ex)
+        {
+            configuredOwner?.Dispose();
             return ErrorResult($"AI 配置失败：{ex.Message}", ex);
         }
     }

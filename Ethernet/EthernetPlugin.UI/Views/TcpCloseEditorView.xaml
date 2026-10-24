@@ -19,6 +19,7 @@
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -26,6 +27,9 @@
                     ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="关闭总超时 (ms):" VerticalAlignment="Center" Margin="0,8,8,8"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,8,0,8"
+                         Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

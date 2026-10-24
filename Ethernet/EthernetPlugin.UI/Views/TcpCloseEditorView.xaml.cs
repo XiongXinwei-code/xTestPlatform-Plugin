@@ -34,6 +34,7 @@ public partial class TcpCloseEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new TcpCloseViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

@@ -35,6 +35,7 @@ public partial class XcpDisconnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new XcpDisconnectViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

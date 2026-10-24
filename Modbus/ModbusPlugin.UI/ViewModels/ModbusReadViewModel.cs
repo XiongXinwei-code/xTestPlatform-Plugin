@@ -12,15 +12,13 @@ namespace Modbus.UI.ViewModels;
 public class ModbusReadViewModel : INotifyPropertyChanged
 {
 	/// <summary>保存防抖延迟（毫秒）</summary>
-	private const int SaveDebounceMs = 200;
-	private CancellationTokenSource? _saveCts;
 	private bool _suppressSave;
 	private Step? _step;
 	private IStepSettingSerializer? _serializer;
 	private ModbusReadSetting? _setting;
 
-	public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-	public void AttachStep(Step step) { _step = step; Load(); }
+	public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+	public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
 	private void Load()
 	{
@@ -36,16 +34,20 @@ public class ModbusReadViewModel : INotifyPropertyChanged
 		finally { _suppressSave = false; }
 	}
 
-	private void QueueSave()
-	{
-		if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-		_saveCts?.Cancel();
-		var cts = _saveCts = new CancellationTokenSource();
-		_ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
-	}
+	private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+    private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public void FlushPendingSave() => _saves.Flush();
+    public Exception? LastSaveError => _saves.LastError;
+    private void QueueSave()
+    {
+        if (!_dispatcher.CheckAccess()) { _dispatcher.Invoke(QueueSave); return; }
+        if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
+        // 防抖保存留在 Dispatcher；刷新、卸载前 Flush 固定的原绑定。
+        _saves.Schedule(_step, _serializer, _setting);
+    }
 
 	public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
-	public int SlaveAddress { get => _setting?.SlaveAddress ?? 1; set { if (_setting == null || _setting.SlaveAddress == (byte)value) return; _setting.SlaveAddress = (byte)value; OnPropertyChanged(); QueueSave(); } }
+	public int SlaveAddress { get => _setting?.SlaveAddress ?? 1; set { if (_setting == null || _setting.SlaveAddress == checked((byte)value)) return; _setting.SlaveAddress = checked((byte)value); OnPropertyChanged(); QueueSave(); } }
 	public int RegisterType { get => (int)(_setting?.RegisterType ?? ModbusRegisterType.HoldingRegister); set { if (_setting == null) return; _setting.RegisterType = (ModbusRegisterType)value; OnPropertyChanged(); QueueSave(); } }
 	public string StartAddress { get => _setting?.StartAddress ?? "0"; set { if (_setting == null || _setting.StartAddress == value) return; _setting.StartAddress = value; OnPropertyChanged(); QueueSave(); } }
 	public string Quantity { get => _setting?.Quantity ?? "1"; set { if (_setting == null || _setting.Quantity == value) return; _setting.Quantity = value; OnPropertyChanged(); QueueSave(); } }

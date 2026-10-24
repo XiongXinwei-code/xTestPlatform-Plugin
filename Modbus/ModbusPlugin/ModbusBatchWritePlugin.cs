@@ -33,7 +33,7 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 		- SlaveAddress：byte，从站地址，默认 1
 		- RegisterType：枚举，寄存器/线圈类型，写入只支持 Coil, HoldingRegister，默认 HoldingRegister
 		- StartAddress：ushort，起始地址，默认 0
-		- Values：string，要写入的值（普通文本，非表达式），多个值用逗号分隔，如 500,600，默认 "0"；Coil 时 1 或 true（不区分大小写）为置位，其余均为复位
+		- Values：string，要写入的值（普通文本，非表达式），多个值用逗号分隔，默认 "0"；Coil 仅允许 0、1、false、true，非法值报错，不静默复位。浮点数使用英文小数点，与宿主区域设置无关
 		- DataFormat：枚举，数据格式，可选值：UInt16, Int16, UInt32_AB_CD, Int32_AB_CD, Float_AB_CD, UInt32_CD_AB, Int32_CD_AB, Float_CD_AB，默认 UInt16；仅对 HoldingRegister 生效
 
 		## 行为

@@ -41,7 +41,7 @@ public sealed class SomeIpMessage
     {
         if (data.Length < HeaderLength) return null;
         var length = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(4));
-        if (length < 8 || data.Length < HeaderLength + (int)length - 8) return null;
+        if (length < 8 || length > (uint)(data.Length - 8) || data[12] != ProtocolVersionValue) return null;
 
         var payloadLen = (int)length - 8;
         return new SomeIpMessage

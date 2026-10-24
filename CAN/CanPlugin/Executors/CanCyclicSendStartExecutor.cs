@@ -1,6 +1,6 @@
-using CAN.Adapters;
 using CAN.Helpers;
 using CAN.Models;
+using CAN.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -11,129 +11,52 @@ namespace CAN.Executors;
 public sealed class CanCyclicSendStartExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
-
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new CanCyclicSendStartPlugin().CreateSerializer();
-        var setting = (CanCyclicSendStartSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            // 获取 CAN 适配器
+            var guard = new CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var setting = (CanCyclicSendStartSetting)new CanCyclicSendStartPlugin().CreateSerializer()
+                .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
-            var adapterKey = CanHelper.GetAdapterKey(connName);
-            if (!context.Resources.TryGet<ICanAdapter>(adapterKey, out var adapter))
-            {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"CAN 连接未找到: {connName}" }
-                    }
-                };
-            }
-
+            if (!context.Resources.TryGet<CanConnectionResource>(CanHelper.GetAdapterKey(connName), out var connection))
+                throw new InvalidOperationException($"CAN 连接 {connName} 未找到，请使用新版 CAN_Open");
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
-            var taskKey = GetTaskKey(taskName);
-
-            // 如果已有同名任务，先停止
-            if (context.Resources.TryGet<CancellationTokenSource>(taskKey, out var existingCts))
+            guard.Watch(CanHelper.GetAdapterKey(connName), connection);
+            var messages = setting.Messages.Where(m => m.Enabled).ToArray();
+            if (messages.Any(m => m.CycleTimeMs <= 0)) throw new ArgumentException("周期必须大于零");
+            cancellationToken.ThrowIfCancellationRequested();
+            if (messages.Length == 0) return new() { StepResult = new() { Status = TestStatus.Completed, Value = "没有启用的报文" } };
+            var job = connection.StartJob(taskName, async token =>
             {
-                await existingCts.CancelAsync();
-                context.Resources.Remove(taskKey);
-            }
-
-            var cts = new CancellationTokenSource();
-            context.Resources.Set(taskKey, cts);
-
-            var enabledMessages = setting.Messages.Where(m => m.Enabled).ToList();
-            if (enabledMessages.Count == 0)
-            {
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Completed,
-                        Value = "没有启用的报文，跳过周期发送"
-                    }
-                };
-            }
-
-            // 为每个报文启动独立的发送任务
-            foreach (var msg in enabledMessages)
-            {
-                _ = Task.Run(async () =>
+                // 保留逐报文独立调度；跟踪全部任务，取消后等待实际退出。
+                using var groupStop = CancellationTokenSource.CreateLinkedTokenSource(token);
+                var workers = messages.Select(message => Task.Run(async () =>
                 {
                     try
                     {
-                        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(msg.CycleTimeMs));
-                        while (await timer.WaitForNextTickAsync(cts.Token))
+                        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(message.CycleTimeMs));
+                        while (await timer.WaitForNextTickAsync(groupStop.Token).ConfigureAwait(false))
                         {
-                            // 每次发送前解析表达式，获取最新值
-                            var canIdStr = await Evaluator.EvalStringAsync(msg.CanId, context);
-                            var dataStr = await Evaluator.EvalStringAsync(msg.Data, context);
-
-                            uint canId = CanHelper.ParseCanId(canIdStr);
-                            byte[] data = CanHelper.ParseHexData(dataStr);
-
-                            var message = new CanMessage
-                            {
-                                Id = canId,
-                                FrameType = msg.FrameType,
-                                Data = data,
-                                IsFd = false
-                            };
-
-                            adapter.Write(message);
-
-                            context.Log(
-                                $"[CyclicSend] 0x{canId:X} -> {BitConverter.ToString(data).Replace("-", " ")} ({msg.CycleTimeMs}ms)");
+                            var id = CanHelper.ParseCanId(await Evaluator.EvalStringAsync(message.CanId, context));
+                            var data = CanHelper.ParseHexData(await Evaluator.EvalStringAsync(message.Data, context));
+                            groupStop.Token.ThrowIfCancellationRequested();
+                            guard.CheckLifetime();
+                            connection.Write(new CanMessage { Id = id, Data = data, FrameType = message.FrameType });
                         }
                     }
-                    catch (OperationCanceledException)
-                    {
-                        // 正常停止
-                    }
-                    catch (Exception ex)
-                    {
-                        context.Log(LogLevel.Warn, $"[CyclicSend] 报文 {msg.CanId} 发送异常: {ex.Message}", ex.ToString());
-                    }
-                }, cts.Token);
-            }
-
-            context.Log($"CAN 周期发送已启动: TaskName={taskName}, 报文数={enabledMessages.Count}");
-
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Completed,
-                    Value = $"已启动 {enabledMessages.Count} 个周期发送任务: {taskName}"
-                }
-            };
+                    catch { groupStop.Cancel(); throw; }
+                })).ToArray();
+                await Task.WhenAll(workers).ConfigureAwait(false);
+            });
+            try { guard.Check(); }
+            catch { job.Dispose(); throw; } // 只冻结本次任务；连接所有者继续跟踪真实退出。
+            return new() { StepResult = new() { Status = TestStatus.Completed, Value = $"周期任务已启动：{connName}/{taskName}；重复启动须先停止" } };
         }
-        catch (OperationCanceledException)
-        {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult { Status = TestStatus.Aborted }
-            };
-        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return new() { StepResult = new() { Status = TestStatus.Aborted } }; }
         catch (Exception ex)
-        {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex, $"CAN 周期发送启动失败: {ex.Message}")
-                }
-            };
-        }
+        { return new() { StepResult = new() { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex, $"周期启动失败：{ex.Message}") } }; }
     }
-
-    internal static string GetTaskKey(string taskName) => $"CAN_CyclicSend_{taskName}";
-
-    }
+}

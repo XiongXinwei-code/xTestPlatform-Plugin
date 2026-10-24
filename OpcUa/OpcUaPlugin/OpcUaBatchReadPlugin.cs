@@ -24,7 +24,7 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | "OpcUa1" | 已建立的 OPC UA 连接名，求值结果为 string |
         | Items | 集合 | 是 | — | 节点读取列表，元素字段见下方 |
-        | TimeoutMs | int | 否 | 5000 | 预留参数，当前执行时未使用，读取超时由连接会话控制 |
+        | TimeoutMs | int | 否 | 5000 | 本次批量读取的独立期限，不修改共享 Session.OperationTimeout；必须大于 0 |
 
         Items 元素字段：
 

@@ -15,6 +15,10 @@ internal static class SegmentBuilder
         if (records.Count == 0)
             return result;
 
+        foreach (var record in records)
+            if ((ulong)record.Address + (uint)record.Data.Length > 0x1_0000_0000UL)
+                throw new InvalidDataException($"固件记录 0x{record.Address:X8} 长度 {record.Data.Length} 越过32位地址空间");
+
         records.Sort((a, b) => a.Address.CompareTo(b.Address));
 
         var buffer = new List<byte>(records[0].Data);
@@ -23,7 +27,7 @@ internal static class SegmentBuilder
         for (int i = 1; i < records.Count; i++)
         {
             var (address, data) = records[i];
-            uint currentEnd = start + (uint)buffer.Count;
+            ulong currentEnd = (ulong)start + (uint)buffer.Count;
 
             if (address == currentEnd)
             {

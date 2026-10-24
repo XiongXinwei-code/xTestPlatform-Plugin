@@ -33,6 +33,8 @@ public sealed class SerialPortQueryPlugin : StepPluginBase<SerialPortQuerySettin
 
 		- 先发送 WriteData，再立即读取一次响应
 		- 读取超时或端口未打开时步骤报错
+		- ReadTimeoutMs 是写入后的读取窗口；有限配置时，排队、写入至返回的外层上界为 Open.WriteTimeoutMs+ReadTimeoutMs+1000 ms。额外 1000 ms 是兼容收尾余量，不能当作已撤回发送；任一读写阶段配置 -1 时外层为无限等待，原调用方取消仍有效
+		- ReadBytes=0 且 Terminator 为空时，在读取窗口到期后返回已收数据；无限窗口必须指定字节数或终止符。取消后未退出调用及部分响应不交给下一代连接复用
 
 		## 相关插件
 

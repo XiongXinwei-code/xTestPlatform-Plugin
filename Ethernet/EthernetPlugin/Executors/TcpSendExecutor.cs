@@ -9,26 +9,39 @@ public sealed class TcpSendExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new TcpSendPlugin().CreateSerializer();
-        var setting = (TcpSendSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new TcpSendPlugin().CreateSerializer();
+            var setting = (TcpSendSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.SendTimeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
             var name = await EthernetExecutorHelper.EvalStringAsync(setting.ConnectionName, context);
+            CheckExecution();
             var dataStr = await EthernetExecutorHelper.EvalStringAsync(setting.Data, context);
+            CheckExecution();
 
-            var client = TcpConnectionManager.Get(name!);
+            var client = TcpConnectionManager.Get(name!, context.Resources);
             var bytes = EthernetDataHelper.Encode(dataStr!, setting.Encoding);
             var stream = client.GetStream();
 
             // 对端不取数据导致发送缓冲区满时，WriteAsync 会一直等待，需限定超时
-            var timeoutMs = setting.SendTimeoutMs > 0 ? setting.SendTimeoutMs : 3000;
+            var timeoutMs = setting.SendTimeoutMs;
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(timeoutMs);
 
             try
             {
+                CheckExecution();
                 await stream.WriteAsync(bytes, timeoutCts.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -37,6 +50,10 @@ public sealed class TcpSendExecutor : IStepExecutor
             }
 
             context.Log($"TCP 发送: {name} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
+            if (!ReferenceEquals(client, TcpConnectionManager.Get(name!, context.Resources)))
+                throw new InvalidOperationException("TCP 连接已关闭或被替换；旧代次发送已完成，不自动重发");
 
             return new ExecutionResult
             {
@@ -69,7 +86,7 @@ public sealed class TcpSendExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex, $"TCP SEND 失败: {ex.Message}")
+                    Error = ErrorInfo.FromException(ex, $"TCP 发送失败: {ex.Message}")
                 }
             };
         }

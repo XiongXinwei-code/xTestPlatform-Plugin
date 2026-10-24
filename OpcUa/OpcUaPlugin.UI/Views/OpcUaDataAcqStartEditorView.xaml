@@ -23,6 +23,7 @@
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0" Margin="0,0,0,8">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="140"/>
                         <ColumnDefinition Width="*"/>
@@ -32,7 +33,9 @@
                         ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                </Grid>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="启动总期限(ms)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"/>
+            </Grid>
 
                 <Grid Grid.Row="1" Margin="0,0,0,8">
                     <Grid.ColumnDefinitions>
@@ -67,10 +70,10 @@
 
                 <TextBlock Grid.Row="3" Text="Nodes:" Margin="0,0,0,4" FontWeight="SemiBold"/>
 
-                <DataGrid Grid.Row="4" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,0,8">
+                <DataGrid x:Name="ItemsGrid" Grid.Row="4" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" Margin="0,0,0,8">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Node ID" Binding="{Binding NodeId}" Width="*"/>
-                        <DataGridTextColumn Header="Column Name" Binding="{Binding ColumnName}" Width="150"/>
+                        <DataGridTextColumn Header="Node ID" Binding="{Binding NodeId, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                        <DataGridTextColumn Header="Column Name" Binding="{Binding ColumnName, UpdateSourceTrigger=PropertyChanged}" Width="150"/>
                     </DataGrid.Columns>
                 </DataGrid>
 

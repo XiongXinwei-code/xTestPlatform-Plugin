@@ -24,7 +24,7 @@ public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
         | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
         | TxId | string([ExpressionField]) | 是 | "0x7E1" | XCP 请求 CAN ID，求值结果为 string |
         | RxId | string([ExpressionField]) | 是 | "0x7E9" | XCP 响应 CAN ID，求值结果为 string |
-        | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
+        | TimeoutMs | int | 否 | 1000 | 完整事务总期限（排队、发送及响应），必须大于 0；超时保留未退出的原生调用 |
 
         ## 行为
 

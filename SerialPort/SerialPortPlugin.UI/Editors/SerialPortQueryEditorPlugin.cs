@@ -33,22 +33,22 @@ public sealed class SerialPortQueryEditorPlugin : IStepEditorPlugin
 
 		if (string.IsNullOrWhiteSpace(s.PortName))
 			errors.Add(StepSettingError.Error("SP_040", "PortName 不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.PortName, context.ExecutionContext, out var portError))
+			errors.Add(StepSettingError.Error("SP_040E", $"PortName 表达式无效: {portError}"));
 
 		if (string.IsNullOrWhiteSpace(s.WriteData))
 			errors.Add(StepSettingError.Error("SP_041", "WriteData 不能为空"));
+		else if (!context.Evaluator.ValidateExpression(s.WriteData, context.ExecutionContext, out var dataError))
+			errors.Add(StepSettingError.Error("SP_041E", $"WriteData 表达式无效: {dataError}"));
 
 		if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
 			errors.Add(StepSettingError.Error("SP_044", "ReadTimeout 必须大于 0，或为 -1 表示永不超时"));
 
-		if (s.ReadBytes < 0)
-			errors.Add(StepSettingError.Error("SP_045", "ReadBytes 不能为负数"));
-
-		if (s.DataFormat == SerialPortDataFormat.Hex && !string.IsNullOrWhiteSpace(s.WriteData))
-		{
-			var hex = s.WriteData.Trim().Replace(" ", "");
-			if (hex.Length % 2 != 0 || !System.Text.RegularExpressions.Regex.IsMatch(hex, @"^[0-9A-Fa-f]+$"))
-				errors.Add(StepSettingError.Warning("SP_046", "HEX 格式数据应为偶数位十六进制字符串（如 48656C6C6F）"));
-		}
+		if (s.ReadBytes < 0 || s.ReadBytes > 16 * 1024 * 1024)
+			errors.Add(StepSettingError.Error("SP_045", "ReadBytes 必须在 0~16 MiB 之间"));
+		if (s.ReadTimeoutMs == -1 && s.ReadBytes == 0 && string.IsNullOrEmpty(s.Terminator))
+			errors.Add(StepSettingError.Error("SP_FRAME", "无限读取必须配置字节数或终止符"));
+		if (!Enum.IsDefined(s.DataFormat)) errors.Add(StepSettingError.Error("SP_FORMAT", "不支持的串口数据格式"));
 
 		if (string.IsNullOrWhiteSpace(s.ResultVariable))
 			errors.Add(StepSettingError.Error("SP_042", "结果变量不能为空"));

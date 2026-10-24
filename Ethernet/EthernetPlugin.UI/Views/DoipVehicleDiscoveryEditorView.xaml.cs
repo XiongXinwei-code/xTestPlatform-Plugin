@@ -35,6 +35,7 @@ public partial class DoipVehicleDiscoveryEditorView : UserControl, IRefreshableE
         InitializeComponent();
         ViewModel   = new DoipVehicleDiscoveryViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

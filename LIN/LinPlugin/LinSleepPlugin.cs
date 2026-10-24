@@ -21,6 +21,7 @@ public sealed class LinSleepPlugin : StepPluginBase<LinSleepSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
+        | TimeoutMs | int | 否 | 3000 | 单次驱动调用等待上限，必须大于 0；不包含独立配置的动作后延时。超时返回 Error，未退出原生调用保留隔离并由关闭流程等待 |
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 连接标识名，求值结果为 string |
         | SleepMode | LinSleepMode | 是 | Remote | 睡眠模式：Remote（发送 Go-to-Sleep 命令）/ Local（仅本地接口） |
         | PostSleepDelayMs | int | 是 | 100 | 入睡后延时（毫秒），等待从节点完成入睡流程；0 表示不延时 |

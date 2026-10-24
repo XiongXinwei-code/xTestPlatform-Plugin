@@ -24,6 +24,7 @@ public partial class CanCyclicSendStartEditorView : UserControl, IRefreshableEdi
         InitializeComponent();
         ViewModel = new CanCyclicSendStartViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)
@@ -39,10 +40,9 @@ public partial class CanCyclicSendStartEditorView : UserControl, IRefreshableEdi
 
     private void OnRemoveMessage(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.Messages.Count > 0)
+        if (MessagesGrid.SelectedItem is CAN.Models.CyclicMessageItem selected)
         {
-            // 删除最后一个，或者选中的
-            ViewModel.RemoveMessage(ViewModel.Messages[^1]);
+            ViewModel.RemoveMessage(selected);
         }
     }
 }

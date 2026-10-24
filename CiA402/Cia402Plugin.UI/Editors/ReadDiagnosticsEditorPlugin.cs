@@ -38,7 +38,6 @@ public sealed class ReadDiagnosticsEditorPlugin : IStepEditorPlugin
             EditorValidation.Output(context, s.HardwareActiveVariable, typeof(bool), errors);
             EditorValidation.Expression(context, s.AxisName, "轴会话名", errors);
 			AxisLifecycleValidator.Validate(context, s, errors);
-            if (string.IsNullOrWhiteSpace(s.ErrorCodeVariable) && string.IsNullOrWhiteSpace(s.HardwareValueVariable) && string.IsNullOrWhiteSpace(s.HardwareActiveVariable)) errors.Add(StepSettingError.Error("C402_005", "至少配置一项诊断输出变量"));
 		}
 		catch (OperationCanceledException) { throw; }
 		catch (Exception ex) { errors.Add(StepSettingError.Error("C402_007", $"设置校验失败：{ex.Message}")); }

@@ -15,16 +15,18 @@ public sealed class LinWriteReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new LinWriteReadPlugin().CreateSerializer();
-        var setting = (LinWriteReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            var guard = new LIN.Runtime.LinExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new LinWriteReadPlugin().CreateSerializer();
+            var setting = (LinWriteReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            if (setting.SendTimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.SendTimeoutMs));
             var key = LinHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ILinAdapter>(key, out var adapter))
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -34,6 +36,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
                     }
                 };
             }
+            guard.Watch(key, adapter);
 
             var frameIdStr = await Evaluator.EvalStringAsync(setting.FrameId, context);
             var dataStr    = await Evaluator.EvalStringAsync(setting.Data, context);
@@ -41,6 +44,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             byte frameId = LinHelper.ParseFrameId(frameIdStr);
             byte[] data  = LinHelper.ParseHexData(dataStr);
 
+            guard.Check();
             // 发送帧（主节点发送帧头 + 数据）
             var txFrame = new LinFrame
             {
@@ -48,15 +52,16 @@ public sealed class LinWriteReadExecutor : IStepExecutor
                 Data         = data,
                 ChecksumType = setting.ChecksumType
             };
-            adapter.Write(txFrame);
-
-            context.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
-
-            // 等待从机对同一帧 ID 的响应
-            var response = adapter.Read(frameId, setting.ResponseTimeoutMs, cancellationToken);
+            // One owner spans send, logging and response; no other step/cyclic sender
+            // may steal the matching ID response between these two operations.
+            var response = await LIN.Runtime.LinConnectionResource.For(adapter).WriteReadAsync(txFrame,
+                setting.SendTimeoutMs, setting.ResponseTimeoutMs,
+                () => guard.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]"), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (response == null)
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -70,9 +75,11 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             var responseHex = BitConverter.ToString(response.Data).Replace("-", " ");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, responseHex);
+                guard.SetVariable(setting.ResultVariable, responseHex);
 
-            context.Log($"LIN 响应: ID=0x{response.FrameId:X2}({response.FrameId}), Data=[{responseHex}]");
+            guard.Log($"LIN 响应: ID=0x{response.FrameId:X2}({response.FrameId}), Data=[{responseHex}]");
+
+            guard.Check();
 
             return new ExecutionResult
             {

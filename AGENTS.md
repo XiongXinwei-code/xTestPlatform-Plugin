@@ -1,5 +1,13 @@
 # 项目协作规则
 
+## 步骤插件开发范式
+
+- 所有插件及其步骤必须遵循 `xTestPlatform_StepPlugin_Development_Guide.md`；修改前核对远端 master 手册，版本不一致时先明确差异，不依据过期示例开发。
+- 新增或修改设置必须同步 Setting/默认值、步骤 Description、VM/实际编辑页面与 `ValidateWithContextAsync`；兼容旧序列的字段与枚举，必要时显式迁移并测试。
+- 等待期限由步骤配置控制，默认值不替代用户设置；原生调用的软等待结束不等于调用已退出或报文已撤回。只有原调用方取消返回 Aborted，内部超时/失败返回带中文 ErrorInfo 和异常详情的 Error。
+- 设置解析包含在执行器异常边界中；编辑保存遵循 Dispatcher、防抖、原步骤捕获和刷新/卸载前 Flush；每个步骤编辑器独立文件并采用标准控件与表达式接口。
+- C# 源文件使用 UTF-8 无 BOM，其他文本保留手册及项目需要的换行/BOM 兼容性。提交前执行 `tools/Verify-PluginSources.ps1`，静态检查不能替代相关构建、测试及硬件验证。
+
 ## 提交规范
 
 - 使用 Conventional Commits 格式：`type(scope): 简短摘要`。

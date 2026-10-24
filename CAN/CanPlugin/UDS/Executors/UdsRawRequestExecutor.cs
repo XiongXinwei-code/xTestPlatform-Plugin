@@ -12,13 +12,13 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new UdsRawRequestPlugin().CreateSerializer();
-        var setting = (UdsRawRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdsRawRequestPlugin().CreateSerializer();
+            var setting = (UdsRawRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
@@ -27,24 +27,32 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
 
             if (requestData.Length == 0)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = "请求数据为空" } } };
+            bool securityAccess = requestData[0] == 0x27;
+            string requestDisplay = securityAccess ? "27 [安全访问负载已隐藏]" : UdsExecutorHelper.ToHex(requestData);
 
             if (!setting.WaitResponse)
             {
-                await client.SendOnlyAsync(requestData, cancellationToken);
-                context.Log($"UDS RawRequest (无响应): [{UdsExecutorHelper.ToHex(requestData)}]");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = UdsExecutorHelper.ToHex(requestData) } };
+                await guard.RunAsync(() => client.SendOnlyAsync(requestData, cancellationToken));
+                guard.Log($"UDS RawRequest (无响应): [{requestDisplay}]");
+                cancellationToken.ThrowIfCancellationRequested();
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = requestDisplay } };
             }
 
-            var response = await client.RequestAsync(requestData, cancellationToken);
+            var response = await guard.RunAsync(() => client.RequestAsync(requestData, cancellationToken));
             var responseHex = UdsExecutorHelper.ToHex(response.RawBytes);
+            string responseDisplay = securityAccess ? "[安全访问响应已隐藏]" : responseHex;
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, responseHex);
+                guard.SetVariable(setting.ResultVariable, responseHex);
 
-            context.Log(LogLevel.Trace, $"UDS RawRequest: TX=[{UdsExecutorHelper.ToHex(requestData)}] RX=[{responseHex}]");
+            guard.Log(LogLevel.Trace, $"UDS RawRequest: TX=[{requestDisplay}] RX=[{responseDisplay}]");
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (response.IsPositive)
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = responseHex } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = responseDisplay } };
+            else if (securityAccess)
+                return ExecutionResults.Error($"UDS 安全访问失败：{response.GetNrcDescription()}", detail: response.RequestDescription, value: responseDisplay);
             else
                 return UdsExecutorHelper.Failure($"UDS 原始请求 SID=0x{requestData[0]:X2}", response, responseHex);
         }
@@ -57,6 +65,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
     {
         if (string.IsNullOrWhiteSpace(hex)) return [];
         hex = hex.Replace(" ", "").Replace("-", "").Replace(",", "");
+        if (hex.Length % 2 != 0) throw new FormatException("UDS 十六进制字符数必须为偶数，未发送请求");
         var bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++)
             bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);

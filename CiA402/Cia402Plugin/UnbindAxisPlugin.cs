@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class UnbindAxisPlugin : StepPluginBase<UnbindAxisSetting>
 {
     public override string StepTypeId => "Motion.CiA402UnbindAxis";
-    public override string DisplayName => "CiA402_UnbindAxis";
+    public override string DisplayName => "CiA402_Session_UnbindAxis";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_unbindaxis.png";
 
@@ -22,13 +22,15 @@ public sealed class UnbindAxisPlugin : StepPluginBase<UnbindAxisSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |---|---|---|---|---|
         | AxisName | string([ExpressionField]) | 是 | "Axis1" | 求值结果为 string；必须先绑定该轴 |
-        | TimeoutMs | int | 否 | 5000 | 包括通信和轮询的总超时 |
+        | TimeoutMs | int | 否 | 5000 | 步骤等待总超时；轴清理还受绑定时配置的 ShutdownTimeoutMs（默认 2000 ms）约束；等待结束不表示底层清理已退出 |
         | PollIntervalMs | int | 否 | 20 | 非实时轮询间隔，不代表完整周期 |
         
         ## 行为
         
         - 查找 AxisName 对应会话，尝试停止运动并释放使能，然后移除会话；不关闭共享总线。
-        - 会话不存在时不报错，返回 Completed。清理失败只记录日志。
+        - 会话不存在时不报错，返回 Completed。清理失败或超时返回 Error，用户取消返回 Aborted，均移除终止会话。
+        - 清理期限覆盖等待活动操作、停止运动、释放使能和底层释放；不随单次通信超时累计。达到期限后不再提交新的清理命令。
+        - 未结束的底层调用继续保留节点占用，实际退出后仅释放一次；超时、取消或驱动释放失败不能视为物理停轴已确认。
         
         - 正常执行返回 Completed；参数、通信、设备状态问题及超时返回 Error；用户取消返回 Aborted。
         - 仅写入用户已声明并明确配置的完整变量路径，空输出路径不写入。

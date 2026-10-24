@@ -44,4 +44,7 @@ public class VisaBatchWriteSetting
 
     /// <summary>命令列表</summary>
     public ObservableCollection<VisaBatchWriteItem> Items { get; set; } = new();
+
+    /// <summary>事务总期限(ms，0=按命令数计算)，包含排队、全部写入与延时；不撤回已提交命令。</summary>
+    public int TimeoutMs { get; set; } = 0;
 }

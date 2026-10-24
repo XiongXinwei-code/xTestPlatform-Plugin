@@ -13,9 +13,12 @@ internal static class JsonPathHelper
     /// </summary>
     public static string? Evaluate(string json, string path)
     {
-        var root = JsonNode.Parse(json);
-        if (root == null) return null;
+        return EvaluateNode(JsonNode.Parse(json), path);
+    }
 
+    public static string? EvaluateNode(JsonNode? root, string path)
+    {
+        if (root == null) return null;
         var node = string.IsNullOrWhiteSpace(path) ? root : Navigate(root, path);
         if (node == null) return null;
 
@@ -46,36 +49,36 @@ internal static class JsonPathHelper
     }
 
     /// <summary>将 a.b[0].c 拆解为属性名与数组索引的有序序列</summary>
-    private static IEnumerable<PathSegment> Tokenize(string path)
+    private static IReadOnlyList<PathSegment> Tokenize(string path)
     {
-        foreach (var part in path.Split('.', StringSplitOptions.RemoveEmptyEntries))
+        var segments = new List<PathSegment>();
+        int position = 0;
+        while (position < path.Length)
         {
-            var name = part;
+            int begin = position;
+            while (position < path.Length && path[position] is not ('.' or '[' or ']')) position++;
+            if (position > begin) segments.Add(new PathSegment(path[begin..position], -1));
+            else if (path[position] != '[' || (segments.Count > 0 && path[position - 1] == '.'))
+                throw new FormatException("JSON 路径缺少属性名或包含不匹配的括号");
 
-            var bracket = name.IndexOf('[');
-            if (bracket < 0)
+            while (position < path.Length && path[position] == '[')
             {
-                yield return new PathSegment(name, -1);
-                continue;
+                int close = path.IndexOf(']', position + 1);
+                if (close < 0) throw new FormatException("JSON 路径的数组索引缺少右括号");
+                var indexText = path.AsSpan(position + 1, close - position - 1);
+                if (indexText.IsEmpty || !int.TryParse(indexText, System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out int index) || index < 0)
+                    throw new FormatException("JSON 路径数组索引必须为非负整数");
+                segments.Add(new PathSegment(string.Empty, index));
+                position = close + 1;
             }
-
-            var propertyName = name[..bracket];
-            if (propertyName.Length > 0)
-                yield return new PathSegment(propertyName, -1);
-
-            // 同一段可能带有多级索引，例如 matrix[0][1]
-            var rest = name[bracket..];
-            while (rest.StartsWith('['))
+            if (position < path.Length)
             {
-                var close = rest.IndexOf(']');
-                if (close < 0) yield break;
-
-                if (!int.TryParse(rest[1..close], out var index)) yield break;
-                yield return new PathSegment(string.Empty, index);
-
-                rest = rest[(close + 1)..];
+                if (path[position] != '.' || ++position == path.Length)
+                    throw new FormatException("JSON 路径包含非法的索引后缀或末尾分隔符");
             }
         }
+        return segments;
     }
 
     private readonly record struct PathSegment(string Name, int Index);

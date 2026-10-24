@@ -57,21 +57,8 @@ jobs:
           echo "new_tag=$newTag" >> $env:GITHUB_OUTPUT
           echo "prev_tag=$latestTag" >> $env:GITHUB_OUTPUT
 
-      # ── 3. 创建并推送 tag ──────────────────────────────────────────────
-      - name: 创建并推送标签
-        shell: pwsh
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag ${{ steps.bump_version.outputs.new_tag }}
-          git push origin ${{ steps.bump_version.outputs.new_tag }}
-          if ($LASTEXITCODE -ne 0) {
-              Write-Error "❌ 标签推送失败: ${{ steps.bump_version.outputs.new_tag }}"
-              exit 1
-          }
-
       # ── 3.5 计算各插件版本号（不写回仓库，编译时注入） ──────────────────
-      # 规则：插件版本 = 该插件目录最后一次提交所归属的最早 tag。
+      # 规则：插件版本 = 其编译输入最后一次提交所归属的最早 tag（含私有源码链接和根构建配置）。
       # 本次有变更的插件自然落在新 tag 上；未变更的插件沿用历史版本，不会跳变。
       - name: 计算各插件版本号
         shell: pwsh
@@ -79,13 +66,16 @@ jobs:
           $newVersion = "${{ steps.bump_version.outputs.new_version }}"
 
           $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+              (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
           }
 
           $versions = [ordered]@{}
           foreach ($dir in $pluginDirs) {
               $v = $newVersion
-              $lastCommit = git log -1 --format=%H -- "$($dir.Name)/"
+              $inputs = @("$($dir.Name)/", "Shared/", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", "global.json")
+              # CiA402 directly references CAN; a changed CAN contract also changes its build inputs.
+              if ($dir.Name -eq "CiA402") { $inputs += "CAN/" }
+              $lastCommit = git log -1 --format=%H -- @inputs
               if ($lastCommit) {
                   $owning = git tag --contains $lastCommit |
                       Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
@@ -101,19 +91,31 @@ jobs:
           $utf8 = New-Object System.Text.UTF8Encoding($false)
           [IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\plugin-versions.json", ($versions | ConvertTo-Json), $utf8)
 
-      # ── 4. 安装 .NET 8 ─────────────────────────────────────────────────
-      - name: 安装 .NET 8
+      # .slnx 构建使用现代 SDK；插件和测试仍以 .NET 8 为目标。
+      - name: 安装构建 SDK 与 .NET 8
         uses: actions/setup-dotnet@v4.3.1
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: |
+            ${{ env.DOTNET_VERSION }}
+            10.0.x
+
+      - name: 全部无设备回归测试门禁
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tools/Verify-PluginSources.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet restore xTestPlatform-PluginDev.slnx -r win-x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pwsh -NoProfile -File tools/Verify-Plugins.ps1 -Mode Test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # ── 5. 自动发现并编译所有插件 ──────────────────────────────────────
       - name: 编译所有插件
         shell: pwsh
         run: |
-          # 约定：顶层目录中包含 *Plugin*.csproj 的即为插件目录（与版本递增步骤一致）
+          # 约定：<模块>/<核心项目>/*Plugin.csproj；不能把测试或深层产物当成插件。
           $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+              (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
           }
 
           if ($pluginDirs.Count -eq 0) {
@@ -135,7 +137,7 @@ jobs:
               foreach ($proj in $projects) {
                   Write-Host "   🔨 $($proj.Name)"
                   dotnet build $proj.FullName `
-                    -c Release -p:Platform=x64 `
+                    -c Release -p:Platform=x64 -r win-x64 -p:SelfContained=false -p:AppendRuntimeIdentifierToOutputPath=false `
                     -p:Version=$v `
                     -p:OutputPath="$publishRoot\$($dir.Name)"
                   if ($LASTEXITCODE -ne 0) {
@@ -169,7 +171,7 @@ jobs:
         shell: pwsh
         run: |
           $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Recurse -Filter "*Plugin*.csproj").Count -gt 0
+              (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
           }
           foreach ($dir in $pluginDirs) {
               if (-not (Test-Path (Join-Path $dir.FullName "README.md"))) {
@@ -285,17 +287,19 @@ jobs:
 
               # 包含的步骤：反射扫描编译产物中的 *.StepPlugin.dll，提取所有 IStepPlugin 实现的 DisplayName/Description
               $steps = @()
-              $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)"
+              $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)" --strict
               if ($LASTEXITCODE -eq 0 -and $stepsJson) {
                   try {
                       $steps = @(($stepsJson -join "`n") | ConvertFrom-Json)
                   } catch {
-                      Write-Warning "$pluginName 步骤信息 JSON 解析失败：$_"
+                      Write-Error "$pluginName 步骤信息 JSON 解析失败：$_"
+                      exit 1
                   }
               } else {
-                  Write-Warning "$pluginName 步骤信息提取失败，详情页将无步骤列表"
+                  Write-Error "$pluginName 核心/UI/步骤契约严格校验失败，停止发布"
+                  exit 1
               }
-              if ($steps.Count -eq 0) { Write-Warning "$pluginName 未提取到任何步骤" }
+              if ($steps.Count -eq 0) { Write-Error "$pluginName 未提取到任何步骤"; exit 1 }
 
               $entries += [ordered]@{
                   name               = $pluginName
@@ -404,6 +408,19 @@ jobs:
           }
           $index | ConvertTo-Json -Depth 6 | Set-Content "$assetsDir\versions.json" -Encoding UTF8
           Write-Host "✅ versions.json 已生成（$($plugins.Count) 个插件）"
+
+      # ── 7.9 构建/测试/打包成功后创建并推送 tag ──────────────────────────────────────────────
+      - name: 创建并推送标签
+        shell: pwsh
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.bump_version.outputs.new_tag }}
+          git push origin ${{ steps.bump_version.outputs.new_tag }}
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "❌ 标签推送失败: ${{ steps.bump_version.outputs.new_tag }}"
+              exit 1
+          }
 
       # ── 8. 生成 Release Notes ─────────────────────────────────────────
       - name: 生成 Release Notes

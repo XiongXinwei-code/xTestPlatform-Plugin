@@ -11,18 +11,20 @@ namespace VISA.UI.ViewModels;
 /// </summary>
 public class VisaReadViewModel : INotifyPropertyChanged
 {
-	private const int SaveDebounceMs = 200;
-	private CancellationTokenSource? _saveCts;
+	private readonly EditorSaveCoordinator _save = new();
+    public Exception? LastSaveError => _save.LastError;
+    public void FlushPendingSave() => _save.Flush();
 	private bool _suppressSave;
 	private Step? _step;
 	private IStepSettingSerializer? _serializer;
 	private VisaReadSetting? _setting;
 
-	public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-	public void AttachStep(Step step) { _step = step; Load(); }
+	public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+	public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
 	private void Load()
 	{
+        _save.Detach();
 		if (_serializer == null || _step == null) return;
 		_suppressSave = true;
 		try
@@ -35,13 +37,12 @@ public class VisaReadViewModel : INotifyPropertyChanged
 		finally { _suppressSave = false; }
 	}
 
-	private void QueueSave()
-	{
-		if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-		_saveCts?.Cancel();
-		var cts = _saveCts = new CancellationTokenSource();
-		_ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
-	}
+    private void QueueSave()
+    {
+        if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
+        var step = _step; var setting = _setting; var serializer = _serializer;
+        _save.Queue(() => step.StepSetting.Setting = serializer.Serialize(setting));
+    }
 
 	public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
 	public string ResultVariable { get => _setting?.ResultVariable ?? ""; set { if (_setting == null || _setting.ResultVariable == value) return; _setting.ResultVariable = value; OnPropertyChanged(); QueueSave(); } }

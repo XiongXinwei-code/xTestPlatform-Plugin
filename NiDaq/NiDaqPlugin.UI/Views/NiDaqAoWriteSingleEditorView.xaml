@@ -1,0 +1,28 @@
+<UserControl x:Class="NiDaq.UI.Views.NiDaqAoWriteSingleEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:skin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             skin:SfSkinManager.Theme="{skin:SkinManagerExtension ThemeName=Windows11Light}">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="AO 单点输出" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ao_write_single.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="16" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="任务名称" VerticalAlignment="Center"/>
+                    <expr:ExpressionTextBox x:Name="TaskNameBox" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="1" Text="电压值/集合(V)" VerticalAlignment="Center"/>
+                    <expr:ExpressionTextBox x:Name="ValuesBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" ScriptText="{Binding Values, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Object"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="2" Text="单次总期限(ms)" Margin="0,8,8,0" VerticalAlignment="Center"/>
+                    <TextBox x:Name="LifecycleTimeoutBox" Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,8,0,0" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="Gray"
+                        Text="先 AO_Config → Task_Start。数值按配置行序匹配，支持单数值或 new double[] { 1.0, 2.0 }。不会隐式启动；SDK 返回不等于实测电压。停止使用配置中的策略，0 V 不一定安全。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

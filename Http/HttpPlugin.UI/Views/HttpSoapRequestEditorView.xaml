@@ -34,12 +34,12 @@
                     </Grid.RowDefinitions>
 					<TextBlock Grid.Row="0" Grid.Column="0" Text="客户端名称:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,6"
-						ScriptText="{Binding ClientName, Mode=TwoWay}"
+                        ScriptText="{Binding ClientName, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="1" Grid.Column="0" Text="服务路径:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,6"
-						ScriptText="{Binding Path, Mode=TwoWay}"
+                        ScriptText="{Binding Path, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="2" Grid.Column="0" Text="SOAP 版本:" VerticalAlignment="Center" Margin="0,6" />
@@ -47,12 +47,12 @@
 							  ItemsSource="{Binding SoapVersions}" SelectedItem="{Binding SoapVersion, Mode=TwoWay}" />
 					<TextBlock Grid.Row="3" Grid.Column="0" Text="SOAPAction:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="3" Grid.Column="1" Margin="0,6"
-						ScriptText="{Binding SoapAction, Mode=TwoWay}"
+                        ScriptText="{Binding SoapAction, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="4" Grid.Column="0" Text="Envelope:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,6" MinHeight="120"
-						ScriptText="{Binding Envelope, Mode=TwoWay}"
+                        ScriptText="{Binding Envelope, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="5" Grid.Column="0" Text="响应变量:" VerticalAlignment="Center" Margin="0,6" />
@@ -69,7 +69,15 @@
 							  ItemsSource="{Binding Headers}" AutoGenerateColumns="False" CanUserAddRows="True">
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="Name" Width="200" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-							<DataGridTextColumn Header="Value (表达式)" Width="*" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridTemplateColumn Header="Value (表达式)" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <expr:ExpressionTextBox ScriptText="{Binding Value, Mode=TwoWay}" ExpectedResultType="String"
+                                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
 						</DataGrid.Columns>
 					</DataGrid>
                 </Grid>

@@ -15,50 +15,30 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new NiDaqEncoderConfigPlugin().CreateSerializer();
-        var setting = (NiDaqEncoderConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
+        DaqTaskResource? configuredOwner = null;
         try
         {
-            NiDriverCheck.EnsureDriver();
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new DaqExecutionGuard(context, cancellationToken);
+            var epoch = guard.Epoch;
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new NiDaqEncoderConfigPlugin().CreateSerializer();
+            var setting = (NiDaqEncoderConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var counterCh = await Evaluator.EvalStringAsync(setting.CounterChannel, context);
-
-            if (string.IsNullOrWhiteSpace(taskName))
-                return ErrorResult("任务名称不能为空");
-            if (string.IsNullOrWhiteSpace(counterCh))
-                return ErrorResult("Counter 通道不能为空");
-
-            // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
-            var existingTask = NiDaqTaskRegistry.Remove(taskName);
-            if (existingTask is DaqTask oldTask)
+            guard.Check();
+            if (!double.IsFinite(setting.DistancePerPulse) || setting.DistancePerPulse <= 0 || !Enum.IsDefined(setting.Unit)) throw new ArgumentException("编码器换算参数无效");
+            var owner = await DaqTaskFactory.CreateAndRegisterAsync(context, taskName, resource =>
             {
-                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
-                context.Log($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
-            }
+                DaqTaskFactory.ConfigureEncoder(resource, resource.AddTask(), counterCh, "", setting.DecodingType, setting.ZIndexEnable, setting.PulsesPerRevolution);
+                resource.Unit = setting.Unit; resource.DistancePerPulse = setting.DistancePerPulse;
+            }, cancellationToken, physicalChannels: [counterCh], timeoutMs: setting.TimeoutMs, epoch: epoch);
+            configuredOwner = owner;
 
-            var decodingType = setting.DecodingType switch
-            {
-                EncoderDecodingType.X1 => CIEncoderDecodingType.X1,
-                EncoderDecodingType.X2 => CIEncoderDecodingType.X2,
-                _ => CIEncoderDecodingType.X4
-            };
-
-            var task = new DaqTask(taskName);
-            task.CIChannels.CreateAngularEncoderChannel(
-                counterCh, "",
-                decodingType,
-                setting.ZIndexEnable, 0,
-                CIEncoderZIndexPhase.AHighBHigh,
-                setting.PulsesPerRevolution, 0,
-                CIAngularEncoderUnits.Ticks);
-
-            NiDaqTaskRegistry.Set(taskName, task);
-            // 存储转换参数供 Read 使用
-            NiDaqTaskRegistry.SetMetadata(taskName, "DistancePerPulse", setting.DistancePerPulse);
-            NiDaqTaskRegistry.SetMetadata(taskName, "Unit", setting.Unit);
-
+            guard.EnsureCurrent(taskName, owner);
+            epoch.ThrowIfExpired();
             return new ExecutionResult
             {
                 StepResult = new StepResult
@@ -68,8 +48,14 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
                 }
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
+            configuredOwner?.Dispose();
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (Exception ex)
+        {
+            configuredOwner?.Dispose();
             return ErrorResult($"编码器配置失败：{ex.Message}", ex);
         }
     }

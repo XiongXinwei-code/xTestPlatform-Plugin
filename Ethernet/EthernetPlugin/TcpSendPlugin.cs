@@ -8,7 +8,7 @@ namespace Ethernet;
 public sealed class TcpSendPlugin : StepPluginBase<TcpSendSetting>
 {
     public override string StepTypeId  => "Ethernet.TcpSend";
-    public override string DisplayName => "Ethernet_TcpSend";
+    public override string DisplayName => "Ethernet_TCP_Send";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_send.png";
 

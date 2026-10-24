@@ -1,3 +1,4 @@
+using PluginCommon;
 using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
@@ -19,16 +20,20 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
-		var step = context.CurrentStep!.Step;
-		var serializer = new ModbusBatchWritePlugin().CreateSerializer();
-		var setting = (ModbusBatchWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        try
+        {
+			cancellationToken.ThrowIfCancellationRequested();
+			var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+			var step = context.CurrentStep!.Step;
+			var serializer = new ModbusBatchWritePlugin().CreateSerializer();
+			var setting = (ModbusBatchWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+			if (setting.IntervalMs < 0) throw new ArgumentOutOfRangeException(nameof(setting.IntervalMs), "批量写入间隔不能为负数");
 
-		try
-		{
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+			epoch.ThrowIfExpired();
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			if (!context.Resources.TryGet<IModbusMaster>(key, out var master))
+			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
 				return new ExecutionResult
 				{
@@ -42,7 +47,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 			var readOnlyItem = setting.Items.FirstOrDefault(i =>
-				i.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister);
+				i.RegisterType is not (ModbusRegisterType.Coil or ModbusRegisterType.HoldingRegister));
 			if (readOnlyItem != null)
 			{
 				return new ExecutionResult
@@ -55,33 +60,38 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				};
 			}
 
-			foreach (var item in setting.Items)
+			// 全部值在第一次发送前完成解析，避免后面非法输入导致前面已经输出。
+			var prepared = setting.Items.Select(item => (Item: item,
+				Coils: item.RegisterType == ModbusRegisterType.Coil ? ModbusDataConverter.ParseCoils(item.Values) : null,
+				Registers: item.RegisterType == ModbusRegisterType.HoldingRegister ? ModbusDataConverter.ConvertToRegisters(item.Values, item.DataFormat) : null)).ToArray();
+			foreach (var entry in prepared)
 			{
-				cancellationToken.ThrowIfCancellationRequested();
+				var item = entry.Item;
+				epoch.ThrowIfExpired();
+				ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 
 				if (item.RegisterType == ModbusRegisterType.Coil)
 				{
-					var bools = item.Values.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-						.Select(v => v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase)).ToArray();
+					var bools = entry.Coils!;
 					if (bools.Length == 1)
-						await ModbusHelper.WithTimeoutAsync(
-							master.WriteSingleCoilAsync(item.SlaveAddress, item.StartAddress, bools[0]),
+						await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.WriteSingleCoilAsync(item.SlaveAddress, item.StartAddress, bools[0]); },
 							timeoutMs, $"Modbus 批量写入线圈(地址 {item.StartAddress})", cancellationToken);
 					else
-						await ModbusHelper.WithTimeoutAsync(
-							master.WriteMultipleCoilsAsync(item.SlaveAddress, item.StartAddress, bools),
+						await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.WriteMultipleCoilsAsync(item.SlaveAddress, item.StartAddress, bools); },
 							timeoutMs, $"Modbus 批量写入线圈(地址 {item.StartAddress})", cancellationToken);
 				}
 				else
 				{
-					var registers = ModbusDataConverter.ConvertToRegisters(item.Values, item.DataFormat);
+					var registers = entry.Registers ?? throw new ArgumentOutOfRangeException(nameof(item.RegisterType));
 					if (registers.Length == 1)
-						await ModbusHelper.WithTimeoutAsync(
-							master.WriteSingleRegisterAsync(item.SlaveAddress, item.StartAddress, registers[0]),
+						await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.WriteSingleRegisterAsync(item.SlaveAddress, item.StartAddress, registers[0]); },
 							timeoutMs, $"Modbus 批量写入寄存器(地址 {item.StartAddress})", cancellationToken);
 					else
-						await ModbusHelper.WithTimeoutAsync(
-							master.WriteMultipleRegistersAsync(item.SlaveAddress, item.StartAddress, registers),
+						await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.WriteMultipleRegistersAsync(item.SlaveAddress, item.StartAddress, registers); },
 							timeoutMs, $"Modbus 批量写入寄存器(地址 {item.StartAddress})", cancellationToken);
 				}
 
@@ -90,6 +100,8 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 			}
 
 			context.Log($"Modbus 批量写入: 已写入 {setting.Items.Count} 项");
+			epoch.ThrowIfExpired();
+			ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 
 			return new ExecutionResult
 			{
@@ -107,7 +119,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = ErrorInfo.FromException(ex)
+					Error = ErrorInfo.FromException(ex, $"Modbus 批量写入超时: {ex.Message}")
 				}
 			};
 		}

@@ -39,6 +39,7 @@ public sealed class TcpSendEditorPlugin : IStepEditorPlugin
         if (s.SendTimeoutMs <= 0)
             errors.Add(StepSettingError.Error("ETH_205", "SendTimeoutMs 必须大于 0"));
 
+        Validation.EthernetLifecycleValidator.CheckPrecedingOpen(context, s.ConnectionName, false, errors);
         return errors;
     }
 }

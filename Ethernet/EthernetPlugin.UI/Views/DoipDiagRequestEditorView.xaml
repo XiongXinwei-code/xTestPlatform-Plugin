@@ -43,7 +43,8 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="TimeoutMs:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="请求总超时 (ms):" VerticalAlignment="Center" Margin="0,0,8,8"
+                           ToolTip="单次请求的总预算，包含事务排队、发送、ACK、Pending 与完整响应；独立于连接建立超时。"/>
                 <syncfusion:IntegerTextBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                                            MinValue="1" Value="{Binding TimeoutMs, Mode=TwoWay}"/>
 

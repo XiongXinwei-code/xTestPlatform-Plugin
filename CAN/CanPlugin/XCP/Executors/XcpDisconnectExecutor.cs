@@ -9,19 +9,19 @@ public sealed class XcpDisconnectExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new XcpDisconnectPlugin().CreateSerializer();
-        var setting = (XcpDisconnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new XcpDisconnectPlugin().CreateSerializer();
+            var setting = (XcpDisconnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
-            await client.DisconnectAsync(cancellationToken);
+            await guard.RunAsync(() => client.DisconnectAsync(cancellationToken));
 
-            context.Log("XCP DISCONNECT 成功");
+            guard.Log("XCP DISCONNECT 成功");
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
         }

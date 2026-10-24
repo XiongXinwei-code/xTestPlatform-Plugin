@@ -29,6 +29,7 @@ public partial class HttpJsonExtractEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new HttpJsonExtractViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

@@ -14,12 +14,12 @@ public sealed class CanReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new CanReadPlugin().CreateSerializer();
-        var setting = (CanReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new CanReadPlugin().CreateSerializer();
+            var setting = (CanReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = CanHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
@@ -28,6 +28,7 @@ public sealed class CanReadExecutor : IStepExecutor
             }
 
             // 解析过滤 ID
+            guard.Watch(key, adapter);
             uint? filterId = null;
             if (!string.IsNullOrWhiteSpace(setting.FilterId))
             {
@@ -37,11 +38,9 @@ public sealed class CanReadExecutor : IStepExecutor
             }
 
             // 读取
-            CanMessage? msg;
-            if (filterId.HasValue)
-                msg = adapter.Read(filterId.Value, setting.ReadTimeoutMs, cancellationToken);
-            else
-                msg = adapter.Read(setting.ReadTimeoutMs, cancellationToken);
+            if (adapter is not CAN.Runtime.CanConnectionResource owner)
+                throw new InvalidOperationException("旧 CAN 连接没有实际 I/O 生命周期所有者，请关闭后重新执行 CAN_Open");
+            var msg = await guard.RunAsync(() => owner.ReadAsync(filterId, setting.ReadTimeoutMs, cancellationToken));
 
             if (msg == null)
             {
@@ -53,11 +52,11 @@ public sealed class CanReadExecutor : IStepExecutor
 
             // 存储结果
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, dataHex);
+                guard.SetVariable(setting.ResultVariable, dataHex);
             if (!string.IsNullOrWhiteSpace(setting.IdVariable))
-                context.SetVariable(setting.IdVariable, $"0x{msg.Id:X}");
+                guard.SetVariable(setting.IdVariable, $"0x{msg.Id:X}");
 
-            context.Log($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
+            guard.Log($"CAN 接收: ID=0x{msg.Id:X}, Data=[{dataHex}]");
 
             return ExecutionResults.Completed($"0x{msg.Id:X}: {dataHex}");
         }

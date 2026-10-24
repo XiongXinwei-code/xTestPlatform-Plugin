@@ -35,6 +35,7 @@ public partial class SomeIpSdDiscoverEditorView : UserControl, IRefreshableEdito
         InitializeComponent();
         ViewModel   = new SomeIpSdDiscoverViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

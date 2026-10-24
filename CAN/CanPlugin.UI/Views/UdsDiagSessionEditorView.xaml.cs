@@ -24,6 +24,7 @@ public partial class UdsDiagSessionEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new UdsDiagSessionViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

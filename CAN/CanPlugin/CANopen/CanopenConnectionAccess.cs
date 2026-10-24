@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using CAN.Adapters;
 using CAN.Models;
+using CAN.Runtime;
 
 namespace CAN.CANopen;
 
@@ -18,6 +19,30 @@ public sealed class CanopenConnectionAccess
 
     private CanopenConnectionAccess(ICanAdapter adapter) => _adapter = adapter;
     public static CanopenConnectionAccess For(ICanAdapter adapter) => Connections.GetValue(adapter, a => new(a));
+
+    internal IDisposable EnterControlledMode(Action<CanMessage> preserveQueued)
+    {
+        if (!_receiveGate.Wait(0)) throw new InvalidOperationException("旧 CANopen 接收仍在执行，不能切换接收模式");
+        if (!_sdoGate.Wait(0)) { _receiveGate.Release(); throw new InvalidOperationException("SDO 事务仍在执行，不能切换接收模式"); }
+        try
+        {
+            CheckUsable();
+            foreach (var queue in _pending.Values)
+                while (queue.TryDequeue(out var frame))
+                {
+                    frame.Frame.IngressMonotonicTicks ??= frame.ObservedTimestamp;
+                    preserveQueued(frame.Frame);
+                }
+            _pending.Clear();
+            return new ReleasePair(_receiveGate, _sdoGate);
+        }
+        catch { _sdoGate.Release(); _receiveGate.Release(); throw; }
+    }
+
+    private sealed class ReleasePair(SemaphoreSlim receive, SemaphoreSlim sdo) : IDisposable
+    {
+        public void Dispose() { sdo.Release(); receive.Release(); }
+    }
 
     public CanopenNodeAccess ReserveNode(byte nodeId, int timeoutMs)
     {
@@ -42,6 +67,7 @@ public sealed class CanopenConnectionAccess
             lock (_owners)
                 if (_owners.TryGetValue(node, out var current) && !ReferenceEquals(current, owner))
                     throw new InvalidOperationException($"CANopen 节点 {node} 已由轴会话管理，请勿混用原始 SDO 步骤");
+            if (_adapter is CanConnectionResource resource) resource.BeginSdoTransaction(node);
             return new ReleaseGate(_sdoGate);
         }
         catch { _sdoGate.Release(); throw; }
@@ -53,7 +79,11 @@ public sealed class CanopenConnectionAccess
             if (_owners.TryGetValue(node, out var current) && ReferenceEquals(current, owner)) _owners.Remove(node);
     }
 
-    internal void InvalidateSdoTransaction() => _unusable = true;
+    internal void InvalidateSdoTransaction()
+    {
+        _unusable = true;
+        if (_adapter is CanConnectionResource resource) resource.Isolate("CANopen SDO 事务未完成或超时");
+    }
 
     private void CheckUsable()
     {
@@ -66,8 +96,11 @@ public sealed class CanopenConnectionAccess
         CheckUsable();
         ct.ThrowIfCancellationRequested();
         if (cobId > 0x7FF || data.Length > 8 || timeoutMs <= 0) throw new ArgumentException("CANopen 标准帧或通信超时无效");
-        var task = Task.Run(() => _adapter.Write(new CanMessage { Id = cobId, Data = data.ToArray(), FrameType = CanFrameType.Standard }), ct);
-        await AwaitIo(task, timeoutMs, ct).ConfigureAwait(false);
+        // Use the connection's tracked submission boundary: a worker queued past the
+        // caller deadline must not later send a stale control frame.
+        await CanRawIo.WriteAsync(_adapter,
+            new CanMessage { Id = cobId, Data = data.ToArray(), FrameType = CanFrameType.Standard },
+            timeoutMs, ct).ConfigureAwait(false);
     }
 
     private async Task AwaitIo(Task task, int timeoutMs, CancellationToken ct)
@@ -83,6 +116,7 @@ public sealed class CanopenConnectionAccess
                 if (!task.IsCompleted)
                 {
                     _unusable = true;
+                    if (_adapter is CanConnectionResource resource) resource.Isolate("CANopen 原生 I/O 尚未退出");
                     _ = task.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
                 }
             }
@@ -94,6 +128,11 @@ public sealed class CanopenConnectionAccess
     {
         CheckUsable();
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs), "接收超时必须大于零");
+        if (_adapter is CanConnectionResource { Controlled: true } resource)
+        {
+            var routed = await resource.ReadCanopenAsync(cobId, timeoutMs, ct).ConfigureAwait(false);
+            return routed == null ? null : CanopenReceivedFrame.From(routed);
+        }
         var clock = Stopwatch.StartNew();
         if (!await _receiveGate.WaitAsync(timeoutMs, ct).ConfigureAwait(false)) throw new TimeoutException($"等待 CANopen 接收超时（{timeoutMs} ms）");
         try
@@ -108,7 +147,7 @@ public sealed class CanopenConnectionAccess
                 await AwaitIo(read, remain + 100, ct).ConfigureAwait(false);
                 var frame = await read.ConfigureAwait(false);
                 if (frame == null || frame.IsTransmitEcho || frame.FrameType != CanFrameType.Standard || frame.IsFd || frame.Id > 0x7FF) continue;
-                var received = new CanopenReceivedFrame(frame, Stopwatch.GetTimestamp());
+                var received = CanopenReceivedFrame.From(frame);
                 if (frame.Id == cobId) return received;
                 if (!_pending.TryGetValue(frame.Id, out var queue)) _pending[frame.Id] = queue = new();
                 if (queue.Count >= 64) queue.Dequeue();
@@ -128,7 +167,13 @@ public sealed class CanopenConnectionAccess
 
 public sealed record CanopenReceivedFrame(CanMessage Frame, long ObservedTimestamp)
 {
-    public TimeSpan QueueAge => Stopwatch.GetElapsedTime(ObservedTimestamp);
+    public static CanopenReceivedFrame From(CanMessage frame) => new(frame,
+        frame.CaptureMonotonicLowerBoundTicks ?? frame.IngressMonotonicTicks ?? 0);
+    // Host ingress is only a queueing event, not evidence of when the device captured
+    // a frame. In particular it must not make an old native-queue frame fresh again.
+    public bool HasKnownObservationTime => Frame.CaptureMonotonicLowerBoundTicks is > 0 &&
+        ObservedTimestamp == Frame.CaptureMonotonicLowerBoundTicks && ObservedTimestamp <= Stopwatch.GetTimestamp();
+    public TimeSpan QueueAge => HasKnownObservationTime ? Stopwatch.GetElapsedTime(ObservedTimestamp) : TimeSpan.MaxValue;
 }
 
 /// <summary>独占节点的 SDO 客户端；释放时不关闭共享 CAN 连接。</summary>
@@ -161,7 +206,6 @@ public sealed class CanopenNodeAccess : IDisposable
     public async Task<CanopenReceivedFrame?> ReceivePdoAsync(uint cobId, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
-        using var transaction = await _connection.EnterSdoAsync(_node, _owner, TimeoutMs, ct).ConfigureAwait(false);
         return await _connection.ReceiveAsync(cobId, TimeoutMs, ct).ConfigureAwait(false);
     }
     public void Dispose()

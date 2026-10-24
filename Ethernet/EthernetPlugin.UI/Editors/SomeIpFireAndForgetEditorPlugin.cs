@@ -37,6 +37,10 @@ public sealed class SomeIpFireAndForgetEditorPlugin : IStepEditorPlugin
         if (!string.IsNullOrWhiteSpace(s.Payload)
             && !context.Evaluator.ValidateExpression(s.Payload, context.ExecutionContext, out var pe))
             errors.Add(StepSettingError.Error("SOMEIP_213", $"Payload 表达式无效: {pe}"));
+        if (s.SendTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("SOMEIP_214", "发送总超时 SendTimeoutMs 必须大于 0"));
+        if (!Enum.IsDefined(s.Transport))
+            errors.Add(StepSettingError.Error("SOMEIP_215", "Transport 必须是受支持的 TCP 或 UDP"));
 
         return errors;
     }

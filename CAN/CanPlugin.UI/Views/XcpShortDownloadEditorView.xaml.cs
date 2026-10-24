@@ -35,6 +35,7 @@ public partial class XcpShortDownloadEditorView : UserControl, IRefreshableEdito
         InitializeComponent();
         ViewModel   = new XcpShortDownloadViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

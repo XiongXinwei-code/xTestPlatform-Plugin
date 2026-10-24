@@ -25,12 +25,14 @@ public sealed class TcpCloseEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (Ethernet.Models.TcpCloseSetting)new TcpClosePlugin().CreateSerializer()
                     .Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("ETH_103", "关闭总超时必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("ETH_101", "ConnectionName 不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var e1))
             errors.Add(StepSettingError.Error("ETH_102", $"ConnectionName 表达式无效: {e1}"));
 
+        Validation.EthernetLifecycleValidator.CheckPrecedingOpen(context, s.ConnectionName, false, errors);
         return errors;
     }
 }

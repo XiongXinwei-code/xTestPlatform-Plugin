@@ -13,8 +13,6 @@ namespace Modbus.UI.ViewModels;
 public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 {
 	/// <summary>保存防抖延迟（毫秒）</summary>
-	private const int SaveDebounceMs = 200;
-	private CancellationTokenSource? _saveCts;
 	private bool _suppressSave;
 	private Step? _step;
 	private IStepSettingSerializer? _serializer;
@@ -22,39 +20,43 @@ public class ModbusBatchWriteViewModel : INotifyPropertyChanged
 
 	public ObservableCollection<ModbusBatchWriteItem> Items { get; private set; } = new();
 
-	public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-	public void AttachStep(Step step) { _step = step; Load(); }
+	public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+	public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
-	private void Load()
+	private PluginEditor.SettingsChangeTracker? _changes;
+    private void Load()
 	{
 		if (_serializer == null || _step == null) return;
-		_suppressSave = true;
+		_changes?.Dispose(); _changes = new PluginEditor.SettingsChangeTracker(QueueSave);
+        _suppressSave = true;
 		try
 		{
 			_setting = _step.StepSetting.Setting is { Length: > 0 } d
 				? (ModbusBatchWriteSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
 				: (ModbusBatchWriteSetting)_serializer.CreateDefault();
-			Items = _setting.Items;
-			foreach (var item in Items)
-				item.PropertyChanged += OnItemChanged;
+			Items = _setting.Items; _changes.Track(Items);
 			OnPropertyChanged(string.Empty);
 		}
 		finally { _suppressSave = false; }
 	}
 
-	private void QueueSave()
-	{
-		if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-		_saveCts?.Cancel();
-		var cts = _saveCts = new CancellationTokenSource();
-		_ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
-	}
+	private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+    private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public void FlushPendingSave() => _saves.Flush();
+    public Exception? LastSaveError => _saves.LastError;
+    private void QueueSave()
+    {
+        if (!_dispatcher.CheckAccess()) { _dispatcher.Invoke(QueueSave); return; }
+        if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
+        // 防抖保存留在 Dispatcher；刷新、卸载前 Flush 固定的原绑定。
+        _saves.Schedule(_step, _serializer, _setting);
+    }
 
 	public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
 	public int IntervalMs { get => _setting?.IntervalMs ?? 0; set { if (_setting == null || _setting.IntervalMs == value) return; _setting.IntervalMs = value; OnPropertyChanged(); QueueSave(); } }
 
-	public void AddItem() { var item = new ModbusBatchWriteItem(); item.PropertyChanged += OnItemChanged; Items.Add(item); QueueSave(); }
-	public void RemoveItem(ModbusBatchWriteItem item) { item.PropertyChanged -= OnItemChanged; Items.Remove(item); QueueSave(); }
+	public void AddItem() { var item = new ModbusBatchWriteItem(); Items.Add(item); QueueSave(); }
+	public void RemoveItem(ModbusBatchWriteItem item) { Items.Remove(item); QueueSave(); }
 
 	private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 

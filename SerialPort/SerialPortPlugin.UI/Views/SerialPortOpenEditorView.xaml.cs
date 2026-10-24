@@ -25,6 +25,7 @@ public partial class SerialPortOpenEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new SerialPortOpenViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

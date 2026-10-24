@@ -24,6 +24,7 @@ public partial class UdsRawRequestEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new UdsRawRequestViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

@@ -1,3 +1,4 @@
+using PluginCommon;
 using Ivi.Visa;
 using VISA.Helpers;
 using VISA.Models;
@@ -18,17 +19,20 @@ public sealed class VisaReadExecutor : IStepExecutor
     /// <summary>执行 VISA 读取操作</summary>
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new VisaReadPlugin().CreateSerializer();
-        var setting = (VisaReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new VisaReadPlugin().CreateSerializer();
+            var setting = (VisaReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            epoch.ThrowIfExpired();
             var varName = setting.ResultVariable;
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<IMessageBasedSession>(key, out var session))
+            if (!context.Resources.TryGet<VisaSessionResource>(key, out var resource))
             {
                 return new ExecutionResult
                 {
@@ -40,23 +44,17 @@ public sealed class VisaReadExecutor : IStepExecutor
                 };
             }
 
-            string response;
-            var gate = VisaHelper.GetLock(session);
-            await gate.WaitAsync(cancellationToken);
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var timeoutMs = VisaHelper.GetIoTimeoutMs(session);
-                response = await VisaHelper.RunWithTimeoutAsync(
-                    () => VisaHelper.Read(session, setting.TrimResponse), timeoutMs, "读取", cancellationToken);
-            }
-            finally
-            {
-                gate.Release();
-            }
+            epoch.ThrowIfExpired();
+            var response = await resource.RunBlockingAsync(
+                session => { epoch.ThrowIfExpired(); return VisaHelper.Read(session, setting.TrimResponse); },
+                resource.IoTimeoutMs, "VISA 读取", cancellationToken);
+            epoch.ThrowIfExpired();
+            VisaResultPublisher.EnsureActive(context, key, resource, cancellationToken);
             context.SetVariable(varName, response);
 
             context.Log($"VISA Read: {response}");
+            epoch.ThrowIfExpired();
+            VisaResultPublisher.EnsureActive(context, key, resource, cancellationToken);
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = response }
@@ -73,7 +71,7 @@ public sealed class VisaReadExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex)
+                    Error = ErrorInfo.FromException(ex, $"VISA 读取超时: {ex.Message}")
                 }
             };
         }

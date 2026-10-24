@@ -29,6 +29,7 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (CanOpenSetting)new CanOpenPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("CAN_014", "打开总超时必须大于 0 ms"));
         if (string.IsNullOrWhiteSpace(s.Channel))
             errors.Add(StepSettingError.Error("CAN_001", "通道名称不能为空"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))

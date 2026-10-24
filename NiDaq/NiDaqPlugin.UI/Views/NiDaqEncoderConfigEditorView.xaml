@@ -40,6 +40,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" Margin="0,0,0,8"
@@ -58,6 +59,8 @@
                 <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding DistancePerPulse, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="输出单位" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Source={StaticResource EncoderUnitValues}}" SelectedItem="{Binding Unit}" Width="200" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="配置总期限(ms)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="7" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

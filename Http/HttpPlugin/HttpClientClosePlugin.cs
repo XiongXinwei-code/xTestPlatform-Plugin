@@ -26,13 +26,15 @@ public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSettin
         |------|------|------|--------|------|
         | ClientName | string([ExpressionField]) | 是 | "Mes" | 要释放的客户端标识名，求值结果为 string |
         | IgnoreIfNotFound | bool | 否 | true | 客户端不存在时是否忽略而不报错 |
+        | TimeoutMs | int | 否 | 5000 | 关闭总期限（ms，必须大于0），包含生命周期排队、取消回调、实际请求退出和客户端释放 |
 
         ## 行为
 
         - 从运行期资源表中移除 `ClientName` 对应的客户端，移除时会自动释放
         - 客户端不存在时：`IgnoreIfNotFound` 为 true（默认）则**不报错**，仅记录日志并按 Completed 返回；为 false 则**报错**
         - 释放后同名客户端需重新执行 Http_ClientCreate 才能继续使用
-        - 未执行本步骤时，客户端会在本次执行结束时自动释放；本步骤用于提前主动释放
+        - 按配置 TimeoutMs 有界等待同一资源表内的登记操作及客户端实际收尾；先冻结新请求与结果发布，再取消并等待活动请求退出，成功后移除资源，不关闭其他命名客户端
+        - 关闭超时返回 Error 并保留原资源及后台收尾；不会把取消请求当作已经关闭。再次创建/关闭可等待这个原实例退出后恢复
 
         ## 相关插件
 

@@ -93,6 +93,8 @@
 					<ComboBoxItem Content="None"/>
 					<ComboBoxItem Content="Odd"/>
 					<ComboBoxItem Content="Even"/>
+					<ComboBoxItem Content="Mark"/>
+					<ComboBoxItem Content="Space"/>
 				</ComboBox>
 
 				<TextBlock Grid.Row="7" Grid.Column="0" Text="StopBits:" VerticalAlignment="Center" Margin="0,0,8,8"
@@ -100,14 +102,20 @@
 				<ComboBox Grid.Row="7" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						  Visibility="{Binding IsRtu, Converter={StaticResource BooleanToVisibilityConverter}}"
 						  SelectedIndex="{Binding StopBits}">
-					<ComboBoxItem Content="None"/>
+					<ComboBoxItem Content="None（不支持）" IsEnabled="False"/>
 					<ComboBoxItem Content="One"/>
 					<ComboBoxItem Content="Two"/>
+					<ComboBoxItem Content="OnePointFive"/>
 				</ComboBox>
 
 				<TextBlock Grid.Row="8" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						 Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
+				<TextBlock Grid.Row="9" Grid.Column="0" Text="DataBits:" VerticalAlignment="Center" Margin="0,0,8,8"
+					Visibility="{Binding IsRtu, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+				<TextBox x:Name="DataBitsBox" Grid.Row="9" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+					Visibility="{Binding IsRtu, Converter={StaticResource BooleanToVisibilityConverter}}"
+					Text="{Binding DataBits, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 			</Grid>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>

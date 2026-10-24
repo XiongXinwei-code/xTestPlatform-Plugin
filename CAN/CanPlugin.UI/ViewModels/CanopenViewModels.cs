@@ -14,18 +14,18 @@ namespace CAN.UI.ViewModels;
 public abstract class CanopenViewModelBase<TSetting> : INotifyPropertyChanged where TSetting : CanopenCommonSetting, new()
 {
     /// <summary>保存防抖间隔，连续输入时只在停顿后序列化一次</summary>
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
     /// <summary>加载设置期间抑制回写，避免打开步骤即被标记为修改</summary>
     private bool _suppressSave;
+    private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     protected TSetting? Setting;
 
     /// <summary>绑定设置序列化器</summary>
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { Flush(); _serializer = s; if (_step != null) Load(); }
     /// <summary>绑定当前编辑的步骤并加载设置</summary>
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachStep(Step step) { Flush(); _step = step; Load(); }
 
     /// <summary>从步骤反序列化设置（空则使用默认值）并刷新全部绑定</summary>
     private void Load()
@@ -50,9 +50,7 @@ public abstract class CanopenViewModelBase<TSetting> : INotifyPropertyChanged wh
     protected void QueueSave()
     {
         if (_suppressSave || _step == null || Setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(Setting); } catch (TaskCanceledException) { } });
+        _save.Schedule(_step, _serializer, Setting);
     }
 
     /// <summary>CAN 连接名（表达式）</summary>
@@ -143,6 +141,7 @@ public class CanopenSdoReadViewModel : CanopenSdoViewModelBase<CanopenSdoReadSet
 /// <summary>CANopen_SyncSend 编辑器 ViewModel</summary>
 public class CanopenSyncSendViewModel : CanopenViewModelBase<CanopenSyncSendSetting>
 {
+    public int SendTimeoutMs { get => Setting?.SendTimeoutMs ?? 1000; set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     public string CobId { get => Setting?.CobId ?? ""; set { if (Setting == null || Setting.CobId == value) return; Setting.CobId = value; OnPropertyChanged(); QueueSave(); } }
     public string Counter { get => Setting?.Counter ?? ""; set { if (Setting == null || Setting.Counter == value) return; Setting.Counter = value; OnPropertyChanged(); QueueSave(); } }
 }
@@ -167,6 +166,7 @@ public class CanopenSdoWriteViewModel : CanopenSdoViewModelBase<CanopenSdoWriteS
 /// <summary>CANopen_NmtControl 编辑器 ViewModel</summary>
 public class CanopenNmtControlViewModel : CanopenViewModelBase<CanopenNmtControlSetting>
 {
+    public int SendTimeoutMs { get => Setting?.SendTimeoutMs ?? 1000; set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     public string NodeId { get => Setting?.NodeId ?? ""; set { if (Setting == null || Setting.NodeId == value) return; Setting.NodeId = value; OnPropertyChanged(); QueueSave(); } }
     public int Command { get => (int)(Setting?.Command ?? CanopenNmtCommand.Start); set { if (Setting == null || (int)Setting.Command == value) return; Setting.Command = (CanopenNmtCommand)value; OnPropertyChanged(); QueueSave(); } }
 }
@@ -183,6 +183,7 @@ public class CanopenWaitHeartbeatViewModel : CanopenViewModelBase<CanopenWaitHea
 /// <summary>CANopen_PdoSend 编辑器 ViewModel</summary>
 public class CanopenPdoSendViewModel : CanopenViewModelBase<CanopenPdoSendSetting>
 {
+    public int SendTimeoutMs { get => Setting?.SendTimeoutMs ?? 1000; set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     public string CobId { get => Setting?.CobId ?? ""; set { if (Setting == null || Setting.CobId == value) return; Setting.CobId = value; OnPropertyChanged(); QueueSave(); } }
     public string Data { get => Setting?.Data ?? ""; set { if (Setting == null || Setting.Data == value) return; Setting.Data = value; OnPropertyChanged(); QueueSave(); } }
 }

@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class EnablePlugin : StepPluginBase<EnableSetting>
 {
     public override string StepTypeId => "Motion.CiA402Enable";
-    public override string DisplayName => "CiA402_Enable";
+    public override string DisplayName => "CiA402_State_Enable";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_enable.png";
 
@@ -28,6 +28,7 @@ public sealed class EnablePlugin : StepPluginBase<EnableSetting>
         ## 行为
         
         - 按实际状态逐级转换，每次命令后等待反馈；不自动故障复位或从 Quick Stop Active 恢复。
+        - 从未使能状态进入时撤销旧运动启动/模式选项；PV/PT 在使能前分别写入零速度/零转矩目标，不恢复上次残留目标。已处于运行使能状态时保持幂等，不重写当前目标。
         - 周期模式必须先配置并提交初始目标，按设备要求编排 SYNC。
         
         - 正常执行返回 Completed；参数、通信、设备状态问题及超时返回 Error；用户取消返回 Aborted。

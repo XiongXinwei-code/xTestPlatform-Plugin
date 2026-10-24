@@ -35,6 +35,7 @@ public partial class DoipDisconnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new DoipDisconnectViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

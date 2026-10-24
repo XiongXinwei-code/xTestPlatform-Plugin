@@ -27,6 +27,10 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 	{
 		var errors = new List<StepSettingError>();
 		var s = (UdsSecurityAccessSetting)new UdsSecurityAccessPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TransactionTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("UDS_TRANSACTION_TIMEOUT", "TransactionTimeoutMs 事务总超时必须大于 0"));
+        if (s.MaxResponseBytes <= 0)
+            errors.Add(StepSettingError.Error("UDS_RESPONSE_LIMIT", "MaxResponseBytes 最大响应字节数必须大于 0"));
 
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
 			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
@@ -42,8 +46,8 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 			errors.Add(StepSettingError.Error("UDS_003E", $"RxId 表达式无效: {rxErr}"));
 		if (s.ResponseTimeoutMs == 0 || s.ResponseTimeoutMs < -1)
 			errors.Add(StepSettingError.Error("UDS_005", "响应超时必须大于 0，或为 -1 表示永不超时"));
-		if (s.SecurityLevel <= 0 || s.SecurityLevel % 2 == 0)
-			errors.Add(StepSettingError.Error("UDS_S001", "安全级别必须为正奇数（如 1、3、5）"));
+		if (s.SecurityLevel is < 1 or > 63)
+			errors.Add(StepSettingError.Error("UDS_S001", "安全等级序号必须为 1~63；Seed 子功能为 2×等级−1，Key 为 2×等级"));
 		if (string.IsNullOrWhiteSpace(s.SeedVariable))
 			errors.Add(StepSettingError.Error("UDS_S005", "SeedVariable 不能为空，KeyExpression 需通过此变量名引用 Seed"));
 		if (string.IsNullOrWhiteSpace(s.KeyExpression))

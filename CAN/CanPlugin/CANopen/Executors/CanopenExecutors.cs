@@ -13,6 +13,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
         var operation = "CANopen SDO 读取";
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             var step = context.CurrentStep!.Step;
             var setting = (CanopenSdoReadSetting)new CanopenSdoReadPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -20,7 +21,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
             if (setting.ResponseTimeoutMs <= 0)
                 return CanopenExecutorHelper.Result(TestStatus.Error, error: "响应超时必须大于 0");
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             byte node = await CanopenExecutorHelper.EvalNodeIdAsync(setting.NodeId, context, allowBroadcast: false);
@@ -32,13 +33,13 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
             operation = $"CANopen SDO 读取节点 {node}，Index=0x{index:X4}，SubIndex={sub}";
             var client = new CanopenSdoClient(bus, node, setting.ResponseTimeoutMs);
             bool block = setting.TransferMode == CanopenSdoTransferMode.Block;
-            var raw = await client.UploadAsync((ushort)index, (byte)sub, block, cancellationToken);
+            var raw = await guard.RunAsync(() => client.UploadAsync((ushort)index, (byte)sub, block, cancellationToken));
             var value = CanopenDataCodec.Decode(setting.DataType, raw);
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, value);
+                guard.SetVariable(setting.ResultVariable, value);
 
-            context.Log($"SDO 读取 节点{node} 0x{index:X4}sub{sub}：{value}（原始数据 [{CanopenExecutorHelper.ToHex(raw)}]）");
+            guard.Log($"SDO 读取 节点{node} 0x{index:X4}sub{sub}：{value}（原始数据 [{CanopenExecutorHelper.ToHex(raw)}]）");
             return CanopenExecutorHelper.Result(TestStatus.Completed, value);
         }
         catch (Exception ex)
@@ -56,6 +57,7 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
         var operation = "CANopen SDO 写入";
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             var step = context.CurrentStep!.Step;
             var setting = (CanopenSdoWriteSetting)new CanopenSdoWritePlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -63,7 +65,7 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
             if (setting.ResponseTimeoutMs <= 0)
                 return CanopenExecutorHelper.Result(TestStatus.Error, error: "响应超时必须大于 0");
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             byte node = await CanopenExecutorHelper.EvalNodeIdAsync(setting.NodeId, context, allowBroadcast: false);
@@ -83,9 +85,9 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
 
             var client = new CanopenSdoClient(bus, node, setting.ResponseTimeoutMs);
             bool block = setting.TransferMode == CanopenSdoTransferMode.Block;
-            await client.DownloadAsync((ushort)index, (byte)sub, data, block, cancellationToken);
+            await guard.RunAsync(() => client.DownloadAsync((ushort)index, (byte)sub, data, block, cancellationToken));
 
-            context.Log($"SDO 写入 节点{node} 0x{index:X4}sub{sub}：{text}（数据 [{CanopenExecutorHelper.ToHex(data)}]）");
+            guard.Log($"SDO 写入 节点{node} 0x{index:X4}sub{sub}：{text}（数据 [{CanopenExecutorHelper.ToHex(data)}]）");
             return CanopenExecutorHelper.Result(TestStatus.Completed, text);
         }
         catch (Exception ex)
@@ -102,12 +104,14 @@ public sealed class CanopenNmtControlExecutor : IStepExecutor
     {
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var step = context.CurrentStep!.Step;
             var setting = (CanopenNmtControlSetting)new CanopenNmtControlPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            if (setting.SendTimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.SendTimeoutMs), "发送超时必须大于 0");
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             byte node = await CanopenExecutorHelper.EvalNodeIdAsync(setting.NodeId, context, allowBroadcast: true);
@@ -123,8 +127,8 @@ public sealed class CanopenNmtControlExecutor : IStepExecutor
             };
 
             // NMT 报文：[命令字, 节点 ID]，节点 ID 0 表示广播
-            bus.Send(0x000, [cs, node]);
-            context.Log($"NMT {setting.Command} → {(node == 0 ? "所有节点" : $"节点{node}")}");
+            await guard.RunAsync(() => bus.SendAsync(0x000, [cs, node], setting.SendTimeoutMs, cancellationToken));
+            guard.Log($"NMT {setting.Command} → {(node == 0 ? "所有节点" : $"节点{node}")}");
             return CanopenExecutorHelper.Result(TestStatus.Completed, setting.Command.ToString());
         }
         catch (Exception ex)
@@ -141,6 +145,7 @@ public sealed class CanopenWaitHeartbeatExecutor : IStepExecutor
     {
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             var step = context.CurrentStep!.Step;
             var setting = (CanopenWaitHeartbeatSetting)new CanopenWaitHeartbeatPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -148,7 +153,7 @@ public sealed class CanopenWaitHeartbeatExecutor : IStepExecutor
             if (setting.TimeoutMs <= 0)
                 return CanopenExecutorHelper.Result(TestStatus.Error, error: "等待超时必须大于 0");
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             byte node = await CanopenExecutorHelper.EvalNodeIdAsync(setting.NodeId, context, allowBroadcast: false);
@@ -163,7 +168,7 @@ public sealed class CanopenWaitHeartbeatExecutor : IStepExecutor
                 int remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
                 if (remaining <= 0) break;
 
-                var msg = await bus.ReceiveAsync(cobId, remaining, cancellationToken);
+                var msg = await guard.RunAsync(() => bus.ReceiveAsync(cobId, remaining, cancellationToken));
                 if (msg == null) break;
                 if (msg.Data.Length < 1) continue;
 
@@ -176,8 +181,8 @@ public sealed class CanopenWaitHeartbeatExecutor : IStepExecutor
                 {
                     var name = state.Value.ToString();
                     if (!string.IsNullOrWhiteSpace(setting.StateVariable))
-                        context.SetVariable(setting.StateVariable, name);
-                    context.Log($"收到节点{node}心跳，状态 {name}");
+                        guard.SetVariable(setting.StateVariable, name);
+                    guard.Log($"收到节点{node}心跳，状态 {name}");
                     return CanopenExecutorHelper.Result(TestStatus.Completed, name);
                 }
             }
@@ -210,12 +215,14 @@ public sealed class CanopenPdoSendExecutor : IStepExecutor
     {
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var step = context.CurrentStep!.Step;
             var setting = (CanopenPdoSendSetting)new CanopenPdoSendPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            if (setting.SendTimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.SendTimeoutMs), "发送超时必须大于 0");
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             uint cobId = await CanopenExecutorHelper.EvalNumberAsync(setting.CobId, context, "CobId");
@@ -225,9 +232,9 @@ public sealed class CanopenPdoSendExecutor : IStepExecutor
             var data = CanopenExecutorHelper.ParseHex(text);
             if (data.Length > 8) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"PDO 数据不能超过 8 字节，当前 {data.Length} 字节");
 
-            bus.Send(cobId, data);
+            await guard.RunAsync(() => bus.SendAsync(cobId, data, setting.SendTimeoutMs, cancellationToken));
             var hex = CanopenExecutorHelper.ToHex(data);
-            context.Log($"PDO 发送 0x{cobId:X3}: [{hex}]");
+            guard.Log($"PDO 发送 0x{cobId:X3}: [{hex}]");
             return CanopenExecutorHelper.Result(TestStatus.Completed, hex);
         }
         catch (Exception ex)
@@ -244,6 +251,7 @@ public sealed class CanopenPdoReceiveExecutor : IStepExecutor
     {
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             var step = context.CurrentStep!.Step;
             var setting = (CanopenPdoReceiveSetting)new CanopenPdoReceivePlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -251,22 +259,22 @@ public sealed class CanopenPdoReceiveExecutor : IStepExecutor
             if (setting.TimeoutMs <= 0)
                 return CanopenExecutorHelper.Result(TestStatus.Error, error: "等待超时必须大于 0");
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             uint cobId = await CanopenExecutorHelper.EvalNumberAsync(setting.CobId, context, "CobId");
             if (cobId > 0x7FF) return CanopenExecutorHelper.Result(TestStatus.Error, error: $"COB-ID 超出 11 位范围: 0x{cobId:X}");
 
-            var msg = await bus.ReceiveAsync(cobId, setting.TimeoutMs, cancellationToken);
+            var msg = await guard.RunAsync(() => bus.ReceiveAsync(cobId, setting.TimeoutMs, cancellationToken));
             cancellationToken.ThrowIfCancellationRequested();
             if (msg == null)
                 return CanopenExecutorHelper.Result(TestStatus.Error, error: $"在 {setting.TimeoutMs} ms 内未收到 COB-ID 0x{cobId:X3} 的 PDO");
 
             var hex = CanopenExecutorHelper.ToHex(msg.Data);
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, hex);
+                guard.SetVariable(setting.ResultVariable, hex);
 
-            context.Log($"PDO 接收 0x{cobId:X3}: [{hex}]");
+            guard.Log($"PDO 接收 0x{cobId:X3}: [{hex}]");
             return CanopenExecutorHelper.Result(TestStatus.Completed, hex);
         }
         catch (Exception ex)
@@ -283,12 +291,14 @@ public sealed class CanopenSyncSendExecutor : IStepExecutor
     {
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             var step = context.CurrentStep!.Step;
             var setting = (CanopenSyncSendSetting)new CanopenSyncSendPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            if (setting.SendTimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.SendTimeoutMs), "发送超时必须大于 0");
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             uint cobId = await CanopenExecutorHelper.EvalNumberAsync(setting.CobId, context, "CobId");
@@ -301,9 +311,9 @@ public sealed class CanopenSyncSendExecutor : IStepExecutor
 
             // CiA 301：计数器为 0 时 SYNC 不带数据，否则携带 1 字节计数器
             byte[] data = counter == 0 ? [] : [(byte)counter];
-            bus.Send(cobId, data);
+            await guard.RunAsync(() => bus.SendAsync(cobId, data, setting.SendTimeoutMs, cancellationToken));
 
-            context.Log(counter == 0
+            guard.Log(counter == 0
                 ? $"SYNC 发送 0x{cobId:X3}"
                 : $"SYNC 发送 0x{cobId:X3}，计数器 {counter}");
             return CanopenExecutorHelper.Result(TestStatus.Completed, counter);
@@ -322,6 +332,7 @@ public sealed class CanopenEmcyReceiveExecutor : IStepExecutor
     {
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
             var step = context.CurrentStep!.Step;
             var setting = (CanopenEmcyReceiveSetting)new CanopenEmcyReceivePlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
@@ -329,7 +340,7 @@ public sealed class CanopenEmcyReceiveExecutor : IStepExecutor
             if (setting.TimeoutMs <= 0)
                 return CanopenExecutorHelper.Result(TestStatus.Error, error: "等待超时必须大于 0");
 
-            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context);
+            var (bus, error) = await CanopenExecutorHelper.GetBusAsync(setting, context, guard);
             if (bus == null) return CanopenExecutorHelper.Result(TestStatus.Error, error: error);
 
             byte node = await CanopenExecutorHelper.EvalNodeIdAsync(setting.NodeId, context, allowBroadcast: false);
@@ -353,7 +364,7 @@ public sealed class CanopenEmcyReceiveExecutor : IStepExecutor
                 int remaining = (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
                 if (remaining <= 0) break;
 
-                var msg = await bus.ReceiveAsync(cobId, remaining, cancellationToken);
+                var msg = await guard.RunAsync(() => bus.ReceiveAsync(cobId, remaining, cancellationToken));
                 if (msg == null) break;
                 if (msg.Data.Length < 3) continue;
 
@@ -368,19 +379,19 @@ public sealed class CanopenEmcyReceiveExecutor : IStepExecutor
 
                 if (expected != null && expected != errorCode)
                 {
-                    context.Log($"收到节点{node} EMCY 错误码 {codeText}（错误寄存器 {regText}），与期望 0x{expected:X4} 不符，继续等待");
+                    guard.Log($"收到节点{node} EMCY 错误码 {codeText}（错误寄存器 {regText}），与期望 0x{expected:X4} 不符，继续等待");
                     continue;
                 }
 
                 if (!string.IsNullOrWhiteSpace(setting.ErrorCodeVariable))
-                    context.SetVariable(setting.ErrorCodeVariable, codeText);
+                    guard.SetVariable(setting.ErrorCodeVariable, codeText);
                 if (!string.IsNullOrWhiteSpace(setting.ErrorRegisterVariable))
-                    context.SetVariable(setting.ErrorRegisterVariable, regText);
+                    guard.SetVariable(setting.ErrorRegisterVariable, regText);
                 if (!string.IsNullOrWhiteSpace(setting.ManufacturerDataVariable))
-                    context.SetVariable(setting.ManufacturerDataVariable, mfrText);
+                    guard.SetVariable(setting.ManufacturerDataVariable, mfrText);
 
                 var resetHint = errorCode == 0 ? "（错误复位）" : string.Empty;
-                context.Log($"收到节点{node} EMCY 错误码 {codeText}{resetHint}，错误寄存器 {regText}，厂商数据 [{mfrText}]");
+                guard.Log($"收到节点{node} EMCY 错误码 {codeText}{resetHint}，错误寄存器 {regText}，厂商数据 [{mfrText}]");
                 return CanopenExecutorHelper.Result(TestStatus.Completed, codeText);
             }
 

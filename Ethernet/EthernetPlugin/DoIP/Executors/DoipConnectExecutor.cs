@@ -7,19 +7,35 @@ namespace Ethernet.DoIP.Executors;
 
 public sealed class DoipConnectExecutor : IStepExecutor
 {
+    private readonly Func<string, IExecutionContext, Task<string>> _evaluate;
+    public DoipConnectExecutor() : this(EthernetExecutorHelper.EvalStringAsync) { }
+    internal DoipConnectExecutor(Func<string, IExecutionContext, Task<string>> evaluate) => _evaluate = evaluate;
+
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new DoipConnectPlugin().CreateSerializer();
-        var setting = (DoipConnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         string? host = null;
         var port = 0;
+        int timeoutMs = 0;
         try
         {
-            var name = await EthernetExecutorHelper.EvalStringAsync(setting.SessionName, context);
-            host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
-            var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.RemotePort, context);
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new DoipConnectPlugin().CreateSerializer();
+            var setting = (DoipConnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            timeoutMs = setting.TimeoutMs;
+            var name = await _evaluate(setting.SessionName, context);
+            CheckExecution();
+            host = await _evaluate(setting.RemoteHost, context);
+            CheckExecution();
+            var portStr = await _evaluate(setting.RemotePort, context);
+            CheckExecution();
 
             if (!int.TryParse(portStr, out port))
                 return Error($"DoIP 连接失败: 端口号 [{portStr}] 无效");
@@ -27,11 +43,15 @@ public sealed class DoipConnectExecutor : IStepExecutor
             var sourceAddress = DoipHelper.ParseAddress(setting.SourceAddress);
             var activationType = DoipHelper.ToActivationByte(setting.ActivationType);
 
-            await DoipConnectionManager.ConnectAsync(
-                name, host, port, sourceAddress, activationType, setting.TimeoutMs, cancellationToken);
+            var client = await DoipConnectionManager.ConnectAsync(
+                name, host, port, sourceAddress, activationType, setting.TimeoutMs, cancellationToken, context.Resources, execution.ThrowIfExpired);
 
             context.Log(
                 $"DoIP 连接并路由激活成功: {name} -> {host}:{port}, 源地址=0x{sourceAddress:X4}");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
+            if (!ReferenceEquals(client, DoipConnectionManager.Get(name!, context.Resources)))
+                throw new InvalidOperationException("DoIP 刚建立的会话已被关闭或替换，不能报告旧代次成功");
 
             return new ExecutionResult
             {
@@ -48,7 +68,7 @@ public sealed class DoipConnectExecutor : IStepExecutor
         }
         catch (OperationCanceledException ex)
         {
-            return Error($"DoIP 连接超时({setting.TimeoutMs}ms): {host}:{port}", ex);
+            return Error($"DoIP 连接超时({timeoutMs}ms): {host}:{port}", ex);
         }
         catch (Exception ex)
         {

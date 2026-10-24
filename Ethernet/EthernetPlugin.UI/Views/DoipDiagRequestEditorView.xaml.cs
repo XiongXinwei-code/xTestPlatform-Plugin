@@ -35,6 +35,7 @@ public partial class DoipDiagRequestEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new DoipDiagRequestViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

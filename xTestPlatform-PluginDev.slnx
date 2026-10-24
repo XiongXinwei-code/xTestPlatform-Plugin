@@ -5,6 +5,7 @@
     <Platform Name="x86" />
   </Configurations>
   <Folder Name="/CAN/">
+    <Project Path="CAN/CanPlugin.Tests/CanPlugin.Tests.csproj" />
     <Project Path="CAN/CanPlugin.UI/CanPlugin.UI.csproj" />
     <Project Path="CAN/CanPlugin/CanPlugin.csproj" />
   </Folder>
@@ -22,28 +23,37 @@
     <Project Path="Http/HttpPlugin/HttpPlugin.csproj" />
   </Folder>
   <Folder Name="/LIN/">
+    <Project Path="LIN/LinPlugin.Tests/LinPlugin.Tests.csproj" />
     <Project Path="LIN/LinPlugin.UI/LinPlugin.UI.csproj" />
     <Project Path="LIN/LinPlugin/LinPlugin.csproj" />
   </Folder>
     <Folder Name="/Modbus/">
+      <Project Path="Modbus/ModbusPlugin.Tests/ModbusPlugin.Tests.csproj" />
       <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
       <Project Path="Modbus/ModbusPlugin/ModbusPlugin.csproj" />
     </Folder>
   <Folder Name="/NI_DAQ/" Id="f7394a31-46d6-370b-66da-9088f84a9bc3">
+    <Project Path="NiDaq/NiDaqPlugin.Tests/NiDaqPlugin.Tests.csproj" />
     <Project Path="NiDaq/NiDaqPlugin.UI/NiDaqPlugin.UI.csproj" />
     <Project Path="NiDaq/NiDaqPlugin/NiDaqPlugin.csproj" />
   </Folder>
   <Folder Name="/OPC_UA/" Id="ad1bf027-2a23-54fa-b8df-053e3de6f9bd">
+    <Project Path="OpcUa/OpcUaPlugin.Tests/OpcUaPlugin.Tests.csproj" />
     <Project Path="OpcUa/OpcUaPlugin.UI/OpcUaPlugin.UI.csproj" />
     <Project Path="OpcUa/OpcUaPlugin/OpcUaPlugin.csproj" />
   </Folder>
   <Folder Name="/SerialPort/">
+    <Project Path="SerialPort/SerialPortPlugin.Tests/SerialPortPlugin.Tests.csproj" />
     <Project Path="SerialPort/SerialPortPlugin.UI/SerialPortPlugin.UI.csproj" />
     <Project Path="SerialPort/SerialPortPlugin/SerialPortPlugin.csproj" />
   </Folder>
   <Folder Name="/VISA/">
+    <Project Path="VISA/VisaPlugin.Tests/VisaPlugin.Tests.csproj" />
     <Project Path="VISA/VisaPlugin.UI/VisaPlugin.UI.csproj" />
     <Project Path="VISA/VisaPlugin/VisaPlugin.csproj" />
+  </Folder>
+  <Folder Name="/RegressionTests/">
+    <Project Path="tests/PluginRegression.Tests/PluginRegression.Tests.csproj" />
   </Folder>
 </Solution>
 

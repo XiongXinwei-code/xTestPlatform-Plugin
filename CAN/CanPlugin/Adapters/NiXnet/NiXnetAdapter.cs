@@ -4,7 +4,9 @@ using CAN.Models;
 namespace CAN.Adapters.NiXnet;
 
 /// <summary>NI-XNET CAN 适配器实现</summary>
-public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
+public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics, CAN.Runtime.ICanQueueStatistics,
+    CAN.Runtime.ICanConfirmedTransmitter, CAN.Runtime.ICanClockValidity, CAN.Runtime.ICanCloseState,
+    CAN.Runtime.ICanTransmitQuiescence
 {
     // nxFrameVar_t 的最大长度：16 字节头 + 64 字节 CAN FD 数据。
     private const int MaxRawFrameSize = 80;
@@ -32,10 +34,17 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
     private int _echoTxConfigStatus;
 
     public bool IsConnected => _isConnected;
+    public bool HandlesReleased => _rxSession == 0 && _txSession == 0 && _receivePumpTask == null;
+
+    public CAN.Runtime.CanQueueStatistics GetQueueStatistics()
+    {
+        lock (_lock) return new(null, null, _pendingFrames.Count, _pumpDroppedFrames);
+    }
 
     public void Open(CanAdapterConfig config)
     {
-        if (_isConnected) throw new InvalidOperationException("CAN 通道已打开");
+        if (_isConnected || _rxSession != 0 || _txSession != 0 || _receivePumpTask != null)
+            throw new InvalidOperationException("CAN 通道已打开或旧句柄尚未确认释放");
 
         try
         {
@@ -47,12 +56,10 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                 "未找到 nixnet.dll，请安装 NI-XNET 驱动程序。" +
                 "下载地址: https://www.ni.com/zh-cn/support/downloads/drivers/download.ni-xnet.html");
         }
-        catch
+        catch (Exception openError)
         {
-            // 中途失败时清理已创建的会话，避免接口被占用
-            StopReceivePump();
-            if (_rxSession != 0) { NiXnetApi.nxClear(_rxSession); _rxSession = 0; }
-            if (_txSession != 0) { NiXnetApi.nxClear(_txSession); _txSession = 0; }
+            try { Close(); }
+            catch (Exception closeError) { throw new AggregateException("NI 打开失败，且清理未完成；保留句柄", openError, closeError); }
             throw;
         }
     }
@@ -183,6 +190,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
             config.AppliedDataSamplePoint = config.DataBitTiming.SamplePoint;
         }
 
+        _epoch = Guid.NewGuid(); _transmits.Reset(_epoch); _clock.Invalidate(); _closing = false; _strictEnabled = false; _unknownSend = false;
         _isConnected = true;
         StartReceivePump();
     }
@@ -206,14 +214,27 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         if (!_isConnected && _receivePumpTask == null && _rxSession == 0 && _txSession == 0)
             return;
 
-        StopReceivePump();
-
-        if (_rxSession != 0) NiXnetApi.nxStop(_rxSession, NiXnetApi.nxScope_Normal);
-        if (_txSession != 0) NiXnetApi.nxStop(_txSession, NiXnetApi.nxScope_Normal);
-        if (_rxSession != 0) NiXnetApi.nxClear(_rxSession);
-        if (_txSession != 0) NiXnetApi.nxClear(_txSession);
-        _rxSession = 0;
-        _txSession = 0;
+        _closing = true;
+        if (!Monitor.TryEnter(_transmitGate, 1000))
+            throw new TimeoutException("NI 原生发送尚未退出，保留接收泵及句柄");
+        try
+        {
+            // Keep RX alive until outstanding echoes have drained.
+            var wait = System.Diagnostics.Stopwatch.StartNew();
+            while (!_transmits.Quiescent)
+            {
+                RefreshTransmitCompletion();
+                if (_transmits.Quiescent) break;
+                if (wait.ElapsedMilliseconds >= 1000)
+                    throw new TimeoutException($"NI 仍有 {_transmits.PendingCount} 个未确认发送；保留泵和句柄，未报告已停止");
+                Thread.Sleep(1);
+            }
+            StopReceivePump();
+            StopSession(_txSession); StopSession(_rxSession);
+            if (_txSession != 0) { _io.Check(_io.Clear(_txSession)); _txSession = 0; }
+            if (_rxSession != 0) { _io.Check(_io.Clear(_rxSession)); _rxSession = 0; }
+        }
+        finally { Monitor.Exit(_transmitGate); }
         _protocol = CanProtocolType.Classic;
         _echoTxEnabled = false;
         _echoTxConfigStatus = 0;
@@ -221,7 +242,6 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         {
             _pendingFrames.Clear();
             _pendingFramesById.Clear();
-            _receivePumpError = null;
             _pumpReadCalls = 0;
             _pumpBytesRead = 0;
             _pumpParsedFrames = 0;
@@ -230,15 +250,13 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         }
 
         _isConnected = false;
+        _clock.Invalidate();
+        ThrowIfReceivePumpFailed();
     }
 
     public void Write(CanMessage message)
     {
-        if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
-
-        var frameBytes = BuildFrameBytes(message);
-        var status = NiXnetApi.nxWriteFrame(_txSession, frameBytes, (uint)frameBytes.Length, 1.0);
-        NiXnetApi.CheckStatus(status);
+        lock (_transmitGate) Submit(message);
     }
 
     private void StartReceivePump()
@@ -256,23 +274,22 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 
         var cts = new CancellationTokenSource();
         _receivePumpCts = cts;
-        _receivePumpTask = Task.Run(() => ReceivePumpLoop(cts.Token), cts.Token);
+        _receivePumpTask = Task.Run(() => ReceivePumpLoop(cts.Token));
     }
 
     private void StopReceivePump()
     {
         var cts = _receivePumpCts;
         var task = _receivePumpTask;
-        _receivePumpCts = null;
-        _receivePumpTask = null;
-
         if (cts == null) return;
         cts.Cancel();
         if (task != null && task.Id != Task.CurrentId)
         {
-            try { task.Wait(1000); }
-            catch (AggregateException) { }
+            if (!task.Wait(1000)) throw new TimeoutException("NI 接收泵尚未实际退出，保留任务引用和驱动句柄");
+            task.GetAwaiter().GetResult();
         }
+        _receivePumpCts = null;
+        _receivePumpTask = null;
         cts.Dispose();
     }
 
@@ -283,8 +300,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         {
             while (!ct.IsCancellationRequested)
             {
-                int status = NiXnetApi.nxReadFrame(
-                    _rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
+                int status = _io.Read(_rxSession, buffer, out uint bytesRead);
                 lock (_lock)
                 {
                     _pumpReadCalls++;
@@ -292,7 +308,9 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                 }
 
                 if (status != NiXnetApi.nxErrEventTimeout)
-                    NiXnetApi.CheckStatus(status);
+                    _io.Check(status);
+
+                CalibrateClock(bytesRead > 0);
 
                 if (bytesRead == 0)
                 {
@@ -302,7 +320,11 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 
                 foreach (var frame in ParseFrames(buffer, (int)bytesRead))
                 {
-                    if (frame.IsTransmitEcho) continue;
+                    if (frame.IsTransmitEcho) { _transmits.Observe(_epoch, frame); continue; }
+                    frame.TimestampDomain = "NI-XNET.FILETIME100ns/UnixNs";
+                    frame.ClockId = _clock.ClockId;
+                    if (frame.RawTimestamp100ns is ulong timestamp)
+                        frame.CaptureMonotonicLowerBoundTicks = _clock.LowerBound(timestamp, System.Diagnostics.Stopwatch.GetTimestamp());
 
                     lock (_lock)
                     {
@@ -313,6 +335,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                             _pumpDroppedFrames++;
                         }
 
+                        frame.IngressMonotonicTicks ??= System.Diagnostics.Stopwatch.GetTimestamp();
                         var node = _pendingFrames.AddLast(frame);
                         if (!_pendingFramesById.TryGetValue(frame.Id, out var idQueue))
                         {
@@ -331,8 +354,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
         {
             lock (_lock)
             {
-                if (!ct.IsCancellationRequested)
-                    _receivePumpError = ex;
+                _receivePumpError = ex;
             }
         }
     }
@@ -428,7 +450,9 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
 
     public string GetReceiveDiagnostics()
     {
-        lock (_lock) return _lastReceiveDiagnostics;
+        lock (_lock) return _lastReceiveDiagnostics +
+            $"；NI代次={_epoch}；待确认={_transmits.PendingCount}；严格模式={_strictEnabled}；发送未知={_unknownSend}" +
+            $"；时钟={_clock.ClockId}；时钟有效={IsClockCurrent(_clock.ClockId)}；校准错误={_clockError ?? "无"}";
     }
 
     private void SetReceiveDiagnostics(string diagnostics)
@@ -663,6 +687,7 @@ public sealed class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics
                 msg.TimestampNs = rawTs > 116444736000000000UL
                     ? (long)(rawTs - 116444736000000000UL) * 100
                     : (long)rawTs * 100;
+                msg.RawTimestamp100ns = rawTs;
 
                 uint rawId = BinaryPrimitives.ReadUInt32LittleEndian(buffer.AsSpan(offset + 8));
                 msg.FrameType = (rawId & NiXnetApi.nxFrameId_CAN_IsExtended) != 0

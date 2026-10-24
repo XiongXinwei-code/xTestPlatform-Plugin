@@ -39,6 +39,8 @@ public sealed class HttpClientCreateEditorPlugin : IStepEditorPlugin
 
         if (s.TimeoutMs < 0)
             errors.Add(StepSettingError.Error("HTTP_003", "超时毫秒数不能为负数"));
+        if (!Enum.IsDefined(s.AuthMode))
+            errors.Add(StepSettingError.Error("HTTP_003A", "HTTP 认证方式无效"));
 
         switch (s.AuthMode)
         {

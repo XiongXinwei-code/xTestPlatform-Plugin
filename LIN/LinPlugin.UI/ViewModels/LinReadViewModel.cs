@@ -8,15 +8,15 @@ namespace LIN.UI.ViewModels;
 
 public class LinReadViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
     private bool _suppressSave;
+    private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     private LinReadSetting? _setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { Flush(); _step = step; Load(); }
 
     private void Load()
     {
@@ -35,13 +35,7 @@ public class LinReadViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () =>
-        {
-            try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); }
-            catch (TaskCanceledException) { }
-        });
+        _save.Schedule(_step, _serializer, _setting);
     }
 
     public string ConnectionName

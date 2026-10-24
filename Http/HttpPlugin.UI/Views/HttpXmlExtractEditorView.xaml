@@ -29,7 +29,7 @@
                     </Grid.RowDefinitions>
 					<TextBlock Grid.Row="0" Grid.Column="0" Text="XML 源:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,6"
-						ScriptText="{Binding SourceXml, Mode=TwoWay}"
+                        ScriptText="{Binding SourceXml, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="1" Grid.Column="0" Text="忽略命名空间:" VerticalAlignment="Center" Margin="0,6" />

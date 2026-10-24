@@ -24,6 +24,7 @@ public partial class OpcUaDisconnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaDisconnectViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

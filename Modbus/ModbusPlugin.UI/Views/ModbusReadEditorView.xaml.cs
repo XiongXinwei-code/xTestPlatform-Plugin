@@ -27,6 +27,7 @@ public partial class ModbusReadEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new ModbusReadViewModel();
 		DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 
 	public void RefreshFromStep(Step step)

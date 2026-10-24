@@ -24,6 +24,7 @@ public partial class OpcUaConnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaConnectViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

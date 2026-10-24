@@ -13,7 +13,7 @@ public class UdpReceiveSetting
     /// <summary>绑定模式</summary>
     public UdpBindMode BindMode { get; set; } = UdpBindMode.AnyInterface;
 
-    /// <summary>期望接收字节数（0 = 接收到任意数据即返回）</summary>
+    /// <summary>期望单个数据报字节数（0=任意长度；1~65507必须精确匹配，不拼接或截断）</summary>
     public int ExpectedLength { get; set; } = 0;
 
     /// <summary>接收超时（毫秒）</summary>

@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class RunTorquePlugin : StepPluginBase<RunTorqueSetting>
 {
     public override string StepTypeId => "Motion.CiA402RunTorque";
-    public override string DisplayName => "CiA402_RunTorque";
+    public override string DisplayName => "CiA402_Motion_RunTorque";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_runtorque.png";
 

@@ -27,6 +27,7 @@ public sealed class XcpConnectEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (XcpConnectSetting)new XcpConnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        XcpEditorValidation.Check(s, context, errors);
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("XCP_001", "ConnectionName 不能为空"));

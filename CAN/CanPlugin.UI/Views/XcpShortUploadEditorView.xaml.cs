@@ -35,6 +35,7 @@ public partial class XcpShortUploadEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new XcpShortUploadViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

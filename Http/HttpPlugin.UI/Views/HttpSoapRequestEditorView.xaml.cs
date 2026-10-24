@@ -29,6 +29,7 @@ public partial class HttpSoapRequestEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new HttpSoapRequestViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

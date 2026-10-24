@@ -16,17 +16,20 @@
 		<syncfusion:TabItemExt Header="LIN CyclicSendStart"
 							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_cyclic_start.png"
 							   ImageHeight="20" ImageWidth="20">
-			<Grid Margin="16">
+			<Grid Margin="16" ToolTip="NI-XNET 无 LDF 模式：仅 LIN 2.x 主节点、普通帧 Enhanced 校验；Classic、诊断数据帧及从节点尚不支持。">
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
+				    <RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="150"/>
 					<ColumnDefinition Width="*"/>
 				</Grid.ColumnDefinitions>
+				<TextBlock Grid.Row="4" Grid.Column="0" Text="启动/替换总超时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ReplaceTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认3000，必须大于0；超时保留未退出任务和原生调用，不冒充停止成功。"/>
 
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
@@ -46,14 +49,24 @@
 					<Button Content="Remove" Width="60" Click="OnRemoveFrame"/>
 				</StackPanel>
 
-				<DataGrid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+				<DataGrid x:Name="FramesGrid" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
 						  ItemsSource="{Binding Frames}"
 						  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
 						  Margin="0,0,0,8" MinHeight="120">
 					<DataGrid.Columns>
 						<DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
-						<DataGridTextColumn Header="FrameId" Binding="{Binding FrameId, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
-						<DataGridTextColumn Header="Data (Hex)" Binding="{Binding Data, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+						<DataGridTemplateColumn Header="FrameId 表达式" Width="180">
+						    <DataGridTemplateColumn.CellTemplate><DataTemplate>
+						        <expr:ExpressionTextBox ScriptText="{Binding FrameId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+						            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+						    </DataTemplate></DataGridTemplateColumn.CellTemplate>
+						</DataGridTemplateColumn>
+						<DataGridTemplateColumn Header="Data (Hex) 表达式" Width="*">
+						    <DataGridTemplateColumn.CellTemplate><DataTemplate>
+						        <expr:ExpressionTextBox ScriptText="{Binding Data, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+						            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+						    </DataTemplate></DataGridTemplateColumn.CellTemplate>
+						</DataGridTemplateColumn>
 						<DataGridTextColumn Header="Cycle (ms)" Binding="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
 						<DataGridTemplateColumn Header="Checksum" Width="90">
 							<DataGridTemplateColumn.CellTemplate>
@@ -64,7 +77,7 @@
 							<DataGridTemplateColumn.CellEditingTemplate>
 								<DataTemplate>
 									<ComboBox SelectedIndex="{Binding ChecksumType, Converter={StaticResource EnumToIntConverter}, UpdateSourceTrigger=PropertyChanged}">
-										<ComboBoxItem Content="Classic"/>
+										<ComboBoxItem Content="Classic（需 LDF，暂不支持）" IsEnabled="False"/>
 										<ComboBoxItem Content="Enhanced"/>
 									</ComboBox>
 								</DataTemplate>

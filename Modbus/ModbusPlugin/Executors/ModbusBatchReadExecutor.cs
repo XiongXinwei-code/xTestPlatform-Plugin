@@ -1,3 +1,4 @@
+using PluginCommon;
 using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
@@ -19,16 +20,20 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
-		var step = context.CurrentStep!.Step;
-		var serializer = new ModbusBatchReadPlugin().CreateSerializer();
-		var setting = (ModbusBatchReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        try
+        {
+			cancellationToken.ThrowIfCancellationRequested();
+			var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+			var step = context.CurrentStep!.Step;
+			var serializer = new ModbusBatchReadPlugin().CreateSerializer();
+			var setting = (ModbusBatchReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+			if (setting.IntervalMs < 0) throw new ArgumentOutOfRangeException(nameof(setting.IntervalMs), "批量读取间隔不能为负数");
 
-		try
-		{
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+			epoch.ThrowIfExpired();
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			if (!context.Resources.TryGet<IModbusMaster>(key, out var master))
+			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
 				return new ExecutionResult
 				{
@@ -50,31 +55,34 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 				switch (item.RegisterType)
 				{
 					case ModbusRegisterType.Coil:
-						var coils = await ModbusHelper.WithTimeoutAsync(
-							master.ReadCoilsAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+						var coils = await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.ReadCoilsAsync(item.SlaveAddress, item.StartAddress, item.Quantity); },
 							timeoutMs, $"Modbus 批量读取线圈(地址 {item.StartAddress})", cancellationToken);
 						result = coils.Length == 1 ? coils[0] : coils;
 						break;
 					case ModbusRegisterType.DiscreteInput:
-						var inputs = await ModbusHelper.WithTimeoutAsync(
-							master.ReadInputsAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+						var inputs = await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.ReadInputsAsync(item.SlaveAddress, item.StartAddress, item.Quantity); },
 							timeoutMs, $"Modbus 批量读取离散输入(地址 {item.StartAddress})", cancellationToken);
 						result = inputs.Length == 1 ? inputs[0] : inputs;
 						break;
 					case ModbusRegisterType.HoldingRegister:
-						var holdRegs = await ModbusHelper.WithTimeoutAsync(
-							master.ReadHoldingRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+						var holdRegs = await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.ReadHoldingRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity); },
 							timeoutMs, $"Modbus 批量读取保持寄存器(地址 {item.StartAddress})", cancellationToken);
 						result = ModbusDataConverter.ConvertRegisters(holdRegs, item.DataFormat);
 						break;
-					default:
-						var inRegs = await ModbusHelper.WithTimeoutAsync(
-							master.ReadInputRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity),
+					case ModbusRegisterType.InputRegister:
+						var inRegs = await master.WithTimeoutAsync(
+							() => { epoch.ThrowIfExpired(); return master.Master.ReadInputRegistersAsync(item.SlaveAddress, item.StartAddress, item.Quantity); },
 							timeoutMs, $"Modbus 批量读取输入寄存器(地址 {item.StartAddress})", cancellationToken);
 						result = ModbusDataConverter.ConvertRegisters(inRegs, item.DataFormat);
 						break;
+					default: throw new ArgumentOutOfRangeException(nameof(item.RegisterType));
 				}
 
+				epoch.ThrowIfExpired();
+				ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 				if (!string.IsNullOrWhiteSpace(item.ResultVariable))
 					context.SetVariable(item.ResultVariable, result);
 
@@ -86,6 +94,8 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 
 			var summary = string.Join("; ", results);
 			context.Log($"Modbus BatchRead: {summary}");
+			epoch.ThrowIfExpired();
+			ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 
 			return new ExecutionResult
 			{
@@ -103,7 +113,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = ErrorInfo.FromException(ex)
+					Error = ErrorInfo.FromException(ex, $"Modbus 批量读取超时: {ex.Message}")
 				}
 			};
 		}

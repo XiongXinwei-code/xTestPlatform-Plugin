@@ -367,8 +367,10 @@ public sealed class ContractTests
         using var session = new AxisSession(axis, new BindAxisSetting { CommunicationTimeoutMs = 10 }, default, (_, _) => { });
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var operation = session.ExecuteAsync((_, _) => release.Task, true, 1, default);
-        await session.CloseAsync(); Check(!fake.Disposed);
+        using var timeout = new CancellationTokenSource(50);
+        await Throws<OperationCanceledException>(() => session.CloseAsync(timeout.Token)); Check(!fake.Disposed);
         release.SetResult(); await Throws<OperationCanceledException>(() => operation);
+        await session.Released.WaitAsync(TimeSpan.FromSeconds(3));
         Check(fake.Disposed);
     }
     [Fact]

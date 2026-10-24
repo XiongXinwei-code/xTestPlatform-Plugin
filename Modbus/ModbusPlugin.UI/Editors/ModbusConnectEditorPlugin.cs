@@ -26,6 +26,7 @@ public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (ModbusConnectSetting)new ModbusConnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!Enum.IsDefined(s.TransportType)) errors.Add(StepSettingError.Error("MB_TYPE", "不支持的 Modbus 传输类型"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_001", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
@@ -44,6 +45,8 @@ public sealed class ModbusConnectEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_003E", $"PortName 表达式无效: {portErr}"));
         if (s.TransportType == ModbusTransportType.RTU && s.BaudRate <= 0)
             errors.Add(StepSettingError.Error("MB_005", "RTU 模式下波特率必须大于 0"));
+        if (s.TransportType == ModbusTransportType.RTU && (s.DataBits is < 5 or > 8 || s.StopBits is < 1 or > 3 || s.Parity is < 0 or > 4))
+            errors.Add(StepSettingError.Error("MB_SERIAL", "RTU 数据位必须为 5~8，停止位 1/2/3，校验位 0~4"));
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("MB_006", "通信超时必须大于 0"));
         return errors;

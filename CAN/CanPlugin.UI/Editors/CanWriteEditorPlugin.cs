@@ -27,6 +27,7 @@ public sealed class CanWriteEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (CanWriteSetting)new CanWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("CAN_WRITE_TIMEOUT", "发送等待超时必须大于 0 ms"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_020", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

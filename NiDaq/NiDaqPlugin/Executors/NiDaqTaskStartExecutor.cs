@@ -14,23 +14,25 @@ public sealed class NiDaqTaskStartExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new NiDaqTaskStartPlugin().CreateSerializer();
-        var setting = (NiDaqTaskStartSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            NiDriverCheck.EnsureDriver();
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new DaqExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new NiDaqTaskStartPlugin().CreateSerializer();
+            var setting = (NiDaqTaskStartSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            guard.Check();
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var taskObj = NiDaqTaskRegistry.Get(taskName);
-            if (taskObj is not DaqTask task)
-                return ErrorResult($"未找到已配置的任务 '{taskName}'，请先执行对应的 Config 步骤");
-
-            task.Start();
+            var resource = NiDaqTaskRegistry.Get(context, taskName);
+            guard.EnsureCurrent(taskName, resource);
+            await resource.StartAsync(cancellationToken, setting.TimeoutMs);
+            guard.EnsureCurrent(taskName, resource);
 
             return new ExecutionResult
             {
@@ -41,7 +43,11 @@ public sealed class NiDaqTaskStartExecutor : IStepExecutor
                 }
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
+        {
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (Exception ex)
         {
             return ErrorResult($"任务启动失败：{ex.Message}", ex);
         }

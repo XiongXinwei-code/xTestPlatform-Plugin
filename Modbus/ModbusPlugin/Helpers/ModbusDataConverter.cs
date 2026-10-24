@@ -12,6 +12,7 @@ public static class ModbusDataConverter
 	/// </summary>
 	public static object ConvertRegisters(ushort[] registers, ModbusDataFormat format)
 	{
+		if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
 		if (registers.Length == 0) return Array.Empty<ushort>();
 
 		return format switch
@@ -43,6 +44,8 @@ public static class ModbusDataConverter
 	/// </summary>
 	private static object ConvertPairs<T>(ushort[] registers, Func<ushort, ushort, T> converter)
 	{
+		if (registers.Length % 2 != 0)
+			throw new ArgumentException("32 位数据必须使用偶数个寄存器，不能丢弃不完整数据", nameof(registers));
 		var results = new List<T>();
 		for (int i = 0; i + 1 < registers.Length; i += 2)
 			results.Add(converter(registers[i], registers[i + 1]));
@@ -55,7 +58,8 @@ public static class ModbusDataConverter
 	/// </summary>
 	public static ushort[] ConvertToRegisters(string valuesStr, ModbusDataFormat format)
 	{
-		var parts = valuesStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+		var parts = SplitValues(valuesStr);
+		if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
 
 		return format switch
 		{
@@ -66,14 +70,30 @@ public static class ModbusDataConverter
 			ModbusDataFormat.Int32_AB_CD =>
 				parts.SelectMany(p => { var v = unchecked((uint)int.Parse(p)); return new ushort[] { (ushort)(v >> 16), (ushort)(v & 0xFFFF) }; }).ToArray(),
 			ModbusDataFormat.Float_AB_CD =>
-				parts.SelectMany(p => { var v = BitConverter.ToUInt32(BitConverter.GetBytes(float.Parse(p)), 0); return new ushort[] { (ushort)(v >> 16), (ushort)(v & 0xFFFF) }; }).ToArray(),
+				parts.SelectMany(p => { var v = BitConverter.ToUInt32(BitConverter.GetBytes(float.Parse(p, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture)), 0); return new ushort[] { (ushort)(v >> 16), (ushort)(v & 0xFFFF) }; }).ToArray(),
 			ModbusDataFormat.UInt32_CD_AB =>
 				parts.SelectMany(p => { var v = uint.Parse(p); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
 			ModbusDataFormat.Int32_CD_AB =>
 				parts.SelectMany(p => { var v = unchecked((uint)int.Parse(p)); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
 			ModbusDataFormat.Float_CD_AB =>
-				parts.SelectMany(p => { var v = BitConverter.ToUInt32(BitConverter.GetBytes(float.Parse(p)), 0); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
+				parts.SelectMany(p => { var v = BitConverter.ToUInt32(BitConverter.GetBytes(float.Parse(p, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture)), 0); return new ushort[] { (ushort)(v & 0xFFFF), (ushort)(v >> 16) }; }).ToArray(),
 			_ => parts.Select(p => ushort.Parse(p)).ToArray()
 		};
+	}
+
+	public static bool[] ParseCoils(string values)
+		=> SplitValues(values).Select(value => value.ToLowerInvariant() switch
+		{
+			"1" or "true" => true,
+			"0" or "false" => false,
+			_ => throw new FormatException($"非法线圈值 '{value}'，仅允许 0、1、false、true")
+		}).ToArray();
+
+	private static string[] SplitValues(string values)
+	{
+		var parts = values.Split(',', StringSplitOptions.TrimEntries);
+		if (parts.Length == 0 || parts.Any(string.IsNullOrWhiteSpace))
+			throw new FormatException("写入值不能为空，也不能含有空项");
+		return parts;
 	}
 }

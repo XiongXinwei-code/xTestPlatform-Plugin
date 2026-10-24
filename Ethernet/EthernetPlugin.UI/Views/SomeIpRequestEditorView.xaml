@@ -79,7 +79,8 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                <TextBlock Grid.Row="8" Grid.Column="0" Text="TimeoutMs:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="请求总超时 (ms):" VerticalAlignment="Center" Margin="0,0,8,8"
+                           ToolTip="地址解析、TCP 连接（如适用）、发送与完整响应共用一个总预算。"/>
                 <syncfusion:IntegerTextBox Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                                            MinValue="1" Value="{Binding TimeoutMs, Mode=TwoWay}"/>
 

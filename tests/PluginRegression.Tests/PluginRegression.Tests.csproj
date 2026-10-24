@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" PrivateAssets="all" />
+    <PackageReference Include="xunit" PrivateAssets="all" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="Xunit.StaFact" PrivateAssets="all" />
+    <ProjectReference Include="../../Ethernet/EthernetPlugin/EthernetPlugin.csproj" Aliases="global,EthernetCore" />
+    <ProjectReference Include="../../Ethernet/EthernetPlugin.UI/EthernetPlugin.UI.csproj" />
+    <ProjectReference Include="../../Http/HttpPlugin/HttpPlugin.csproj" />
+    <ProjectReference Include="../../Http/HttpPlugin.UI/HttpPlugin.UI.csproj" />
+  </ItemGroup>
+</Project>

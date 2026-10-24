@@ -9,10 +9,10 @@ namespace Http.UI.ViewModels;
 /// <summary>
 /// HTTP 客户端关闭编辑器 ViewModel
 /// </summary>
-public class HttpClientCloseViewModel : INotifyPropertyChanged
+public class HttpClientCloseViewModel : INotifyPropertyChanged, IDataErrorInfo
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
@@ -23,6 +23,7 @@ public class HttpClientCloseViewModel : INotifyPropertyChanged
 
     private void Load()
     {
+        _saver.Flush();
         if (_serializer == null || _step == null) return;
         _suppressSave = true;
         try
@@ -38,13 +39,14 @@ public class HttpClientCloseViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+        _saver.Schedule(_step, _serializer, _setting);
     }
 
     public string ClientName { get => _setting?.ClientName ?? ""; set { if (_setting == null || _setting.ClientName == value) return; _setting.ClientName = value; OnPropertyChanged(); QueueSave(); } }
     public bool IgnoreIfNotFound { get => _setting?.IgnoreIfNotFound ?? true; set { if (_setting == null || _setting.IgnoreIfNotFound == value) return; _setting.IgnoreIfNotFound = value; OnPropertyChanged(); QueueSave(); } }
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 5000; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+    public string Error => this[nameof(TimeoutMs)];
+    public string this[string name] => name == nameof(TimeoutMs) && TimeoutMs <= 0 ? "关闭排队总超时必须大于0 ms" : "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

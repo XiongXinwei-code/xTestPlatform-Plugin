@@ -6,10 +6,10 @@ using xTestPlatform.Core.SequenceModels;
 
 namespace CAN.UI.ViewModels;
 
-public class CanCloseViewModel : INotifyPropertyChanged
+public class CanCloseViewModel : INotifyPropertyChanged, IDataErrorInfo
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
@@ -20,6 +20,7 @@ public class CanCloseViewModel : INotifyPropertyChanged
 
     private void Load()
     {
+        _saver.Flush();
         if (_serializer == null || _step == null) return;
         _suppressSave = true;
         try
@@ -35,12 +36,13 @@ public class CanCloseViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+        _saver.Schedule(_step, _serializer, _setting);
     }
 
     public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 5000; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+    public string Error => this[nameof(TimeoutMs)];
+    public string this[string name] => name == nameof(TimeoutMs) && TimeoutMs <= 0 ? "关闭总超时必须大于 0 ms" : "";
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

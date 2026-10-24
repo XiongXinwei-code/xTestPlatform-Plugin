@@ -7,6 +7,7 @@ namespace CiA402.Core;
 
 public sealed class EvaluatedSettings(Dictionary<string, object> values)
 {
+    internal Action? CheckExecution { get; set; }
     public string Text(string name) => (string)values[name];
     public long Number(string name) => (long)values[name];
 }
@@ -28,11 +29,12 @@ public static class SettingValidation
                 if (s.Transport == TransportKind.EtherCAT) Required(s.SlaveAddress, "EtherCAT 从站地址", errors);
                 Range(s.ObjectIndexOffset, "轴对象索引偏移", 0, 38912, errors);
                 Range(s.CommunicationTimeoutMs, "单次通信超时（ms）", 1, 60000, errors);
+                Range(s.ShutdownTimeoutMs, "轴清理总超时（ms）", 1, 3600000, errors);
                 Range(s.FeedbackMaxAgeMs, "反馈有效期（ms）", 1, 60000, errors);
                 if (s.Transport == TransportKind.CANopen) Range(s.CspPdoNumber, "CSP RPDO 编号", 0, 512, errors);
                 if (s.Transport == TransportKind.CANopen) Range(s.CsvPdoNumber, "CSV RPDO 编号", 0, 512, errors);
                 if (s.Transport == TransportKind.CANopen) Range(s.CstPdoNumber, "CST RPDO 编号", 0, 512, errors);
-                if (s.Transport == TransportKind.CANopen) Range(s.FeedbackPdoNumber, "反馈 TPDO 编号", 0, 512, errors);
+                if (s.Transport == TransportKind.CANopen && !s.UseMultipleFeedbackPdos) Range(s.FeedbackPdoNumber, "反馈 TPDO 编号", 0, 512, errors);
                 Range(s.DiagnosticIndex, "硬件诊断对象索引", 0, 65535, errors);
                 Range(s.DiagnosticSubIndex, "硬件诊断子索引", 0, 255, errors);
                 Range(s.DiagnosticBytes, "硬件诊断字节数", 1, 4, errors);
@@ -63,6 +65,10 @@ public static class SettingValidation
             case SetModeSetting s:
                 if (!Enum.IsDefined(s.Mode)) errors.Add("运行模式枚举值无效");
                 break;
+            case ReadDiagnosticsSetting s:
+                if (string.IsNullOrWhiteSpace(s.ErrorCodeVariable) && string.IsNullOrWhiteSpace(s.HardwareValueVariable) && string.IsNullOrWhiteSpace(s.HardwareActiveVariable))
+                    errors.Add("至少配置一项诊断输出变量");
+                break;
             case WriteCspTargetSetting s:
                 Required(s.TargetPosition, "周期目标位置", errors);
                 break;
@@ -82,10 +88,7 @@ public static class SettingValidation
             if (b.DiagnosticBytes is 1 or 2 && b.DiagnosticMask >= (1L << (b.DiagnosticBytes * 8))) errors.Add("硬件诊断掩码超出所配置字节数");
             if (b.Transport == TransportKind.CANopen)
             {
-                foreach (var (n, layout) in new[] { (b.CspPdoNumber, b.CspPdoLayout), (b.CsvPdoNumber, b.CsvPdoLayout), (b.CstPdoNumber, b.CstPdoLayout), (b.FeedbackPdoNumber, b.FeedbackPdoLayout) })
-                    if (n > 0) try { PdoLayout.Parse(layout); } catch (Exception ex) { errors.Add($"PDO 布局无效：{ex.Message}"); }
-                var numbers = new[] { b.CspPdoNumber, b.CsvPdoNumber, b.CstPdoNumber }.Where(n => n != 0).ToArray();
-                if (numbers.Distinct().Count() != numbers.Length) errors.Add("不同模式的 RPDO 编号不得重复");
+                errors.AddRange(PdoConfiguration.Validate(b));
             }
         }
         return errors;
@@ -211,12 +214,15 @@ public static class SettingValidation
         return new(values);
     }
 
-    public static void Output(IExecutionContext context, string path, object value)
+    public static void Output(IExecutionContext context, string path, object value, Action? checkPublication = null)
     {
         if (string.IsNullOrWhiteSpace(path)) return;
+        checkPublication?.Invoke();
         var existing = context.GetVariable(path);
         var converted = value is double && existing != null && existing is not double
             ? Convert.ChangeType(value, existing.GetType(), CultureInfo.InvariantCulture) : value;
+        checkPublication?.Invoke();
         context.SetVariable(path, converted);
+        checkPublication?.Invoke();
     }
 }

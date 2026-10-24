@@ -32,6 +32,8 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
 
         - ReadBytes>0 时读取固定字节数，否则读到 Terminator 为止
         - 读取超时或端口未打开时步骤报错
+        - ReadTimeoutMs 是取得事务门后的读取窗口，不是全步骤总预算。有限值时，排队到返回的外层等待上界为 ReadTimeoutMs+1000 ms；额外 1000 ms 用于兼容旧的“窗口结束后返回数据”及真实调用退出，不能解释为设备已取消
+        - ReadBytes=0 且 Terminator 为空时，在读取窗口到期后返回已收数据；无限窗口必须指定字节数或终止符。原调用方取消会停止前台等待，未退出的原调用仍归连接 owner
 
         ## 相关插件
 

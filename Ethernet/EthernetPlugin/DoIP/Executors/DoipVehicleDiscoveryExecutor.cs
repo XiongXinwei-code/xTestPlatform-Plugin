@@ -16,13 +16,25 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new DoipVehicleDiscoveryPlugin().CreateSerializer();
-        var setting = (DoipVehicleDiscoverySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
+        int timeoutMs = 0;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new DoipVehicleDiscoveryPlugin().CreateSerializer();
+            var setting = (DoipVehicleDiscoverySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
+            timeoutMs = setting.TimeoutMs;
             var broadcast = await EthernetExecutorHelper.EvalStringAsync(setting.BroadcastAddress, context);
+            CheckExecution();
 
             // 车辆识别请求：8 字节头，无负载
             var request = new byte[8];
@@ -32,6 +44,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             request[3] = (byte)PtVehicleIdentRequest;
 
             using var udp = new UdpClient { EnableBroadcast = true };
+            CheckExecution();
             await udp.SendAsync(request, new IPEndPoint(IPAddress.Parse(broadcast), setting.Port), cancellationToken);
 
             context.Log($"DoIP 车辆识别请求已广播: {broadcast}:{setting.Port}");
@@ -39,6 +52,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(setting.TimeoutMs);
 
+            CheckExecution();
             var result = await udp.ReceiveAsync(cts.Token);
             var data = result.Buffer;
 
@@ -55,7 +69,10 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             var summary = $"VIN={vin}, LogicalAddress=0x{logicalAddress:X4}, IP={result.RemoteEndPoint.Address}";
 
             context.Log($"DoIP 发现车辆: {summary}");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, summary);
 
@@ -72,14 +89,14 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             return new ExecutionResult
             {
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"DoIP 车辆发现超时({setting.TimeoutMs}ms): 未收到车辆公告" }
+                    Error = ErrorInfo.FromException(ex, $"DoIP 车辆发现超时({timeoutMs}ms): 未收到车辆公告")
                 }
             };
         }

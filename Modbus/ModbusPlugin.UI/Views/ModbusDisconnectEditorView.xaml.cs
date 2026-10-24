@@ -27,6 +27,7 @@ public partial class ModbusDisconnectEditorView : UserControl, IRefreshableEdito
 		InitializeComponent();
 		ViewModel = new ModbusDisconnectViewModel();
 		DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 
 	public void RefreshFromStep(Step step)

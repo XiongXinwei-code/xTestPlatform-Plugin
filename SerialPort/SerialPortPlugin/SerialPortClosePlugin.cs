@@ -22,8 +22,12 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | PortName | string([ExpressionField]) | 是 | — | 要关闭的端口名，如 COM1，求值结果为 string |
+        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含旧资源收尾及本次 SDK 操作 |
 
         ## 行为
+
+
+        - 先冻结当前代次的新操作，再等待真实任务和 SDK 释放；只在确认释放后移除自己的资源。超时/取消不代表底层已退出，未完成或关闭失败的 owner 保留诊断与重试入口；立即重跑将按打开/配置步骤期限等待旧收尾，不强制关闭其他活动连接。
 
         - 从运行期资源表中查找 `PortName` 对应的端口对象，关闭端口并从表中移除
         - 端口名不存在或已关闭时**不报错**，仅记录日志并按 Completed 返回

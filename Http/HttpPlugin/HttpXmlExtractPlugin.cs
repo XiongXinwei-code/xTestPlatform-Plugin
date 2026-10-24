@@ -34,7 +34,7 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
         - IgnoreNamespaces 为 true 时会先剥离文档中的命名空间声明与前缀，XPath 无需写 soap: 之类的前缀
         - XPath 命中元素取其文本内容，命中属性取属性值
         - XPath 命中多个节点时取第一个节点
-        - 未命中时写入该项的 DefaultValue；若 FailOnMissingPath 为 true 则同时判定步骤失败
+        - 先解析并验证全部映射；FailOnMissingPath 为 true 且有未命中、XPath 无效或配置错误时不写入部分结果；为 false 时才采用 DefaultValue
         - SourceXml 不是合法 XML 或 XPath 语法错误时步骤报错
 
         ## 相关插件

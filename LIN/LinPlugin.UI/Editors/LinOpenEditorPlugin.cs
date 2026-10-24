@@ -26,9 +26,13 @@ public sealed class LinOpenEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinOpenSetting)new LinOpenPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("LIN_TIMEOUT", "打开总超时必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.Channel))
             errors.Add(StepSettingError.Error("LIN_001", "通道名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Channel, context.ExecutionContext, out var channelError))
+            errors.Add(StepSettingError.Error("LIN_CHANNEL", $"Channel 表达式无效: {channelError}"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("LIN_002", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

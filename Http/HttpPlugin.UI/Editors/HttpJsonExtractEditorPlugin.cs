@@ -33,7 +33,7 @@ public sealed class HttpJsonExtractEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.SourceJson, context.ExecutionContext, out var srcErr))
             errors.Add(StepSettingError.Error("HTTP_060E", $"SourceJson 表达式无效: {srcErr}"));
 
-        HttpEditorValidationHelper.CheckExtractItems(s.Items, "JSON 路径", "HTTP_061", errors);
+        HttpEditorValidationHelper.CheckExtractItems(s.Items, "JSON 路径", "HTTP_061", errors, allowRootPath: true);
 
         foreach (var item in s.Items)
             HttpEditorValidationHelper.CheckVariable(context, item.TargetVariable, typeof(string), "HTTP_062", errors);

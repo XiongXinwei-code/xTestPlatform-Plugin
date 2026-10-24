@@ -283,6 +283,11 @@ internal static class ZlgApi
     }
 
     public const uint CAN_EFF_FLAG = 0x80000000;
+    public const uint CAN_RTR_FLAG = 0x40000000;
+    public const uint CAN_ERR_FLAG = 0x20000000;
+    public const uint CAN_ID_MASK = 0x1FFFFFFF;
+    // SDK canframe.h: __pad (Classic) / flags (FD), 回显在发送至总线后产生。
+    public const byte TX_ECHO_FLAG = 0x20;
     public const byte CANFD_BRS = 0x01;
 
     // ── API 函数 ──────────────────────────────────────────
@@ -301,6 +306,9 @@ internal static class ZlgApi
     [DllImport(DllName, EntryPoint = "ZCAN_ResetCAN")]
     public static extern uint ResetCAN(IntPtr channelHandle);
 
+    [DllImport(DllName, EntryPoint = "ZCAN_ClearBuffer")]
+    public static extern uint ClearBuffer(IntPtr channelHandle);
+
     [DllImport(DllName, EntryPoint = "ZCAN_Transmit")]
     public static extern uint Transmit(IntPtr channelHandle, ref ZCAN_Transmit_Data data, uint len);
 
@@ -312,6 +320,14 @@ internal static class ZlgApi
 
     [DllImport(DllName, EntryPoint = "ZCAN_ReceiveFD")]
     public static extern uint ReceiveFD(IntPtr channelHandle, ref ZCAN_ReceiveFD_Data data, uint len, int waitTimeMs);
+
+    [DllImport(DllName, EntryPoint = "ZCAN_Receive")]
+    public static extern uint ReceiveBatch(IntPtr channelHandle,
+        [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] ZCAN_Receive_Data[] data, uint len, int waitTimeMs);
+
+    [DllImport(DllName, EntryPoint = "ZCAN_ReceiveFD")]
+    public static extern uint ReceiveFdBatch(IntPtr channelHandle,
+        [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] ZCAN_ReceiveFD_Data[] data, uint len, int waitTimeMs);
 
     [DllImport(DllName, EntryPoint = "ZCAN_GetReceiveNum")]
     public static extern uint GetReceiveNum(IntPtr channelHandle, byte type);

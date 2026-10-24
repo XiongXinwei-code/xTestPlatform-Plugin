@@ -12,21 +12,21 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new UdsReadDataByIdPlugin().CreateSerializer();
-        var setting = (UdsReadDataByIdSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdsReadDataByIdPlugin().CreateSerializer();
+            var setting = (UdsReadDataByIdSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
             var didStr = await Evaluator.EvaluateAsync<string>(setting.Did, context) ?? setting.Did;
-            ushort did = (ushort)UdsExecutorHelper.ParseId(didStr);
+            ushort did = (ushort)UdsExecutorHelper.ParseBoundedId(didStr, ushort.MaxValue, "Did");
 
             var request = new byte[] { 0x22, (byte)(did >> 8), (byte)(did & 0xFF) };
-            var response = await client.RequestAsync(request, cancellationToken);
+            var response = await guard.RunAsync(() => client.RequestAsync(request, cancellationToken));
 
             if (response.IsPositive)
             {
@@ -35,9 +35,9 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
                 var hex = UdsExecutorHelper.ToHex(data);
 
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                    context.SetVariable(setting.ResultVariable, hex);
+                    guard.SetVariable(setting.ResultVariable, hex);
 
-                context.Log($"UDS ReadDataByID: DID=0x{did:X4}, Data=[{hex}]");
+                guard.Log($"UDS ReadDataByID: DID=0x{did:X4}, Data=[{hex}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
             }
             else

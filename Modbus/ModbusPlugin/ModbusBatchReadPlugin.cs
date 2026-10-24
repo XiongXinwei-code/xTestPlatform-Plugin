@@ -33,7 +33,7 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 		- SlaveAddress：byte，从站地址，默认 1
 		- RegisterType：枚举，寄存器/线圈类型，可选值：Coil, DiscreteInput, HoldingRegister, InputRegister，默认 HoldingRegister
 		- StartAddress：ushort，起始地址，默认 0
-		- Quantity：ushort，读取数量（寄存器个数或线圈个数），默认 1；32 位格式每个值占 2 个寄存器，奇数时末尾多余的寄存器被忽略
+		- Quantity：ushort，读取数量（寄存器个数或线圈个数），默认 1；32 位格式每个值占 2 个寄存器，必须配置偶数，否则报错，不静默丢弃末尾寄存器
 		- DataFormat：枚举，数据解析格式，可选值：UInt16, Int16, UInt32_AB_CD, Int32_AB_CD, Float_AB_CD, UInt32_CD_AB, Int32_CD_AB, Float_CD_AB，默认 UInt16；仅对 HoldingRegister/InputRegister 生效
 		- ResultVariable：string(VariablePathField)，该项读取结果写入的变量（如 Locals.temperature），为空则不写入；Coil/DiscreteInput 写入 bool（Quantity=1）或 bool[]，寄存器按 DataFormat 写入对应数值类型（单个值为标量，多个值为数组）
 

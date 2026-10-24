@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class ReadFeedbackPlugin : StepPluginBase<ReadFeedbackSetting>
 {
     public override string StepTypeId => "Motion.CiA402ReadFeedback";
-    public override string DisplayName => "CiA402_ReadFeedback";
+    public override string DisplayName => "CiA402_Feedback_ReadFeedback";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_readfeedback.png";
 
@@ -31,7 +31,10 @@ public sealed class ReadFeedbackPlugin : StepPluginBase<ReadFeedbackSetting>
         
         ## 行为
         
-        - 绑定时选择 SDO 顺序读取或显式 TPDO；TPDO 未映射所需输出时返回错误。
+        - 绑定时选择 SDO 顺序读取、单 TPDO 或多 TPDO；TPDO 整体未映射所需输出时返回错误。
+        - 多 TPDO 只收集本次请求需要的来源，所有帧共用单次通信期限；逐 COB-ID 检查时间戳，队列年龄及帧间时间跨度须在 FeedbackMaxAgeMs 窗口内，不保证同一 SYNC 周期。
+        - 被动 TPDO 接收超时仍返回 Error 且不更新输出变量；原接收实际退出后可退避重读，不因取消调度窗口永久隔离整轴。调用未退出前后续 I/O 仍排队，不允许重入或绕过共享 CAN 失效保护。
+        - SDO 反馈包含协议请求，不属于被动接收；事务中断后的协议隔离仍保留。不会将旧反馈或默认零值作为本次有效结果。
         - SDO 多对象读取不是原子快照；TPDO 检测重复硬件时间戳和接收队列驻留时间，但不能证明硬件采样年龄。
         - 没有有效反馈时超时报错，不用旧值冒充本次数据。
         

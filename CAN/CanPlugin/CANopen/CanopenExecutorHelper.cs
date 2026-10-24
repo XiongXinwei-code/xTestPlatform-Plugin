@@ -16,12 +16,14 @@ internal static class CanopenExecutorHelper
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
 
     /// <summary>从资源注册表获取 CAN_Open 创建的适配器</summary>
-    public static async Task<(CanopenBus? bus, string? error)> GetBusAsync(CanopenCommonSetting setting, IExecutionContext context)
+    public static async Task<(CanopenBus? bus, string? error)> GetBusAsync(CanopenCommonSetting setting, IExecutionContext context, CAN.Runtime.CanExecutionGuard? guard = null)
     {
         var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+        guard?.Check();
         var key = CanHelper.GetAdapterKey(connName);
         if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             return (null, $"CAN 连接未找到: {connName}");
+        guard?.Watch(key, adapter);
         return (new CanopenBus(adapter), null);
     }
 
@@ -31,7 +33,7 @@ internal static class CanopenExecutorHelper
         var value = await Evaluator.EvaluateAsync<object>(expression, context);
         return value switch
         {
-            null => expression.Trim(),
+            null => throw new InvalidOperationException($"表达式 [{expression}] 的求值结果为 null，不能作为 CANopen 数据"),
             byte[] bytes => ToHex(bytes),
             IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? string.Empty
@@ -97,7 +99,7 @@ internal static class CanopenExecutorHelper
             TestStatus.Error => ExecutionResults.Error(error ?? "CANopen 执行失败，未提供错误描述", value: text),
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, "不支持的 CANopen 执行状态")
         };
-        result.StepResult.Value = text;
+        result.StepResult.Value = text ?? string.Empty;
         return result;
     }
 

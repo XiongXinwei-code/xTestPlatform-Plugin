@@ -8,7 +8,7 @@ namespace Ethernet;
 public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
 {
     public override string StepTypeId  => "Ethernet.UdpReceive";
-    public override string DisplayName => "Ethernet_UdpReceive";
+    public override string DisplayName => "Ethernet_UDP_Receive";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/udp_receive.png";
 
@@ -23,7 +23,7 @@ public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
         |------|------|------|--------|------|
         | LocalPort | int | 是 | 30490 | 绑定本机端口 |
         | BindMode | 枚举 | 否 | AnyInterface | 绑定模式，可选值：LocalPort, AnyInterface |
-        | ExpectedLength | int | 否 | 0 | 期望字节数，0 表示接收任意长度 |
+        | ExpectedLength | int | 否 | 0 | 期望单个数据报字节数，范围0~65507；0表示任意长度，大于0时必须精确匹配 |
         | TimeoutMs | int | 否 | 3000 | 接收超时毫秒数 |
         | Encoding | 枚举 | 否 | Hex | 结果编码格式，可选值：Hex, Utf8, Ascii |
         | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量名，写入类型为 string；如 Locals.result |
@@ -31,6 +31,8 @@ public sealed class UdpReceivePlugin : StepPluginBase<UdpReceiveSetting>
         ## 行为
 
         - 超时未收到数据时步骤报错
+        - ExpectedLength大于0且数据报长度不匹配时返回Error，不发布结果，不拼接多个数据报或截断单个数据报
+        - LocalPort绑定模式沿用仅回环127.0.0.1的旧行为；AnyInterface绑定0.0.0.0以接收其他网卡的报文
 
         ## 相关插件
 

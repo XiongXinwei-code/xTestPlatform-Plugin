@@ -14,7 +14,8 @@ internal static class NiDaqLifecycleValidator
     {
         "NiDaq.AiConfig",
         "NiDaq.SyncConfig",
-        "NiDaq.EncoderConfig"
+        "NiDaq.EncoderConfig",
+        "NiDaq.AoConfig"
     };
 
     /// <summary>
@@ -52,13 +53,14 @@ internal static class NiDaqLifecycleValidator
     /// 检查当前步骤之前是否存在匹配 TaskName 的 Config 步骤（AiConfig / SyncConfig / EncoderConfig）
     /// </summary>
     public static void CheckPrecedingConfig(
-        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors)
+        SequenceFile sequenceFile, List<Step> block, Step currentStep, string taskName, List<StepSettingError> errors, string? requiredConfigType = null)
     {
         if (string.IsNullOrWhiteSpace(taskName)) return;
 
         foreach (var step in GetPrecedingSteps(sequenceFile, block, currentStep))
         {
             if (!_configStepTypes.Contains(step.StepSetting.StepType)) continue;
+            if (requiredConfigType != null && step.StepSetting.StepType != requiredConfigType) continue;
             try
             {
                 string? name = GetTaskName(step);
@@ -68,7 +70,7 @@ internal static class NiDaqLifecycleValidator
         }
 
         errors.Add(StepSettingError.Warning("DAQ_LC01",
-            $"在此步骤之前未找到针对任务 \"{taskName}\" 的 NiDaq Config 步骤（AiConfig/SyncConfig/EncoderConfig）"));
+            $"在此步骤之前未找到针对任务 \"{taskName}\" 的 {requiredConfigType ?? "NiDaq Config（AiConfig/SyncConfig/EncoderConfig/AoConfig）"} 步骤"));
     }
 
     /// <summary>
@@ -105,6 +107,7 @@ internal static class NiDaqLifecycleValidator
             "NiDaq.AiConfig" => MessagePackSerializer.Deserialize<NiDaqAiConfigSetting>(data, _opts).TaskName,
             "NiDaq.SyncConfig" => MessagePackSerializer.Deserialize<NiDaqSyncConfigSetting>(data, _opts).TaskName,
             "NiDaq.EncoderConfig" => MessagePackSerializer.Deserialize<NiDaqEncoderConfigSetting>(data, _opts).TaskName,
+            "NiDaq.AoConfig" => MessagePackSerializer.Deserialize<NiDaqAoConfigSetting>(data, _opts).TaskName,
             _ => null
         };
     }

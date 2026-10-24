@@ -12,86 +12,50 @@ namespace NiDaq.Executors;
 public sealed class NiDaqSyncConfigExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Action<DaqTaskResource, NiDaqSyncConfigSetting>? _configure;
+    private readonly Func<IEnumerable<string>, DaqTaskResource>? _createOwner;
+    public NiDaqSyncConfigExecutor() { }
+    internal NiDaqSyncConfigExecutor(Action<DaqTaskResource, NiDaqSyncConfigSetting> configure,
+        Func<IEnumerable<string>, DaqTaskResource> createOwner) { _configure = configure; _createOwner = createOwner; }
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new NiDaqSyncConfigPlugin().CreateSerializer();
-        var setting = (NiDaqSyncConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
+        DaqTaskResource? configuredOwner = null;
         try
         {
-            NiDriverCheck.EnsureDriver();
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new DaqExecutionGuard(context, cancellationToken);
+            var epoch = guard.Epoch;
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new NiDaqSyncConfigPlugin().CreateSerializer();
+            var setting = (NiDaqSyncConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
+            var plan = DaqSamplePlan.Create(setting);
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
-
-            if (string.IsNullOrWhiteSpace(taskName))
-                return ErrorResult("任务名称不能为空");
-            if (setting.AiChannels.Count == 0)
-                return ErrorResult("AI 通道列表为空");
-            if (setting.EncoderChannels.Count == 0)
-                return ErrorResult("编码器通道列表为空");
-
-            // 若已存在同名任务（序列异常终止未销毁），先销毁旧任务
-            var existingTask = NiDaqTaskRegistry.Remove(taskName);
-            if (existingTask is DaqTask oldTask)
+            guard.Check();
+            var owner = await DaqTaskFactory.CreateAndRegisterAsync(context, taskName, resource =>
             {
-                try { oldTask.Dispose(); } catch { /* 忽略销毁异常 */ }
-                context.Log($"NI DAQ 任务 '{taskName}' 检测到已有任务，已自动销毁旧任务");
-            }
-
-            var task = new DaqTask(taskName);
-
-            // 配置 AI 通道
-            foreach (var ch in setting.AiChannels)
-            {
-                var termConfig = ch.Terminal switch
+                if (_configure != null) { _configure(resource, setting); return; }
+                var ai = resource.AddTask();
+                DaqTaskFactory.ConfigureAi(resource, ai, setting.AiChannels);
+                DaqTaskFactory.ConfigureClock(resource, ai, setting.ClockSource, setting.SampleRate, setting.SampleMode, setting.SamplesPerChannel);
+                DaqTaskFactory.ConfigureTrigger(resource, ai, setting.UseTrigger, setting.TriggerSource, setting.TriggerEdge);
+                int index = 0;
+                foreach (var enc in setting.EncoderChannels)
                 {
-                    AiTerminalConfig.RSE => AITerminalConfiguration.Rse,
-                    AiTerminalConfig.NRSE => AITerminalConfiguration.Nrse,
-                    AiTerminalConfig.Pseudodifferential => AITerminalConfiguration.Pseudodifferential,
-                    _ => AITerminalConfiguration.Differential
-                };
-                task.AIChannels.CreateVoltageChannel(
-                    ch.PhysicalChannel, ch.ColumnName,
-                    termConfig, ch.MinValue, ch.MaxValue, AIVoltageUnits.Volts);
-            }
-
-            // 配置编码器通道
-            foreach (var enc in setting.EncoderChannels)
-            {
-                var decodingType = enc.DecodingType switch
-                {
-                    EncoderDecodingType.X1 => CIEncoderDecodingType.X1,
-                    EncoderDecodingType.X2 => CIEncoderDecodingType.X2,
-                    _ => CIEncoderDecodingType.X4
-                };
-                task.CIChannels.CreateAngularEncoderChannel(
-                    enc.CounterChannel, enc.ColumnName,
-                    decodingType,
-                    enc.ZIndexEnable, 0,
-                    CIEncoderZIndexPhase.AHighBHigh,
-                    enc.PulsesPerRevolution, 0,
-                    CIAngularEncoderUnits.Ticks);
-            }
-
-            // 时钟配置
-            var sampleMode = setting.SampleMode == AiSampleMode.ContinuousSamples
-                ? SampleQuantityMode.ContinuousSamples
-                : SampleQuantityMode.FiniteSamples;
-            var clockSource = string.IsNullOrWhiteSpace(setting.ClockSource) ? "" : setting.ClockSource;
-            task.Timing.ConfigureSampleClock(clockSource, setting.SampleRate,
-                SampleClockActiveEdge.Rising, sampleMode, setting.SamplesPerChannel);
-
-            // 触发配置
-            if (setting.UseTrigger && !string.IsNullOrWhiteSpace(setting.TriggerSource))
-            {
-                var edge = setting.TriggerEdge == TriggerEdge.Falling
-                    ? DigitalEdgeStartTriggerEdge.Falling
-                    : DigitalEdgeStartTriggerEdge.Rising;
-                task.Triggers.StartTrigger.ConfigureDigitalEdgeTrigger(setting.TriggerSource, edge);
-            }
-
-            NiDaqTaskRegistry.Set(taskName, task);
+                    guard.Check();
+                    var counter = resource.AddTask();
+                    DaqTaskFactory.ConfigureEncoder(resource, counter, enc.CounterChannel, "", enc.DecodingType, enc.ZIndexEnable, enc.PulsesPerRevolution);
+                    DaqTaskFactory.ConfigureClock(resource, counter, plan.CounterClockSource, setting.SampleRate, setting.SampleMode, setting.SamplesPerChannel);
+                    index++;
+                }
+                resource.CounterNames = setting.EncoderChannels.Select((enc, i) => string.IsNullOrWhiteSpace(enc.ColumnName) ? "Encoder" + i : enc.ColumnName).ToArray();
+            }, cancellationToken, ownedResource: _createOwner?.Invoke(setting.AiChannels.Select(c => c.PhysicalChannel).Concat(setting.EncoderChannels.Select(c => c.CounterChannel))), physicalChannels: setting.AiChannels.Select(c => c.PhysicalChannel).Concat(setting.EncoderChannels.Select(c => c.CounterChannel)), timeoutMs: setting.TimeoutMs, epoch: epoch);
+            configuredOwner = owner;
+            context.Log("DAQ 同步方案: AI 和每路 CI 独立任务，CI 时钟=" + plan.CounterClockSource + "；路由已由驱动 Verify，真实设备同步资格仍需实测");
+            guard.EnsureCurrent(taskName, owner);
+            epoch.ThrowIfExpired();
 
             return new ExecutionResult
             {
@@ -102,8 +66,14 @@ public sealed class NiDaqSyncConfigExecutor : IStepExecutor
                 }
             };
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
+            configuredOwner?.Dispose();
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (Exception ex)
+        {
+            configuredOwner?.Dispose();
             return ErrorResult($"同步配置失败：{ex.Message}", ex);
         }
     }

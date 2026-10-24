@@ -24,6 +24,7 @@ public partial class CanCyclicSendStopEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new CanCyclicSendStopViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

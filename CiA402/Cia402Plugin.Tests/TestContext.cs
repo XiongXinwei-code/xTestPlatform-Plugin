@@ -8,8 +8,12 @@ namespace CiA402.Tests;
 public class TestContext : DispatchProxy
 {
     public Dictionary<string, object?> Variables { get; } = new();
-    public Dictionary<string, object> Resources { get; } = new();
+    public Dictionary<string, object> Resources { get; set; } = new();
     public StepExecutionInfo? Current { get; set; }
+    public Action<object?[]>? OnLog { get; set; }
+    public Action<string>? OnGetVariable { get; set; }
+    public List<(string Key, ResourceLifetime Lifetime)> Registrations { get; } = [];
+    public Action<string>? OnResourceAdded { get; set; }
     private object? _registry;
     private readonly Dictionary<Type, object> _scopes = new();
 
@@ -19,7 +23,7 @@ public class TestContext : DispatchProxy
         var state = (TestContext)(object)context;
         var step = new Step();
         step.StepSetting.StepType = plugin.StepTypeId;
-        step.StepSetting.SettingVersion = 1;
+        step.StepSetting.SettingVersion = plugin.CreateSerializer().SettingVersion;
         step.StepSetting.Setting = plugin.CreateSerializer().Serialize(setting);
         state.Current = new StepExecutionInfo { Step = step };
         return (context, state);
@@ -33,15 +37,16 @@ public class TestContext : DispatchProxy
             case "get_CurrentStep": return Current;
             case "set_CurrentStep": Current = (StepExecutionInfo?)args[0]; return null;
             case "get_IsAbortRequested": return false;
-            case "Log": return null;
+            case "Log": OnLog?.Invoke(args); return null;
             case "HasVariable": return Variables.ContainsKey((string)args[0]!);
-            case "GetVariable": return Variables.GetValueOrDefault((string)args[0]!);
+            case "GetVariable": OnGetVariable?.Invoke((string)args[0]!); return Variables.GetValueOrDefault((string)args[0]!);
             case "SetVariable": Variables[(string)args[0]!] = args[1]; return null;
             case "get_Resources":
                 if (_registry == null)
                 {
                     _registry = Create(method.ReturnType, typeof(RegistryProxy));
                     ((RegistryProxy)_registry).Items = Resources;
+                    ((RegistryProxy)_registry).OnAdd = (key, lifetime) => { Registrations.Add((key, lifetime)); OnResourceAdded?.Invoke(key); };
                 }
                 return _registry;
         }
@@ -62,6 +67,7 @@ public class TestContext : DispatchProxy
 public class RegistryProxy : DispatchProxy
 {
     public Dictionary<string, object> Items { get; set; } = new();
+    public Action<string, ResourceLifetime>? OnAdd { get; set; }
     protected override object? Invoke(MethodInfo? method, object?[]? args)
     {
         args ??= [];
@@ -72,7 +78,10 @@ public class RegistryProxy : DispatchProxy
             case "TryGet":
                 var exists = Items.TryGetValue(key, out var value) && method.GetGenericArguments()[0].IsInstanceOfType(value);
                 args[1] = exists ? value : null; return exists;
-            case "TryAdd": return Items.TryAdd(key, args[1]!);
+            case "TryAdd":
+                var added = Items.TryAdd(key, args[1]!);
+                if (added) OnAdd?.Invoke(key, args.Length > 2 ? (ResourceLifetime)args[2]! : ResourceLifetime.Execution);
+                return added;
             case "Set": Items[key] = args[1]!; return null;
             case "Remove":
                 if (!Items.Remove(key, out var old)) return false;

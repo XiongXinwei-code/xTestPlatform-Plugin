@@ -38,7 +38,7 @@ public class SomeIpRequestSetting
     [ExpressionField]
     public string Payload { get; set; } = "\"\"";
 
-    /// <summary>响应超时（毫秒）</summary>
+    /// <summary>地址解析、连接、发送和完整响应的总超时（毫秒）</summary>
     public int TimeoutMs { get; set; } = 3000;
 
     /// <summary>结果存储变量路径（存储响应负载十六进制字符串，可选）</summary>

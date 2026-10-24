@@ -21,15 +21,26 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var operation = "SOAP 请求";
-        var step = context.CurrentStep!.Step;
-        var serializer = new HttpSoapRequestPlugin().CreateSerializer();
-        var setting = (HttpSoapRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        HttpRequestMessage? pendingRequest = null;
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Http");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new HttpSoapRequestPlugin().CreateSerializer();
+            var setting = (HttpSoapRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (!Enum.IsDefined(setting.SoapVersion)) throw new InvalidOperationException("SOAP 版本无效");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             var clientName = await Evaluator.EvalStringAsync(setting.ClientName, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(clientName))
                 return Error("客户端标识名未配置");
 
@@ -37,16 +48,19 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
                 return Error($"未找到 HTTP 客户端: {clientName}，请先执行 Http_ClientCreate 步骤");
 
             var path = await Evaluator.EvalStringAsync(setting.Path, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(path))
                 return Error("服务端点路径未配置");
 
             var envelope = await Evaluator.EvalStringAsync(setting.Envelope, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(envelope))
                 return Error("SOAP Envelope 内容未配置");
 
             var soapAction = await Evaluator.EvalStringAsync(setting.SoapAction, context);
+            CheckExecution();
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, BuildRequestUri(path));
+            var request = pendingRequest = new HttpRequestMessage(HttpMethod.Post, BuildRequestUri(path));
             operation = HttpHelper.DescribeRequest(clientName, resource.Client, request);
 
             var mediaType = setting.SoapVersion == SoapVersion.Soap12
@@ -74,6 +88,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             {
                 if (string.IsNullOrWhiteSpace(header.Name)) continue;
                 var value = await Evaluator.EvalStringAsync(header.Value, context);
+                CheckExecution();
                 request.Headers.Remove(header.Name);
                 request.Headers.TryAddWithoutValidation(header.Name, value);
             }
@@ -81,21 +96,26 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             if (setting.LogPayload)
                 context.Log($"SOAP 请求: {path} | Action: {soapAction} | {envelope}");
 
-            var stopwatch = Stopwatch.StartNew();
-            using var response = await resource.Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
-            var responseXml = await response.Content.ReadAsStringAsync(cancellationToken);
-            stopwatch.Stop();
-
-            var statusCode = (int)response.StatusCode;
-            var elapsedMs = (int)stopwatch.ElapsedMilliseconds;
-
-            if (!string.IsNullOrWhiteSpace(setting.ResponseVariable))
-                context.SetVariable(setting.ResponseVariable, responseXml);
-            if (!string.IsNullOrWhiteSpace(setting.StatusCodeVariable))
-                context.SetVariable(setting.StatusCodeVariable, statusCode);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+            HttpHelper.ValidateRequestDestination(resource, request);
+            var sending = resource.SendAsync(request, cancellationToken);
+            pendingRequest = null;
+            var response = await sending;
+            var responseXml = response.Content;
+            var statusCode = response.StatusCode;
+            var elapsedMs = (int)Math.Min(int.MaxValue, response.ElapsedMs);
 
             if (setting.LogPayload)
                 context.Log($"SOAP 响应: {statusCode} ({elapsedMs} ms) | {responseXml}");
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+
+            CheckExecution();
+            if (!string.IsNullOrWhiteSpace(setting.ResponseVariable))
+                context.SetVariable(setting.ResponseVariable, responseXml);
+            CheckExecution();
+            if (!string.IsNullOrWhiteSpace(setting.StatusCodeVariable))
+                context.SetVariable(setting.StatusCodeVariable, statusCode);
 
             var faultMessage = setting.TreatSoapFaultAsFailure ? TryGetFaultMessage(responseXml) : null;
             if (faultMessage != null)
@@ -107,7 +127,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
                 return faultResult;
             }
 
-            var succeeded = response.IsSuccessStatusCode || !setting.TreatNonSuccessAsFailure;
+            var succeeded = response.IsSuccess || !setting.TreatNonSuccessAsFailure;
 
             var result = succeeded
                 ? ExecutionResults.Completed(statusCode.ToString())
@@ -130,6 +150,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
         {
             return Error($"SOAP 调用失败；{operation}", ex);
         }
+        finally { pendingRequest?.Dispose(); }
     }
 
     /// <summary>解析响应中的 SOAP Fault，未包含 Fault 时返回 null</summary>

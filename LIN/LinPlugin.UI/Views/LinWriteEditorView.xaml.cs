@@ -34,6 +34,7 @@ public partial class LinWriteEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new LinWriteViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

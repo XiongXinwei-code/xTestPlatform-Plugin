@@ -27,6 +27,7 @@ public sealed class XcpDisconnectEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (XcpDisconnectSetting)new XcpDisconnectPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        XcpEditorValidation.Check(s, context, errors);
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("XCP_101", "ConnectionName 不能为空"));

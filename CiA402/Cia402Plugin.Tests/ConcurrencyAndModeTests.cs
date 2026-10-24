@@ -330,7 +330,10 @@ public sealed class ConcurrencyAndModeTests
                 await Task.WhenAll(Task.Run(() => release.TrySetResult()), Task.Run(transport.Dispose));
             }
             finally { release.TrySetResult(); }
-            await read;
+            // Close may win the post-I/O publication fence; either returned data or
+            // ObjectDisposed is valid, but native ownership must still release once.
+            try { await read; }
+            catch (ObjectDisposedException) { }
             await probe.Disposed.Task.WaitAsync(TimeSpan.FromSeconds(3));
             Check(probe.DisposeCount == 1 && !probe.DisposedDuringCall);
         }

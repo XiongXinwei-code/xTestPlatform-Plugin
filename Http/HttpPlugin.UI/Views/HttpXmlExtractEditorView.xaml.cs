@@ -29,6 +29,7 @@ public partial class HttpXmlExtractEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new HttpXmlExtractViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

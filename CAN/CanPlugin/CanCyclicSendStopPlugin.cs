@@ -24,10 +24,13 @@ public sealed class CanCyclicSendStopPlugin : StepPluginBase<CanCyclicSendStopSe
         | ConnectionName | string([ExpressionField]) | 是 | — | CAN 连接标识名，求值结果为 string |
         | TaskName | string([ExpressionField]) | 是 | — | 要停止的任务标识名，求值结果为 string |
 
+        | TimeoutMs | int | 否 | 5000 | 等待周期任务实际退出的总期限，必须大于 0；超时保留任务与连接隔离，不报告已停止 |
+
         ## 行为
 
-        - 从运行期资源表中查找 `TaskName` 对应的任务，取消发送并从表中移除
-        - 任务名不存在时**不报错**，按 Completed 返回
+        - 按 ConnectionName + TaskName 定位任务，取消并等待实际工作退出，默认期限 5000 ms
+        - 连接/任务不存在或后台已故障时报错；超时保留任务与隔离，不能覆盖重启
+        - 本步骤确认主机工作退出，不代表硬件队列已排空或电机已停止
 
         ## 相关插件
 

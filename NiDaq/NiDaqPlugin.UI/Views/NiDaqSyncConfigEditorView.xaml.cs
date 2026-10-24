@@ -26,10 +26,12 @@ public partial class NiDaqSyncConfigEditorView : UserControl, IRefreshableEditor
     {
         InitializeComponent();
         DataContext = ViewModel;
+        Unloaded += (_, _) => FlushEditor();
     }
 
     public void RefreshFromStep(Step step)
     {
+        FlushEditor();
         ViewModel.AttachSerializer(new NiDaqSyncConfigPlugin().CreateSerializer());
         ViewModel.AttachStep(step);
     }
@@ -37,13 +39,19 @@ public partial class NiDaqSyncConfigEditorView : UserControl, IRefreshableEditor
     private void AddAiChannel_Click(object sender, RoutedEventArgs e) => ViewModel.AddAiChannel();
     private void RemoveAiChannel_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.AiChannels.Count > 0)
-            ViewModel.RemoveAiChannel(ViewModel.AiChannels[^1]);
+        FlushEditor();
+        if (AiChannelsGrid.SelectedItem is NiDaqAiChannel channel) ViewModel.RemoveAiChannel(channel);
     }
     private void AddEncoderChannel_Click(object sender, RoutedEventArgs e) => ViewModel.AddEncoderChannel();
     private void RemoveEncoderChannel_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.EncoderChannels.Count > 0)
-            ViewModel.RemoveEncoderChannel(ViewModel.EncoderChannels[^1]);
+        FlushEditor();
+        if (EncoderChannelsGrid.SelectedItem is NiDaqSyncEncoderChannel channel) ViewModel.RemoveEncoderChannel(channel);
+    }
+    private void FlushEditor()
+    {
+        AiChannelsGrid.CommitEdit(DataGridEditingUnit.Cell, true); AiChannelsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        EncoderChannelsGrid.CommitEdit(DataGridEditingUnit.Cell, true); EncoderChannelsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        ViewModel.FlushPendingSave();
     }
 }

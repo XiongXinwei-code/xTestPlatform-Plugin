@@ -23,12 +23,15 @@ public partial class OpcUaBatchWriteEditorView : UserControl, IRefreshableEditor
     public OpcUaBatchWriteEditorView()
     {
         InitializeComponent();
+        DataTypeColumn.ItemsSource = Enum.GetValues<OpcUaDataType>();
         ViewModel = new OpcUaBatchWriteViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => FlushEditor();
     }
 
     public void RefreshFromStep(Step step)
     {
+        FlushEditor();
         ViewModel.AttachSerializer(new OpcUaBatchWritePlugin().CreateSerializer());
         ViewModel.AttachStep(step);
     }
@@ -36,7 +39,13 @@ public partial class OpcUaBatchWriteEditorView : UserControl, IRefreshableEditor
     private void OnAddClick(object sender, RoutedEventArgs e) => ViewModel.AddItem();
     private void OnRemoveClick(object sender, RoutedEventArgs e)
     {
+        FlushEditor();
         if (ItemsGrid.SelectedItem is OpcUaBatchWriteItem item)
             ViewModel.RemoveItem(item);
+    }
+    private void FlushEditor()
+    {
+        ItemsGrid.CommitEdit(DataGridEditingUnit.Cell, true); ItemsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        ViewModel.FlushPendingSave();
     }
 }

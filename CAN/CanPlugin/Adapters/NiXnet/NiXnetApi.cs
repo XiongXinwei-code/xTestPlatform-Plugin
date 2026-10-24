@@ -90,6 +90,15 @@ internal static class NiXnetApi
         out uint stateValue,
         out int fault);
 
+    // Official nixnet.h: u64 nxTimestamp100ns_t, __cdecl, size=8 (not TimeCurrent2).
+    [DllImport(DllName, EntryPoint = "nxReadState", CallingConvention = CallingConvention.Cdecl)]
+    public static extern int nxReadStateTime(uint sessionRef, uint stateId, uint stateSize,
+        out ulong stateValue, out int fault);
+
+    [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+    public static extern int nxWait(uint sessionRef, uint condition, uint paramIn,
+        double timeout, out uint paramOut);
+
     // ── 状态码检查 ──────────────────────────────────────────────
     [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
     public static extern void nxStatusToString(
@@ -143,6 +152,9 @@ internal static class NiXnetApi
 
     // 状态 ID（Interface Class | CAN Comm）
     public const uint nxState_CANComm = 0x00130010;
+    public const uint nxState_TimeCurrent = 0x07130001;
+    public const uint nxState_SessionInfo = 0x00130004;
+    public const uint nxCondition_TransmitComplete = 0x8001;
 
     // 读帧超时错误码（nxErrEventTimeout，0xBFF6300A）
     public const int nxErrEventTimeout = unchecked((int)0xBFF6300A);

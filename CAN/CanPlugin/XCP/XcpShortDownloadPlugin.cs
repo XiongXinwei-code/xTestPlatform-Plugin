@@ -24,7 +24,7 @@ public sealed class XcpShortDownloadPlugin : StepPluginBase<XcpShortDownloadSett
         | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
         | TxId | string([ExpressionField]) | 是 | "0x7E1" | XCP 请求 CAN ID，求值结果为 string |
         | RxId | string([ExpressionField]) | 是 | "0x7E9" | XCP 响应 CAN ID，求值结果为 string |
-        | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
+        | TimeoutMs | int | 否 | 1000 | 完整事务总期限（含排队、SET_MTA、DOWNLOAD 及各响应），必须大于 0；整组操作串行，超时保留未退出的原生调用 |
         | Address | string([ExpressionField]) | 是 | "0x40001000" | ECU 内存地址，求值结果为 string |
         | AddressExtension | 枚举 | 否 | None | 可选值：None, Odt, Daq |
         | Data | string([ExpressionField]) | 是 | "01 00 00 00" | 要写入的十六进制数据（最多 6 字节），求值结果为 string |

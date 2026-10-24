@@ -1,38 +1,56 @@
-using System.Collections.Concurrent;
-using DaqTask = NationalInstruments.DAQmx.Task;
+using System.Runtime.CompilerServices;
+using xTestPlatform.Core.Engine;
 
 namespace NiDaq.Helpers;
 
 /// <summary>
-/// NI DAQ 任务注册表：按任务名称在进程内共享 DaqTask 实例。
-/// 任务名称是普通字符串（可由表达式求值得到），不是平台变量路径，
-/// 因此不能使用 IExecutionContext 的变量存取来保存任务对象。
+/// 任务名称是资源键而非变量；任务只属于当前执行资源表，不能销毁其他序列的资源。
 /// </summary>
 public static class NiDaqTaskRegistry
 {
-    private static readonly ConcurrentDictionary<string, DaqTask> Tasks = new(StringComparer.Ordinal);
-    private static readonly ConcurrentDictionary<string, object?> Metadata = new(StringComparer.Ordinal);
-
-    public static DaqTask? Get(string taskName)
-        => Tasks.TryGetValue(taskName, out var task) ? task : null;
-
-    public static void Set(string taskName, DaqTask task)
-        => Tasks[taskName] = task;
-
-    /// <summary>移除并返回已注册的任务（不销毁）。</summary>
-    public static DaqTask? Remove(string taskName)
+    private static readonly ConditionalWeakTable<object, object> Locks = new();
+    private static string Key(string name) => $"NiDaq.Task:{name}";
+    public static DaqTaskResource Get(IExecutionContext context, string name)
+        => context.Resources.TryGet<DaqTaskResource>(Key(name), out var value) ? value : throw new InvalidOperationException($"未找到当前序列的 DAQ 任务 '{name}'");
+    public static void EnsureAbsent(IExecutionContext context, string name)
     {
-        foreach (var key in Metadata.Keys)
-        {
-            if (key.StartsWith(taskName + "_", StringComparison.Ordinal))
-                Metadata.TryRemove(key, out _);
-        }
-        return Tasks.TryRemove(taskName, out var task) ? task : null;
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("任务名称不能为空");
+        if (context.Resources.TryGet<object>(Key(name), out _)) throw new InvalidOperationException($"DAQ 任务 '{name}' 已存在，请先成功停止原任务");
     }
-
-    public static void SetMetadata(string taskName, string key, object? value)
-        => Metadata[$"{taskName}_{key}"] = value;
-
-    public static object? GetMetadata(string taskName, string key)
-        => Metadata.TryGetValue($"{taskName}_{key}", out var value) ? value : null;
+    internal static async Task WaitUntilAbsentAsync(IExecutionContext context, string name, int timeoutMs, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("任务名称不能为空");
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            object? captured;
+            lock (Locks.GetValue(context.Resources, static _ => new object()))
+                if (!context.Resources.TryGet<object>(Key(name), out captured)) return;
+            if (captured is not DaqTaskResource previous || (!previous.IsClosed && !previous.IsClosing))
+                throw new InvalidOperationException($"DAQ 任务 '{name}' 已存在，请先成功停止原任务；不会接管活动或未知类型资源");
+            if (!previous.IsClosed)
+                await previous.CloseAsync(DaqTaskFactory.RemainingBudget(started, timeoutMs), ct).ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
+            if (previous.IsClosed) RemoveClosed(context, name, previous);
+        }
+    }
+    internal static void EnsureCurrent(IExecutionContext context, string name, DaqTaskResource expected, CancellationToken caller)
+    {
+        caller.ThrowIfCancellationRequested();
+        if (!context.Resources.TryGet<DaqTaskResource>(Key(name), out var current) || !ReferenceEquals(current, expected))
+            throw new InvalidOperationException($"DAQ 任务 '{name}' 的资源代次已改变，禁止发布旧任务结果");
+        caller.ThrowIfCancellationRequested();
+        expected.EnsureReady();
+    }
+    public static void Register(IExecutionContext context, string name, DaqTaskResource resource)
+    {
+        lock (Locks.GetValue(context.Resources, static _ => new object()))
+            if (!context.Resources.TryAdd(Key(name), resource, ResourceLifetime.Execution)) throw new InvalidOperationException($"DAQ 任务 '{name}' 已被其他步骤注册");
+    }
+    public static void RemoveClosed(IExecutionContext context, string name, DaqTaskResource expected)
+    {
+        lock (Locks.GetValue(context.Resources, static _ => new object()))
+            if (expected.IsClosed && context.Resources.TryGet<DaqTaskResource>(Key(name), out var current) && ReferenceEquals(current, expected)) context.Resources.Remove(Key(name), dispose: false);
+    }
 }

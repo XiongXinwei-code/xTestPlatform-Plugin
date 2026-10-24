@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
 {
     public override string StepTypeId => "Motion.CiA402SetMode";
-    public override string DisplayName => "CiA402_SetMode";
+    public override string DisplayName => "CiA402_State_SetMode";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_setmode.png";
 
@@ -34,6 +34,8 @@ public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
         - 先停止序列周期目标更新并完成上一周期 PDO/SYNC；位置模式准备当前位置目标，速度/转矩模式准备零目标，HM 不启动回零。相同实际模式只检查静止及使能状态，不重新初始化。
         - 全程确认未退出 OperationEnabled；不自动停轴以满足前置条件，不自动释放后重新使能，不隐式发送 SYNC。周期目标首次发送仍由通信映射决定何时应用。
         - 不支持对象、状态不符或切换超时返回错误；失败仍按控制步骤的一般规则尝试停止运动并释放使能。
+        - 非使能态切换即使模式显示已匹配，也必须检查驱动状态；故障、未知状态或意外进入运行使能不作为成功。
+        - 非使能态按当前状态写入不带 Enable Operation 的控制字，不继承绑定时缓存的运行使能位，避免模式切换意外恢复旧运动。
         
         - 正常执行返回 Completed；参数、通信、设备状态问题及超时返回 Error；用户取消返回 Aborted。
         - 仅写入用户已声明并明确配置的完整变量路径，空输出路径不写入。

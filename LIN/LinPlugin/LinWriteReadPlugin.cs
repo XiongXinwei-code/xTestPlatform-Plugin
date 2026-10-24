@@ -21,6 +21,7 @@ public sealed class LinWriteReadPlugin : StepPluginBase<LinWriteReadSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
+        | SendTimeoutMs | int | 否 | 3000 | 请求帧发送等待上限，默认3000ms；ResponseTimeoutMs仍只控制发送完成后的应答等待，必须大于0 |
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名，求值结果为 string |
         | FrameId | string([ExpressionField]) | 是 | 0 | 帧 ID 0-63，求值结果为字符串，支持十进制（如 "\"63\""）或 0x 前缀十六进制（如 "\"0x3F\""），求值结果为 string |
         | Data | string([ExpressionField]) | 否 | 空 | 发送数据十六进制字符串，求值结果为 string |

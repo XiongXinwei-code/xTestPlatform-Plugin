@@ -24,6 +24,7 @@ public partial class UdsSecurityAccessEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new UdsSecurityAccessViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

@@ -40,8 +40,9 @@ public sealed class OpcUaWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_032", "写入值不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.WriteValue, context.ExecutionContext, out var valErr))
             errors.Add(StepSettingError.Error("OPCUA_032E", $"WriteValue 表达式无效: {valErr}"));
-        if (s.TimeoutMs == 0 || s.TimeoutMs < -1)
-            errors.Add(StepSettingError.Error("OPCUA_033", "超时必须大于 0，或为 -1 表示永不超时"));
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_033", "超时必须大于 0 ms；当前 OPC UA 步骤不支持 -1 无限等待"));
+        if (!Enum.IsDefined(s.DataType)) errors.Add(StepSettingError.Error("OPCUA_DATA_TYPE", "DataType 无效，不能按字符串猜测写入"));
         OpcUaLifecycleValidator.CheckPrecedingConnect(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

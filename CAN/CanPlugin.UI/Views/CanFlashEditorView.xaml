@@ -75,8 +75,15 @@
                 </StackPanel>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="响应超时 (ms):" Style="{StaticResource LabelStyle}"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-                         Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
+                <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,8">
+                    <TextBox Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Text="单个事务总超时 (ms):" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding TransactionTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="包含排队、发送、响应和 NRC 0x78；不是整个 Flash 步骤期限。必须大于 0。"/>
+                    <TextBlock Text="最大响应字节数（ISO-TP）:" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding MaxResponseBytes, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Width="200" HorizontalAlignment="Left"
+                             ToolTip="必须大于 0；默认 4194304（4 MiB）。超限响应在分配重组缓冲区之前拒绝。"/>
+                    <TextBlock Text="默认 4194304（4 MiB），按 ECU 最大响应设置；不是下载分块大小。" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
 
                 <Separator Grid.Row="6" Grid.ColumnSpan="2" Margin="0,8,0,12"/>
 
@@ -225,6 +232,7 @@
                     </StackPanel>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                Text="预设保存本页的擦除、下载与校验参数，便于在多个序列中复用同一 ECU 的刷写规范；不包含固件路径与连接信息。"/>
+                    <TextBlock Text="{Binding PresetMessage}" Foreground="DarkRed" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="下载前擦除:" Style="{StaticResource LabelStyle}"/>

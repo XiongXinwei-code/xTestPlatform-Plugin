@@ -35,6 +35,7 @@ public partial class SomeIpSubscribeEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new SomeIpSubscribeViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

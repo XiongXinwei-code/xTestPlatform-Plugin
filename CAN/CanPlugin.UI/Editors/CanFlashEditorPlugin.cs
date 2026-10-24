@@ -27,6 +27,11 @@ public sealed class CanFlashEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (CanFlashSetting)new CanFlashPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        ProtocolInputValidation.Check(s, context, errors);
+        if (s.TransactionTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("UDS_TRANSACTION_TIMEOUT", "TransactionTimeoutMs 事务总超时必须大于 0"));
+        if (s.MaxResponseBytes <= 0)
+            errors.Add(StepSettingError.Error("UDS_RESPONSE_LIMIT", "MaxResponseBytes 最大响应字节数必须大于 0"));
 
         // ── CAN 连接 ────────────────────────────────────────────────
         if (string.IsNullOrWhiteSpace(s.ConnectionName))

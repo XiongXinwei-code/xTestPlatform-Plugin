@@ -26,6 +26,7 @@ public partial class CanFlashEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new CanFlashViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)
@@ -43,7 +44,7 @@ public partial class CanFlashEditorView : UserControl, IRefreshableEditor
         };
 
         if (dialog.ShowDialog() == true)
-            ViewModel.FilePath = $"\"{dialog.FileName}\"";
+            ViewModel.FilePath = CAN.UI.Services.FirmwareAnalyzer.FilePathExpression(dialog.FileName);
     }
 
     private async void OnAnalyzeFirmware(object sender, RoutedEventArgs e)

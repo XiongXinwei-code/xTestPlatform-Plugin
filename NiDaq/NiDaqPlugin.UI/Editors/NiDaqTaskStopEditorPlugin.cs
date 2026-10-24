@@ -32,6 +32,7 @@ public sealed class NiDaqTaskStopEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("DAQ_070E", $"TaskName 表达式无效: {taskNameErr}"));
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("DAQ_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

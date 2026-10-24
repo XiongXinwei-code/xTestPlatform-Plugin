@@ -1,10 +1,11 @@
 using CAN.Helpers;
 using CAN.Models;
+using CAN.Runtime;
 
 namespace CAN.Adapters.Vector;
 
 /// <summary>Vector CAN 适配器实现（XL Driver Library）</summary>
-public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
+public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics, ICanCloseState
 {
     private const string AppName = "xTestPlatform";
 
@@ -14,8 +15,15 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
     private bool _isFd;
     private bool _driverOpened;
     private readonly CanReceiveDiagnostics _diagnostics = new("Vector");
+    private readonly Func<int, ulong, short> _deactivate;
+    private readonly Func<int, short> _closePort;
+    private readonly Func<short> _closeDriver;
+    public VectorAdapter() : this(VectorXlApi.DeactivateChannel, VectorXlApi.ClosePort, VectorXlApi.CloseDriver) { }
+    internal VectorAdapter(Func<int, ulong, short> deactivate, Func<int, short> closePort, Func<short> closeDriver)
+        => (_deactivate, _closePort, _closeDriver) = (deactivate, closePort, closeDriver);
 
     public bool IsConnected => _isConnected;
+    public bool HandlesReleased => _portHandle < 0 && !_driverOpened;
 
     public void Open(CanAdapterConfig config)
     {
@@ -125,16 +133,25 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
     {
         if (_isConnected)
         {
-            VectorXlApi.DeactivateChannel(_portHandle, _accessMask);
-            VectorXlApi.ClosePort(_portHandle);
-            _portHandle = -1;
+            CheckCloseStatus(_deactivate(_portHandle, _accessMask), "DeactivateChannel");
             _isConnected = false;
+        }
+        if (_portHandle >= 0)
+        {
+            CheckCloseStatus(_closePort(_portHandle), "ClosePort");
+            _portHandle = -1;
         }
         if (_driverOpened)
         {
-            VectorXlApi.CloseDriver();
+            CheckCloseStatus(_closeDriver(), "CloseDriver");
             _driverOpened = false;
         }
+    }
+
+    private static void CheckCloseStatus(short status, string operation)
+    {
+        if (status != VectorXlApi.XL_SUCCESS)
+            throw new InvalidOperationException($"Vector {operation} 失败 ({status})；保留未释放资源，可重试关闭");
     }
 
     public void Write(CanMessage message)

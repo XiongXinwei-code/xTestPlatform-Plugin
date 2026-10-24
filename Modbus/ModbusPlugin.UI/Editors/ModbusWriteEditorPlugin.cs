@@ -27,6 +27,8 @@ public sealed class ModbusWriteEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (ModbusWriteSetting)new ModbusWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!Enum.IsDefined(s.RegisterType)) errors.Add(StepSettingError.Error("MB_ENUM_TYPE", "不支持的寄存器类型"));
+        if (!Enum.IsDefined(s.DataFormat)) errors.Add(StepSettingError.Error("MB_ENUM_FORMAT", "不支持的数据格式"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("MB_030", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

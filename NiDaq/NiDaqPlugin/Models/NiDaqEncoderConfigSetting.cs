@@ -28,4 +28,7 @@ public class NiDaqEncoderConfigSetting
 
     /// <summary>输出单位</summary>
     public EncoderUnit Unit { get; set; } = EncoderUnit.Degrees;
+
+    /// <summary>名称/通道求值后的配置阶段总期限(ms)，包含旧资源收尾及 SDK；不包含表达式求值。</summary>
+    public int TimeoutMs { get; set; } = 10000;
 }

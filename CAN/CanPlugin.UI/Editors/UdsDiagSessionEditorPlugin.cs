@@ -27,6 +27,11 @@ public sealed class UdsDiagSessionEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (UdsDiagSessionSetting)new UdsDiagSessionPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        ProtocolInputValidation.Check(s, context, errors);
+        if (s.TransactionTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("UDS_TRANSACTION_TIMEOUT", "TransactionTimeoutMs 事务总超时必须大于 0"));
+        if (s.MaxResponseBytes <= 0)
+            errors.Add(StepSettingError.Error("UDS_RESPONSE_LIMIT", "MaxResponseBytes 最大响应字节数必须大于 0"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

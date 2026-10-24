@@ -1,5 +1,7 @@
 using OpcUa.Helpers;
 using OpcUa.Models;
+using Opc.Ua;
+using System.Text.Json;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -14,13 +16,25 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new OpcUaDataAcqReadPlugin().CreateSerializer();
-        var setting = (OpcUaDataAcqReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new OpcUaExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new OpcUaDataAcqReadPlugin().CreateSerializer();
+            var setting = (OpcUaDataAcqReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "消费总期限必须大于 0");
+            var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            int Remaining()
+            {
+                var remaining = setting.TimeoutMs - System.Diagnostics.Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+                if (remaining <= 0) throw new TimeoutException($"OPC UA 读取/消费/导出总期限 {setting.TimeoutMs} ms 已到");
+                return (int)Math.Ceiling(remaining);
+            }
+            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context)
+                .WaitAsync(TimeSpan.FromMilliseconds(Remaining()), cancellationToken);
+            guard.Check();
             var taskKey = $"OpcUaDataAcq_{taskName}";
 
             if (string.IsNullOrWhiteSpace(taskName))
@@ -29,60 +43,71 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
             if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var acqTask))
                 return ErrorResult($"采集任务 {taskName} 不存在或未启动，请先执行 OpcUa_DataAcq_Start");
 
-            // 缓冲溢出报错（仿硬件 FIFO 溢出）
+            void CheckPublication()
+            {
+                guard.Check();
+                _ = Remaining();
+                if (acqTask.IsStopRequested || context.IsAbortRequested ||
+                    !context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var current) || !ReferenceEquals(current, acqTask))
+                    throw new InvalidOperationException("采集任务已停止或代次已改变，未向序列发布晚到结果");
+            }
+
+            string Health() => JsonSerializer.Serialize(new
+            {
+                acqTask.TaskName, acqTask.IsRunning, acqTask.HasExited, acqTask.HasOverflowed, acqTask.SampleCount,
+                acqTask.ConsecutiveFailures, acqTask.LastError, acqTask.LastSuccessUtc, acqTask.LastFailureUtc, acqTask.BackgroundError,
+                acqTask.PendingConsumers, acqTask.LastConsumptionError, acqTask.LastExportCommitSequence,
+                CancellationError = acqTask.CancellationError?.ToString(),
+                WaveformAxis = "record index (sample), not acquisition time"
+            });
+            void PublishHealth()
+            { CheckPublication(); if (!string.IsNullOrWhiteSpace(setting.HealthVariable)) context.SetVariable(setting.HealthVariable, Health()); }
+            PublishHealth();
             if (acqTask.HasOverflowed)
                 return ErrorResult($"采集任务 {taskName} 缓冲区已溢出（读取不及时），采集已停止，请增大 BufferSize 或提高读取频率");
-
-            // 从 FIFO 缓冲消费数据
-            var records = acqTask.Read(setting.SamplesToRead);
+            if (acqTask.BackgroundError != null) return ErrorResult($"采集任务 {taskName} 后台异常：{acqTask.BackgroundError}");
             var items = acqTask.Items;
-
-            // 构造波形数据（ResultVariable 为波形类型 Waveform）
-            if (!string.IsNullOrWhiteSpace(setting.ResultVariable) && records.Count > 0)
+            string? csvPath = null;
+            if (setting.SaveToFile)
             {
-                var sampleRate = acqTask.SamplingIntervalMs > 0 ? 1000.0 / acqTask.SamplingIntervalMs : 0;
-                var waveform = new WaveformData
+                csvPath = await Evaluator.EvalStringAsync(setting.CsvFilePath, context)
+                    .WaitAsync(TimeSpan.FromMilliseconds(Remaining()), cancellationToken);
+                if (string.IsNullOrWhiteSpace(csvPath)) return ErrorResult("CSV 文件路径不能为空，尚未消费缓冲数据");
+            }
+            var read = await acqTask.ConsumeWithBudgetAsync(setting.SamplesToRead, async (records, operation) =>
+            {
+                guard.Check();
+                operation.ThrowIfSubmissionStopped();
+                bool badQuality = records.Any(record => record.StatusCodes.Length != items.Count || record.StatusCodes.Any(code => !StatusCode.IsGood(code)));
+                var waveform = !string.IsNullOrWhiteSpace(setting.ResultVariable) && records.Count > 0
+                    ? OpcUaDataAcqOutput.CreateWaveform(taskName, items, records) : null;
+                var json = !string.IsNullOrWhiteSpace(setting.RecordsJsonVariable) ? JsonSerializer.Serialize(records) : null;
+                if (csvPath != null && records.Count > 0)
                 {
-                    TaskID = taskName,
-                    SampleRate = sampleRate,
-                    StartTime = records[0].Timestamp,
-                    Channels = new List<ChannelData>(items.Count)
-                };
-                for (int i = 0; i < items.Count; i++)
-                {
-                    var chData = new double[records.Count];
-                    for (int s = 0; s < records.Count; s++)
-                    {
-                        var v = records[s].Values[i];
-                        chData[s] = v == null ? double.NaN : Convert.ToDouble(v);
-                    }
-                    waveform.Channels.Add(new ChannelData
-                    {
-                        Channel = string.IsNullOrWhiteSpace(items[i].ColumnName) ? items[i].NodeId : items[i].ColumnName,
-                        Values = chData
-                    });
+                    operation.ThrowIfSubmissionStopped();
+                    guard.Check();
+                    await OpcUaCsvExport.WriteAsync(csvPath, records, operation,
+                        path => acqTask.CsvExporter(path, items, records)).ConfigureAwait(false);
                 }
-                context.SetVariable(setting.ResultVariable, waveform);
-            }
-
-            // 追加保存 CSV
-            if (setting.SaveToFile && records.Count > 0)
+                return new PreparedRead(records.Count, badQuality, waveform, json);
+            }, Remaining(), cancellationToken, prepared =>
             {
-                var csvPath = await Evaluator.EvalStringAsync(setting.CsvFilePath, context);
-                if (string.IsNullOrWhiteSpace(csvPath))
-                    return ErrorResult("CSV 文件路径不能为空");
-                OpcUaDataAcqTask.AppendCsv(csvPath, items, records);
-                context.Log($"数据已追加导出到: {csvPath} ({records.Count} 条记录)");
-            }
-
-            context.Log($"OPC UA 采集数据读取: {taskName} ({records.Count} 条记录, 缓冲剩余 {acqTask.SampleCount})");
-
+                CheckPublication();
+                if (prepared.Waveform != null) context.SetVariable(setting.ResultVariable, prepared.Waveform);
+                CheckPublication();
+                if (prepared.Json != null) context.SetVariable(setting.RecordsJsonVariable, prepared.Json);
+            });
+            PublishHealth();
+            if (read.BadQuality || acqTask.ConsecutiveFailures > 0)
+                return ExecutionResults.Error($"OPC UA 采集 {taskName} 存在非 Good 数据或连续通信失败；连续失败={acqTask.ConsecutiveFailures}",
+                    detail: acqTask.LastError ?? "记录质量不是 Good；请查看逐点记录 JSON/CSV", value: $"{read.Count} samples");
+            CheckPublication();
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"{items.Count} ch × {records.Count} samples" }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"{items.Count} ch × {read.Count} records" }
             };
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
@@ -91,6 +116,8 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
             return ErrorResult($"读取采集数据失败: {ex.Message}", ex);
         }
     }
+
+    private sealed record PreparedRead(int Count, bool BadQuality, WaveformData? Waveform, string? Json);
 
     private static ExecutionResult ErrorResult(string message, Exception? ex = null) => new()
     {

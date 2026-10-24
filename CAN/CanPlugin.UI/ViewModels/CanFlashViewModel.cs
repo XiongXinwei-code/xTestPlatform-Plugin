@@ -8,8 +8,17 @@ namespace CAN.UI.ViewModels;
 /// <summary>UDS 固件烧录编辑器 ViewModel</summary>
 public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
 {
-    public CanFlashViewModel()
+    private readonly Func<string, FirmwareFormat, string, CancellationToken, Task<FirmwareAnalysisResult>> _analyze;
+    private readonly string? _presetPath;
+
+    public CanFlashViewModel() : this(FirmwareAnalyzer.AnalyzeAsync) { }
+
+    internal CanFlashViewModel(
+        Func<string, FirmwareFormat, string, CancellationToken, Task<FirmwareAnalysisResult>> analyze,
+        string? presetPath = null)
     {
+        _analyze = analyze;
+        _presetPath = presetPath;
         ReloadPresets();
     }
 
@@ -17,13 +26,13 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     public string FilePath
     {
         get => Setting?.FilePath ?? "";
-        set { if (Setting == null || Setting.FilePath == value) return; Setting.FilePath = value; OnPropertyChanged(); QueueSave(); }
+        set { if (Setting == null || Setting.FilePath == value) return; Setting.FilePath = value; InvalidateAnalysis(); OnPropertyChanged(); QueueSave(); }
     }
 
     public int FormatIndex
     {
         get => (int)(Setting?.Format ?? FirmwareFormat.Auto);
-        set { if (Setting == null) return; Setting.Format = (FirmwareFormat)value; OnPropertyChanged(); OnPropertyChanged(nameof(IsBinaryFormat)); QueueSave(); }
+        set { if (Setting == null || FormatIndex == value) return; Setting.Format = (FirmwareFormat)value; InvalidateAnalysis(); OnPropertyChanged(); OnPropertyChanged(nameof(IsBinaryFormat)); QueueSave(); }
     }
 
     /// <summary>基地址仅在 Binary 格式下有意义</summary>
@@ -32,7 +41,7 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     public string BaseAddress
     {
         get => Setting?.BaseAddress ?? "";
-        set { if (Setting == null || Setting.BaseAddress == value) return; Setting.BaseAddress = value; OnPropertyChanged(); QueueSave(); }
+        set { if (Setting == null || Setting.BaseAddress == value) return; Setting.BaseAddress = value; InvalidateAnalysis(); OnPropertyChanged(); QueueSave(); }
     }
 
     // ── 映射与填充 ─────────────────────────────────────────────────
@@ -178,6 +187,17 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     private bool _isAnalyzing;
     private string _analysisMessage = "尚未分析。选择固件文件后点击「分析固件」可查看数据段并获取格式标识建议值。";
     private string _suggestedAlfid = string.Empty;
+    private long _analysisGeneration;
+
+    protected override void OnSettingLoaded() => InvalidateAnalysis();
+
+    private void InvalidateAnalysis()
+    {
+        _analysisGeneration++;
+        SuggestedAlfid = string.Empty;
+        AnalysisSegments.Clear();
+        AnalysisMessage = "固件配置已变化，请重新分析。";
+    }
 
     /// <summary>是否正在分析固件</summary>
     public bool IsAnalyzing
@@ -214,13 +234,16 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
             return;
 
         IsAnalyzing = true;
+        var setting = Setting;
+        long generation = _analysisGeneration;
         AnalysisMessage = "正在解析固件文件...";
         AnalysisSegments.Clear();
         SuggestedAlfid = string.Empty;
 
         try
         {
-            var result = await FirmwareAnalyzer.AnalyzeAsync(Setting.FilePath, Setting.Format, Setting.BaseAddress);
+            var result = await _analyze(setting.FilePath, setting.Format, setting.BaseAddress, default);
+            if (!ReferenceEquals(Setting, setting) || generation != _analysisGeneration) return;
 
             AnalysisMessage = result.Success
                 ? $"{result.Message}\n地址范围 0x{result.MinAddress:X8} - 0x{result.MaxAddress:X8}"
@@ -261,17 +284,26 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
 
     public bool HasSelectedPreset => _selectedPreset != null;
 
+    private string _presetMessage = string.Empty;
+    public string PresetMessage
+    {
+        get => _presetMessage;
+        private set { _presetMessage = value; OnPropertyChanged(); }
+    }
+
     /// <summary>从本地重新加载预设列表</summary>
     public void ReloadPresets()
     {
         var name = _selectedPreset?.Name;
-        Presets.Clear();
-        foreach (var preset in EcuFlashPresetStore.Load())
-            Presets.Add(preset);
-
-        SelectedPreset = name == null
-            ? null
-            : Presets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        try
+        {
+            var presets = EcuFlashPresetStore.Load(_presetPath);
+            Presets.Clear();
+            foreach (var preset in presets) Presets.Add(preset);
+            SelectedPreset = name == null ? null : Presets.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+            PresetMessage = string.Empty;
+        }
+        catch (Exception ex) { PresetMessage = $"加载刷写预设失败，原文件保留：{ex.Message}"; }
     }
 
     /// <summary>把选中的预设应用到当前设置</summary>
@@ -300,7 +332,9 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         if (Setting == null || string.IsNullOrWhiteSpace(name))
             return;
 
-        EcuFlashPresetStore.Upsert(new EcuFlashPreset
+        try
+        {
+        EcuFlashPresetStore.Upsert(_presetPath, new EcuFlashPreset
         {
             Name = name.Trim(),
             Remark = remark ?? string.Empty,
@@ -320,6 +354,8 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
 
         ReloadPresets();
         SelectedPreset = Presets.FirstOrDefault(p => string.Equals(p.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex) { PresetMessage = $"保存刷写预设失败，未覆盖原文件：{ex.Message}"; }
     }
 
     /// <summary>删除当前选中的预设</summary>
@@ -328,8 +364,12 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         if (SelectedPreset is not { } preset)
             return;
 
-        EcuFlashPresetStore.Delete(preset.Name);
-        SelectedPreset = null;
-        ReloadPresets();
+        try
+        {
+            EcuFlashPresetStore.Delete(_presetPath, preset.Name);
+            SelectedPreset = null;
+            ReloadPresets();
+        }
+        catch (Exception ex) { PresetMessage = $"删除刷写预设失败，原文件保留：{ex.Message}"; }
     }
 }

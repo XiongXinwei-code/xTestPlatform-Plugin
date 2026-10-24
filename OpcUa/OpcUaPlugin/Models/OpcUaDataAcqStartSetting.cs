@@ -61,4 +61,7 @@ public class OpcUaDataAcqStartSetting
 
     /// <summary>FIFO 缓冲区容量（条数），缓冲满时采集溢出停止，需及时执行 DataAcq_Read 消费数据</summary>
     public int BufferSize { get; set; } = 10000;
+
+    /// <summary>启动总期限(ms)，包含旧资源收尾及本次操作；旧序列保留原默认行为。</summary>
+    public int TimeoutMs { get; set; } = 5000;
 }

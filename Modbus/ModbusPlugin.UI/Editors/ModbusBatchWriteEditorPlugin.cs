@@ -31,12 +31,14 @@ public sealed class ModbusBatchWriteEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_050", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
             errors.Add(StepSettingError.Error("MB_050E", $"ConnectionName 表达式无效: {connErr}"));
-            errors.Add(StepSettingError.Warning("MB_051", "批量写入列表为空"));
+        if (s.Items.Count == 0) errors.Add(StepSettingError.Warning("MB_051", "批量写入列表为空"));
         if (s.IntervalMs < 0)
             errors.Add(StepSettingError.Error("MB_053", "写入间隔时间不能为负数"));
         for (int i = 0; i < s.Items.Count; i++)
         {
             var item = s.Items[i];
+            if (!Enum.IsDefined(item.RegisterType)) errors.Add(StepSettingError.Error("MB_ENUM_TYPE", $"第 {i + 1} 行：不支持的寄存器类型"));
+            if (!Enum.IsDefined(item.DataFormat)) errors.Add(StepSettingError.Error("MB_ENUM_FORMAT", $"第 {i + 1} 行：不支持的数据格式"));
             if (string.IsNullOrWhiteSpace(item.Values))
                 errors.Add(StepSettingError.Error("MB_052", $"第 {i + 1} 行：写入值不能为空"));
             if (item.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister)

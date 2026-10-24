@@ -9,13 +9,13 @@ public sealed class XcpShortUploadExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new XcpShortUploadPlugin().CreateSerializer();
-        var setting = (XcpShortUploadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new XcpShortUploadPlugin().CreateSerializer();
+            var setting = (XcpShortUploadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
@@ -33,7 +33,7 @@ public sealed class XcpShortUploadExecutor : IStepExecutor
             uint address = XcpExecutorHelper.ParseAddress(addrStr);
             byte addrExt = (byte)setting.AddressExtension;
 
-            var data = await client.ShortUploadAsync(address, addrExt, (byte)setting.ReadLength, cancellationToken);
+            var data = await guard.RunAsync(() => client.ShortUploadAsync(address, addrExt, (byte)setting.ReadLength, cancellationToken));
 
             // 根据字节序处理
             if (setting.ByteOrder == XcpByteOrder.BigEndian)
@@ -41,10 +41,11 @@ public sealed class XcpShortUploadExecutor : IStepExecutor
 
             var hexValue = XcpExecutorHelper.ToHex(data);
 
-            context.Log($"XCP SHORT_UPLOAD 0x{address:X8} [{setting.ReadLength}字节] = {hexValue}");
+            guard.Log($"XCP SHORT_UPLOAD 0x{address:X8} [{setting.ReadLength}字节] = {hexValue}");
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, hexValue);
+                guard.SetVariable(setting.ResultVariable, hexValue);
 
             return new ExecutionResult
             {

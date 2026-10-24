@@ -18,7 +18,7 @@ public class HttpClientCreateSetting
     [ExpressionField]
     public string BaseUrl { get; set; } = "\"http://localhost:8080\"";
 
-    /// <summary>请求超时毫秒数，0 表示不限制</summary>
+    /// <summary>建立总期限与每次完整请求超时毫秒数；0 显式不限制</summary>
     public int TimeoutMs { get; set; } = 30000;
 
     /// <summary>认证方式</summary>
@@ -49,6 +49,9 @@ public class HttpClientCreateSetting
 
     /// <summary>是否在客户端已存在时替换为新建的客户端</summary>
     public bool ReplaceIfExists { get; set; } = true;
+
+    /// <summary>兼容无长度/不规范设备；关闭后允许标准 HTTP 服务复用连接。旧序列默认保持 true。</summary>
+    public bool ForceConnectionClose { get; set; } = true;
 
     /// <summary>默认请求头列表，附加到使用该客户端的每次请求</summary>
     public ObservableCollection<HttpHeaderItem> DefaultHeaders { get; set; } = [];

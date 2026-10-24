@@ -1,4 +1,4 @@
-﻿using SerialPort.Models;
+using SerialPort.Models;
 
 namespace SerialPort.UI.ViewModels;
 
@@ -27,4 +27,7 @@ public sealed class SerialPortCloseViewModel : SerialPortViewModelBase
         get => _setting?.PortName ?? string.Empty;
         set { if (_setting != null && _setting.PortName != value) { _setting.PortName = value; OnPropertyChanged(); QueueSave(); } }
     }
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 5000; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+
+
 }

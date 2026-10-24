@@ -35,6 +35,7 @@ public partial class SomeIpFireAndForgetEditorView : UserControl, IRefreshableEd
         InitializeComponent();
         ViewModel   = new SomeIpFireAndForgetViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

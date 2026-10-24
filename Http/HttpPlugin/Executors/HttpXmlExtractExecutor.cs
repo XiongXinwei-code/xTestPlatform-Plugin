@@ -19,18 +19,27 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new HttpXmlExtractPlugin().CreateSerializer();
-        var setting = (HttpXmlExtractSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Http");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new HttpXmlExtractPlugin().CreateSerializer();
+            var setting = (HttpXmlExtractSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             if (setting.Items.Count == 0)
                 return Error("提取映射列表为空");
 
             var xml = await Evaluator.EvalStringAsync(setting.SourceXml, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(xml))
                 return Error("待解析的 XML 文本为空");
 
@@ -48,10 +57,12 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
 
             var navigator = document.CreateNavigator();
             var missing = new List<string>();
+            var resolved = new List<(string Target, string Path, string Value)>();
 
             foreach (var item in setting.Items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                CheckExecution();
 
                 if (string.IsNullOrWhiteSpace(item.TargetVariable))
                     return Error("提取映射中存在未配置目标变量的行");
@@ -74,8 +85,7 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
                     value = item.DefaultValue;
                 }
 
-                context.SetVariable(item.TargetVariable, value);
-                context.Log($"XML 提取: {item.Path} => {item.TargetVariable} = {value}");
+                resolved.Add((item.TargetVariable, item.Path, value));
             }
 
             if (missing.Count > 0 && setting.FailOnMissingPath)
@@ -90,6 +100,16 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
                     }
                 };
             }
+
+            foreach (var value in resolved)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                CheckExecution();
+                context.SetVariable(value.Target, value.Value);
+                context.Log($"XML 提取: {value.Path} => {value.Target} = {value.Value}");
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             return new ExecutionResult
             {

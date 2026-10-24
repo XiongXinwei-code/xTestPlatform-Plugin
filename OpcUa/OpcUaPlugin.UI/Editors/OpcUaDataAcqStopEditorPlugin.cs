@@ -29,7 +29,10 @@ public sealed class OpcUaDataAcqStopEditorPlugin : IStepEditorPlugin
         var s = (OpcUaDataAcqStopSetting)new OpcUaDataAcqStopPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (string.IsNullOrWhiteSpace(s.TaskName))
             errors.Add(StepSettingError.Error("OPCUA_080", "采集任务名不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskError))
+            errors.Add(StepSettingError.Error("OPCUA_080E", $"TaskName 表达式无效: {taskError}"));
         OpcUaLifecycleValidator.CheckPrecedingDataAcqStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("OPCUA_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

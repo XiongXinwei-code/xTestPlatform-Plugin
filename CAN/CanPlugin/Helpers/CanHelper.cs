@@ -23,9 +23,27 @@ public static class CanHelper
     {
         if (string.IsNullOrWhiteSpace(hexStr)) return [];
         hexStr = hexStr.Replace("-", "").Replace(" ", "").Replace(",", "");
+        if ((hexStr.Length & 1) != 0)
+            throw new FormatException("CAN 数据必须由完整的十六进制字节组成，不能包含单独的半字节");
         var bytes = new byte[hexStr.Length / 2];
         for (int i = 0; i < bytes.Length; i++)
             bytes[i] = Convert.ToByte(hexStr.Substring(i * 2, 2), 16);
         return bytes;
+    }
+
+    /// <summary>统一发送边界，不允许厂商驱动通过截断 ID 或载荷隐式改变报文。</summary>
+    internal static void ValidateTransmitFrame(CanMessage message)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        uint maximumId = message.FrameType switch
+        {
+            CanFrameType.Standard => 0x7FF,
+            CanFrameType.Extended => 0x1FFFFFFF,
+            _ => throw new ArgumentException("CAN 帧类型无效", nameof(message))
+        };
+        if (message.Id > maximumId)
+            throw new ArgumentException($"CAN ID 0x{message.Id:X} 超出{(message.FrameType == CanFrameType.Standard ? "标准帧 11 位" : "扩展帧 29 位")}范围", nameof(message));
+        if (message.Data == null || message.Data.Length > (message.IsFd ? 64 : 8))
+            throw new ArgumentException($"CAN {(message.IsFd ? "FD" : "Classic")} 载荷不得为空引用或超过 {(message.IsFd ? 64 : 8)} 字节；不允许静默截断", nameof(message));
     }
 }

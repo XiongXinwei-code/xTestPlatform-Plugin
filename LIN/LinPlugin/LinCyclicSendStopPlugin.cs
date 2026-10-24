@@ -21,6 +21,7 @@ public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSe
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
+        | TimeoutMs | int | 否 | 3000 | 登记门与周期任务退出共用总预算，默认3000ms；超时保留任务与隔离，不报告已停止，必须大于0 |
         | TaskName | string([ExpressionField]) | 是 | "LinCyclicTask1" | 要停止的任务标识名，求值结果为 string |
 
         ## 行为

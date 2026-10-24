@@ -6,6 +6,8 @@ namespace LIN.Models;
 [MessagePackObject(true)]
 public class LinWriteReadSetting
 {
+    /// <summary>请求帧发送等待上限，默认3000ms；ResponseTimeoutMs仍只控制发送完成后的应答等待</summary>
+    public int SendTimeoutMs { get; set; } = 3000;
     /// <summary>连接标识名</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"LIN1\"";

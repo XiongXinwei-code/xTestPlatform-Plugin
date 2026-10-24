@@ -19,7 +19,10 @@
 				</Grid.ColumnDefinitions>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
+				    <RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
+				<TextBlock Grid.Row="1" Grid.Column="0" Text="停止总超时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认3000，必须大于0；超时保留未退出任务和原生调用，不冒充停止成功。"/>
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="TaskName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
 					ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="String"

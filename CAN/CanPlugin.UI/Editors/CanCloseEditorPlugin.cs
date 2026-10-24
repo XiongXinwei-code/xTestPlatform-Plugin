@@ -27,6 +27,7 @@ public sealed class CanCloseEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (CanCloseSetting)new CanClosePlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("CAN_015", "关闭总超时必须大于 0 ms"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_010", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

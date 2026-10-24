@@ -30,6 +30,6 @@ internal static class DoipHelper
         DoipActivationType.Default         => 0x00,
         DoipActivationType.WwhObd          => 0x01,
         DoipActivationType.CentralSecurity => 0xE0,
-        _                                  => 0x00
+        _                                  => throw new ArgumentOutOfRangeException(nameof(type), "DoIP 路由激活类型无效")
     };
 }

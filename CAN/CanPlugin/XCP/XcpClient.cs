@@ -1,5 +1,6 @@
 using CAN.Adapters;
 using CAN.Models;
+using CAN.Runtime;
 
 namespace CAN.XCP;
 
@@ -41,6 +42,8 @@ public class XcpClient
 
     public XcpClient(ICanAdapter adapter, uint txId, uint rxId, int timeoutMs = 1000)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeoutMs);
+        if (adapter is CAN.Runtime.CanConnectionResource resource) resource.ClaimRawProtocol();
         _adapter = adapter;
         _txId    = txId;
         _rxId    = rxId;
@@ -48,11 +51,15 @@ public class XcpClient
     }
 
     /// <summary>发送 CONNECT 命令（0xFF）并解析从站能力</summary>
-    public async Task<XcpConnectResponse> ConnectAsync(XcpConnectMode mode = XcpConnectMode.Normal, CancellationToken ct = default)
+    public Task<XcpConnectResponse> ConnectAsync(XcpConnectMode mode = XcpConnectMode.Normal, CancellationToken ct = default) =>
+        CanProtocolTransaction.RunAsync(_adapter, _timeoutMs, token => ConnectCoreAsync(mode, token), ct);
+
+    private async Task<XcpConnectResponse> ConnectCoreAsync(XcpConnectMode mode, CancellationToken ct)
     {
         var response = await SendReceiveAsync([(byte)0xFF, (byte)mode], ct);
         if (response[0] != 0xFF)
             ThrowNegative(response, "CONNECT");
+        if (response.Length < 8) throw new InvalidOperationException("XCP CONNECT 响应长度不足 8 字节");
 
         return new XcpConnectResponse
         {
@@ -66,7 +73,10 @@ public class XcpClient
     }
 
     /// <summary>发送 DISCONNECT 命令（0xFE）</summary>
-    public async Task DisconnectAsync(CancellationToken ct = default)
+    public async Task DisconnectAsync(CancellationToken ct = default) =>
+        await CanProtocolTransaction.RunAsync(_adapter, _timeoutMs, async token => { await DisconnectCoreAsync(token).ConfigureAwait(false); return true; }, ct).ConfigureAwait(false);
+
+    private async Task DisconnectCoreAsync(CancellationToken ct)
     {
         var response = await SendReceiveAsync([0xFE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], ct);
         if (response[0] != 0xFF)
@@ -74,7 +84,10 @@ public class XcpClient
     }
 
     /// <summary>SHORT_UPLOAD（0xF4）：从 ECU 地址读取最多 7 字节</summary>
-    public async Task<byte[]> ShortUploadAsync(uint address, byte addrExt, byte length, CancellationToken ct = default)
+    public Task<byte[]> ShortUploadAsync(uint address, byte addrExt, byte length, CancellationToken ct = default) =>
+        CanProtocolTransaction.RunAsync(_adapter, _timeoutMs, token => ShortUploadCoreAsync(address, addrExt, length, token), ct);
+
+    private async Task<byte[]> ShortUploadCoreAsync(uint address, byte addrExt, byte length, CancellationToken ct)
     {
         if (length is 0 or > 7)
             throw new ArgumentOutOfRangeException(nameof(length), "SHORT_UPLOAD 长度必须在 1-7 之间");
@@ -85,6 +98,8 @@ public class XcpClient
         var response = await SendReceiveAsync(cmd, ct);
         if (response[0] != 0xFF)
             ThrowNegative(response, "SHORT_UPLOAD");
+        if (response.Length < length + 1)
+            throw new InvalidOperationException($"XCP SHORT_UPLOAD 正应答长度不足：请求 {length} 字节，实际数据 {response.Length - 1} 字节");
 
         // 有效数据从字节1开始
         return response.Skip(1).Take(length).ToArray();
@@ -96,6 +111,14 @@ public class XcpClient
     /// 因此按协议使用 SET_MTA（0xF6）设置地址，再以 DOWNLOAD（0xF0）携带数据写入。
     /// </summary>
     public async Task ShortDownloadAsync(uint address, byte addrExt, byte[] data, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        var copy = data.ToArray();
+        await CanProtocolTransaction.RunAsync(_adapter, _timeoutMs, async token =>
+        { await ShortDownloadCoreAsync(address, addrExt, copy, token).ConfigureAwait(false); return true; }, ct).ConfigureAwait(false);
+    }
+
+    private async Task ShortDownloadCoreAsync(uint address, byte addrExt, byte[] data, CancellationToken ct)
     {
         if (data.Length is 0 or > 6)
             throw new ArgumentOutOfRangeException(nameof(data), "SHORT_DOWNLOAD 数据必须在 1-6 字节之间");
@@ -129,18 +152,18 @@ public class XcpClient
             Data      = PadTo8(payload),
             FrameType = CAN.Models.CanFrameType.Standard
         };
-        _adapter.Write(msg);
+        await CanRawIo.WriteAsync(_adapter, msg, _timeoutMs, ct).ConfigureAwait(false);
         return await WaitResponseAsync(ct);
     }
 
     private async Task<byte[]> WaitResponseAsync(CancellationToken ct)
     {
-        var deadline = DateTime.UtcNow.AddMilliseconds(_timeoutMs);
-        while (DateTime.UtcNow < deadline)
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        while (clock.ElapsedMilliseconds < _timeoutMs)
         {
             ct.ThrowIfCancellationRequested();
-            var msg = _adapter.Read(_rxId, Math.Max(1, (int)(deadline - DateTime.UtcNow).TotalMilliseconds), ct);
-            if (msg != null)
+            var msg = await CanRawIo.ReadAsync(_adapter, _rxId, Math.Max(1, _timeoutMs - (int)clock.ElapsedMilliseconds), ct).ConfigureAwait(false);
+            if (msg != null && msg.Data.Length > 0)
                 return msg.Data;
             await Task.Delay(1, ct);
         }

@@ -23,8 +23,9 @@ public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
         |------|------|------|--------|------|
         | Channel | string([ExpressionField]) | 是 | — | 物理通道，如 Dev1/port0/line0，求值结果为 string |
         | Value | string([ExpressionField]) | 是 | — | 输出值，true/false 或 byte，求值结果为 string |
+        | TimeoutMs | int | 否 | 10000 | 通道/值求值后的 I/O 阶段总期限（毫秒），包含旧物理资源收尾、配置、写入及释放；不包含表达式求值 |
 
-        ## 物理通道命名规则
+        ### 物理通道命名规则
 
         格式为 `<设备名>/port<端口号>/line<线号>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
 

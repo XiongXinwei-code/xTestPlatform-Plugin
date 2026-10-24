@@ -11,15 +11,27 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new SomeIpSubscribePlugin().CreateSerializer();
-        var setting = (SomeIpSubscribeSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new SomeIpSubscribePlugin().CreateSerializer();
+            var setting = (SomeIpSubscribeSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
             var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.LocalPort, context);
+            CheckExecution();
             var serviceStr = await EthernetExecutorHelper.EvalStringAsync(setting.ServiceId, context);
+            CheckExecution();
             var eventStr = await EthernetExecutorHelper.EvalStringAsync(setting.EventId, context);
+            CheckExecution();
 
             var localPort = SomeIpHelper.ParsePort(portStr, "LocalPort");
             var serviceId = SomeIpHelper.ParseId(serviceStr, "ServiceId");
@@ -28,6 +40,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
             context.Log(
                 $"SOME/IP 订阅监听: 端口 {localPort} Service=0x{serviceId:X4} Event=0x{eventId:X4}，超时 {setting.TimeoutMs}ms");
 
+            CheckExecution();
             using var udp = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(setting.TimeoutMs);
@@ -38,6 +51,7 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
                 UdpReceiveResult recv;
                 try
                 {
+                    CheckExecution();
                     recv = await udp.ReceiveAsync(timeoutCts.Token);
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -52,7 +66,10 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
 
             var payloadHex = SomeIpHelper.ToHex(notification.Payload);
             context.Log($"SOME/IP 收到事件通知: [{payloadHex}]");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, payloadHex);
 

@@ -38,6 +38,7 @@ public sealed class SerialPortCloseEditorPlugin : IStepEditorPlugin
 
         SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
 
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("SP_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

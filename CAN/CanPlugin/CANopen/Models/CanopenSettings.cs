@@ -63,6 +63,8 @@ public class CanopenSdoWriteSetting : CanopenSdoSettingBase
 [MessagePackObject(true)]
 public class CanopenNmtControlSetting : CanopenCommonSetting
 {
+    /// <summary>排队与发送提交的总等待期限（ms），不代表节点状态确认。</summary>
+    public int SendTimeoutMs { get; set; } = 1000;
     /// <summary>目标节点 ID（0 表示广播到所有节点）</summary>
     [ExpressionField]
     public string NodeId { get; set; } = "1";
@@ -94,6 +96,8 @@ public class CanopenWaitHeartbeatSetting : CanopenCommonSetting
 [MessagePackObject(true)]
 public class CanopenPdoSendSetting : CanopenCommonSetting
 {
+    /// <summary>排队与发送提交的总等待期限（ms），不代表节点状态确认。</summary>
+    public int SendTimeoutMs { get; set; } = 1000;
     /// <summary>PDO 的 COB-ID</summary>
     [ExpressionField]
     public string CobId { get; set; } = "0x201";
@@ -107,6 +111,8 @@ public class CanopenPdoSendSetting : CanopenCommonSetting
 [MessagePackObject(true)]
 public class CanopenSyncSendSetting : CanopenCommonSetting
 {
+    /// <summary>排队与发送提交的总等待期限（ms），不代表节点状态确认。</summary>
+    public int SendTimeoutMs { get; set; } = 1000;
     /// <summary>SYNC 的 COB-ID（默认 0x80）</summary>
     [ExpressionField]
     public string CobId { get; set; } = "0x80";

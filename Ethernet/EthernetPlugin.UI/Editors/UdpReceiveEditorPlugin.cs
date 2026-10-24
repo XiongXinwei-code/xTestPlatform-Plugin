@@ -29,12 +29,15 @@ public sealed class UdpReceiveEditorPlugin : IStepEditorPlugin
         if (s.LocalPort < 1 || s.LocalPort > 65535)
             errors.Add(StepSettingError.Error("ETH_501", "LocalPort 必须在 1~65535 范围内"));
 
-        if (s.ExpectedLength < 0)
-            errors.Add(StepSettingError.Error("ETH_502", "ExpectedLength 不能小于 0"));
+        if (s.ExpectedLength is < 0 or > 65507)
+            errors.Add(StepSettingError.Error("ETH_502", "ExpectedLength 必须在 0~65507 字节内"));
+        if (!Enum.IsDefined(s.Encoding) || !Enum.IsDefined(s.BindMode))
+            errors.Add(StepSettingError.Error("ETH_505", "UDP 编码或绑定模式无效"));
 
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("ETH_503", "接收超时时间必须大于 0"));
 
+        Validation.EthernetOutputValidator.Check(context, s.ResultVariable, errors);
         return errors;
     }
 }

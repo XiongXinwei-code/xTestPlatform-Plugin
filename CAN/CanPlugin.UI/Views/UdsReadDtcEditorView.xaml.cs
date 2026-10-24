@@ -24,6 +24,7 @@ public partial class UdsReadDtcEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new UdsReadDtcViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

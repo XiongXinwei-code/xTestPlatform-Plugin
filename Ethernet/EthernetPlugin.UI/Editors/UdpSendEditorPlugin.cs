@@ -43,6 +43,8 @@ public sealed class UdpSendEditorPlugin : IStepEditorPlugin
 
         if (s.LocalPort < 0 || s.LocalPort > 65535)
             errors.Add(StepSettingError.Error("ETH_407", "LocalPort 必须在 0~65535 范围内"));
+        if (s.SendTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("ETH_408", "发送总超时 SendTimeoutMs 必须大于 0"));
 
         return errors;
     }

@@ -31,11 +31,11 @@ public sealed class NiDaqAiReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("DAQ_010", "任务名称不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
             errors.Add(StepSettingError.Error("DAQ_010E", $"TaskName 表达式无效: {taskNameErr}"));
-        if (string.IsNullOrWhiteSpace(s.ResultVariable))
+        if (string.IsNullOrWhiteSpace(s.ResultVariable) && !s.SaveToFile)
             errors.Add(StepSettingError.Error("DAQ_011", "结果变量不能为空"));
-        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+        else if (!string.IsNullOrWhiteSpace(s.ResultVariable) && !context.ExecutionContext.HasVariable(s.ResultVariable))
             errors.Add(StepSettingError.Error("DAQ_012", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
-        else
+        else if (!string.IsNullOrWhiteSpace(s.ResultVariable))
             NiDaqVariableValidator.CheckWaveformVariable(context.ExecutionContext, s.ResultVariable, "DAQ_013", errors);
         if (s.SaveToFile && string.IsNullOrWhiteSpace(s.OutputDirectory))
             errors.Add(StepSettingError.Warning("DAQ_W11", "启用存盘时建议指定输出目录"));
@@ -46,6 +46,10 @@ public sealed class NiDaqAiReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("DAQ_014", "读取超时必须大于 0，或为 -1 表示永不超时"));
         if (s.SaveToFile && s.MaxFileSizeMB <= 0)
             errors.Add(StepSettingError.Error("DAQ_015", "最大文件大小必须大于 0"));
+        if (s.ExportTimeoutMs <= 0) errors.Add(StepSettingError.Error("DAQ_EXPORT_TIMEOUT", "导出及结果构造期限必须大于 0 ms"));
+        try { NiDaq.Helpers.DaqExportPolicy.ValidateReadRequest(s.ExportFormat, s.SaveToFile, s.ResultVariable, s.SamplesToRead, s.ReadTimeoutMs, s.MaxFileSizeMB); }
+        catch (Exception ex) { errors.Add(StepSettingError.Error("DAQ_EXPORT", ex.Message)); }
+        if (s.SamplesToRead != -1 && s.SamplesToRead <= 0) errors.Add(StepSettingError.Error("DAQ_SAMPLES", "读取样本数必须为正数或 -1（当前可用）"));
         NiDaqLifecycleValidator.CheckPrecedingConfig(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         NiDaqLifecycleValidator.CheckPrecedingTaskStart(context.SequenceFile, context.Block, context.CurrentStep, s.TaskName, errors);
         return errors;

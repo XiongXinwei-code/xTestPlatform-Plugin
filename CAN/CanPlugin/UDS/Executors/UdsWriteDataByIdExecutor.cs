@@ -12,18 +12,18 @@ public sealed class UdsWriteDataByIdExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new UdsWriteDataByIdPlugin().CreateSerializer();
-        var setting = (UdsWriteDataByIdSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdsWriteDataByIdPlugin().CreateSerializer();
+            var setting = (UdsWriteDataByIdSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
             var didStr = await Evaluator.EvaluateAsync<string>(setting.Did, context) ?? setting.Did;
-            ushort did = (ushort)UdsExecutorHelper.ParseId(didStr);
+            ushort did = (ushort)UdsExecutorHelper.ParseBoundedId(didStr, ushort.MaxValue, "Did");
 
             var dataStr = await Evaluator.EvaluateAsync<string>(setting.Data, context) ?? setting.Data;
             byte[] data = ParseHex(dataStr);
@@ -34,11 +34,11 @@ public sealed class UdsWriteDataByIdExecutor : IStepExecutor
             request[2] = (byte)(did & 0xFF);
             Buffer.BlockCopy(data, 0, request, 3, data.Length);
 
-            var response = await client.RequestAsync(request, cancellationToken);
+            var response = await guard.RunAsync(() => client.RequestAsync(request, cancellationToken));
 
             if (response.IsPositive)
             {
-                context.Log($"UDS WriteDataByID: DID=0x{did:X4} 写入成功");
+                guard.Log($"UDS WriteDataByID: DID=0x{did:X4} 写入成功");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = $"DID=0x{did:X4}" } };
             }
             else
@@ -55,6 +55,7 @@ public sealed class UdsWriteDataByIdExecutor : IStepExecutor
     {
         if (string.IsNullOrWhiteSpace(hex)) return [];
         hex = hex.Replace(" ", "").Replace("-", "").Replace(",", "");
+        if (hex.Length % 2 != 0) throw new FormatException("UDS 十六进制字符数必须为偶数，未发送请求");
         var bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++)
             bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);

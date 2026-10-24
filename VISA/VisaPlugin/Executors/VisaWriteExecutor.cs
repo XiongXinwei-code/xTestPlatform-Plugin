@@ -1,3 +1,4 @@
+using PluginCommon;
 using Ivi.Visa;
 using VISA.Helpers;
 using VISA.Models;
@@ -14,21 +15,29 @@ namespace VISA.Executors;
 public sealed class VisaWriteExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<string, IExecutionContext, Task<string>> _evaluate;
+    public VisaWriteExecutor() : this((expression, context) => Evaluator.EvalStringAsync(expression, context)) { }
+    internal VisaWriteExecutor(Func<string, IExecutionContext, Task<string>> evaluate) => _evaluate = evaluate;
 
     /// <summary>执行 VISA 写入操作</summary>
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new VisaWritePlugin().CreateSerializer();
-        var setting = (VisaWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
-            var command = await Evaluator.EvalStringAsync(setting.Command, context);
+            cancellationToken.ThrowIfCancellationRequested();
+            var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new VisaWritePlugin().CreateSerializer();
+            var setting = (VisaWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
+            var connName = await _evaluate(setting.ConnectionName, context);
+            epoch.ThrowIfExpired();
+            var command = await _evaluate(setting.Command, context);
+            epoch.ThrowIfExpired();
+            if (string.IsNullOrWhiteSpace(command)) throw new ArgumentException("SCPI 命令求值结果不能为空");
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<IMessageBasedSession>(key, out var session))
+            if (!context.Resources.TryGet<VisaSessionResource>(key, out var resource))
             {
                 return new ExecutionResult
                 {
@@ -40,22 +49,13 @@ public sealed class VisaWriteExecutor : IStepExecutor
                 };
             }
 
-            var gate = VisaHelper.GetLock(session);
-            await gate.WaitAsync(cancellationToken);
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var timeoutMs = VisaHelper.GetIoTimeoutMs(session);
-                var terminator = GetTerminator(context, connName);
-                await VisaHelper.RunWithTimeoutAsync(
-                    () => VisaHelper.Write(session, command, terminator), timeoutMs, "写入", cancellationToken);
-            }
-            finally
-            {
-                gate.Release();
-            }
+            epoch.ThrowIfExpired();
+            await resource.RunBlockingAsync(session => VisaHelper.Write(session, command, resource.Terminator, () => { epoch.ThrowIfExpired(); resource.ThrowIfSubmissionStopped(); }),
+                resource.IoTimeoutMs, "VISA 写入", cancellationToken);
 
             context.Log($"VISA Write: {command}");
+            epoch.ThrowIfExpired();
+            VisaResultPublisher.EnsureActive(context, key, resource, cancellationToken);
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = command }
@@ -72,7 +72,7 @@ public sealed class VisaWriteExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex)
+                    Error = ErrorInfo.FromException(ex, $"VISA 写入超时: {ex.Message}")
                 }
             };
         }

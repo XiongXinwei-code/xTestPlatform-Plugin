@@ -16,6 +16,9 @@ public class NiDaqAiReadSetting
     /// <summary>读取超时 (ms)，-1 为无限等待</summary>
     public int ReadTimeoutMs { get; set; } = 10000;
 
+    /// <summary>文件导出及结果构造总期限，包含文件门排队；不与读取期限混用。</summary>
+    public int ExportTimeoutMs { get; set; } = 10000;
+
     /// <summary>结果变量名</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;

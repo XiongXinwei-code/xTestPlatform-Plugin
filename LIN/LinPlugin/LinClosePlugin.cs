@@ -22,6 +22,7 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 要关闭的连接标识名，求值结果为 string |
+        | TimeoutMs | int | 否 | 3000 | 关闭总等待期限（ms），必须大于 0；含登记排队和真实收尾。超时保留引用，不报告已关闭 |
 
         ## 行为
 

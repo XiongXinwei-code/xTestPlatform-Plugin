@@ -33,7 +33,10 @@ public sealed class NiDaqEncoderConfigEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.CounterChannel, context.ExecutionContext, out var chErr))
             errors.Add(StepSettingError.Error("DAQ_041E", $"CounterChannel 表达式无效: {chErr}"));
         if (s.PulsesPerRevolution <= 0) errors.Add(StepSettingError.Error("DAQ_042", "每转脉冲数 (PPR) 必须大于 0"));
-        if (s.DistancePerPulse <= 0) errors.Add(StepSettingError.Error("DAQ_043", "每脉冲距离必须大于 0"));
+        if (!double.IsFinite(s.DistancePerPulse) || s.DistancePerPulse <= 0) errors.Add(StepSettingError.Error("DAQ_043", "每脉冲距离必须为有限正数"));
+        if (!Enum.IsDefined(s.Unit)) errors.Add(StepSettingError.Error("DAQ_ENCODER_UNIT", "Unit 无效"));
+        if (!Enum.IsDefined(s.DecodingType)) errors.Add(StepSettingError.Error("DAQ_ENCODER_DECODING", "DecodingType 无效"));
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("DAQ_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

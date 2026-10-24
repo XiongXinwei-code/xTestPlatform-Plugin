@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class WriteCstTargetPlugin : StepPluginBase<WriteCstTargetSetting>
 {
     public override string StepTypeId => "Motion.CiA402WriteCstTarget";
-    public override string DisplayName => "CiA402_WriteCstTarget";
+    public override string DisplayName => "CiA402_Target_WriteCstTarget";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_writecsttarget.png";
 

@@ -9,24 +9,25 @@ public sealed class XcpConnectExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new XcpConnectPlugin().CreateSerializer();
-        var setting = (XcpConnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new XcpConnectPlugin().CreateSerializer();
+            var setting = (XcpConnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
-            var response = await client.ConnectAsync(setting.ConnectMode, cancellationToken);
+            var response = await guard.RunAsync(() => client.ConnectAsync(setting.ConnectMode, cancellationToken));
 
-            context.Log(
+            guard.Log(
                 $"XCP CONNECT 成功: MaxCTO={response.MaxCto}, MaxDTO={response.MaxDto}, " +
                 $"CAL={response.SupportsCalibration}, DAQ={response.SupportsDaq}, PGM={response.SupportsProgramming}");
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(setting.ResourceVariable))
-                context.Resources.Set(setting.ResourceVariable, response.ResourceMask);
+                guard.SetVariable(setting.ResourceVariable, response.ResourceMask);
 
             return new ExecutionResult
             {

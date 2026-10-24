@@ -27,6 +27,7 @@ public partial class CanopenSyncSendEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new CanopenSyncSendViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     /// <summary>步骤切换或撤销/重做后重新加载设置</summary>

@@ -21,6 +21,7 @@ public sealed class CanWritePlugin : StepPluginBase<CanWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
+        | TimeoutMs | int | 否 | 5000 | 发送等待期限，必须大于0；取消/超时后未退出原生调用保留隔离和句柄。成功只表示驱动提交，不代表已上总线 |
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
         | CanId | string([ExpressionField]) | 是 | — | CAN ID，如 0x7DF，求值结果为 string |
         | FrameType | 枚举 | 否 | Standard | 可选值：Standard, Extended |

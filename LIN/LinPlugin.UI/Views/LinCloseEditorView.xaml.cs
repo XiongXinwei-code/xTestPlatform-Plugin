@@ -34,6 +34,7 @@ public partial class LinCloseEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new LinCloseViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

@@ -14,16 +14,17 @@ public sealed class LinReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new LinReadPlugin().CreateSerializer();
-        var setting = (LinReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            var guard = new LIN.Runtime.LinExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new LinReadPlugin().CreateSerializer();
+            var setting = (LinReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = LinHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ILinAdapter>(key, out var adapter))
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -33,6 +34,7 @@ public sealed class LinReadExecutor : IStepExecutor
                     }
                 };
             }
+            guard.Watch(key, adapter);
 
             // 解析过滤帧 ID
             byte? filterId = null;
@@ -40,15 +42,17 @@ public sealed class LinReadExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(filterIdStr))
                 filterId = LinHelper.ParseFrameId(filterIdStr);
 
+            guard.Check();
             // 读取帧
-            LinFrame? frame;
-            if (filterId.HasValue)
-                frame = adapter.Read(filterId.Value, setting.ReadTimeoutMs, cancellationToken);
-            else
-                frame = adapter.Read(setting.ReadTimeoutMs, cancellationToken);
+            var owner = LIN.Runtime.LinConnectionResource.For(adapter);
+            LinFrame? frame = await Task.Run(() => filterId.HasValue
+                ? owner.Read(filterId.Value, setting.ReadTimeoutMs, cancellationToken)
+                : owner.Read(setting.ReadTimeoutMs, cancellationToken), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (frame == null)
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -62,11 +66,13 @@ public sealed class LinReadExecutor : IStepExecutor
             var dataHex = BitConverter.ToString(frame.Data).Replace("-", " ");
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, dataHex);
+                guard.SetVariable(setting.ResultVariable, dataHex);
             if (!string.IsNullOrWhiteSpace(setting.IdVariable))
-                context.SetVariable(setting.IdVariable, frame.FrameId.ToString());
+                guard.SetVariable(setting.IdVariable, frame.FrameId.ToString());
 
-            context.Log($"LIN 接收: ID=0x{frame.FrameId:X2}({frame.FrameId}), Data=[{dataHex}]");
+            guard.Log($"LIN 接收: ID=0x{frame.FrameId:X2}({frame.FrameId}), Data=[{dataHex}]");
+
+            guard.Check();
 
             return new ExecutionResult
             {

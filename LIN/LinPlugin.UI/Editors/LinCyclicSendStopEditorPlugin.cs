@@ -27,6 +27,9 @@ public sealed class LinCyclicSendStopEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinCyclicSendStopSetting)new LinCyclicSendStopPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!string.IsNullOrWhiteSpace(s.TaskName) && !context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var TaskNameError))
+            errors.Add(StepSettingError.Error("LIN_EXPR_TaskName", $"TaskName 表达式无效：{TaskNameError}"));
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("LIN_TIMEOUT", "TimeoutMs 必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.TaskName))
             errors.Add(StepSettingError.Error("LIN_SS01", "任务标识名不能为空"));

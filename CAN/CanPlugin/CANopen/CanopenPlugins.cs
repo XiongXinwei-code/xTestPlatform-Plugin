@@ -16,7 +16,7 @@ internal static class CanopenPluginInfo
 public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
 {
     public override string StepTypeId => "CANopen.SdoRead";
-    public override string DisplayName => "CANopen_SdoRead";
+    public override string DisplayName => "CANopen_SDO_Read";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sdo_read.png";
 
@@ -65,7 +65,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
 public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSetting>
 {
     public override string StepTypeId => "CANopen.SdoWrite";
-    public override string DisplayName => "CANopen_SdoWrite";
+    public override string DisplayName => "CANopen_SDO_Write";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sdo_write.png";
 
@@ -113,7 +113,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
 public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSetting>
 {
     public override string StepTypeId => "CANopen.NmtControl";
-    public override string DisplayName => "CANopen_NmtControl";
+    public override string DisplayName => "CANopen_Network_NmtControl";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_nmt_control.png";
 
@@ -129,6 +129,8 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
         | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
         | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，0~127，0 表示所有节点，求值结果为 object |
         | Command | CanopenNmtCommand | 是 | Start | Start/Stop/EnterPreOperational/ResetNode/ResetCommunication |
+
+        | SendTimeoutMs | int | 否 | 1000 | 排队及发送提交总等待期限，必须大于 0；不代表报文已上总线或节点动作完成；超时且实际 I/O 未退出时保留隔离 |
 
         ## 行为
 
@@ -153,7 +155,7 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
 public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeartbeatSetting>
 {
     public override string StepTypeId => "CANopen.WaitHeartbeat";
-    public override string DisplayName => "CANopen_WaitHeartbeat";
+    public override string DisplayName => "CANopen_Network_WaitHeartbeat";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_wait_heartbeat.png";
 
@@ -195,7 +197,7 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
 public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
 {
     public override string StepTypeId => "CANopen.PdoSend";
-    public override string DisplayName => "CANopen_PdoSend";
+    public override string DisplayName => "CANopen_PDO_Send";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_send.png";
 
@@ -211,6 +213,8 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
         | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
         | CobId | string([ExpressionField]) | 是 | 0x201 | PDO 的 COB-ID，0x000~0x7FF，求值结果为 object |
         | Data | string([ExpressionField]) | 是 | "00 00 00 00 00 00 00 00" | 十六进制字符串或 byte[]，0~8 字节，求值结果为 object |
+
+        | SendTimeoutMs | int | 否 | 1000 | 排队及发送提交总等待期限，必须大于 0；不代表报文已上总线或节点动作完成；超时且实际 I/O 未退出时保留隔离 |
 
         ## 行为
 
@@ -235,7 +239,7 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
 public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSetting>
 {
     public override string StepTypeId => "CANopen.PdoReceive";
-    public override string DisplayName => "CANopen_PdoReceive";
+    public override string DisplayName => "CANopen_PDO_Receive";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_receive.png";
 
@@ -275,7 +279,7 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
 public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSetting>
 {
     public override string StepTypeId => "CANopen.SyncSend";
-    public override string DisplayName => "CANopen_SyncSend";
+    public override string DisplayName => "CANopen_Network_SyncSend";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sync_send.png";
 
@@ -291,6 +295,8 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
         | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
         | CobId | string([ExpressionField]) | 是 | 0x80 | SYNC 的 COB-ID，0x000~0x7FF，求值结果为 object |
         | Counter | string([ExpressionField]) | 否 | 0 | SYNC 计数器，0 表示不带数据（0 字节），1~240 时发送 1 字节计数器，求值结果为 object |
+
+        | SendTimeoutMs | int | 否 | 1000 | 排队及发送提交总等待期限，必须大于 0；不代表报文已上总线或节点动作完成；超时且实际 I/O 未退出时保留隔离 |
 
         ## 行为
 
@@ -317,7 +323,7 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
 public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceiveSetting>
 {
     public override string StepTypeId => "CANopen.EmcyReceive";
-    public override string DisplayName => "CANopen_EmcyReceive";
+    public override string DisplayName => "CANopen_Network_EmcyReceive";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_emcy_receive.png";
 

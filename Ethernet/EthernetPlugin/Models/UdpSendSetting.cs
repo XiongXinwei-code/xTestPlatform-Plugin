@@ -18,6 +18,9 @@ public class UdpSendSetting
     /// <summary>本机发送端口（0 = 系统自动分配）</summary>
     public int LocalPort { get; set; } = 0;
 
+    /// <summary>单次发送总超时（毫秒），必须大于 0；旧序列缺省为 3000。</summary>
+    public int SendTimeoutMs { get; set; } = 3000;
+
     /// <summary>发送数据（支持表达式）</summary>
     [ExpressionField]
     public string Data { get; set; } = "\"01 02 03\"";

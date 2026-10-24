@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class HomePlugin : StepPluginBase<HomeSetting>
 {
     public override string StepTypeId => "Motion.CiA402Home";
-    public override string DisplayName => "CiA402_Home";
+    public override string DisplayName => "CiA402_Motion_Home";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_home.png";
 

@@ -16,72 +16,128 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new HttpClientCreatePlugin().CreateSerializer();
-        var setting = (HttpClientCreateSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
+        SemaphoreSlim? registrationGate = null;
+        bool ownsGate = false;
+        System.Net.Http.HttpClient? stagedClient = null;
+        HttpClientResource? stagedResource = null;
+        var budget = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Http");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new HttpClientCreatePlugin().CreateSerializer();
+            var setting = (HttpClientCreateSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (setting.TimeoutMs < 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "HTTP 超时不能为负数；0 表示显式无限等待");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             var clientName = await Evaluator.EvalStringAsync(setting.ClientName, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(clientName))
                 return Error("客户端标识名未配置");
 
             var baseUrl = await Evaluator.EvalStringAsync(setting.BaseUrl, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(baseUrl))
                 return Error("服务基地址未配置");
 
             if (!Uri.TryCreate(baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/", UriKind.Absolute, out _))
-                return Error($"服务基地址不是合法的绝对 URL: {baseUrl}");
+                return Error("服务基地址不是合法的 HTTP(S) 绝对 URL");
 
             var key = HttpHelper.GetClientKey(clientName);
+            registrationGate = HttpHelper.GetRegistryGate(context.Resources);
+            if (!await registrationGate.WaitAsync(setting.TimeoutMs > 0 ? setting.TimeoutMs : Timeout.Infinite, cancellationToken))
+                throw new TimeoutException($"等待 HTTP 客户端建立生命周期操作超过 {setting.TimeoutMs} ms");
+            ownsGate = true;
+            CheckExecution();
             if (context.Resources.Contains(key))
             {
                 if (!setting.ReplaceIfExists)
                     return Error($"HTTP 客户端已存在: {clientName}");
 
-                context.Resources.Remove(key);
             }
 
-            var userName = await Evaluator.EvalStringAsync(setting.UserName, context);
-            var password = await Evaluator.EvalStringAsync(setting.Password, context);
-            var token = await Evaluator.EvalStringAsync(setting.Token, context);
-            var certPath = await Evaluator.EvalStringAsync(setting.ClientCertPath, context);
-            var certPassword = await Evaluator.EvalStringAsync(setting.ClientCertPassword, context);
+            var userName = setting.AuthMode == AuthMode.Basic ? await Evaluator.EvalStringAsync(setting.UserName, context) : "";
+            CheckExecution();
+            var password = setting.AuthMode == AuthMode.Basic ? await Evaluator.EvalStringAsync(setting.Password, context) : "";
+            CheckExecution();
+            var token = setting.AuthMode == AuthMode.BearerToken ? await Evaluator.EvalStringAsync(setting.Token, context) : "";
+            CheckExecution();
+            var certPath = setting.AuthMode == AuthMode.ClientCertificate ? await Evaluator.EvalStringAsync(setting.ClientCertPath, context) : "";
+            CheckExecution();
+            var certPassword = setting.AuthMode == AuthMode.ClientCertificate ? await Evaluator.EvalStringAsync(setting.ClientCertPassword, context) : "";
+            CheckExecution();
 
-            var client = HttpHelper.BuildClient(
-                baseUrl,
-                setting.TimeoutMs,
-                setting.AuthMode,
-                userName,
-                password,
-                token,
-                certPath,
-                certPassword,
-                setting.IgnoreServerCertificateErrors);
-
+            var headers = new List<(string Name, string Value)>();
             foreach (var header in setting.DefaultHeaders)
             {
                 if (string.IsNullOrWhiteSpace(header.Name)) continue;
                 var value = await Evaluator.EvalStringAsync(header.Value, context);
-                client.DefaultRequestHeaders.TryAddWithoutValidation(header.Name, value);
+                CheckExecution();
+                headers.Add((header.Name, value));
             }
+            int creationRemaining = setting.TimeoutMs == 0 ? 0 : setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
+            if (setting.TimeoutMs != 0 && creationRemaining <= 0) throw new TimeoutException($"HTTP 客户端建立总超时 {setting.TimeoutMs} ms 已到");
+            var client = stagedClient = await HttpHelper.BuildClientAsync(() =>
+            {
+                CheckExecution();
+                var built = HttpHelper.BuildClient(baseUrl, setting.TimeoutMs, setting.AuthMode, userName, password,
+                    token, certPath, certPassword, setting.IgnoreServerCertificateErrors, setting.ForceConnectionClose,
+                    headers.Any(h => string.Equals(h.Name, "Authorization", StringComparison.OrdinalIgnoreCase)));
+                try
+                {
+                    foreach (var header in headers)
+                        if (!built.DefaultRequestHeaders.TryAddWithoutValidation(header.Name, header.Value))
+                            throw new InvalidOperationException($"默认请求头名称无效或不能用于请求：{header.Name}");
+                    return built;
+                }
+                catch { built.Dispose(); throw; }
+            }, creationRemaining, cancellationToken);
 
-            var resource = new HttpClientResource
+            var resource = stagedResource = new HttpClientResource
             {
                 Client = client,
                 BaseUrl = baseUrl,
-                AuthMode = setting.AuthMode
+                AuthMode = setting.AuthMode,
+                CheckExecutionScope = execution.ThrowIfExpired
             };
+            stagedClient = null; // The staged resource now owns asynchronous cleanup.
 
-            context.Resources.Set(key, resource);
+            cancellationToken.ThrowIfCancellationRequested(); // Never publish a client after sequence cancellation.
+            CheckExecution();
+            if (setting.ReplaceIfExists && context.Resources.TryGet<HttpClientResource>(key, out var previous))
+            {
+                int remaining = setting.TimeoutMs == 0 ? int.MaxValue : setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
+                if (remaining <= 0) throw new TimeoutException($"HTTP 客户端建立总超时 {setting.TimeoutMs} ms 已到");
+                await previous.CloseAsync(remaining, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                CheckExecution();
+            }
+            if (setting.TimeoutMs > 0 && budget.ElapsedMilliseconds >= setting.TimeoutMs)
+                throw new TimeoutException($"HTTP 客户端建立登记前已超过总期限 {setting.TimeoutMs} ms");
+            if (setting.ReplaceIfExists) context.Resources.Set(key, resource);
+            else if (!context.Resources.TryAdd(key, resource)) throw new InvalidOperationException("同名 HTTP 客户端已存在");
+            CheckExecution();
 
-            context.Log($"HTTP 客户端已创建: {clientName} -> {baseUrl}（认证方式: {setting.AuthMode}）");
+            var endpoint = HttpHelper.DescribeEndpoint(baseUrl);
+            if (setting.IgnoreServerCertificateErrors)
+                context.Log(LogLevel.Warn, "当前 HTTP 客户端关闭了服务端证书验证，仅可用于经过确认的测试环境。");
+            context.Log($"HTTP 客户端已创建: {clientName} -> {endpoint}（认证方式: {setting.AuthMode}）");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
+            resource.CheckPublication(context.Resources, key, cancellationToken);
+            stagedResource = null;
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Completed, Value = baseUrl }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = endpoint }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -90,7 +146,13 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
         }
         catch (Exception ex)
         {
-            return Error($"创建 HTTP 客户端失败: {ex.Message}", ex);
+            return Error("创建 HTTP 客户端失败", ex);
+        }
+        finally
+        {
+            stagedResource?.Dispose();
+            stagedClient?.Dispose();
+            if (ownsGate) registrationGate!.Release();
         }
     }
 

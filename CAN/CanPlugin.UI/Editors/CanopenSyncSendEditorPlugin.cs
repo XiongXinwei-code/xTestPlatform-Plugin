@@ -31,6 +31,7 @@ public sealed class CanopenSyncSendEditorPlugin : IStepEditorPlugin
         var errors = new List<StepSettingError>();
         var s = (CanopenSyncSendSetting)new CanopenSyncSendPlugin().CreateSerializer().Deserialize(context.Setting, 1);
 
+        if (s.SendTimeoutMs <= 0) errors.Add(StepSettingError.Error("CO_SEND_TIMEOUT", "SendTimeoutMs 发送超时必须大于 0"));
         CanopenValidation.Expr(context, s.ConnectionName, "ConnectionName", "CO_001", errors);
         CanopenValidation.Expr(context, s.CobId, "CobId", "CO_008", errors);
         CanopenValidation.Range(s.CobId, "CobId", 0, 0x7FF, "CO_008R", errors);

@@ -9,13 +9,13 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new UdsDiagSessionPlugin().CreateSerializer();
-        var setting = (UdsDiagSessionSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdsDiagSessionPlugin().CreateSerializer();
+            var setting = (UdsDiagSessionSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
@@ -27,16 +27,16 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
 
             if (setting.SuppressPositiveResponse)
             {
-                await client.SendOnlyAsync(request, cancellationToken);
-                context.Log($"UDS DiagSession: 0x{(byte)setting.SessionType:X2} (抑制正响应)");
+                await guard.RunAsync(() => client.SendOnlyAsync(request, cancellationToken));
+                guard.Log($"UDS DiagSession: 0x{(byte)setting.SessionType:X2} (抑制正响应)");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = setting.SessionType.ToString() } };
             }
 
-            var response = await client.RequestAsync(request, cancellationToken);
+            var response = await guard.RunAsync(() => client.RequestAsync(request, cancellationToken));
 
             if (response.IsPositive)
             {
-                context.Log($"UDS DiagSession 切换成功: {setting.SessionType}");
+                guard.Log($"UDS DiagSession 切换成功: {setting.SessionType}");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = setting.SessionType.ToString() } };
             }
             else

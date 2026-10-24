@@ -28,7 +28,10 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="发送等待超时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认5000；超时或取消后原生调用未退出则保持隔离。成功只表示驱动提交，不确认已上总线。"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"

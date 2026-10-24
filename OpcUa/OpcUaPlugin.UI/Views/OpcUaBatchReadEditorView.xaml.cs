@@ -25,6 +25,7 @@ public partial class OpcUaBatchReadEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaBatchReadViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

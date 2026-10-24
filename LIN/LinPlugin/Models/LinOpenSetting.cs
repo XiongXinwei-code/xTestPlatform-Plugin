@@ -28,4 +28,6 @@ public class LinOpenSetting
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"LIN1\"";
+    /// <summary>打开总期限：含登记排队、旧执行收尾及驱动打开。</summary>
+    public int TimeoutMs { get; set; } = 5000;
 }

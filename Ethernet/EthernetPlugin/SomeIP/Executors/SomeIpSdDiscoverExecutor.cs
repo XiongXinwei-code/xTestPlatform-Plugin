@@ -16,14 +16,25 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new SomeIpSdDiscoverPlugin().CreateSerializer();
-        var setting = (SomeIpSdDiscoverSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new SomeIpSdDiscoverPlugin().CreateSerializer();
+            var setting = (SomeIpSdDiscoverSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
             var addrStr = await EthernetExecutorHelper.EvalStringAsync(setting.MulticastAddress, context);
+            CheckExecution();
             var serviceStr = await EthernetExecutorHelper.EvalStringAsync(setting.ServiceId, context);
+            CheckExecution();
 
             var multicast = IPAddress.Parse(addrStr.Trim());
             var findServiceId = SomeIpHelper.ParseId(serviceStr, "ServiceId");
@@ -38,6 +49,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
 
             // 发送 FindService
             var find = BuildFindService(findServiceId);
+            CheckExecution();
             await udp.SendAsync(find, new IPEndPoint(multicast, setting.Port), cancellationToken);
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -48,6 +60,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             {
                 while (true)
                 {
+                    CheckExecution();
                     var recv = await udp.ReceiveAsync(timeoutCts.Token);
                     foreach (var offer in ParseOffers(recv.Buffer, findServiceId, recv.RemoteEndPoint))
                         if (!offers.Contains(offer)) offers.Add(offer);
@@ -70,7 +83,10 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
 
             var result = string.Join("; ", offers);
             context.Log($"SOME/IP-SD 发现服务: {result}");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, result);
 
