@@ -11,6 +11,7 @@ public sealed class EditorRuntimeTests
     public void Actual_views_save_and_validate_before_refresh_on_the_same_dispatcher()
     {
         Round2UnloadEditorTests.VerifyActualViews();
+        FollowupEditorInputTests.VerifySdoPathBeforeRefreshAndUnload();
         EdsEditorLifecycleReauditTests.VerifyActualSdoPageReentry();
         new FlashUiLifecycleReviewTests().The_actual_Flash_page_displays_a_preset_failure_with_wrapping();
         new AuditLifecycleTests().ActualOpenViewSavesControlBindingBeforeRefresh();
