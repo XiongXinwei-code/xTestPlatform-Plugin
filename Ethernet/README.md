@@ -1,5 +1,10 @@
 # Ethernet 插件
 
+## 本轮修订 v1.0.23
+
+SOME/IP响应匹配补齐ClientId+SessionId；SD拒绝越界/截断的无符号Entries和Options长度；DoIP车辆公告在发布VIN前验证版本反码和声明长度。不改变InterfaceVersion兼容策略、发现窗口或TCP/UDP通信期限。
+、设置键与枚举保持兼容；异常输入更早返回执行错误，未退出的真实I/O继续保留所有权。此说明对应软件验证，硬件和完整平台运行另行验证。
+
 ## 功能概述
 
 通过以太网与被测设备通信，提供 TCP 客户端连接与收发、UDP 收发，并支持车载以太网 DoIP 诊断（ISO 13400）与 SOME/IP 服务调用、订阅及服务发现。

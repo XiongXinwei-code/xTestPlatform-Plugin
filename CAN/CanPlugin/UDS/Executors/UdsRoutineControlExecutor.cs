@@ -1,4 +1,5 @@
 using CAN.UDS.Models;
+using CAN.Helpers;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -22,10 +23,10 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
-            var ridStr = await Evaluator.EvaluateAsync<string>(setting.RoutineId, context) ?? setting.RoutineId;
+            var ridStr = await Evaluator.EvalStringAsync(setting.RoutineId, context);
             ushort rid = (ushort)UdsExecutorHelper.ParseBoundedId(ridStr, ushort.MaxValue, "RoutineId");
 
-            var optStr = await Evaluator.EvaluateAsync<string>(setting.OptionRecord, context) ?? setting.OptionRecord;
+            var optStr = await Evaluator.EvalStringAsync(setting.OptionRecord, context);
             byte[] optData = ParseHex(optStr);
 
             var request = new byte[4 + optData.Length];

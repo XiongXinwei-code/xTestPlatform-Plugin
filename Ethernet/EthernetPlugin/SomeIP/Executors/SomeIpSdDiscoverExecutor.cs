@@ -151,17 +151,20 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
         var msg = SomeIpMessage.TryDecode(data);
         if (msg == null || msg.ServiceId != SdServiceId || msg.MethodId != SdMethodId) return offers;
         var p = msg.Payload;
-        if (p.Length < 8) return offers;
+        if (p.Length < 12) return offers;
 
-        var entriesLength = (int)BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(4));
+        var entriesLength = BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(4));
+        // 先以无符号长度核对完整 Entries 和其后的 OptionsLength，禁止溢出或截短后误解析。
+        if (entriesLength > (uint)(p.Length - 12) || entriesLength % 16 != 0) return offers;
         var entriesStart = 8;
-        var entriesEnd = Math.Min(entriesStart + entriesLength, p.Length);
+        var entriesEnd = entriesStart + (int)entriesLength;
 
         // 解析 Options 区（位于 Entries 之后：OptionsLength(4) + Options）
         var options = ParseOptions(p, entriesEnd);
+        if (options == null) return offers;
 
         var offset = entriesStart;
-        while (offset + 16 <= entriesEnd)
+        while (entriesEnd - offset >= 16)
         {
             var type = p[offset];
             var index1 = p[offset + 1];
@@ -192,23 +195,25 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
     }
 
     /// <summary>解析 SD Options 区，返回按索引排列的选项描述（仅支持 IPv4 Endpoint 0x04，其他选项占位 null）。</summary>
-    private static List<string?> ParseOptions(byte[] p, int entriesEnd)
+    private static List<string?>? ParseOptions(byte[] p, int entriesEnd)
     {
         var options = new List<string?>();
-        if (entriesEnd + 4 > p.Length) return options;
+        if (entriesEnd < 0 || entriesEnd > p.Length - 4) return null;
 
-        var optionsLength = (int)BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(entriesEnd));
+        var optionsLength = BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(entriesEnd));
         var offset = entriesEnd + 4;
-        var end = Math.Min(offset + optionsLength, p.Length);
+        if (optionsLength > (uint)(p.Length - offset)) return null;
+        var end = offset + (int)optionsLength;
 
-        while (offset + 3 <= end)
+        while (offset < end)
         {
+            if (end - offset < 3) return null;
             // Option: Length(2, 不含 Length 和 Type 字段) + Type(1) + 内容
             var optLen = BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(offset));
             var optType = p[offset + 2];
             var contentStart = offset + 3;
             var optTotal = 3 + optLen;
-            if (offset + optTotal > end) break;
+            if (optTotal > end - offset) return null;
 
             // IPv4 Endpoint Option: Reserved(1) + IPv4(4) + Reserved(1) + Protocol(1) + Port(2)
             if (optType == 0x04 && optLen >= 9)

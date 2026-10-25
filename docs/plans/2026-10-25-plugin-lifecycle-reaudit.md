@@ -28,6 +28,8 @@
 
 ## 阶段
 
+NI/OPC 子组完成后，构建权交接：reaudit_ni_opc 独占 Ethernet 三项协议边界与 `ReauditEthernetProtocolTests.cs` 及 PluginRegression.Tests 构建，主线程暂停该项目构建；不改接口版本、I/O期限或 HTTP。第二轮由 reaudit_serial_visa_modbus 非作者复审。Root 初次 Ethernet 日志延迟探针混淆通信等待与事后日志，不算产品缺陷；保留失败证据后改为验证原合同的正向用例，不以改产品期限使错误假设通过。
+
 1. 基线与清单：确认远端手册、当前 Git、源码/已交付指纹；建立逐模块阅读范围与现有测试映射。
 2. 第一轮勘误：各模块完整源码/页面审查；逐项记录位置、触发、影响、可重复证据；主线程验证、最小修复及受影响构建/测试。
 3. 第二轮勘误：独立审查修复、补 SDK CleanupExecution/CleanupAll、同表首重跑、新资源表、原生不协作、late open/close/result、调试编辑卸载/重载交错；修复后重测复审。
@@ -44,5 +46,12 @@
 ## 当前记录
 
 - 已完成：干净 Git 起点、云端手册 blob、ECC 方法与风险/架构边界核对。
-- 进行中：逐模块阅读及第一轮勘误。
-- 待完成：新增问题复现/修复、第二轮复审、第三轮最终验证与交付。
+- 已完成第一轮：逐模块全文阅读，库存为 1116 个产品 C#/XAML/csproj（含 Shared4 和新增 CAN resolver1），不包含第三方二进制、bin/obj 和测试；逐文件路径与 SHA-256 保存在 `artifacts/lifecycle-reaudit-20261025/full-product-inventory.json`。阅读与脚本生成库存是两项证据，不以库存脚本冒充阅读。
+- 第二轮发现并修复：SOAP1.2 失败详情泄漏（4 RED/1合法正例→5 GREEN）；EDS 初始化通知重入覆盖新请求（2 RED→全部 EDS11+实际页调度组1 GREEN）。HTTP/网络定向62 GREEN；CAN全套在最后两项重入测试前398 GREEN，冻结后仍需重跑。
+- CAN补读四项已纳入：PEAK官方句柄映射、单一原生resolver、固件重叠记录文件顺序、Channel语法校验；第一批RED7/11→定向16/16，后补真实HEX链测试。ZLG内部动态依赖仍须实机验证。
+- 两个已有CAN夹具问题只改测试调度/STA归组，保留产品1000ms期限和原断言。新EDS实际页面Dispatcher泵被Syncfusion未注册许可提示窗口阻塞，转储定位为LicenseMessage.ShowDialog；撤回该探针的完整UI读文件结论，改为实际页Loaded/Unloaded调度/保存检查；纯VM WpfFact仍真实运行Dispatcher并测后台读取、换代、卸载、重入。旧失败/中止TRX与dump保留，不计通过。
+- 独立只读：reaudit_serial_visa_modbus 已复审 Root HTTP/VISA/Serial、Ethernet三项和CAN/CiA/LIN第一批；Root复核 NI/OPC 产品/测试/证据、Ethernet三项与CAN第二批；reaudit_ni_opc 再审 Root HTTP/VISA/Serial、CAN第二批和EDS。作者自测、非作者读取TRX和亲自运行测试分别记录。
+- 版本：9个受影响模块核心/UI按1.0补丁递增；Modbus本轮无新产品变更，维持1.0.22。步骤ID、显示树路径、设置键/枚举兼容；日志摘要语义和更早的异常输入拒绝已写模块文档。原备份/旧交付保留。
+- 第三轮软件测试已完成：九套1369/1369，0失败0跳过；最终CAN405包含多订阅者Add刷新/同文件改选重入的1+2项真实RED后修复。原400项完整CAN先归档，最后只重跑受影响的CAN，其余8套本轮源码未变有效结果保留。
+- 最后非作者复审已闭环：精确检查最终EDS VM/测试哈希及1+2项RED，无新增确定缺陷，源码冻结。
+- 待完成：20项目重编译、严格交付/源码指纹检查和新交付记录。用户已确认“暂无，先完成软件验证”；完整宿主调试重入及真实硬件未执行，不以软件绿色代替。

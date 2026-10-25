@@ -148,6 +148,7 @@ public sealed class LinAuditTests
     [StaFact]
     public void ActualOpenViewLoadsCapabilityHintAndPersistsBoundControl()
     {
+        OutputVariableReauditTests.ActualOutputViewsSaveOnUnload();
         EditorCollectionChangesPersistBeforeRefresh(); // Syncfusion 实际视图在同一 STA 生命周期验证。
         var plugin = new LinOpenPlugin(); var serializer = plugin.CreateSerializer(); var step = new Step();
         step.StepSetting.Setting = serializer.Serialize(new LinOpenSetting()); step.StepSetting.SettingVersion = serializer.SettingVersion;

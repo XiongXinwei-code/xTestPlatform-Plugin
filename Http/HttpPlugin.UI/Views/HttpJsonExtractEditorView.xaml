@@ -31,7 +31,7 @@
                         ScriptText="{Binding SourceJson, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-					<TextBlock Grid.Row="1" Grid.Column="0" Text="未命中判失败:" VerticalAlignment="Center" Margin="0,6" />
+					<TextBlock Grid.Row="1" Grid.Column="0" Text="未命中返回执行错误:" VerticalAlignment="Center" Margin="0,6" />
 					<CheckBox Grid.Row="1" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
 							  IsChecked="{Binding FailOnMissingPath}" />
 					<TextBlock Grid.Row="2" Grid.Column="0" Text="提取映射:" VerticalAlignment="Top" Margin="0,10" />

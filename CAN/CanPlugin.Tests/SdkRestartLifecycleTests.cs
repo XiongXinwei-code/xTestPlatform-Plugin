@@ -112,6 +112,27 @@ public sealed class SdkRestartLifecycleTests
     }
 
     [Fact]
+    public async Task SuccessfulOpenLogCannotExtendConfiguredTotalDeadline()
+    {
+        var registry = NewRegistry();
+        var setting = new CanOpenSetting { AdapterType = CanAdapterType.Kvaser, Channel = $"\"{Interlocked.Increment(ref _channel)}\"", ConnectionName = "\"CAN1\"", TimeoutMs = 1000 };
+        var context = Context(registry, setting);
+        ((SdkCanContext)(object)context).OnLog = text => { if (text.Contains("CAN 通道已打开")) Thread.Sleep(1100); };
+        try
+        {
+            var result = await new CanOpenExecutor(_ => new GatedDriver()).ExecuteAsync(context);
+            Assert.Equal(TestStatus.Error, result.StepResult.Status);
+            Assert.Contains("总期限", result.StepResult.Error!.Message);
+            if (registry.TryGet<ICanAdapter>(CanHelper.GetAdapterKey("CAN1"), out var owner)) Assert.True(((CanConnectionResource)owner).IsClosing);
+        }
+        finally
+        {
+            if (registry.TryGet<ICanAdapter>(CanHelper.GetAdapterKey("CAN1"), out var current)) await ((CanConnectionResource)current).CloseAsync();
+            Cleanup(registry, "CleanupAll");
+        }
+    }
+
+    [Fact]
     public async Task CancellationInSuccessfulOpenLogDoesNotReturnCompleted()
     {
         var registry = NewRegistry(); using var caller = new CancellationTokenSource();

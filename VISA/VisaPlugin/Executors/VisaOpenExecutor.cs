@@ -58,6 +58,9 @@ public sealed class VisaOpenExecutor : IStepExecutor
                 VisaHelper.ThrowIfOpenSuperseded(context.Resources, key, generation);
                 if (context.Resources.TryGet<VisaSessionResource>(key, out var previous))
                 {
+                    // SDK回收和新运行登记可能发生在lookup中；旧Open不能先关闭新会话再报过期。
+                    epoch.ThrowIfExpired();
+                    VisaHelper.ThrowIfOpenSuperseded(context.Resources, key, generation);
                     await previous.CloseAsync(RemainingPhase(), cancellationToken);
                     epoch.ThrowIfExpired();
                     if (context.Resources.TryGet<VisaSessionResource>(key, out var previousCurrent) && ReferenceEquals(previousCurrent, previous))

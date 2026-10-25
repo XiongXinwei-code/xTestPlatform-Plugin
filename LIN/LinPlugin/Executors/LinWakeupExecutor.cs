@@ -40,7 +40,7 @@ public sealed class LinWakeupExecutor : IStepExecutor
             guard.Watch(key, adapter);
 
             cancellationToken.ThrowIfCancellationRequested();
-            await Task.Run(() => LIN.Runtime.LinConnectionResource.For(adapter).Wakeup(setting.WakeupMode == LinWakeupMode.Remote, setting.TimeoutMs, cancellationToken), cancellationToken);
+            await Task.Run(() => LIN.Runtime.LinConnectionResource.For(adapter).Wakeup(setting.WakeupMode == LinWakeupMode.Remote, setting.TimeoutMs, cancellationToken, guard.Check), cancellationToken);
             guard.Log($"LIN 总线已唤醒: {connName} ({(setting.WakeupMode == LinWakeupMode.Remote ? "总线唤醒" : "本地唤醒")})");
 
             if (setting.PostWakeupDelayMs > 0)

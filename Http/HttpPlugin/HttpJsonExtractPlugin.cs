@@ -26,7 +26,7 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
         |------|------|------|--------|------|
         | SourceJson | string([ExpressionField]) | 是 | HttpResponse | 待解析的 JSON 文本，通常填写存放响应体的变量名，求值结果为 string |
         | Items | 集合 | 是 | 空 | 提取映射列表；Path 为点号路径（如 data.items[0].sn），TargetVariable 为提取结果写入的变量（string(VariablePathField)，如 Locals.WorkOrder），DefaultValue 为路径未命中时写入的默认值（普通文本） |
-        | FailOnMissingPath | bool | 否 | true | 任一路径未命中时是否判定步骤失败 |
+        | FailOnMissingPath | bool | 否 | true | 任一路径未命中时是否返回执行 Error；关闭则按配置使用默认值，不作测试判定 |
 
         ## 行为
 
@@ -35,6 +35,7 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
         - 标量值按原始文本写入变量，对象与数组按 JSON 字符串写入
         - 先验证全部映射；FailOnMissingPath为true且存在未命中或非法路径时返回Error，不写入部分结果；为false时才使用DefaultValue
         - SourceJson 不是合法 JSON 时步骤报错
+        - 正常完成返回 Completed；提取日志仅含变量名与长度，不记录原始值
         - 不支持完整 JSONPath 的过滤器与递归下降语法
 
         ## 相关插件

@@ -100,17 +100,20 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             throw new InvalidOperationException($"物理 CAN 通道 {_physicalKey} 已打开或仍在退出/隔离；请先等待旧连接实际关闭，不能重复打开");
     }
 
-    public void Open(CanAdapterConfig config)
+    public void Open(CanAdapterConfig config) => OpenCore(config, null);
+
+    private void OpenCore(CanAdapterConfig config, Action? checkSubmission)
     {
         lock (_gate)
         {
+            checkSubmission?.Invoke();
             if (_closing || _closed) throw new InvalidOperationException("CAN 连接已进入收尾，不能再打开");
             _openedProtocol = config.Protocol;
             _activeIo++;
         }
         try
         {
-            try { _raw.Open(config); }
+            try { checkSubmission?.Invoke(); _raw.Open(config); }
             catch (Exception openError)
             {
                 bool released = false;
@@ -144,8 +147,18 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     public async Task OpenAsync(CanAdapterConfig config, int timeoutMs, CancellationToken ct = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeoutMs); ct.ThrowIfCancellationRequested();
-        var actual = Task.Run(() => Open(config));
-        try { await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false); }
+        var clock = Stopwatch.StartNew();
+        void CheckBudget()
+        {
+            ct.ThrowIfCancellationRequested();
+            if (clock.ElapsedMilliseconds >= timeoutMs) throw new TimeoutException($"CAN 打开总期限 {timeoutMs} ms 已到");
+        }
+        var actual = Task.Run(() => OpenCore(config, CheckBudget));
+        try
+        {
+            await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            CheckBudget();
+        }
         catch
         {
             Dispose();
@@ -202,9 +215,13 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             throw new InvalidOperationException($"CANopen 服务 {name} 不存在");
     }
 
-    public async Task StopServiceAsync(string name, int timeoutMs, CancellationToken ct)
+    public Task StopServiceAsync(string name, int timeoutMs, CancellationToken ct)
+        => StopServiceAsync(name, GetService(name), timeoutMs, ct);
+
+    internal async Task StopServiceAsync(string name, CanopenCyclicService service, int timeoutMs, CancellationToken ct)
     {
-        var service = GetService(name);
+        // Close the captured generation only. A replacement with the same name is
+        // unrelated, including when this call cleans up a failed old start.
         try { await service.CloseAsync(timeoutMs, ct).ConfigureAwait(false); }
         finally
         {
@@ -274,6 +291,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     }
     private CanMessage? ReadRaw(uint? id, int timeoutMs, CancellationToken ct)
     {
+        if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
         lock (_gate)
         {
             CheckLocked();
@@ -286,6 +304,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             // Owner-controlled shutdown commands keep their own cancellation budget.
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct,
                 _ownerCommand.Value == null ? _foregroundStop.Token : CancellationToken.None);
+            if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
             return id.HasValue ? _raw.Read(id.Value, timeoutMs, linked.Token) : _raw.Read(timeoutMs, linked.Token);
         }
         finally { lock (_gate) _activeIo--; }
@@ -360,6 +379,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
 
         void CheckSubmission()
         {
+            if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
             callerToken.ThrowIfCancellationRequested();
             if (timeoutMs > 0 && System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException($"CAN 发送排队已超过配置期限 {timeoutMs} ms，未提交此帧");

@@ -90,7 +90,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                 cancellationToken.ThrowIfCancellationRequested();
                 CheckExecution();
                 context.SetVariable(value.Target, value.Value);
-                context.Log($"JSON 提取: {value.Path} => {value.Target} = {value.Value}");
+                context.Log($"JSON 提取: 已写入 {value.Target}，值长度={value.Value?.Length ?? 0} 字符；原值不记录");
             }
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();

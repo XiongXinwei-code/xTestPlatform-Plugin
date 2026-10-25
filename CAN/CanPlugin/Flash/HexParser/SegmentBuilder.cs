@@ -19,41 +19,44 @@ internal static class SegmentBuilder
             if ((ulong)record.Address + (uint)record.Data.Length > 0x1_0000_0000UL)
                 throw new InvalidDataException($"固件记录 0x{record.Address:X8} 长度 {record.Data.Length} 越过32位地址空间");
 
-        records.Sort((a, b) => a.Address.CompareTo(b.Address));
-
-        var buffer = new List<byte>(records[0].Data);
-        uint start = records[0].Address;
-
-        for (int i = 1; i < records.Count; i++)
+        // 先只按地址计算连续区间，再按原文件记录顺序拷贝数据。
+        // 不能对调用者记录原地排序，否则地址更低的后写记录会被旧记录反向覆盖。
+        var sorted = records.Where(r => r.Data.Length > 0).OrderBy(r => r.Address).ToArray();
+        if (sorted.Length == 0) return result;
+        uint start = sorted[0].Address;
+        ulong end = (ulong)start + (uint)sorted[0].Data.Length;
+        foreach (var record in sorted.Skip(1))
         {
-            var (address, data) = records[i];
-            ulong currentEnd = (ulong)start + (uint)buffer.Count;
-
-            if (address == currentEnd)
+            if (record.Address > end)
             {
-                buffer.AddRange(data);
+                result.Add(CreateSegment(start, end));
+                start = record.Address;
+                end = record.Address;
             }
-            else if (address < currentEnd)
-            {
-                // 记录重叠：后写入的数据覆盖先前内容
-                int offset = (int)(address - start);
-                int overlap = Math.Min(data.Length, buffer.Count - offset);
-                for (int k = 0; k < overlap; k++)
-                    buffer[offset + k] = data[k];
-                if (data.Length > overlap)
-                    buffer.AddRange(data[overlap..]);
-            }
-            else
-            {
-                // 存在空洞，收尾当前段并另起新段
-                result.Add(new FlashSegment { StartAddress = start, Data = buffer.ToArray() });
-                buffer.Clear();
-                buffer.AddRange(data);
-                start = address;
-            }
+            end = Math.Max(end, (ulong)record.Address + (uint)record.Data.Length);
         }
+        result.Add(CreateSegment(start, end));
 
-        result.Add(new FlashSegment { StartAddress = start, Data = buffer.ToArray() });
+        foreach (var record in records)
+        {
+            if (record.Data.Length == 0) continue;
+            int low = 0, high = result.Count - 1;
+            while (low < high)
+            {
+                int middle = low + (high - low + 1) / 2;
+                if (result[middle].StartAddress <= record.Address) low = middle;
+                else high = middle - 1;
+            }
+            var segment = result[low];
+            record.Data.CopyTo(segment.Data, checked((int)(record.Address - segment.StartAddress)));
+        }
         return result;
+    }
+
+    private static FlashSegment CreateSegment(uint start, ulong end)
+    {
+        if (end - start > int.MaxValue)
+            throw new InvalidDataException($"固件连续区间 0x{start:X8} 的长度超过支持的缓冲区上限");
+        return new FlashSegment { StartAddress = start, Data = new byte[checked((int)(end - start))] };
     }
 }

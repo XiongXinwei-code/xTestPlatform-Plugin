@@ -33,12 +33,18 @@ public static class EdsParser
 
     /// <summary>解析 EDS/DCF 文件，返回按 Index/SubIndex 排序的可访问对象列表</summary>
     public static IReadOnlyList<EdsObjectEntry> Parse(string path)
+        => Parse(path, CancellationToken.None);
+
+    /// <summary>按行读取并检查取消；调用方须在后台执行文件访问。</summary>
+    public static IReadOnlyList<EdsObjectEntry> Parse(string path, CancellationToken cancellationToken)
     {
-        var sections = ReadIni(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        var sections = ReadIni(path, cancellationToken);
         var result = new List<EdsObjectEntry>();
 
         foreach (var (name, keys) in sections)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             ushort index;
             byte sub;
             string parentName = string.Empty;
@@ -89,12 +95,13 @@ public static class EdsParser
     }
 
     /// <summary>读取 INI 文件为“节名 → 键值对”字典（忽略大小写和 ; 注释行）</summary>
-    private static Dictionary<string, Dictionary<string, string>> ReadIni(string path)
+    private static Dictionary<string, Dictionary<string, string>> ReadIni(string path, CancellationToken cancellationToken)
     {
         var sections = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, string>? current = null;
-        foreach (var raw in File.ReadAllLines(path))
+        foreach (var raw in File.ReadLines(path))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var line = raw.Trim();
             if (line.Length == 0 || line.StartsWith(';')) continue;
             if (line.StartsWith('[') && line.EndsWith(']'))

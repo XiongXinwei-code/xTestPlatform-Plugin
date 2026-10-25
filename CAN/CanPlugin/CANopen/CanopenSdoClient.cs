@@ -340,9 +340,12 @@ internal sealed class CanopenSdoClient
 
             // 服务器确认的序号小于已发序号时，从未确认的段开始重传
             int ackSeq = ack[1];
-            offset = ackSeq >= seq ? pos : blockStart + ackSeq * 7;
-            if (ack[2] is >= 1 and <= MaxBlockSize)
-                blockSize = ack[2];
+            if (ackSeq > seq)
+                throw new InvalidOperationException($"SDO 块下载确认序号 {ackSeq} 超过本块实际发送序号 {seq}");
+            if (ack[2] is < 1 or > MaxBlockSize)
+                throw new InvalidOperationException($"SDO 块下载下一块大小无效: {ack[2]}");
+            offset = ackSeq == seq ? pos : blockStart + ackSeq * 7;
+            blockSize = ack[2];
         }
 
         // 0xC1 | n<<2：块下载结束，n = 最后一段无效字节数，byte1..2 = CRC

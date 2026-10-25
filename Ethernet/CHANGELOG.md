@@ -1,4 +1,8 @@
-﻿# 更新记录
+# 更新记录
+
+## v1.0.23 - 2026-10-25
+- SOME/IP响应匹配补齐ClientId+SessionId；SD拒绝越界/截断的无符号Entries和Options长度；DoIP车辆公告在发布VIN前验证版本反码和声明长度。不改变InterfaceVersion兼容策略、发现窗口或TCP/UDP通信期限。
+- 软件复现、修复、独立复审与最终勘误见 docs/reviews/2026-10-25-plugin-lifecycle-reaudit.md。完整宿主调试退出/重入、第三方原生依赖动态加载及实际设备仍未现场验证；回退需成套替换核心、UI和依赖，不强清未知I/O，不将ACK视为物理停止。
 
 ## v1.0.22 - 2026-10-25
 - 14步补执行代次/精确连接与结果围栏；TCP/DoIP捕获pool后再查原代次，旧Close不误关新运行。修复UDP精确长度、未知Transport、null回退、DoIP常量校验、输出类型和前置连接Warning。

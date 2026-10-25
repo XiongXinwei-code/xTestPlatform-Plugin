@@ -506,9 +506,17 @@ public sealed class CanopenCyclicService : IDisposable
     }
     internal async Task CloseForConnectionAsync()
     {
-        lock (_gate) _closing = true;
-        if (_moving && (_monitor != null || _controlledStop != null) && !_faulted && !_stop!.IsCancellationRequested)
-            await StopTargetsAsync().ConfigureAwait(false);
+        bool finishMotion;
+        int stopTimeout;
+        lock (_gate)
+        {
+            _closing = true;
+            finishMotion = _moving && (_monitor != null || _controlledStop != null) && !_faulted && !_stop!.IsCancellationRequested;
+            stopTimeout = _controlledStop?.TimeoutMs ?? _options.CycleTimeoutMs;
+        }
+        // The outer connection close has its own soft wait; it must not replace
+        // the configured owned-stop budget with StopTargetsAsync's legacy default.
+        if (finishMotion) await StopTargetsAsync(stopTimeout).ConfigureAwait(false);
         RequestStop(); await Task.WhenAll(_worker, _cancelCallbacks).ConfigureAwait(false);
         if (_submitted != _confirmed)
         {

@@ -33,15 +33,18 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
         | ResponseVariable | string(VariablePathField) | 否 | Locals.HttpResponse | 响应体文本写入的变量名，写入类型为 string |
         | StatusCodeVariable | string(VariablePathField) | 否 | — | 响应状态码写入的变量名，写入类型为 int；如 Locals.statusCode |
         | ElapsedVariable | string(VariablePathField) | 否 | — | 请求耗时毫秒数写入的变量名，写入类型为 int；如 Locals.elapsed |
-        | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 状态码是否判定步骤失败 |
-        | LogPayload | bool | 否 | true | 是否将请求与响应内容写入运行日志 |
+        | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 是否返回 Error；关闭时按配置忽略该状态，不作测试通过/失败判定 |
+        | LogPayload | bool | 否 | true | 兼容字段名，仅控制脱敏通信摘要；不记录路径参数、正文或完整响应 |
 
         ## 行为
 
         - 客户端不存在时步骤报错，需先执行 Http_ClientCreate
         - ContentType 为 None 时不发送请求体，其余类型按对应 MIME 以 UTF-8 编码发送
         - 本步骤的 Headers 会追加到客户端默认请求头之上，同名时以本步骤为准
-        - 状态码为 2xx 时步骤通过；非 2xx 时按 TreatNonSuccessAsFailure 判定为失败或通过
+        - 正常完成返回 Completed；非 2xx 且 TreatNonSuccessAsFailure 开启返回 Error，关闭则按约定返回 Completed，不作测试判定
+        - 表达式 null 不回退为脚本文本；必填名称/路径为空报错，可选正文为空按空正文发送
+        - 请求头值不能包含换行；内容类型由 ContentType 配置，非法请求头在发送前报错
+        - LogPayload 即使开启也只记录目标主机、方法、状态码与长度；正文仍只写入用户配置的结果变量
         - 请求超时、网络异常、取消操作分别返回错误或中止状态
         - 变量名留空的输出项会被跳过，不做写入
 

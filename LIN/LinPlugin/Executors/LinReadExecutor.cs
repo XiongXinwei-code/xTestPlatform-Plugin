@@ -20,6 +20,8 @@ public sealed class LinReadExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new LinReadPlugin().CreateSerializer();
             var setting = (LinReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            LinHelper.ValidateStringOutput(context, setting.ResultVariable);
+            LinHelper.ValidateStringOutput(context, setting.IdVariable);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = LinHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ILinAdapter>(key, out var adapter))
@@ -45,9 +47,7 @@ public sealed class LinReadExecutor : IStepExecutor
             guard.Check();
             // 读取帧
             var owner = LIN.Runtime.LinConnectionResource.For(adapter);
-            LinFrame? frame = await Task.Run(() => filterId.HasValue
-                ? owner.Read(filterId.Value, setting.ReadTimeoutMs, cancellationToken)
-                : owner.Read(setting.ReadTimeoutMs, cancellationToken), cancellationToken);
+            LinFrame? frame = await Task.Run(() => owner.ReadCore(filterId, setting.ReadTimeoutMs, cancellationToken, guard.Check), cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (frame == null)

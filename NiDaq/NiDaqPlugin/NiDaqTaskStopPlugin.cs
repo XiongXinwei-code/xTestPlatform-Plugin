@@ -26,6 +26,8 @@ public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>
 
         ## 行为
 
+        - 任务不存在时返回 Error，请确认 TaskName 与配置步骤创建的名称一致。
+
 
         - 先冻结当前代次的新操作，再等待真实任务和 SDK 释放；只在确认释放后移除自己的资源。超时/取消不代表底层已退出，未完成或关闭失败的 owner 保留诊断与重试入口；立即重跑将按打开/配置步骤期限等待旧收尾，不强制关闭其他活动连接。
 

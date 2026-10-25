@@ -68,33 +68,37 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
                 : "text/xml";
 
             var content = new StringContent(envelope, Encoding.UTF8, mediaType);
+            request.Content = content;
 
             if (setting.SoapVersion == SoapVersion.Soap12)
             {
                 // SOAP 1.2 将 action 作为 Content-Type 的参数携带
                 if (!string.IsNullOrWhiteSpace(soapAction))
-                    content.Headers.ContentType!.Parameters.Add(
-                        new NameValueHeaderValue("action", $"\"{soapAction}\""));
+                {
+                    // The throwing constructor includes its invalid input in the
+                    // exception. Validate without preserving the sensitive Action.
+                    if (soapAction.IndexOfAny(['\r', '\n']) >= 0 ||
+                        !NameValueHeaderValue.TryParse($"action=\"{soapAction}\"", out var action))
+                        throw new InvalidOperationException("SOAP 1.2 Action 格式无效，不能包含换行或未转义的引号；具体值不记录");
+                    content.Headers.ContentType!.Parameters.Add(action);
+                }
             }
             else if (!string.IsNullOrWhiteSpace(soapAction))
             {
                 // SOAP 1.1 使用独立的 SOAPAction 请求头
-                request.Headers.TryAddWithoutValidation("SOAPAction", $"\"{soapAction}\"");
+                HttpHelper.SetRequestHeader(request.Headers, "SOAPAction", $"\"{soapAction}\"");
             }
-
-            request.Content = content;
 
             foreach (var header in setting.Headers)
             {
                 if (string.IsNullOrWhiteSpace(header.Name)) continue;
                 var value = await Evaluator.EvalStringAsync(header.Value, context);
                 CheckExecution();
-                request.Headers.Remove(header.Name);
-                request.Headers.TryAddWithoutValidation(header.Name, value);
+                HttpHelper.SetRequestHeader(request.Headers, header.Name, value);
             }
 
             if (setting.LogPayload)
-                context.Log($"SOAP 请求: {path} | Action: {soapAction} | {envelope}");
+                context.Log($"SOAP 请求: {operation}；正文长度={envelope.Length} 字符，Action/正文与路径参数不记录");
 
             CheckExecution();
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
@@ -107,7 +111,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             var elapsedMs = (int)Math.Min(int.MaxValue, response.ElapsedMs);
 
             if (setting.LogPayload)
-                context.Log($"SOAP 响应: {statusCode} ({elapsedMs} ms) | {responseXml}");
+                context.Log($"SOAP 响应: {statusCode} ({elapsedMs} ms)，正文长度={responseXml.Length} 字符");
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
 
             CheckExecution();

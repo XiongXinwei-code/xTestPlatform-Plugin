@@ -122,7 +122,7 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
 
     private static bool IsMatch(SomeIpMessage? msg, SomeIpMessage request)
         => msg != null && msg.ServiceId == request.ServiceId && msg.MethodId == request.MethodId
-           && msg.SessionId == request.SessionId
+           && msg.ClientId == request.ClientId && msg.SessionId == request.SessionId
            && msg.MessageType is SomeIpMessageType.Response or SomeIpMessageType.Error;
 
     private async Task<SomeIpMessage> RequestOverUdpAsync(

@@ -7,6 +7,8 @@ namespace CAN.Runtime;
 /// <summary>步骤代次、原调用方与资源身份围栏，不改变共享协议路由或后台任务令牌。</summary>
 internal sealed class CanExecutionGuard
 {
+    private static readonly AsyncLocal<Action?> Submission = new();
+    internal static void CheckSubmission() => Submission.Value?.Invoke();
     private readonly IExecutionContext _context;
     private readonly CancellationToken _caller;
     private readonly ExecutionEpoch _epoch;
@@ -35,6 +37,16 @@ internal sealed class CanExecutionGuard
     internal void SetVariable(string name, object? value) { Check(); _context.SetVariable(name, value); Check(); }
     internal void Log(string message) { Check(); _context.Log(message); Check(); }
     internal void Log(LogLevel level, string message, string? detail = null) { Check(); _context.Log(level, message, detail); Check(); }
-    internal async Task<T> RunAsync<T>(Func<Task<T>> operation) { Check(); var result = await operation().ConfigureAwait(false); Check(); return result; }
-    internal async Task RunAsync(Func<Task> operation) { Check(); await operation().ConfigureAwait(false); Check(); }
+    internal async Task<T> RunAsync<T>(Func<Task<T>> operation)
+    {
+        Check(); var previous = Submission.Value; Submission.Value = Check;
+        try { var result = await operation().ConfigureAwait(false); Check(); return result; }
+        finally { Submission.Value = previous; }
+    }
+    internal async Task RunAsync(Func<Task> operation)
+    {
+        Check(); var previous = Submission.Value; Submission.Value = Check;
+        try { await operation().ConfigureAwait(false); Check(); }
+        finally { Submission.Value = previous; }
+    }
 }

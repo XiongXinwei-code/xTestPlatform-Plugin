@@ -42,6 +42,7 @@ internal static class CanProtocolTransaction
             int remaining = new Budget(started, timeoutMs, caller).Remaining();
             actual = Task.Run(async () =>
             {
+                CanExecutionGuard.CheckSubmission();
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(caller);
                 var budget = new Budget(started, timeoutMs, deadline.Token);
                 deadline.CancelAfter(budget.Remaining());
@@ -95,7 +96,7 @@ internal static class CanRawIo
         else
         {
             var copy = CanReceiveRouter.Copy(frame);
-            await Fallback.GetValue(adapter, _ => new()).RunBlockingAsync(() => { CanProtocolTransaction.Remaining(remaining); ct.ThrowIfCancellationRequested(); adapter.Write(copy); }, remaining, "CAN 协议发送", ct).ConfigureAwait(false);
+            await Fallback.GetValue(adapter, _ => new()).RunBlockingAsync(() => { CanExecutionGuard.CheckSubmission(); CanProtocolTransaction.Remaining(remaining); ct.ThrowIfCancellationRequested(); adapter.Write(copy); }, remaining, "CAN 协议发送", ct).ConfigureAwait(false);
         }
         ct.ThrowIfCancellationRequested();
         CanProtocolTransaction.Remaining(int.MaxValue);
@@ -111,6 +112,7 @@ internal static class CanRawIo
             else
                 message = await Fallback.GetValue(adapter, _ => new()).RunBlockingAsync(() =>
                 {
+                    CanExecutionGuard.CheckSubmission();
                     int left = CanProtocolTransaction.Remaining(remaining); ct.ThrowIfCancellationRequested();
                     return id.HasValue ? adapter.Read(id.Value, left, ct) : adapter.Read(left, ct);
                 }, remaining, "CAN 协议接收", ct).ConfigureAwait(false);

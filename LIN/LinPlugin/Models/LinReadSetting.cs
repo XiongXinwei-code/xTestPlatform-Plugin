@@ -17,11 +17,11 @@ public class LinReadSetting
     /// <summary>读取超时（毫秒）</summary>
     public int ReadTimeoutMs { get; set; } = 1000;
 
-    /// <summary>结果存储变量路径（存储完整十六进制数据）</summary>
+    /// <summary>已声明的 string 变量路径（完整十六进制数据），留空不写入；通信前校验</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 
-    /// <summary>存储接收到的帧 ID 的变量路径</summary>
+    /// <summary>已声明的 string 变量路径（帧 ID 十进制字符串），留空不写入；通信前校验</summary>
     [VariablePathField]
     public string IdVariable { get; set; } = string.Empty;
 }

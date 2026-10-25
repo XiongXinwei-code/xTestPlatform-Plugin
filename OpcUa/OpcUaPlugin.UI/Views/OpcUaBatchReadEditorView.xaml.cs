@@ -25,18 +25,27 @@ public partial class OpcUaBatchReadEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaBatchReadViewModel();
         DataContext = ViewModel;
-        Unloaded += (_, _) => ViewModel.FlushPendingSave();
+        Unloaded += (_, _) => FlushEditor();
     }
 
     public void RefreshFromStep(Step step)
     {
+        FlushEditor();
         ViewModel.AttachSerializer(new OpcUaBatchReadPlugin().CreateSerializer());
         ViewModel.AttachStep(step);
+    }
+
+    private void FlushEditor()
+    {
+        ItemsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
+        ItemsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        ViewModel.FlushPendingSave();
     }
 
     private void OnAddClick(object sender, RoutedEventArgs e) => ViewModel.AddItem();
     private void OnRemoveClick(object sender, RoutedEventArgs e)
     {
+        FlushEditor();
         if (ItemsGrid.SelectedItem is OpcUaBatchReadItem item)
             ViewModel.RemoveItem(item);
     }

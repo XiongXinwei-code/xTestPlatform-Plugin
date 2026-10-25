@@ -71,7 +71,7 @@ public sealed class LinOpenExecutor : IStepExecutor
                     LinVersion = setting.LinVersion,
                     IsMaster = setting.IsMaster,
                     RxQueueSize = setting.RxQueueSize
-                }, openingBudget, cancellationToken);
+                }, openingBudget, cancellationToken, epoch.ThrowIfExpired);
                 epoch.ThrowIfExpired();
 
             }
@@ -96,11 +96,12 @@ public sealed class LinOpenExecutor : IStepExecutor
                 }
                 throw;
             }
-            context.Log($"LIN 通道已打开: {channel} ({setting.AdapterType}, LIN {setting.LinVersion}, {setting.BaudRate} bps, {(setting.IsMaster ? "主节点" : "从节点")})");
             try
             {
+                context.Log($"LIN 通道已打开: {channel} ({setting.AdapterType}, LIN {setting.LinVersion}, {setting.BaudRate} bps, {(setting.IsMaster ? "主节点" : "从节点")})");
                 cancellationToken.ThrowIfCancellationRequested();
                 epoch.ThrowIfExpired();
+                _ = Remaining();
             }
             catch { adapter.Dispose(); throw; }
 

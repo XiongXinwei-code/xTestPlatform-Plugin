@@ -27,6 +27,9 @@ public sealed class LinWriteReadEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinWriteReadSetting)new LinWriteReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        ct.ThrowIfCancellationRequested();
+        try { LIN.Helpers.LinHelper.ValidateStringOutput(context.ExecutionContext, s.ResultVariable); }
+        catch (ArgumentException ex) { errors.Add(StepSettingError.Error("LIN_OUTPUT", ex.Message)); }
         if (!string.IsNullOrWhiteSpace(s.ConnectionName) && !context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var ConnectionNameError))
             errors.Add(StepSettingError.Error("LIN_EXPR_ConnectionName", $"ConnectionName 表达式无效：{ConnectionNameError}"));
         if (!string.IsNullOrWhiteSpace(s.FrameId) && !context.Evaluator.ValidateExpression(s.FrameId, context.ExecutionContext, out var FrameIdError))

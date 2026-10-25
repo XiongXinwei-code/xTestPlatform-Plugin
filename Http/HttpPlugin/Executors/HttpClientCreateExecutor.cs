@@ -35,6 +35,14 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
             var serializer = new HttpClientCreatePlugin().CreateSerializer();
             var setting = (HttpClientCreateSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             if (setting.TimeoutMs < 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "HTTP 超时不能为负数；0 表示显式无限等待");
+            int Remaining()
+            {
+                CheckExecution();
+                if (setting.TimeoutMs == 0) return Timeout.Infinite;
+                int remaining = setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
+                if (remaining <= 0) throw new TimeoutException($"HTTP 客户端建立总超时 {setting.TimeoutMs} ms 已到");
+                return remaining;
+            }
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
 
@@ -53,10 +61,10 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
 
             var key = HttpHelper.GetClientKey(clientName);
             registrationGate = HttpHelper.GetRegistryGate(context.Resources);
-            if (!await registrationGate.WaitAsync(setting.TimeoutMs > 0 ? setting.TimeoutMs : Timeout.Infinite, cancellationToken))
+            if (!await registrationGate.WaitAsync(Remaining(), cancellationToken))
                 throw new TimeoutException($"等待 HTTP 客户端建立生命周期操作超过 {setting.TimeoutMs} ms");
             ownsGate = true;
-            CheckExecution();
+            _ = Remaining();
             if (context.Resources.Contains(key))
             {
                 if (!setting.ReplaceIfExists)
@@ -94,8 +102,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
                 try
                 {
                     foreach (var header in headers)
-                        if (!built.DefaultRequestHeaders.TryAddWithoutValidation(header.Name, header.Value))
-                            throw new InvalidOperationException($"默认请求头名称无效或不能用于请求：{header.Name}");
+                        HttpHelper.SetRequestHeader(built.DefaultRequestHeaders, header.Name, header.Value, replace: false);
                     return built;
                 }
                 catch { built.Dispose(); throw; }
@@ -114,8 +121,8 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
             CheckExecution();
             if (setting.ReplaceIfExists && context.Resources.TryGet<HttpClientResource>(key, out var previous))
             {
-                int remaining = setting.TimeoutMs == 0 ? int.MaxValue : setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
-                if (remaining <= 0) throw new TimeoutException($"HTTP 客户端建立总超时 {setting.TimeoutMs} ms 已到");
+                int remaining = Remaining(); // lookup可能跨越SDK回收，触碰返回owner前复查原执行代次。
+                if (remaining == Timeout.Infinite) remaining = int.MaxValue;
                 await previous.CloseAsync(remaining, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 CheckExecution();

@@ -70,9 +70,9 @@
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Password:" VerticalAlignment="Center" Margin="0,0,8,8"
                            Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                <PasswordBox x:Name="PasswordInput" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
                          Visibility="{Binding IsUserPassword, Converter={StaticResource BooleanToVisibilityConverter}}"
-                         Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"/>
+                         PasswordChanged="PasswordInput_PasswordChanged"/>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="6" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"

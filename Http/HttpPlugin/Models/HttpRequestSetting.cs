@@ -43,9 +43,9 @@ public class HttpRequestSetting
     [VariablePathField]
     public string ElapsedVariable { get; set; } = string.Empty;
 
-    /// <summary>非 2xx 状态码是否判定步骤失败</summary>
+    /// <summary>非 2xx 状态码是否返回执行 Error</summary>
     public bool TreatNonSuccessAsFailure { get; set; } = true;
 
-    /// <summary>是否将请求与响应内容写入运行日志</summary>
+    /// <summary>是否记录脱敏通信摘要；兼容字段名，不记录请求路径参数、正文或完整响应</summary>
     public bool LogPayload { get; set; } = true;
 }

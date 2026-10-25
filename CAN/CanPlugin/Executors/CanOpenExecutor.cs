@@ -97,6 +97,7 @@ public sealed class CanOpenExecutor : IStepExecutor
                 epoch.ThrowIfExpired();
                 await adapter.OpenAsync(adapterConfig, Remaining(), cancellationToken);
                 epoch.ThrowIfExpired();
+                _ = Remaining();
             }
             catch
             {
@@ -140,13 +141,14 @@ public sealed class CanOpenExecutor : IStepExecutor
                 timingDetails += $"; {dataDetails}";
             }
             string terminationDetails = $"内置终端电阻={(setting.EnableTermination ? "已使能" : "未使能")}";
-            context.Log(
-                $"CAN 通道已打开: {channel} ({setting.AdapterType}, {setting.Protocol}); " +
-                $"{timingDetails}; {terminationDetails}");
             try
             {
+                context.Log(
+                    $"CAN 通道已打开: {channel} ({setting.AdapterType}, {setting.Protocol}); " +
+                    $"{timingDetails}; {terminationDetails}");
                 cancellationToken.ThrowIfCancellationRequested();
                 epoch.ThrowIfExpired();
+                _ = Remaining();
             }
             catch { adapter.Dispose(); throw; }
 

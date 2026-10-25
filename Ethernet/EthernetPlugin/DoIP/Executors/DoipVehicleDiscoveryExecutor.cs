@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -58,6 +59,12 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
 
             if (data.Length < 8 + 32)
                 throw new InvalidOperationException($"车辆公告报文长度不足: {data.Length} 字节");
+
+            if (data[1] != unchecked((byte)~data[0]))
+                throw new InvalidDataException("车辆公告协议版本与反码不匹配");
+            var payloadLength = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(4, 4));
+            if (payloadLength != (uint)(data.Length - 8))
+                throw new InvalidDataException($"车辆公告声明负载长度 {payloadLength} 与实际 {data.Length - 8} 字节不一致");
 
             var payloadType = (ushort)((data[2] << 8) | data[3]);
             if (payloadType != PtVehicleAnnouncement)

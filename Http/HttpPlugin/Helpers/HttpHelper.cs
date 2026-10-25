@@ -193,6 +193,16 @@ public sealed class HttpClientResource : IDisposable
 
 internal static class HttpHelper
 {
+    /// <summary>设置请求头；名称及值非法时在发送/登记前失败，不泄露头值。</summary>
+    internal static void SetRequestHeader(HttpRequestHeaders headers, string name, string value, bool replace = true)
+    {
+        if (value.IndexOfAny(['\r', '\n']) >= 0)
+            throw new InvalidOperationException($"HTTP 请求头 {name} 的值不能包含换行字符");
+        if (replace) headers.Remove(name);
+        if (!headers.TryAddWithoutValidation(name, value))
+            throw new InvalidOperationException($"HTTP 请求头 {name} 不能用于请求；内容类型请使用步骤的 ContentType 设置");
+    }
+
     /// <summary>拼接客户端在资源注册表中的键</summary>
     public static string GetClientKey(string clientName) => $"Http.Client.{clientName}";
 

@@ -96,7 +96,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
 
                             token.ThrowIfCancellationRequested();
                             guard.CheckLifetime();
-                            connection.Write(frame, token);
+                            connection.Write(frame, token, checkExecution: guard.CheckLifetime);
 
                             context.Log($"[LIN 周期发送] 0x{frameId:X2} → {BitConverter.ToString(data).Replace("-", " ")} ({frameItem.CycleTimeMs}ms)");
                         }

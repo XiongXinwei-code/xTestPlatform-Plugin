@@ -11,6 +11,34 @@ namespace CiA402.Tests;
 
 public sealed class FeedbackPdoTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FeedbackTimestampMayRestartOnlyWithItsClockIdentity(bool domainChange)
+    {
+        using var adapter = new FakeCanAdapter();
+        using var transport = await Open(adapter, Multi());
+        var first = Position(1, 1_000_000); first.ClockId = "A"; first.TimestampDomain = "domain-A";
+        adapter.Incoming.Enqueue(first);
+        Assert.Equal(1, (await transport.ReadFeedbackAsync(true, false, false, default)).Position);
+        var next = Position(2, 1); next.ClockId = domainChange ? "A" : "B"; next.TimestampDomain = domainChange ? "domain-B" : "domain-A";
+        adapter.Incoming.Enqueue(next);
+        Assert.Equal(2, (await transport.ReadFeedbackAsync(true, false, false, default)).Position);
+    }
+
+    [Fact]
+    public async Task FeedbackCannotCombineDifferentClockGenerations()
+    {
+        using var adapter = new FakeCanAdapter();
+        using var transport = await Open(adapter, Multi());
+        var oldPosition = Position(11, 100); oldPosition.ClockId = "A"; oldPosition.TimestampDomain = "device";
+        var velocity = Velocity(22, timestamp: 101); velocity.ClockId = "B"; velocity.TimestampDomain = "device";
+        var newPosition = Position(33, 102); newPosition.ClockId = "B"; newPosition.TimestampDomain = "device";
+        adapter.Incoming.Enqueue(oldPosition); adapter.Incoming.Enqueue(velocity); adapter.Incoming.Enqueue(newPosition);
+        var feedback = await transport.ReadFeedbackAsync(true, true, false, default);
+        Assert.Equal(33, feedback.Position); Assert.Equal(22, feedback.Velocity);
+    }
+
     [Fact]
     public async Task HostIngressWithoutCaptureEvidenceCannotRefreshFeedbackAge()
     {

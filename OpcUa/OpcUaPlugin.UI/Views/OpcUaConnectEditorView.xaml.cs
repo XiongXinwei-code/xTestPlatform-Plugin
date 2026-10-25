@@ -8,6 +8,7 @@ namespace OpcUa.UI.Views;
 
 public partial class OpcUaConnectEditorView : UserControl, IRefreshableEditor
 {
+    private bool _syncingPassword;
     public OpcUaConnectViewModel ViewModel { get; }
     public Action<string, Action>? ExecuteCommand { get; set; }
     public static readonly DependencyProperty SequenceFileProperty =
@@ -23,6 +24,11 @@ public partial class OpcUaConnectEditorView : UserControl, IRefreshableEditor
     {
         InitializeComponent();
         ViewModel = new OpcUaConnectViewModel();
+        ViewModel.PropertyChanged += (_, e) =>
+        {
+            if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(ViewModel.Password))
+                SyncPasswordFromViewModel();
+        };
         DataContext = ViewModel;
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
@@ -31,5 +37,19 @@ public partial class OpcUaConnectEditorView : UserControl, IRefreshableEditor
     {
         ViewModel.AttachSerializer(new OpcUaConnectPlugin().CreateSerializer());
         ViewModel.AttachStep(step);
+    }
+
+    private void PasswordInput_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_syncingPassword && ViewModel != null)
+            ViewModel.Password = PasswordInput.Password;
+    }
+
+    private void SyncPasswordFromViewModel()
+    {
+        if (PasswordInput.Password == ViewModel.Password) return;
+        _syncingPassword = true;
+        try { PasswordInput.Password = ViewModel.Password; }
+        finally { _syncingPassword = false; }
     }
 }

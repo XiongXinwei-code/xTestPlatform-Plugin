@@ -57,7 +57,9 @@
                 <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="时钟配置">
+        <syncfusion:TabItemExt Header="时钟配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -67,7 +69,9 @@
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="触发配置">
+        <syncfusion:TabItemExt Header="触发配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -85,7 +89,9 @@
                 <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Source={StaticResource TriggerEdgeValues}}" SelectedItem="{Binding TriggerEdge}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="通道列表">
+        <syncfusion:TabItemExt Header="通道列表"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>

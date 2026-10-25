@@ -14,6 +14,7 @@ public sealed class CanopenAxisTransport : ICia402AxisTransport, IAxisTransportD
     private readonly Dictionary<OperationMode, Pdo> _targets = new();
     private readonly List<Pdo> _feedback = new();
     private readonly Dictionary<uint, long> _lastFeedbackTimestamps = new();
+    private (string? Domain, string? Id)? _feedbackClock;
     private string _diagnostic = "CANopen 尚未开始 I/O";
     public string DiagnosticContext => Volatile.Read(ref _diagnostic);
 
@@ -146,6 +147,16 @@ public sealed class CanopenAxisTransport : ICia402AxisTransport, IAxisTransportD
                 receivedCount++;
                 if (!received.HasKnownObservationTime) { unknownTime++; Snapshot(missing.CobId); continue; }
                 if (received.QueueAge.TotalMilliseconds > _config.FeedbackMaxAgeMs) { expired++; Snapshot(missing.CobId); continue; }
+                var clock = (frame.TimestampDomain, frame.ClockId);
+                if (_feedbackClock != clock)
+                {
+                    // Hardware timestamps are comparable only within one clock generation.
+                    // A new generation must supply the complete requested feedback group;
+                    // it cannot inherit the old clock's monotonic floor or partial group.
+                    _lastFeedbackTimestamps.Clear();
+                    frames.Clear();
+                    _feedbackClock = clock;
+                }
                 if (frame.TimestampNs > 0 && _lastFeedbackTimestamps.TryGetValue(missing.CobId, out var last) && frame.TimestampNs <= last) { duplicate++; Snapshot(missing.CobId); continue; }
                 if (frame.Data.Length != missing.Entries.Sum(e => e.Bits / 8))
                     throw new InvalidOperationException($"反馈 TPDO 0x{missing.CobId:X} 数据长度与映射不一致：实际 {frame.Data.Length} 字节");

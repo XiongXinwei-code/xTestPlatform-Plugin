@@ -51,7 +51,7 @@ public sealed class LinWriteExecutor : IStepExecutor
             };
 
             guard.Check();
-            await Task.Run(() => LIN.Runtime.LinConnectionResource.For(adapter).Write(frame, cancellationToken, setting.TimeoutMs, cancelWait: true), cancellationToken);
+            await Task.Run(() => LIN.Runtime.LinConnectionResource.For(adapter).Write(frame, cancellationToken, setting.TimeoutMs, cancelWait: true, guard.Check), cancellationToken);
 
             guard.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
 

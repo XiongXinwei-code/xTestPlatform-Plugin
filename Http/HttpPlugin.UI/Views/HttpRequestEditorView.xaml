@@ -65,9 +65,12 @@
 					<TextBlock Grid.Row="7" Grid.Column="0" Text="耗时变量:" VerticalAlignment="Center" Margin="0,6" />
 					<TextBox Grid.Row="7" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
 							 Text="{Binding ElapsedVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-					<TextBlock Grid.Row="8" Grid.Column="0" Text="非2xx判失败:" VerticalAlignment="Center" Margin="0,6" />
-					<CheckBox Grid.Row="8" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
-							  IsChecked="{Binding TreatNonSuccessAsFailure}" />
+					<TextBlock Grid.Row="8" Grid.Column="0" Text="非2xx返回执行错误:" VerticalAlignment="Center" Margin="0,6" />
+                    <StackPanel Grid.Row="8" Grid.Column="1" Orientation="Horizontal" Margin="0,6">
+                        <CheckBox VerticalAlignment="Center" IsChecked="{Binding TreatNonSuccessAsFailure}" />
+                        <CheckBox Margin="20,0,0,0" Content="输出脱敏通信摘要" IsChecked="{Binding LogPayload}"
+                                  ToolTip="仅记录目标主机、方法、状态码及长度，不记录正文或路径参数。" />
+                    </StackPanel>
 					<TextBlock Grid.Row="9" Grid.Column="0" Text="请求头:" VerticalAlignment="Top" Margin="0,10" />
 					<DataGrid Grid.Row="9" Grid.Column="1" Margin="0,6" Height="140"
 							  ItemsSource="{Binding Headers}" AutoGenerateColumns="False" CanUserAddRows="True">

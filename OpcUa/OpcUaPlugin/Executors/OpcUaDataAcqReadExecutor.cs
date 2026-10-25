@@ -16,6 +16,7 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
+        int? configuredTimeoutMs = null;
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -25,6 +26,7 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
             var serializer = new OpcUaDataAcqReadPlugin().CreateSerializer();
             var setting = (OpcUaDataAcqReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "消费总期限必须大于 0");
+            configuredTimeoutMs = setting.TimeoutMs;
             var startedAt = System.Diagnostics.Stopwatch.GetTimestamp();
             int Remaining()
             {
@@ -110,6 +112,10 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (TimeoutException ex) when (configuredTimeoutMs.HasValue)
+        {
+            return ErrorResult($"读取采集数据超时（配置总期限 {configuredTimeoutMs.Value} ms）：{ex.Message}", ex);
         }
         catch (Exception ex)
         {

@@ -26,7 +26,7 @@ public class LinWriteReadSetting
     /// <summary>等待从机响应的超时时间（毫秒）</summary>
     public int ResponseTimeoutMs { get; set; } = 500;
 
-    /// <summary>结果存储变量路径（存储从机响应数据，十六进制字符串）</summary>
+    /// <summary>已声明的 string 变量路径（响应十六进制字符串），留空不写入；发送前校验</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

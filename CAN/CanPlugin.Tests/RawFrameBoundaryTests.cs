@@ -8,6 +8,7 @@ using Xunit;
 
 namespace CAN.Tests;
 
+[Collection("CAN blocked I/O")]
 public sealed class RawFrameBoundaryTests
 {
     [Fact]

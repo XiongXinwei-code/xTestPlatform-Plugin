@@ -39,7 +39,7 @@ public sealed class LinSleepExecutor : IStepExecutor
             guard.Watch(key, adapter);
 
             cancellationToken.ThrowIfCancellationRequested();
-            await LIN.Runtime.LinConnectionResource.For(adapter).SleepAsync(setting.SleepMode == LinSleepMode.Remote, setting.TimeoutMs, cancellationToken);
+            await LIN.Runtime.LinConnectionResource.For(adapter).SleepAsync(setting.SleepMode == LinSleepMode.Remote, setting.TimeoutMs, cancellationToken, guard.Check);
             cancellationToken.ThrowIfCancellationRequested();
             guard.Log($"LIN 总线已进入睡眠: {connName} ({(setting.SleepMode == LinSleepMode.Remote ? "总线睡眠" : "本地睡眠")})");
 

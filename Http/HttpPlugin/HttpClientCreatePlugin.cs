@@ -41,7 +41,6 @@ public sealed class HttpClientCreatePlugin : StepPluginBase<HttpClientCreateSett
         ## 行为
 
         - 创建的客户端会以 `ClientName` 为标识名注册到运行期资源表，供后续 Http_Request / Http_SoapRequest / Http_ClientClose 步骤取用
-        - 客户端在本次执行内的主线程与子线程间共享，执行结束时自动释放，下次执行需重新创建
         - 用同一个 ClientName 重复创建时：`ReplaceIfExists` 为 true（默认）时**静默替换**——旧客户端会被自动释放后再注册新客户端；为 false 时**报错**
         - AuthMode 与 TLS 选项相互独立，未使用的认证字段会被忽略
         - Basic 认证按 RFC 7617 生成 Authorization 头；BearerToken 生成 `Bearer {Token}` 头

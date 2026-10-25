@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Windows.Threading;
 using CAN.CANopen;
 using CAN.CANopen.Models;
 using CAN.UI.Services;
@@ -65,6 +67,19 @@ public abstract class CanopenSdoViewModelBase<TSetting> : CanopenViewModelBase<T
 {
     private EdsObjectEntry? _selectedEdsObject;
     private string _edsStatus = string.Empty;
+    private readonly Dispatcher _edsDispatcher = Dispatcher.CurrentDispatcher;
+    private CancellationTokenSource? _activeEdsRead;
+    private EdsLoadRequest? _pendingEdsRead;
+    private bool _edsReading;
+    private bool _edsSuspended;
+    private long _edsGeneration;
+    private long _edsDisplayGeneration = -1;
+    private Task _edsLoadTask = Task.CompletedTask;
+    private sealed record EdsLoadRequest(TSetting? Setting, string? Path, long Generation)
+    {
+        internal Task Initialization { get; set; } = Task.CompletedTask;
+    }
+    internal Task EdsLoadCompletion => _edsLoadTask;
 
     /// <summary>从 EDS 解析出的可选对象</summary>
     public ObservableCollection<EdsObjectEntry> EdsObjects { get; } = new();
@@ -100,36 +115,138 @@ public abstract class CanopenSdoViewModelBase<TSetting> : CanopenViewModelBase<T
         get => _selectedEdsObject;
         set
         {
+            if (value != null && (_edsDisplayGeneration != _edsGeneration || !EdsObjects.Contains(value))) return;
+            var setting = Setting;
+            long generation = _edsGeneration;
+            bool IsCurrent() => generation == _edsGeneration && ReferenceEquals(Setting, setting) &&
+                ReferenceEquals(_selectedEdsObject, value);
             _selectedEdsObject = value;
             OnPropertyChanged();
-            if (value == null) return;
+            if (value == null || !IsCurrent()) return;
             Index = $"0x{value.Index:X4}";
+            if (!IsCurrent()) return;
             SubIndex = value.SubIndex.ToString();
+            if (!IsCurrent()) return;
             DataType = (int)value.DataType;
         }
     }
 
     protected override void OnLoaded() => LoadEds();
 
-    /// <summary>解析当前 EDS 文件；失败时仅显示提示，不影响手动填写</summary>
+    /// <summary>卸载仅取消结果归属；不在界面线程等待不可取消的文件打开退出。</summary>
+    public void SuspendEdsLoading()
+    {
+        _edsDispatcher.VerifyAccess();
+        _edsSuspended = true;
+        ++_edsGeneration;
+        _edsDisplayGeneration = -1;
+        _pendingEdsRead = null;
+        _activeEdsRead?.Cancel();
+    }
+
+    /// <summary>同一编辑器重新进入时重新读取当前路径，不复用已取消的旧结果。</summary>
+    public void ResumeEdsLoading()
+    {
+        _edsDispatcher.VerifyAccess();
+        if (!_edsSuspended) return;
+        _edsSuspended = false;
+        LoadEds();
+    }
+
+    /// <summary>只捕获不可变路径和设置身份；一次实际读取退出后才读取合并后的最新请求。</summary>
     private void LoadEds()
     {
+        _edsDispatcher.VerifyAccess();
+        long generation = ++_edsGeneration;
+        _edsDisplayGeneration = -1;
+        _pendingEdsRead = null;
+        _activeEdsRead?.Cancel();
+        if (generation != _edsGeneration) return;
+        if (_edsSuspended)
+        {
+            EdsStatus = string.Empty;
+            return;
+        }
+        var request = new EdsLoadRequest(Setting, Setting?.EdsFilePath, generation);
+        _pendingEdsRead = request;
+        // Queue resets instead of mutating a collection in an Add/Reset observer.
+        // It runs independently of a blocked file read, but never inside its notification.
+        request.Initialization = _edsDispatcher.InvokeAsync(() => InitializeEdsView(request)).Task;
+        if (_edsReading) return;
+        _edsReading = true;
+        // Start on the Dispatcher so all continuations publish collections there.
+        // Task.Run owns only file parsing and never reads the mutable Setting.
+        _edsLoadTask = _edsDispatcher.InvokeAsync(ProcessEdsQueueAsync).Task.Unwrap();
+        _ = _edsLoadTask.ContinueWith(t => Trace.TraceError($"EDS 编辑器后台任务失败：{t.Exception}"),
+            CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+    }
+
+    private bool IsCurrentEds(EdsLoadRequest request) => !_edsSuspended &&
+        request.Generation == _edsGeneration && ReferenceEquals(Setting, request.Setting) &&
+        string.Equals(Setting?.EdsFilePath, request.Path, StringComparison.Ordinal);
+
+    private void InitializeEdsView(EdsLoadRequest request)
+    {
+        if (!IsCurrentEds(request)) return;
         EdsObjects.Clear();
+        if (!IsCurrentEds(request)) return;
         _selectedEdsObject = null;
-        var path = Setting?.EdsFilePath;
-        if (string.IsNullOrWhiteSpace(path)) { EdsStatus = string.Empty; return; }
-        if (!File.Exists(path)) { EdsStatus = "EDS 文件不存在"; return; }
+        OnPropertyChanged(nameof(SelectedEdsObject));
+        if (!IsCurrentEds(request)) return;
+        EdsStatus = string.IsNullOrWhiteSpace(request.Path) ? string.Empty : "正在后台加载 EDS（先前读取未退出时等待其收尾）…";
+    }
+
+    private async Task ProcessEdsQueueAsync()
+    {
         try
         {
-            foreach (var entry in EdsParser.Parse(path))
-                EdsObjects.Add(entry);
-            EdsStatus = $"已加载 {EdsObjects.Count} 个对象";
+            while (_pendingEdsRead is { } request)
+            {
+                _pendingEdsRead = null;
+                await request.Initialization;
+                if (!IsCurrentEds(request) || request.Setting == null || string.IsNullOrWhiteSpace(request.Path)) continue;
+                using var cancellation = new CancellationTokenSource();
+                _activeEdsRead = cancellation;
+                IReadOnlyList<EdsObjectEntry>? entries = null;
+                string? failure = null;
+                try
+                {
+                    entries = await Task.Run(() =>
+                    {
+                        cancellation.Token.ThrowIfCancellationRequested();
+                        var result = ReadEdsObjects(request.Path, cancellation.Token);
+                        cancellation.Token.ThrowIfCancellationRequested();
+                        return result;
+                    });
+                }
+                catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+                catch (FileNotFoundException) { failure = "EDS 文件不存在"; }
+                catch (DirectoryNotFoundException) { failure = "EDS 文件不存在"; }
+                catch (Exception ex) { failure = $"EDS 解析失败: {ex.Message}"; }
+                finally { _activeEdsRead = null; }
+
+                _edsDispatcher.VerifyAccess();
+                bool IsCurrent() => !cancellation.IsCancellationRequested && IsCurrentEds(request);
+                if (!IsCurrent()) continue;
+                if (entries != null)
+                {
+                    _edsDisplayGeneration = request.Generation;
+                    foreach (var entry in entries)
+                    {
+                        if (!IsCurrent()) break;
+                        EdsObjects.Add(entry); // A collection notification may re-enter Refresh/Unloaded.
+                    }
+                    if (IsCurrent()) EdsStatus = $"已加载 {EdsObjects.Count} 个对象";
+                }
+                else EdsStatus = failure ?? "EDS 读取已取消";
+            }
         }
-        catch (Exception ex)
-        {
-            EdsStatus = $"EDS 解析失败: {ex.Message}";
-        }
+        finally { _edsReading = false; }
     }
+
+    /// <summary>读取对象字典的独立边界；编辑器生命周期负责调度与结果归属。</summary>
+    protected virtual IReadOnlyList<EdsObjectEntry> ReadEdsObjects(string path, CancellationToken cancellationToken)
+        => EdsParser.Parse(path, cancellationToken);
 }
 
 /// <summary>CANopen_SdoRead 编辑器 ViewModel</summary>

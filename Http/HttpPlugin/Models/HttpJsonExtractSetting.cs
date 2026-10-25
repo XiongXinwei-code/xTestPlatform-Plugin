@@ -61,6 +61,6 @@ public class HttpJsonExtractSetting
     /// <summary>提取映射列表</summary>
     public ObservableCollection<HttpExtractItem> Items { get; set; } = [];
 
-    /// <summary>任一路径未命中时是否判定步骤失败</summary>
+    /// <summary>任一路径未命中时是否返回执行 Error；不作测试判定</summary>
     public bool FailOnMissingPath { get; set; } = true;
 }

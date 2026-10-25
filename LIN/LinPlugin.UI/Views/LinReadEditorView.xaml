@@ -43,11 +43,11 @@
 
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
-						 Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+						 Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="已声明的 string 变量完整路径，如 Locals.result；留空不写入。读取前校验。"/>
 
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="IdVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
-						 Text="{Binding IdVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+						 Text="{Binding IdVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="已声明的 string 变量完整路径；帧 ID 以十进制字符串写入。留空不写入，读取前校验。"/>
 			</Grid>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>

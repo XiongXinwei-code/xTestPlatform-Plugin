@@ -65,7 +65,9 @@
 			</Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>
-		<syncfusion:TabItemExt Header="Write Data">
+		<syncfusion:TabItemExt Header="Write Data"
+                               Image="pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_query.png"
+                               ImageHeight="20" ImageWidth="20">
 			<Grid Margin="16">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>

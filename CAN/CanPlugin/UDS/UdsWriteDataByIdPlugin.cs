@@ -34,6 +34,7 @@ public sealed class UdsWriteDataByIdPlugin : StepPluginBase<UdsWriteDataByIdSett
 
         - ECU 返回负响应或超时时步骤报错
         - 通常需先切换会话并完成安全访问
+        - 表达式必须返回字符串；null 在发送前报错，不会把表达式源文本当作十六进制数据发送
 
         ## 相关插件
 

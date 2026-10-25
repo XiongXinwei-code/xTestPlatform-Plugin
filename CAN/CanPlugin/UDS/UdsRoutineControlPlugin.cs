@@ -34,6 +34,8 @@ public sealed class UdsRoutineControlPlugin : StepPluginBase<UdsRoutineControlSe
 
         ## 行为
 
+        - 参数表达式返回 null 时在发送前报错；空字符串仍表示无 OptionRecord，不回退为表达式源文本
+
         - ECU 返回负响应或超时时步骤报错
 
         ## 相关插件

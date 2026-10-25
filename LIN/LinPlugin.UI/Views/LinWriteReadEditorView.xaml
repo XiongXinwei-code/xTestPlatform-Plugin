@@ -64,7 +64,7 @@
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
-						 Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+						 Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="已声明的 string 变量完整路径，如 Locals.result；留空不写入。发送请求前校验。"/>
 			</Grid>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>

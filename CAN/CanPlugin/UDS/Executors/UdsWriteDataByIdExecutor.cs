@@ -1,4 +1,5 @@
 using CAN.UDS.Models;
+using CAN.Helpers;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -22,10 +23,10 @@ public sealed class UdsWriteDataByIdExecutor : IStepExecutor
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
-            var didStr = await Evaluator.EvaluateAsync<string>(setting.Did, context) ?? setting.Did;
+            var didStr = await Evaluator.EvalStringAsync(setting.Did, context);
             ushort did = (ushort)UdsExecutorHelper.ParseBoundedId(didStr, ushort.MaxValue, "Did");
 
-            var dataStr = await Evaluator.EvaluateAsync<string>(setting.Data, context) ?? setting.Data;
+            var dataStr = await Evaluator.EvalStringAsync(setting.Data, context);
             byte[] data = ParseHex(dataStr);
 
             var request = new byte[3 + data.Length];

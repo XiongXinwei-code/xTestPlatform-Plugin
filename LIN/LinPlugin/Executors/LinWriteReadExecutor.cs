@@ -21,6 +21,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new LinWriteReadPlugin().CreateSerializer();
             var setting = (LinWriteReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            LinHelper.ValidateStringOutput(context, setting.ResultVariable);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             if (setting.SendTimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.SendTimeoutMs));
             var key = LinHelper.GetAdapterKey(connName);
@@ -56,7 +57,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             // may steal the matching ID response between these two operations.
             var response = await LIN.Runtime.LinConnectionResource.For(adapter).WriteReadAsync(txFrame,
                 setting.SendTimeoutMs, setting.ResponseTimeoutMs,
-                () => guard.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]"), cancellationToken);
+                () => guard.Log($"LIN 发送: ID=0x{frameId:X2}({frameId}), Data=[{BitConverter.ToString(data).Replace("-", " ")}]"), cancellationToken, guard.Check);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (response == null)

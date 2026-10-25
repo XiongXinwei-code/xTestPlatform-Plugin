@@ -24,6 +24,7 @@ public sealed class CanReadExecutor : IStepExecutor
             var key = CanHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             {
+                guard.Check();
                 return ExecutionResults.Error($"CAN 连接未找到: {connName}");
             }
 

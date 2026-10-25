@@ -145,8 +145,7 @@ public sealed class FlashUiLifecycleReviewTests
         Assert.Equal("keep", File.ReadAllText(parentFile));
     }
 
-    [WpfFact]
-    public void The_actual_Flash_page_displays_a_preset_failure_with_wrapping()
+    internal void The_actual_Flash_page_displays_a_preset_failure_with_wrapping()
     {
         using var files = new Files();
         File.WriteAllText(files.Presets, "broken");

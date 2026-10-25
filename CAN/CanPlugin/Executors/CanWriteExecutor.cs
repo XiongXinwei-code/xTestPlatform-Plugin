@@ -26,6 +26,7 @@ public sealed class CanWriteExecutor : IStepExecutor
             var key = CanHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult

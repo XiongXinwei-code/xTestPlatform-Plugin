@@ -62,7 +62,9 @@
                 <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="时钟配置">
+        <syncfusion:TabItemExt Header="时钟配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -72,7 +74,9 @@
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" ToolTip="空表示 AI 内部时钟；每路 CI 独立任务固定使用同设备 /设备名/ai/SampleClock，驱动不支持则配置失败；跨设备当前明确拒绝。" Width="300" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="触发配置">
+        <syncfusion:TabItemExt Header="触发配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -90,7 +94,9 @@
                 <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Source={StaticResource TriggerEdgeValues}}" SelectedItem="{Binding TriggerEdge}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="AI 通道">
+        <syncfusion:TabItemExt Header="AI 通道"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
@@ -111,7 +117,9 @@
                 </StackPanel>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="编码器通道">
+        <syncfusion:TabItemExt Header="编码器通道"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>

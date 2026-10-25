@@ -25,7 +25,7 @@ public sealed class CanopenSdoWriteEditorPlugin : IStepEditorPlugin
     }
 
     /// <summary>编辑期校验：必填/表达式语法、字面量取值范围、变量存在性，以及前序是否存在 CAN_Open</summary>
-    public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
         StepEditorValidationContext context, CancellationToken cancellationToken = default)
     {
         var errors = new List<StepSettingError>();
@@ -39,10 +39,10 @@ public sealed class CanopenSdoWriteEditorPlugin : IStepEditorPlugin
         CanopenValidation.Expr(context, s.SubIndex, "SubIndex", "CO_004", errors);
         CanopenValidation.Range(s.SubIndex, "SubIndex", 0, 255, "CO_004R", errors);
         CanopenValidation.Positive(s.ResponseTimeoutMs, "响应超时", "CO_005", errors);
-        CanopenValidation.EdsFile(s.EdsFilePath, errors);
+        await CanopenValidation.EdsFileAsync(s.EdsFilePath, errors, cancellationToken);
         CanopenValidation.Expr(context, s.Value, "Value", "CO_007", errors);
 
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
-        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
+        return errors;
     }
 }

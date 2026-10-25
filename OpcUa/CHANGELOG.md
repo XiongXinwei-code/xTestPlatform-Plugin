@@ -1,5 +1,9 @@
 # 更新记录
 
+## v1.0.23 - 2026-10-25
+- 批读页面在刷新、卸载、删除前提交DataGrid单元格与行，防止未失焦内容丢失；密码改用PasswordBox并保存原格式；采集超时同时报告用户配置期限和内层剩余期限。不改变认证格式或自动重连策略。
+- 软件复现、修复、独立复审与最终勘误见 docs/reviews/2026-10-25-plugin-lifecycle-reaudit.md。完整宿主调试退出/重入、第三方原生依赖动态加载及实际设备仍未现场验证；回退需成套替换核心、UI和依赖，不强清未知I/O，不将ACK视为物理停止。
+
 ## v1.0.22 - 2026-10-25
 - 10步执行代次及精确Session/采集owner围栏，旧Connect清理/Disconnect/AcqStop不删停新运行。持久owner不绑定建立步骤token，必要Delete/Close退休后继续。修复外层结果/日志、Stop快照、null、批写类型、ColumnName可选和页面保存；保持序列控制重连。
 - 软件验证与三轮勘误见 docs/reviews/2026-10-25-full-plugin-lifecycle-three-rounds.md；真实设备与完整平台调试窗口未验。回退成套替换核心/UI/依赖，不强清真实占用，不把取消/ACK当作动作撤回或物理停止。

@@ -33,6 +33,13 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
             var serializer = new HttpClientClosePlugin().CreateSerializer();
             var setting = (HttpClientCloseSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
+            int Remaining()
+            {
+                CheckExecution();
+                int remaining = setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
+                if (remaining <= 0) throw new TimeoutException($"HTTP 客户端关闭总超时 {setting.TimeoutMs} ms 已到");
+                return remaining;
+            }
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
 
@@ -43,10 +50,10 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
 
             var key = HttpHelper.GetClientKey(clientName);
             registrationGate = HttpHelper.GetRegistryGate(context.Resources);
-            if (!await registrationGate.WaitAsync(setting.TimeoutMs, cancellationToken))
+            if (!await registrationGate.WaitAsync(Remaining(), cancellationToken))
                 throw new TimeoutException($"等待 HTTP 客户端关闭生命周期操作超过 {setting.TimeoutMs} ms");
             ownsGate = true;
-            CheckExecution();
+            _ = Remaining();
             if (!context.Resources.Contains(key))
             {
                 if (setting.IgnoreIfNotFound)
@@ -62,8 +69,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
 
             if (context.Resources.TryGet<HttpClientResource>(key, out var owner))
             {
-                int remaining = setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
-                if (remaining <= 0) throw new TimeoutException($"HTTP 客户端关闭总超时 {setting.TimeoutMs} ms 已到");
+                int remaining = Remaining(); // 禁止lookup跨代次后由旧步骤关闭新owner。
                 await owner.CloseAsync(remaining, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 CheckExecution();

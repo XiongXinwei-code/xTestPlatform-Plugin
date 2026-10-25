@@ -7,6 +7,20 @@ public static class LinHelper
 
     public static string GetAdapterKey(string connectionName) => $"{KeyPrefix}{connectionName}";
 
+    /// <summary>输出为空时不写入；非空必须为已声明、可写入字符串的完整变量路径。</summary>
+    public static void ValidateStringOutput(xTestPlatform.Core.Engine.IExecutionContext context, string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        var parts = path.Split('.', 2);
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[1]) ||
+            parts[0] is not ("Locals" or "Parameters" or "FileGlobals" or "ProjectGlobals" or "RunState"))
+            throw new ArgumentException($"LIN 输出必须为带作用域的完整变量路径：{path}");
+        if (!context.HasVariable(path))
+            throw new ArgumentException($"LIN 输出变量 {path} 未声明或路径不存在；请声明 string 变量，或留空不写入");
+        if (context.GetVariable(path) is not (null or string))
+            throw new ArgumentException($"LIN 输出变量 {path} 类型不匹配，需要 string；帧 ID 也以十进制字符串写入");
+    }
+
     /// <summary>解析 LIN 帧 ID 字符串（支持 0x 前缀十六进制或十进制，范围 0-63）</summary>
     public static byte ParseFrameId(string idStr)
     {

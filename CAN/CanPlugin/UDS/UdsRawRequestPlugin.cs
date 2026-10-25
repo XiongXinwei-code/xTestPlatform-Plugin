@@ -34,6 +34,7 @@ public sealed class UdsRawRequestPlugin : StepPluginBase<UdsRawRequestSetting>
         ## 行为
 
         - WaitResponse=true 时等待 ECU 响应，负响应或超时则步骤报错
+        - 请求表达式必须返回非空字符串；null 在发送前报错，不会作为源文本解析或发送
 
         ## 相关插件
 

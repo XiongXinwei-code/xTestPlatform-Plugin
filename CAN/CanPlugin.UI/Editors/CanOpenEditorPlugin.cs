@@ -32,6 +32,8 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("CAN_014", "打开总超时必须大于 0 ms"));
         if (string.IsNullOrWhiteSpace(s.Channel))
             errors.Add(StepSettingError.Error("CAN_001", "通道名称不能为空"));
+        else if (!context.Evaluator.ValidateExpression(s.Channel, context.ExecutionContext, out var channelErr))
+            errors.Add(StepSettingError.Error("CAN_CHANNEL_EXPR", $"Channel 表达式无效: {channelErr}"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_002", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

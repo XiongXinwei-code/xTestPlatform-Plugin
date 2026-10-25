@@ -59,8 +59,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
                 if (string.IsNullOrWhiteSpace(header.Name)) continue;
                 var value = await Evaluator.EvalStringAsync(header.Value, context);
                 CheckExecution();
-                request.Headers.Remove(header.Name);
-                request.Headers.TryAddWithoutValidation(header.Name, value);
+                HttpHelper.SetRequestHeader(request.Headers, header.Name, value);
             }
 
             var mediaType = HttpHelper.ToMediaType(setting.ContentType);
@@ -73,7 +72,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
             }
 
             if (setting.LogPayload)
-                context.Log($"HTTP 请求: {request.Method} {path}{(string.IsNullOrEmpty(body) ? string.Empty : " | " + body)}");
+                context.Log($"HTTP 请求: {operation}；正文长度={body.Length} 字符，正文与路径参数不记录");
 
             CheckExecution();
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
@@ -86,7 +85,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
             var elapsedMs = (int)Math.Min(int.MaxValue, response.ElapsedMs);
 
             if (setting.LogPayload)
-                context.Log($"HTTP 响应: {statusCode} ({elapsedMs} ms) | {content}");
+                context.Log($"HTTP 响应: {statusCode} ({elapsedMs} ms)，正文长度={content.Length} 字符");
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
 
             CheckExecution();

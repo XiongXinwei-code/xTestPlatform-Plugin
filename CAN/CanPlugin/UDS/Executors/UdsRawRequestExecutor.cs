@@ -1,4 +1,5 @@
 using CAN.UDS.Models;
+using CAN.Helpers;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -22,7 +23,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
-            var dataStr = await Evaluator.EvaluateAsync<string>(setting.RequestData, context) ?? setting.RequestData;
+            var dataStr = await Evaluator.EvalStringAsync(setting.RequestData, context);
             byte[] requestData = ParseHex(dataStr);
 
             if (requestData.Length == 0)

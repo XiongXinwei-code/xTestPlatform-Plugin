@@ -40,10 +40,10 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                 if (monitorSync != null)
                 {
                     try { await Task.Run(() => { guard.Check(); created.StartMonitoring(monitorSync, new(s.MonitoringPeriodMs, s.CycleTimeoutMs, s.MaxLatenessMs), cancellationToken); }, CancellationToken.None); }
-                    catch { await connection.StopServiceAsync(name, s.StopTimeoutMs, CancellationToken.None); throw; }
+                    catch { await connection.StopServiceAsync(name, created, s.StopTimeoutMs, CancellationToken.None); throw; }
                 }
                 try { guard.Check(); }
-                catch { await connection.StopServiceAsync(name, s.StopTimeoutMs, CancellationToken.None); throw; }
+                catch { await connection.StopServiceAsync(name, created, s.StopTimeoutMs, CancellationToken.None); throw; }
             }
             else
             {
@@ -86,7 +86,7 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                             return CanopenExecutorHelper.Result(TestStatus.Error, JsonSerializer.Serialize(stoppedCycle), "发送已退出，但后台通信曾失败");
                         break;
                     case CyclicOperation.ServiceStop:
-                        await connection.StopServiceAsync(name, s.StopTimeoutMs, cancellationToken);
+                        await connection.StopServiceAsync(name, service, s.StopTimeoutMs, cancellationToken);
                         var stopped = service.Snapshot();
                         if (stopped.Cycle.Error != null || stopped.Receive.BackgroundError != null)
                             return CanopenExecutorHelper.Result(TestStatus.Error, JsonSerializer.Serialize(stopped), "服务已退出，但后台通信曾失败");
