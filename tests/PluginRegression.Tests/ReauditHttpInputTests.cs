@@ -111,6 +111,20 @@ public sealed class ReauditHttpInputTests
     }
 
     [Fact]
+    public async Task Default_header_value_with_newline_is_rejected_before_registration()
+    {
+        var plugin = new HttpClientCreatePlugin();
+        var (ctx, state) = TestContext.Create(plugin, new HttpClientCreateSetting
+        { DefaultHeaders = [new() { Name = "X-Test", Value = "\"one\\r\\nX-Injected: two\"" }] });
+        try
+        {
+            Assert.Equal(TestStatus.Error, (await plugin.CreateExecutor().ExecuteAsync(ctx)).StepResult.Status);
+            Assert.False(state.Items.ContainsKey(HttpHelper.GetClientKey("Mes")));
+        }
+        finally { foreach (var owner in state.Items.Values.OfType<HttpClientResource>()) await owner.CloseAsync(2000); }
+    }
+
+    [Fact]
     public async Task Explicit_literal_null_and_valid_custom_header_remain_valid_inputs()
     {
         var plugin = new HttpRequestPlugin();
