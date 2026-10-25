@@ -14,6 +14,7 @@ public sealed class Round2CompletedBudgetTests
     [InlineData("Write")]
     [InlineData("Read")]
     [InlineData("SendOnly")]
+    [InlineData("Open")]
     public async Task CompletedIoWithHeldReturnContinuationCannotPublishAfterTotalDeadline(string operation)
     {
         using var resume = new ManualResetEventSlim();
@@ -46,6 +47,7 @@ public sealed class Round2CompletedBudgetTests
         {
             pending = operation switch
             {
+                "Open" => owner.OpenAsync(new CanAdapterConfig(), 1000),
                 "Write" => owner.WriteAsync(new() { Id = 1, Data = [1] }, 1000),
                 "Read" => owner.ReadAsync(null, 1000),
                 _ => new UdsClient(owner, 1, 2, transactionTimeoutMs: 1000).SendOnlyAsync([0x3E, 0x80])
@@ -68,7 +70,7 @@ public sealed class Round2CompletedBudgetTests
     private sealed class ReturnAdapter(Action complete) : CAN.Adapters.ICanAdapter
     {
         public bool IsConnected => true;
-        public void Open(CanAdapterConfig config) { }
+        public void Open(CanAdapterConfig config) => complete();
         public void Close() { }
         public void Dispose() { }
         public void Write(CanMessage frame) => complete();
