@@ -11,7 +11,14 @@ public static class NiDaqTaskRegistry
     private static readonly ConditionalWeakTable<object, object> Locks = new();
     private static string Key(string name) => $"NiDaq.Task:{name}";
     public static DaqTaskResource Get(IExecutionContext context, string name)
-        => context.Resources.TryGet<DaqTaskResource>(Key(name), out var value) ? value : throw new InvalidOperationException($"未找到当前序列的 DAQ 任务 '{name}'");
+        => Get(context, name, null);
+    internal static DaqTaskResource Get(IExecutionContext context, string name, Action? ensureActive)
+    {
+        ensureActive?.Invoke();
+        bool found = context.Resources.TryGet<DaqTaskResource>(Key(name), out var value);
+        ensureActive?.Invoke();
+        return found ? value : throw new InvalidOperationException($"未找到当前序列的 DAQ 任务 '{name}'");
+    }
     public static void EnsureAbsent(IExecutionContext context, string name)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("任务名称不能为空");
@@ -38,7 +45,9 @@ public static class NiDaqTaskRegistry
     internal static void EnsureCurrent(IExecutionContext context, string name, DaqTaskResource expected, CancellationToken caller)
     {
         caller.ThrowIfCancellationRequested();
-        if (!context.Resources.TryGet<DaqTaskResource>(Key(name), out var current) || !ReferenceEquals(current, expected))
+        bool found = context.Resources.TryGet<DaqTaskResource>(Key(name), out var current);
+        caller.ThrowIfCancellationRequested();
+        if (!found || !ReferenceEquals(current, expected))
             throw new InvalidOperationException($"DAQ 任务 '{name}' 的资源代次已改变，禁止发布旧任务结果");
         caller.ThrowIfCancellationRequested();
         expected.EnsureReady();

@@ -52,10 +52,15 @@ public sealed class UdpSendExecutor : IStepExecutor
 
             var endpoint = new IPEndPoint(IPAddress.Parse(host!), port);
             using var operation = budget = new EthernetOperationBudget(setting.SendTimeoutMs, "UDP 发送", cancellationToken, CheckExecution);
-            using var udp = new UdpClient(setting.LocalPort);
-            operation.BeforeSubmission();
-            await _network.SendUdpAsync(udp, endpoint, bytes, operation.Token);
-            operation.Check();
+            using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources,
+                () => new UdpClient(setting.LocalPort), setting.LocalPort,
+                operation.RemainingMs, operation.Token, operation.Check);
+            await udp.RunAsync(async (socket, token) =>
+            {
+                operation.BeforeSubmission();
+                await _network.SendUdpAsync(socket, endpoint, bytes, token);
+                operation.Check();
+            }, operation.Token, operation.Check);
 
             context.Log($"UDP 发送: {host}:{port} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
             cancellationToken.ThrowIfCancellationRequested();

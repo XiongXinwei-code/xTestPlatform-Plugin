@@ -21,12 +21,19 @@ public partial class CanFlashEditorView : UserControl, IRefreshableEditor
             new PropertyMetadata(null));
     public EditPosition? EditPosition { get => (EditPosition?)GetValue(EditPositionProperty); set => SetValue(EditPositionProperty, value); }
 
-    public CanFlashEditorView()
+    public CanFlashEditorView() : this(new CanFlashViewModel()) { }
+
+    internal CanFlashEditorView(CanFlashViewModel viewModel)
     {
         InitializeComponent();
-        ViewModel = new CanFlashViewModel();
+        ViewModel = viewModel;
         DataContext = ViewModel;
-        Unloaded += (_, _) => ViewModel.Flush();
+        Unloaded += (_, _) =>
+        {
+            try { ViewModel.Flush(); }
+            finally { ViewModel.SuspendAnalysis(); }
+        };
+        Loaded += (_, _) => ViewModel.ResumeAnalysis();
     }
 
     public void RefreshFromStep(Step step)

@@ -27,6 +27,7 @@ public sealed class EthernetResponsePublicationTests
         state.SetStep(plugin, new SomeIpRequestSetting { RemoteHost = "\"127.0.0.1\"",
             RemotePort = $"\"{((IPEndPoint)peer.Client.LocalEndPoint!).Port}\"", TimeoutMs = 3000,
             ResultVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         var execution = plugin.CreateExecutor().ExecuteAsync(context, caller.Token);
         try
         {
@@ -57,6 +58,7 @@ public sealed class EthernetResponsePublicationTests
         state.SetStep(plugin, new DoipDiagRequestSetting { SessionName = $"\"{name}\"",
             TargetAddress = "\"0x1000\"", RequestData = "\"10 01\"", TimeoutMs = 3000,
             ResultVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         var opening = DoipConnectionManager.ConnectAsync(name, "127.0.0.1", ((IPEndPoint)peer.LocalEndpoint).Port,
             0x0E00, 0, 3000, guard.Token, context.Resources);
         using var socket = await peer.AcceptTcpClientAsync(guard.Token);

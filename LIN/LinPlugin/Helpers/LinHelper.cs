@@ -9,15 +9,23 @@ public static class LinHelper
 
     /// <summary>输出为空时不写入；非空必须为已声明、可写入字符串的完整变量路径。</summary>
     public static void ValidateStringOutput(xTestPlatform.Core.Engine.IExecutionContext context, string path)
+        => ValidateStringOutput(context, path, null);
+
+    internal static void ValidateStringOutput(xTestPlatform.Core.Engine.IExecutionContext context, string path, Action? checkExecution)
     {
+        checkExecution?.Invoke();
         if (string.IsNullOrWhiteSpace(path)) return;
         var parts = path.Split('.', 2);
-        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[1]) ||
-            parts[0] is not ("Locals" or "Parameters" or "FileGlobals" or "ProjectGlobals" or "RunState"))
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[1]) || parts[0].Length == 0 ||
+            !(char.IsLetter(parts[0][0]) || parts[0][0] == '_') || !parts[0].All(c => char.IsLetterOrDigit(c) || c == '_'))
             throw new ArgumentException($"LIN 输出必须为带作用域的完整变量路径：{path}");
-        if (!context.HasVariable(path))
+        var declared = context.HasVariable(path);
+        checkExecution?.Invoke();
+        if (!declared)
             throw new ArgumentException($"LIN 输出变量 {path} 未声明或路径不存在；请声明 string 变量，或留空不写入");
-        if (context.GetVariable(path) is not (null or string))
+        var value = context.GetVariable(path);
+        checkExecution?.Invoke();
+        if (value is not (null or string))
             throw new ArgumentException($"LIN 输出变量 {path} 类型不匹配，需要 string；帧 ID 也以十进制字符串写入");
     }
 

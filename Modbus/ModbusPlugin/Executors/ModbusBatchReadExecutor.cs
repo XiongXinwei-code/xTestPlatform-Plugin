@@ -35,6 +35,7 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 
 			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -47,6 +48,13 @@ public sealed class ModbusBatchReadExecutor : IStepExecutor
 
 			var results = new List<string>();
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
+			// 先验证全部本地配置；真实通信失败仍保留先前已发布结果，不承诺原子回滚。
+			foreach (var item in setting.Items)
+			{
+				ModbusRequestPreflight.ValidateRead(item.RegisterType, item.DataFormat, item.StartAddress, item.Quantity);
+				ModbusRequestPreflight.ValidateDestination(context, item.ResultVariable, item.RegisterType, item.DataFormat, item.Quantity, optional: true, epoch.ThrowIfExpired);
+				epoch.ThrowIfExpired();
+			}
 			foreach (var item in setting.Items)
 			{
 				cancellationToken.ThrowIfCancellationRequested();

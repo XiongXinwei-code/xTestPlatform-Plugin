@@ -6,7 +6,7 @@ namespace CAN.Adapters.Zlg;
 
 /// <summary>周立功 ZLG CAN 适配器实现（zlgcan.dll）</summary>
 public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, ICanConfirmedTransmitter,
-    ICanClockValidity, ICanCloseState, ICanTransmitQuiescence, ICanQueueStatistics
+    ICanClockValidity, ICanCloseState, ICanTransmitQuiescence, ICanQueueStatistics, ICanBudgetedConfirmedTransmitter
 {
     private IntPtr _deviceHandle = IntPtr.Zero;
     private IntPtr _channelHandle = IntPtr.Zero;

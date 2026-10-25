@@ -14,6 +14,10 @@ internal sealed class EthernetOperationBudget : IDisposable
     public string Phase { get; set; } = "准备通信";
     public bool SubmissionStarted { get; private set; }
     public CancellationToken Token => _deadline.Token;
+    public int RemainingMs
+    {
+        get { Check(); return Math.Max(1, TimeoutMs - (int)Math.Min(int.MaxValue, Stopwatch.GetElapsedTime(_startedAt).TotalMilliseconds)); }
+    }
     public bool IsExpired => Stopwatch.GetElapsedTime(_startedAt).TotalMilliseconds >= TimeoutMs ||
         (_deadline.IsCancellationRequested && !_caller.IsCancellationRequested);
     public EthernetOperationBudget(int timeoutMs, string operation, CancellationToken caller, Action? ensureExecution = null)

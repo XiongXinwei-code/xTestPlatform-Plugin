@@ -34,6 +34,7 @@ public sealed class HttpRegressionTests
             SourceJson = "\"{\\\"ok\\\":123}\"", FailOnMissingPath = true,
             Items = [new() { Path = "ok", TargetVariable = "Locals.a" }, new() { Path = "missing", TargetVariable = "Locals.b" }]
         });
+        state.DeclaredVariables["Locals.a"] = ""; state.DeclaredVariables["Locals.b"] = "";
         var result = await plugin.CreateExecutor().ExecuteAsync(ctx);
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Empty(state.Variables);
@@ -76,6 +77,7 @@ public sealed class HttpRegressionTests
         resourceType.GetProperty("AuthMode")!.SetValue(resource, AuthMode.BearerToken);
         var plugin = new HttpRequestPlugin();
         var (ctx, state) = TestContext.Create(plugin, new HttpRequestSetting { Path = "\"http://other.invalid/\"" });
+        state.DeclaredVariables["Locals.HttpResponse"] = "";
         state.Items["Http.Client.Mes"] = resource;
         var result = await plugin.CreateExecutor().ExecuteAsync(ctx);
         Assert.Equal(TestStatus.Error, result.StepResult.Status);

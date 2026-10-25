@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using Ethernet;
@@ -28,6 +29,7 @@ public sealed class ReauditEthernetDeadlineTests
             ? new TcpReceiveSetting { ConnectionName = $"\"{name}\"", TimeoutMs = 250, ExpectedLength = 1, ResultVariable = "Locals.rx" }
             : new TcpSendSetting { ConnectionName = $"\"{name}\"", SendTimeoutMs = 250, Data = "\"A5\"", Encoding = EthernetDataEncoding.Hex };
         state.SetStep(plugin, setting);
+        if (read) state.DeclaredVariables["Locals.rx"] = "";
         state.BlockPrefix = read ? "TCP 接收:" : "TCP 发送:";
         var connecting = TcpConnectionManager.ConnectAsync(name, "127.0.0.1", ((IPEndPoint)peer.LocalEndpoint).Port, 3000, guard.Token, context.Resources);
         using var connected = await peer.AcceptTcpClientAsync(guard.Token);
@@ -66,10 +68,16 @@ public sealed class ReauditEthernetDeadlineTests
         var state = (ResponseLogGateProxy)(object)context;
         var plugin = new UdpReceivePlugin();
         state.SetStep(plugin, new UdpReceiveSetting { LocalPort = port, TimeoutMs = 250, ResultVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         state.BlockPrefix = "UDP 接收:";
         var running = plugin.CreateExecutor().ExecuteAsync(context, guard.Token);
         try
         {
+            while (!IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners().Any(endpoint => endpoint.Port == port))
+            {
+                Assert.False(running.IsCompleted, "UDP listener exited before binding its localhost port");
+                await Task.Delay(5, guard.Token);
+            }
             await peer.SendAsync(new byte[] { 0xA5 }, new IPEndPoint(IPAddress.Loopback, port), guard.Token);
             await state.LogEntered.Task.WaitAsync(guard.Token);
             await Task.Delay(350, guard.Token);

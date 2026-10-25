@@ -29,12 +29,19 @@ public partial class CanopenSdoWriteEditorView : UserControl, IRefreshableEditor
         ViewModel = new CanopenSdoWriteViewModel();
         DataContext = ViewModel;
         Loaded += (_, _) => ViewModel.ResumeEdsLoading();
-        Unloaded += (_, _) => { ViewModel.Flush(); ViewModel.SuspendEdsLoading(); };
+        Unloaded += (_, _) => { try { FlushEditor(); } finally { ViewModel.SuspendEdsLoading(); } };
+    }
+
+    private void FlushEditor()
+    {
+        EdsPathInput.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        ViewModel.Flush();
     }
 
     /// <summary>步骤切换或撤销/重做后重新加载设置</summary>
     public void RefreshFromStep(Step step)
     {
+        FlushEditor();
         ViewModel.AttachSerializer(new CAN.CANopen.CanopenSdoWritePlugin().CreateSerializer());
         ViewModel.AttachStep(step);
     }

@@ -22,7 +22,10 @@ internal static class CanopenExecutorHelper
         guard?.Check();
         var key = CanHelper.GetAdapterKey(connName);
         if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
+        {
+            guard?.Check();
             return (null, $"CAN 连接未找到: {connName}");
+        }
         guard?.Watch(key, adapter);
         return (new CanopenBus(adapter), null);
     }

@@ -1,4 +1,5 @@
 using Ethernet.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -23,6 +24,7 @@ public sealed class TcpReceiveExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new TcpReceivePlugin().CreateSerializer();
             var setting = (TcpReceiveSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
             ArgumentOutOfRangeException.ThrowIfNegative(setting.ExpectedLength);
             if (!Enum.IsDefined(setting.Encoding)) throw new InvalidOperationException("TCP 接收编码无效");

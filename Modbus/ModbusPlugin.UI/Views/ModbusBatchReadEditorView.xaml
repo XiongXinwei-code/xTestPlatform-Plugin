@@ -37,7 +37,7 @@
 					<Button Content="Remove Selected" Padding="12,4" Margin="8,0,0,0" Click="RemoveItem_Click"/>
 				</StackPanel>
 				<DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
-						  CanUserAddRows="False" CanUserDeleteRows="False">
+						  CanUserAddRows="False" CanUserDeleteRows="False" ToolTip="首次通信前检查全部项：位 1～2000、寄存器 1～125，32 位数量为偶数，地址不越界；结果路径可留空，否则须声明且类型/形状匹配。">
 					<DataGrid.Columns>
 						<DataGridTextColumn Header="Slave" Binding="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
 						<DataGridComboBoxColumn Header="RegisterType" SelectedItemBinding="{Binding RegisterType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140"

@@ -44,7 +44,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             long generation = OpcUaHelper.GetCloseGeneration(context.Resources, taskKey);
 
             // 获取 OPC UA 会话
-            if (!context.Resources.TryGet<OpcUaConnectionResource>(sessionKey, out var connection))
+            if (!guard.TryGetResource<OpcUaConnectionResource>(sessionKey, out var connection))
             {
                 return new ExecutionResult
                 {
@@ -83,7 +83,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             {
                 CheckStart();
                 // A reconnect may have completed while evaluating settings; do not attach to the old generation.
-                if (!context.Resources.TryGet<OpcUaConnectionResource>(sessionKey, out var current) || !ReferenceEquals(current, connection))
+                if (!guard.TryGetResource<OpcUaConnectionResource>(sessionKey, out var current) || !ReferenceEquals(current, connection))
                     throw new InvalidOperationException("OPC UA 连接代次已改变，请重新执行采集启动");
                 var registration = OpcUaHelper.GetRegistrationLock(context.Resources, taskKey);
                 if (!await registration.WaitAsync(OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs), cancellationToken))
@@ -92,8 +92,10 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
                 {
                     CheckStart();
                     OpcUaHelper.ThrowIfOpenSuperseded(context.Resources, taskKey, generation);
-                    if (context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var previous))
+                    if (guard.TryGetResource<OpcUaDataAcqTask>(taskKey, out var previous))
                     {
+                        CheckStart();
+                        OpcUaHelper.ThrowIfOpenSuperseded(context.Resources, taskKey, generation);
                         await previous.StopAsync(OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs), cancellationToken);
                         CheckStart();
                         if (context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var previousCurrent) && ReferenceEquals(previousCurrent, previous))
@@ -134,7 +136,7 @@ public sealed class OpcUaDataAcqStartExecutor : IStepExecutor
             context.Log($"OPC UA 数据采集已启动: {taskName} ({resolvedItems.Count} 节点, {setting.SamplingIntervalMs}ms 间隔)");
             CheckStart();
             guard.EnsureCurrent(sessionKey, connection);
-            if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var published) || !ReferenceEquals(published, createdTask) || createdTask!.IsStopRequested)
+            if (!guard.TryGetResource<OpcUaDataAcqTask>(taskKey, out var published) || !ReferenceEquals(published, createdTask) || createdTask!.IsStopRequested)
                 throw new InvalidOperationException("采集启动结果的资源代次已改变或已停止，不能报告成功");
 
             return new ExecutionResult

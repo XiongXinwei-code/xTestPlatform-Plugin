@@ -29,12 +29,21 @@ public partial class CanopenSdoReadEditorView : UserControl, IRefreshableEditor
         ViewModel = new CanopenSdoReadViewModel();
         DataContext = ViewModel;
         Loaded += (_, _) => ViewModel.ResumeEdsLoading();
-        Unloaded += (_, _) => { ViewModel.Flush(); ViewModel.SuspendEdsLoading(); };
+        Unloaded += (_, _) => { try { FlushEditor(); } finally { ViewModel.SuspendEdsLoading(); } };
+    }
+
+    private void FlushEditor()
+    {
+        // Keep LostFocus loading while committing pending text to the original
+        // step before its serializer/step identity is replaced or the view exits.
+        EdsPathInput.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        ViewModel.Flush();
     }
 
     /// <summary>步骤切换或撤销/重做后重新加载设置</summary>
     public void RefreshFromStep(Step step)
     {
+        FlushEditor();
         ViewModel.AttachSerializer(new CAN.CANopen.CanopenSdoReadPlugin().CreateSerializer());
         ViewModel.AttachStep(step);
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using SerialPort.Helpers;
 using SerialPort.Models;
 using PluginCommon;
@@ -23,19 +24,26 @@ public sealed class SerialPortOpenExecutor : IStepExecutor
         SerialConnectionResource? unpublished = null;
         try
         {
+            long startedAt = Stopwatch.GetTimestamp();
             cancellationToken.ThrowIfCancellationRequested();
             var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
             var step = context.CurrentStep!.Step;
             var serializer = new SerialPortOpenPlugin().CreateSerializer();
             var s = (SerialPortOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             if (s.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(s.TimeoutMs));
+            int Remaining()
+            {
+                epoch.ThrowIfExpired();
+                return SerialPortHelper.RemainingBudget(startedAt, s.TimeoutMs);
+            }
+            Remaining();
             if (s.BaudRate <= 0 || s.DataBits is < 5 or > 8 || s.StopBits is < 1 or > 3 || s.Parity is < 0 or > 4)
                 throw new ArgumentException("串口通信参数无效：波特率必须为正数，数据位 5~8，停止位 1/2/3，校验位 0~4");
             if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1 || s.WriteTimeoutMs == 0 || s.WriteTimeoutMs < -1)
                 throw new ArgumentException("串口读写期限必须为正数或 -1（无限等待）");
 
             var portName = await Evaluator.EvalStringAsync(s.PortName, context);
-            epoch.ThrowIfExpired();
+            Remaining();
 
             if (string.IsNullOrWhiteSpace(portName))
                 return new ExecutionResult
@@ -51,13 +59,16 @@ public sealed class SerialPortOpenExecutor : IStepExecutor
             cancellationToken.ThrowIfCancellationRequested();
             var created = _create(portName, s, ex => context.Log(LogLevel.Error, $"串口 {portName} 收尾未确认", ex.ToString()));
             unpublished = created.Owner;
-            await SerialPortLifecycle.OpenRegisteredAsync(context, portName, unpublished, created.Open, cancellationToken, s.TimeoutMs, epoch.ThrowIfExpired);
-            epoch.ThrowIfExpired();
+            Remaining();
+            await SerialPortLifecycle.OpenRegisteredAsync(context, portName, unpublished,
+                () => { Remaining(); created.Open(); Remaining(); }, cancellationToken, Remaining(), () => { Remaining(); });
+            Remaining();
             SerialResultPublisher.EnsureActive(context, key, unpublished, cancellationToken);
 
             context.Log($"串口 {portName} 已打开 (波特率: {s.BaudRate})");
-            epoch.ThrowIfExpired();
+            Remaining();
             SerialResultPublisher.EnsureActive(context, key, unpublished, cancellationToken);
+            Remaining();
             unpublished = null;
 
             return new ExecutionResult

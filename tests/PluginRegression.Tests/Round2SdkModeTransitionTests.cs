@@ -108,6 +108,7 @@ public sealed class Round2SdkModeTransitionTests
             ExpectedLength = 1, ResultVariable = "Locals.received"
         };
         state.SetStep(read, readSetting);
+        state.DeclaredVariables["Locals.received"] = "";
         var oldRead = read.CreateExecutor().ExecuteAsync(ctx, guard.Token);
         Assert.False(oldRead.IsCompleted);
         SdkResourceLifecycleTests.Cleanup(registry, newDebugContext ? "CleanupAll" : "CleanupExecution");
@@ -156,6 +157,7 @@ public sealed class Round2SdkModeTransitionTests
         registry.Set("Http.Client.Mes", old);
         var read = new HttpRequestPlugin();
         state.SetStep(read, new HttpRequestSetting { Path = "\"read\"", ResponseVariable = "Locals.received" });
+        state.DeclaredVariables["Locals.received"] = "";
         var oldRead = read.CreateExecutor().ExecuteAsync(ctx, oldCaller.Token);
         await entered.Task.WaitAsync(guard.Token);
         var clock = Stopwatch.StartNew();

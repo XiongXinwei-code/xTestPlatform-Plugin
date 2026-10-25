@@ -63,6 +63,7 @@ public sealed class HttpLifecycleTests
         var owner = new HttpClientResource { Client = client, BaseUrl = client.BaseAddress.ToString() };
         var plugin = new HttpRequestPlugin();
         var (ctx, state) = TestContext.Create(plugin, new HttpRequestSetting { Path = "\"read\"", ResponseVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         state.Items["Http.Client.Mes"] = owner;
         var execution = plugin.CreateExecutor().ExecuteAsync(ctx, caller.Token);
         await handler.Entered.Task.WaitAsync(guard.Token);
@@ -100,6 +101,7 @@ public sealed class HttpLifecycleTests
         var (ctx, state) = TestContext.Create(plugin, soap
             ? new HttpSoapRequestSetting { Path = "\"rpc\"", Envelope = "\"<Envelope/>\"", ResponseVariable = "Locals.rx" }
             : new HttpRequestSetting { Path = "\"read\"", ResponseVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         state.Items["Http.Client.Mes"] = owner;
         var dispatcher = new PausedContinuationContext();
         var previous = SynchronizationContext.Current;

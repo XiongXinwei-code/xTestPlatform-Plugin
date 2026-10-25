@@ -15,6 +15,8 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         internal T? Value;
         internal CancellationTokenSource? Opening;
         internal readonly HashSet<Task> Operations = new();
+        internal string? RetirementKeyOverride;
+        internal bool RemoveAfterRetirement;
     }
 
     // Immutable close generation: a delayed waiter must never retry Close(name) against a newer owner.
@@ -44,7 +46,8 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
     }
 
     internal async Task<T> OpenAsync(string name, Func<CancellationToken, Task<T>> factory,
-        int timeoutMs, CancellationToken ct, Action? ensureExecution = null)
+        int timeoutMs, CancellationToken ct, Action? ensureExecution = null,
+        string? retirementKey = null, bool removeAfterRetirement = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(factory);
@@ -52,7 +55,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         ct.ThrowIfCancellationRequested();
         ensureExecution?.Invoke();
         var budget = Stopwatch.StartNew();
-        await RetiringResources.WaitForPreviousAsync(RetirementKey(name), timeoutMs, ct).ConfigureAwait(false);
+        await RetiringResources.WaitForPreviousAsync(retirementKey ?? RetirementKey(name), timeoutMs, ct).ConfigureAwait(false);
         int remaining = timeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
         if (remaining <= 0) throw new TimeoutException($"连接建立总期限 {timeoutMs} ms 已到（包括旧执行收尾）");
         Slot slot;
@@ -64,6 +67,12 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         {
             if (_disposed) { source.Dispose(); deadline.Dispose(); throw new ObjectDisposedException(GetType().Name); }
             if (!_slots.TryGetValue(name, out slot!)) _slots.Add(name, slot = new Slot());
+            if (slot.RetirementKeyOverride != retirementKey || slot.RemoveAfterRetirement != removeAfterRetirement)
+            {
+                if (slot.Generation != 0) throw new InvalidOperationException("同一连接名称的收尾标识不能在打开期间改变");
+                slot.RetirementKeyOverride = retirementKey;
+                slot.RemoveAfterRetirement = removeAfterRetirement;
+            }
             generation = ++slot.Generation;
             previous = slot.Opening;
             slot.Opening = source;
@@ -128,10 +137,10 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                 }
                 finally
                 {
-                    if (entered) slot.Gate.Release();
                     lock (_sync) if (ReferenceEquals(slot.Opening, source)) slot.Opening = null;
                     source.Dispose();
                     deadline.Dispose();
+                    if (entered) slot.Gate.Release();
                 }
             }
         });
@@ -174,6 +183,19 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         return BeginClose(name).WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct);
     }
 
+    // A transient step owns one captured handle. Its delayed finally cannot retire a replacement.
+    internal void RequestCloseOwned(string name, T expected)
+    {
+        long generation;
+        lock (_sync)
+        {
+            if (!_slots.TryGetValue(name, out var slot) || !ReferenceEquals(slot.Value, expected) ||
+                slot.Generation != slot.ValueGeneration) return;
+            generation = slot.ValueGeneration;
+        }
+        _ = BeginClose(name, generation);
+    }
+
     private Task BeginClose(string name, long? expectedGeneration = null)
     {
         Slot slot;
@@ -187,7 +209,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
             opening = slot.Opening;
             // Register the captured close while holding the lifecycle lock. Do not publish
             // an intermediate state with a changed generation but no tracked retirement.
-            RetiringResources.Track(RetirementKey(name), retirement,
+            RetiringResources.Track(slot.RetirementKeyOverride ?? RetirementKey(name), retirement,
                 (limit, token) => StartRetirement(name, retirement).WaitAsync(TimeSpan.FromMilliseconds(limit), token),
                 () => retirement.Released,
                 () => $"网络连接={name}; 关闭代次={retirement.Generation}; 旧执行已退出={_disposed}");
@@ -227,9 +249,14 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                 // Acquiring the gate proves the captured factory has exited. A newer
                 // generation may already be active; that is not an unfinished old close.
                 retirement.Released = true;
+                lock (_sync)
+                    if (slot.RemoveAfterRetirement && slot.Generation == retirement.Generation &&
+                        slot.Value is null && slot.Opening is null &&
+                        _slots.TryGetValue(name, out var registered) && ReferenceEquals(registered, slot))
+                        _slots.Remove(name);
             }
             finally { slot.Gate.Release(); }
-            RetiringResources.ForgetReleased(RetirementKey(name), retirement);
+            RetiringResources.ForgetReleased(slot.RetirementKeyOverride ?? RetirementKey(name), retirement);
         });
         return actual;
     }

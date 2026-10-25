@@ -12,6 +12,9 @@ namespace CAN.Flash.Executors;
 public sealed class CanFlashExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<string, bool> _fileExists;
+    public CanFlashExecutor() : this(File.Exists) { }
+    internal CanFlashExecutor(Func<string, bool> fileExists) => _fileExists = fileExists;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -35,14 +38,27 @@ public sealed class CanFlashExecutor : IStepExecutor
             if (!Enum.IsDefined(setting.CheckMode)) return Error("未知的校验方式，未发送擦除或下载请求");
 
             var filePath = await Evaluator.EvalStringAsync(setting.FilePath, context);
-            if (!File.Exists(filePath))
+            // Exists and opening ReadAllBytesAsync can both block before their first
+            // yield (for example on a mapped drive). Keep the whole readonly file
+            // operation on one worker; cancelling this wait does not retire that worker.
+            var fileRead = Task.Run<byte[]?>(async () =>
+            {
+                guard.Check();
+                if (!_fileExists(filePath)) return null;
+                guard.Check();
+                return await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
+            }, CancellationToken.None);
+            _ = fileRead.ContinueWith(static task => { _ = task.Exception; }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            var content = await fileRead.WaitAsync(cancellationToken).ConfigureAwait(false);
+            guard.Check();
+            if (content == null)
                 return Error($"固件文件不存在: {filePath}");
 
             // ── 解析固件 ─────────────────────────────────────────────────
             uint baseAddress = UdsExecutorHelper.ParseId(
                 await Evaluator.EvalStringAsync(setting.BaseAddress, context));
 
-            var content = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
             var parser = FirmwareParserFactory.Create(setting.Format, filePath);
             var parsedSegments = await Task.Run(() =>
             {
@@ -310,7 +326,7 @@ public sealed class CanFlashExecutor : IStepExecutor
 
         long usable = maxBlockLength - 2; // 扣除 SID 与块序号
         if (usable <= 0)
-            return configuredMax;
+            return 0; // ECU 未允许任何数据字节，不能回退到用户上限继续下载。
 
         int ecuMax = (int)Math.Min(usable, int.MaxValue);
         return configuredMax == 0 ? ecuMax : Math.Min(ecuMax, configuredMax);

@@ -56,10 +56,12 @@
                 </StackPanel>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="SubFunction:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SubFunction, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SubFunction, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         ToolTip="子功能必须为 0～255 的整数；超出范围不会保存。"/>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Status Mask:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding StatusMask, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding StatusMask, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         ToolTip="状态掩码必须为 0～255 的整数；超出范围不会保存。"/>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>

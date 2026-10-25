@@ -36,6 +36,8 @@ public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 
 		- 连接不存在、从站无响应或地址非法时步骤报错
 		- DataFormat 仅对寄存器类型生效，线圈/离散量返回布尔值
+		- 发送前验证数量（线圈/离散量 1～2000、寄存器 1～125）、地址范围不超过 65535、32 位格式的偶数寄存器数量
+		- ResultVariable 必须是已声明的完整路径；已有值时验证其数值/布尔类型及标量/一维数组形状。局部配置错误不发送请求
 
 		## 相关插件
 

@@ -34,6 +34,7 @@ public sealed class VisaReadExecutor : IStepExecutor
 
             if (!context.Resources.TryGet<VisaSessionResource>(key, out var resource))
             {
+                epoch.ThrowIfExpired();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult

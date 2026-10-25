@@ -19,7 +19,10 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
             var connectionName = await CanopenExecutorHelper.EvalTextAsync(s.ConnectionName, context);
             var name = await CanopenExecutorHelper.EvalTextAsync(s.ServiceName, context);
             if (!context.Resources.TryGet<CanConnectionResource>(CanHelper.GetAdapterKey(connectionName), out var connection))
+            {
+                guard.Check();
                 throw new InvalidOperationException($"CAN 连接 {connectionName} 不存在或不是新版连接，请先执行 CAN_Open");
+            }
             if (!string.IsNullOrWhiteSpace(s.ResultVariable) &&
                 (!context.HasVariable(s.ResultVariable) || context.GetVariable(s.ResultVariable) is not (null or string)))
                 throw new ArgumentException("结果必须是已声明的 string 变量");

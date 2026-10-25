@@ -1,4 +1,5 @@
 using PluginCommon;
+using System.Diagnostics.CodeAnalysis;
 using xTestPlatform.Core.Engine;
 
 namespace OpcUa.Helpers;
@@ -22,4 +23,11 @@ internal sealed class OpcUaExecutionGuard
     }
     internal void EnsureCurrent(string key, OpcUaConnectionResource owner)
     { Check(); OpcUaHelper.EnsureCurrentConnection(_context, key, owner, _caller); Check(); }
+    internal bool TryGetResource<T>(string key, [NotNullWhen(true)] out T? value) where T : class
+    {
+        Check();
+        bool found = _context.Resources.TryGet<T>(key, out value);
+        Check();
+        return found && value != null;
+    }
 }

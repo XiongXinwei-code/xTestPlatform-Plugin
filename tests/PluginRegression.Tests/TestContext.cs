@@ -9,6 +9,8 @@ namespace PluginRegression.Tests;
 public class TestContext : DispatchProxy
 {
     public ConcurrentDictionary<string, object?> Variables { get; } = new();
+    // Declaration and publication are separate so lifecycle probes can assert zero writes.
+    public Dictionary<string, object?> DeclaredVariables { get; } = new();
     public ConcurrentDictionary<string, object> Items { get; } = new();
     public List<string> Logs { get; } = new();
     public StepExecutionInfo Current { get; set; } = null!;
@@ -39,8 +41,8 @@ public class TestContext : DispatchProxy
         {
             case "get_CurrentStep": return Current;
             case "get_IsAbortRequested": return false;
-            case "HasVariable": return Variables.ContainsKey((string)args[0]!);
-            case "GetVariable": return Variables.GetValueOrDefault((string)args[0]!);
+            case "HasVariable": return Variables.ContainsKey((string)args[0]!) || DeclaredVariables.ContainsKey((string)args[0]!);
+            case "GetVariable": return Variables.TryGetValue((string)args[0]!, out var known) ? known : DeclaredVariables.GetValueOrDefault((string)args[0]!);
             case "SetVariable": Variables[(string)args[0]!] = args[1]; return null;
             case "Log": lock (Logs) Logs.Add(string.Join(" ", args.Select(a => a?.ToString()))); return null;
             case "get_Resources":

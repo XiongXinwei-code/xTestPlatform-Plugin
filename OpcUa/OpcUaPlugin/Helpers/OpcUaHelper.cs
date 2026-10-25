@@ -14,7 +14,9 @@ public static class OpcUaHelper
         OpcUaConnectionResource expected, CancellationToken caller)
     {
         caller.ThrowIfCancellationRequested();
-        if (!context.Resources.TryGet<OpcUaConnectionResource>(key, out var current) || !ReferenceEquals(current, expected))
+        bool found = context.Resources.TryGet<OpcUaConnectionResource>(key, out var current);
+        caller.ThrowIfCancellationRequested();
+        if (!found || !ReferenceEquals(current, expected))
             throw new InvalidOperationException("OPC UA 连接资源代次已改变，禁止发布旧连接结果");
         caller.ThrowIfCancellationRequested();
         expected.EnsureAvailableForPublication();

@@ -31,7 +31,7 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var resource = NiDaqTaskRegistry.Get(context, taskName);
+            var resource = NiDaqTaskRegistry.Get(context, taskName, guard.Check);
             guard.EnsureCurrent(taskName, resource);
             double value = await resource.RunAsync(() =>
             {

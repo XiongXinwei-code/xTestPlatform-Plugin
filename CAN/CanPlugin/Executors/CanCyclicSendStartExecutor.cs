@@ -21,7 +21,10 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             if (!context.Resources.TryGet<CanConnectionResource>(CanHelper.GetAdapterKey(connName), out var connection))
+            {
+                guard.Check();
                 throw new InvalidOperationException($"CAN 连接 {connName} 未找到，请使用新版 CAN_Open");
+            }
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             guard.Watch(CanHelper.GetAdapterKey(connName), connection);
             var messages = setting.Messages.Where(m => m.Enabled).ToArray();
@@ -32,6 +35,14 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
             {
                 // 保留逐报文独立调度；跟踪全部任务，取消后等待实际退出。
                 using var groupStop = CancellationTokenSource.CreateLinkedTokenSource(token);
+                void CheckJobLifetime()
+                {
+                    // CancelAsync marks the original token before delivering its
+                    // callbacks. Do not let a blocked linked callback admit a write.
+                    token.ThrowIfCancellationRequested();
+                    groupStop.Token.ThrowIfCancellationRequested();
+                    guard.CheckLifetime();
+                }
                 var workers = messages.Select(message => Task.Run(async () =>
                 {
                     try
@@ -41,9 +52,9 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
                         {
                             var id = CanHelper.ParseCanId(await Evaluator.EvalStringAsync(message.CanId, context));
                             var data = CanHelper.ParseHexData(await Evaluator.EvalStringAsync(message.Data, context));
-                            groupStop.Token.ThrowIfCancellationRequested();
-                            guard.CheckLifetime();
-                            connection.Write(new CanMessage { Id = id, Data = data, FrameType = message.FrameType });
+                            CheckJobLifetime();
+                            connection.Write(new CanMessage { Id = id, Data = data, FrameType = message.FrameType },
+                                token, CheckJobLifetime);
                         }
                     }
                     catch { groupStop.Cancel(); throw; }

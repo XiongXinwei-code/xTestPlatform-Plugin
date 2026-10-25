@@ -27,7 +27,7 @@ public sealed class NiDaqAoWriteSingleExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(s.Values)) throw new ArgumentException("任务名及电压表达式不能为空");
             var values = AoOutputPlan.ConvertValues(await evaluator.EvaluateAsync<object>(s.Values, context).WaitAsync(TimeSpan.FromMilliseconds(Remaining()), cancellationToken).ConfigureAwait(false));
             guard.Check();
-            var resource = NiDaqTaskRegistry.Get(context, name);
+            var resource = NiDaqTaskRegistry.Get(context, name, guard.Check);
             guard.EnsureCurrent(name, resource);
             await resource.WriteAnalogAsync(values, Remaining(), cancellationToken).ConfigureAwait(false);
             guard.Check();

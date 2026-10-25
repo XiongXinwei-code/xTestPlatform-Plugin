@@ -10,6 +10,30 @@ public interface ICanConfirmedTransmitter
     void WriteConfirmed(CanMessage message, CancellationToken cancellationToken);
 }
 
+/// <summary>同构建内传递调用方配置的单调总预算；公开能力签名及其默认保护保持兼容。</summary>
+internal interface ICanBudgetedConfirmedTransmitter
+{
+    void WriteConfirmed(CanMessage message, CanConfirmationBudget budget, CancellationToken cancellationToken);
+}
+
+internal readonly record struct CanConfirmationBudget(long Started, int TimeoutMs, CancellationToken OriginalToken)
+{
+    internal static CanConfirmationBudget Start(int timeoutMs, CancellationToken originalToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeoutMs);
+        return new(System.Diagnostics.Stopwatch.GetTimestamp(), timeoutMs, originalToken);
+    }
+
+    internal int Remaining(CancellationToken token)
+    {
+        OriginalToken.ThrowIfCancellationRequested();
+        token.ThrowIfCancellationRequested();
+        double remaining = TimeoutMs - System.Diagnostics.Stopwatch.GetElapsedTime(Started).TotalMilliseconds;
+        if (remaining <= 0) throw new TimeoutException($"CAN 发送确认超过配置总期限 {TimeoutMs} ms；已提交票据继续追踪");
+        return (int)Math.Min(int.MaxValue, Math.Ceiling(remaining));
+    }
+}
+
 public interface ICanClockValidity
 {
     bool IsClockCurrent(string clockId);

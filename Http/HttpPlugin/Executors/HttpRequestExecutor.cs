@@ -42,12 +42,19 @@ public sealed class HttpRequestExecutor : IStepExecutor
                 return Error("客户端标识名未配置");
 
             if (!context.Resources.TryGet<HttpClientResource>(HttpHelper.GetClientKey(clientName), out var resource))
+            {
+                CheckExecution();
                 return Error($"未找到 HTTP 客户端: {clientName}，请先执行 Http_ClientCreate 步骤");
+            }
 
             var path = await Evaluator.EvalStringAsync(setting.Path, context);
             CheckExecution();
             if (string.IsNullOrWhiteSpace(path))
                 return Error("请求路径未配置");
+
+            HttpOutputPreflight.Validate(context, setting.ResponseVariable, typeof(string), CheckExecution);
+            HttpOutputPreflight.Validate(context, setting.StatusCodeVariable, typeof(int), CheckExecution);
+            HttpOutputPreflight.Validate(context, setting.ElapsedVariable, typeof(int), CheckExecution);
 
             var request = pendingRequest = new HttpRequestMessage(
                 HttpHelper.ToHttpMethod(setting.Method),
@@ -92,11 +99,15 @@ public sealed class HttpRequestExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(setting.ResponseVariable))
                 context.SetVariable(setting.ResponseVariable, content);
             CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             if (!string.IsNullOrWhiteSpace(setting.StatusCodeVariable))
                 context.SetVariable(setting.StatusCodeVariable, statusCode);
             CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             if (!string.IsNullOrWhiteSpace(setting.ElapsedVariable))
                 context.SetVariable(setting.ElapsedVariable, elapsedMs);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
 
             var succeeded = response.IsSuccess || !setting.TreatNonSuccessAsFailure;
 

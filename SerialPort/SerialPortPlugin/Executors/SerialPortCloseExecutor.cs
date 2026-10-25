@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using PluginCommon;
 using SerialPort.Helpers;
 using SerialPort.Models;
@@ -17,15 +18,22 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
     {
         try
         {
+            long startedAt = Stopwatch.GetTimestamp();
             cancellationToken.ThrowIfCancellationRequested();
             var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
             var step = context.CurrentStep!.Step;
             var serializer = new SerialPortClosePlugin().CreateSerializer();
             var s = (SerialPortCloseSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             if (s.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(s.TimeoutMs));
+            int Remaining()
+            {
+                epoch.ThrowIfExpired();
+                return SerialPortHelper.RemainingBudget(startedAt, s.TimeoutMs);
+            }
+            Remaining();
 
             var portName = await Evaluator.EvalStringAsync(s.PortName, context);
-            epoch.ThrowIfExpired();
+            Remaining();
 
             if (string.IsNullOrWhiteSpace(portName))
                 return new ExecutionResult
@@ -43,30 +51,33 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
             lock (SerialPortHelper.RegistryLock(context.Resources))
             {
                 context.Resources.TryGet<SerialConnectionResource>(key, out port);
-                epoch.ThrowIfExpired();
+                Remaining();
                 SerialPortHelper.MarkCloseRequested(context.Resources, key);
             }
             if (port != null)
             {
-                epoch.ThrowIfExpired();
-                await port.CloseAsync(s.TimeoutMs, cancellationToken);
-                epoch.ThrowIfExpired();
+                await port.CloseAsync(Remaining(), cancellationToken);
+                Remaining();
                 lock (SerialPortHelper.RegistryLock(context.Resources))
                 {
-                    if (context.Resources.TryGet<SerialConnectionResource>(key, out var current) && ReferenceEquals(current, port))
+                    bool found = context.Resources.TryGet<SerialConnectionResource>(key, out var current);
+                    Remaining();
+                    if (found && ReferenceEquals(current, port))
                         context.Resources.Remove(key);
                 }
+                Remaining();
                 context.Log($"串口 {portName} 已关闭");
-                epoch.ThrowIfExpired();
+                Remaining();
             }
             else
             {
                 context.Log(LogLevel.Warn, $"串口 {portName} 未找到或已关闭");
-                epoch.ThrowIfExpired();
+                Remaining();
             }
 
-            epoch.ThrowIfExpired();
+            Remaining();
             SerialResultPublisher.EnsureCallerActive(context, cancellationToken);
+            Remaining();
             return new ExecutionResult
             {
                 StepResult = new StepResult

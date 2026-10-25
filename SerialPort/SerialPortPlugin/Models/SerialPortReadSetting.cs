@@ -18,7 +18,7 @@ public class SerialPortReadSetting
     /// <summary>终止符，以转义文本存储（如 \n、\r\n）；为空表示不按终止符结束，读到超时为止</summary>
     public string Terminator { get; set; } = "\\n";
 
-    /// <summary>读取结果存放的目标变量路径（如 Locals.ReceivedData）</summary>
+    /// <summary>已声明的 string 目标完整路径（如 Locals.ReceivedData）；留空不写入，通信前预检。</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

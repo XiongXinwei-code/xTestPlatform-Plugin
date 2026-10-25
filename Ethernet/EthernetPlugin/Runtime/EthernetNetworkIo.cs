@@ -27,12 +27,12 @@ internal sealed class EthernetNetworkIo : IEthernetNetworkIo
     }
 
     internal static async Task<IPEndPoint> ResolveEndpointAsync(IEthernetNetworkIo network, string host,
-        int port, AddressFamily family, EthernetOperationBudget budget)
+        int port, AddressFamily family, EthernetOperationBudget budget, CancellationToken? operationToken = null)
     {
         budget.Phase = "解析目标地址";
         budget.Check();
         var addresses = IPAddress.TryParse(host, out var literal) ? [literal]
-            : await network.ResolveAsync(host, budget.Token).ConfigureAwait(false);
+            : await network.ResolveAsync(host, operationToken ?? budget.Token).ConfigureAwait(false);
         budget.Check(); // 迟到解析不能继续提交；与发送/响应共用原来的单调预算。
         var address = addresses.FirstOrDefault(a => a.AddressFamily == family)
             ?? throw new SocketException((int)SocketError.AddressFamilyNotSupported);

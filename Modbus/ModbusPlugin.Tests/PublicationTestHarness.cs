@@ -45,6 +45,8 @@ public class PublicationContextProxy : DispatchProxy
 {
     public readonly ConcurrentQueue<(string Path, object? Value)> Published = new();
     internal Action? OnLog;
+    internal Dictionary<string, object?>? Variables;
+    internal Action<string>? BeforeHasVariable, BeforeGetVariable;
     public PublicationStoreProxy Store = null!;
     internal IResourceRegistry? ResourcesOverride;
     private object _registry = null!;
@@ -72,7 +74,8 @@ public class PublicationContextProxy : DispatchProxy
         if (method.Name == "get_Resources") return ResourcesOverride ?? _registry;
         if (method.Name == "get_IsAbortRequested") return false;
         if (method.Name == "Log") { OnLog?.Invoke(); return null; }
-        if (method.Name == "HasVariable") return args?[0] is "Locals.rx";
+        if (method.Name == "HasVariable") { string path = (string)args![0]!; BeforeHasVariable?.Invoke(path); return Variables?.ContainsKey(path) ?? path is "Locals.rx"; }
+        if (method.Name == "GetVariable") { string path = (string)args![0]!; BeforeGetVariable?.Invoke(path); return Variables?.GetValueOrDefault(path); }
         if (method.Name == "SetVariable") { Published.Enqueue(((string)args![0]!, args[1])); return null; }
         return method.ReturnType.IsValueType && method.ReturnType != typeof(void) ? Activator.CreateInstance(method.ReturnType) : null;
     }

@@ -38,6 +38,8 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
 
         ## 行为
 
+        - 非空响应/状态码路径在发送前验证声明及已知 string/int 类型，并要求完整作用域；每项发布及最终结果均复查本次连接归属、运行代次和原始取消
+
         - 客户端不存在时步骤报错，需先执行 Http_ClientCreate
         - 请求固定使用 POST 方法，Envelope 以 UTF-8 编码发送
         - SoapVersion 为 Soap11 时 Content-Type 为 text/xml，SOAPAction 作为独立请求头发送

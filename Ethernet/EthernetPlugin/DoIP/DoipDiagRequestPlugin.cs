@@ -29,6 +29,8 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
 
         ## 行为
 
+        - ResultVariable 为空时跳过写入；非空须配置已声明的完整作用域 string 变量路径，当前值允许 null；建立/发送/消费响应前预检，不自动创建变量
+
         - 收到 UDS 负响应（0x7F）时步骤返回 Error
         - 本次请求 TimeoutMs 不复用 DoIP_Connect 的建立期限，ACK 和分片读取不会重置预算
         - 排队尚未进入事务的超时不关闭仍有效的会话；已经开始真实事务后超时/取消或失败会关闭捕获的原实例，避免旧响应污染后续请求，不按名称关闭新代次

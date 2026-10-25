@@ -38,6 +38,8 @@ public sealed class HttpRequestPlugin : StepPluginBase<HttpRequestSetting>
 
         ## 行为
 
+        - 所有非空输出路径在发送前验证声明及已知类型（响应为 string，状态码/耗时为 int）；路径必须带完整作用域。每项发布及最终结果均复查本次连接归属、运行代次和原始取消
+
         - 客户端不存在时步骤报错，需先执行 Http_ClientCreate
         - ContentType 为 None 时不发送请求体，其余类型按对应 MIME 以 UTF-8 编码发送
         - 本步骤的 Headers 会追加到客户端默认请求头之上，同名时以本步骤为准

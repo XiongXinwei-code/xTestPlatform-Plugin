@@ -23,6 +23,7 @@ public sealed class ReauditHttpLoggingTests
             ? new HttpSoapRequestSetting { Path = "\"read?token=query-secret\"", Envelope = "\"<Envelope>body-secret</Envelope>\"", SoapAction = "\"action-secret\"", LogPayload = log, ResponseVariable = "Locals.rx" }
             : new HttpRequestSetting { Path = "\"read?token=query-secret\"", ContentType = BodyContentType.Text, Body = "\"body-secret\"", LogPayload = log, ResponseVariable = "Locals.rx" };
         var (ctx, state) = TestContext.Create(plugin, setting);
+        state.DeclaredVariables["Locals.rx"] = "";
         var owner = new HttpClientResource { Client = new HttpClient(new ReplyHandler()) { BaseAddress = new("http://unit.invalid/") } };
         state.Items[HttpHelper.GetClientKey("Mes")] = owner;
         try
@@ -45,6 +46,7 @@ public sealed class ReauditHttpLoggingTests
             ? new HttpXmlExtractSetting { SourceXml = "\"<r><token>extracted-secret</token></r>\"", Items = [new() { Path = "/r/token", TargetVariable = "Locals.token" }] }
             : new HttpJsonExtractSetting { SourceJson = "\"{\\\"token\\\":\\\"extracted-secret\\\"}\"", Items = [new() { Path = "token", TargetVariable = "Locals.token" }] };
         var (ctx, state) = TestContext.Create(plugin, setting);
+        state.DeclaredVariables["Locals.token"] = "";
         Assert.Equal(TestStatus.Completed, (await plugin.CreateExecutor().ExecuteAsync(ctx)).StepResult.Status);
         Assert.Equal("extracted-secret", state.Variables["Locals.token"]);
         Assert.DoesNotContain("extracted-secret", string.Join("\n", state.Logs));

@@ -42,7 +42,7 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var acqTask))
+            if (!guard.TryGetResource<OpcUaDataAcqTask>(taskKey, out var acqTask))
                 return ErrorResult($"采集任务 {taskName} 不存在或未启动，请先执行 OpcUa_DataAcq_Start");
 
             void CheckPublication()
@@ -50,7 +50,7 @@ public sealed class OpcUaDataAcqReadExecutor : IStepExecutor
                 guard.Check();
                 _ = Remaining();
                 if (acqTask.IsStopRequested || context.IsAbortRequested ||
-                    !context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var current) || !ReferenceEquals(current, acqTask))
+                    !guard.TryGetResource<OpcUaDataAcqTask>(taskKey, out var current) || !ReferenceEquals(current, acqTask))
                     throw new InvalidOperationException("采集任务已停止或代次已改变，未向序列发布晚到结果");
             }
 

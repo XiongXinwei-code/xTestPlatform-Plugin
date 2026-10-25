@@ -33,6 +33,8 @@ public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForg
 
         ## 行为
 
+        - 本次 UDP/TCP 临时连接登记为执行资源；中断或退出调试时请求取消，后台确认原始 I/O 与取消回调退出后才释放；旧资源收尾等待与建立计入原 SendTimeoutMs 总预算，已提交的报文不能据此视为撤回
+
         - 本机发送调用成功即返回 Completed，不等待响应，也不证明远端已收到或执行
         - UDP 域名使用可取消的异步解析；解析、连接和发送共用 SendTimeoutMs，不在阶段切换时重新计时
         - 超时返回 Error、原调用方取消返回 Aborted；已经开始提交时远端执行结果未知，不自动重发。等待真实网络调用退出后才释放本次 Socket

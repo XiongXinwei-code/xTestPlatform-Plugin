@@ -29,7 +29,7 @@ public sealed class NiDaqTaskStopExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var resource = NiDaqTaskRegistry.Get(context, taskName);
+            var resource = NiDaqTaskRegistry.Get(context, taskName, guard.Check);
             guard.Check();
             await resource.CloseAsync(setting.TimeoutMs, cancellationToken);
             NiDaqTaskRegistry.RemoveClosed(context, taskName, resource);

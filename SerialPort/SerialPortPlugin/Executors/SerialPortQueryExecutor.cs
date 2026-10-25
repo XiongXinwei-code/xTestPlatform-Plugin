@@ -22,6 +22,8 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 			var step = context.CurrentStep?.Step ?? throw new InvalidOperationException("串口查询步骤上下文不存在");
 			var serializer = new SerialPortQueryPlugin().CreateSerializer();
 			var s = (SerialPortQuerySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+			SerialPortHelper.ValidateStringOutput(context, s.ResultVariable, epoch.ThrowIfExpired);
+			epoch.ThrowIfExpired();
 			var portName = await Evaluator.EvalStringAsync(s.PortName, context);
 			epoch.ThrowIfExpired();
 
@@ -38,6 +40,8 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 			var key = SerialPortHelper.GetPortKey(portName);
 
 			if (!context.Resources.TryGet<SerialConnectionResource>(key, out var port) || !port.IsOpen)
+			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -46,6 +50,7 @@ public sealed class SerialPortQueryExecutor : IStepExecutor
 						Error = new ErrorInfo { Message = $"串口 {portName} 未打开，请先执行 SerialPort_Open" }
 					}
 				};
+			}
 
 			// Write
 			var writeData = await Evaluator.EvalStringAsync(s.WriteData, context);

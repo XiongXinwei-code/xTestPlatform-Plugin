@@ -46,7 +46,7 @@
 						<ColumnDefinition Width="*"/>
 						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
-					<TextBox Text="{Binding EdsFilePath, UpdateSourceTrigger=LostFocus}"/>
+					<TextBox x:Name="EdsPathInput" Text="{Binding EdsFilePath, UpdateSourceTrigger=LostFocus}"/>
 					<Button Grid.Column="1" Content="浏览..." Width="70" Margin="8,0,0,0" Click="OnBrowseEds"/>
 				</Grid>
                 <!-- EDS 对象：选中后自动填入 Index、SubIndex 和数据类型 -->

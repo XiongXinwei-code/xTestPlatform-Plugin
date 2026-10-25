@@ -102,7 +102,7 @@ public sealed class EthernetLoopbackDeadlineTests
     }
 
     [Fact]
-    public async Task Fire_and_forget_write_deadline_awaits_actual_write_exit_and_reports_unknown_without_retry()
+    public async Task Fire_and_forget_write_deadline_tracks_actual_write_exit_and_reports_unknown_without_retry()
     {
         using var peer = new TcpListener(IPAddress.Loopback, 0); peer.Start();
         using var guard = new CancellationTokenSource(15000);
@@ -116,6 +116,7 @@ public sealed class EthernetLoopbackDeadlineTests
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Contains("500", result.StepResult.Error!.Message);
         Assert.Contains("未知", result.StepResult.Error.Message);
+        await network.WriteCompletion.Task.WaitAsync(TimeSpan.FromSeconds(3));
         Assert.True(network.WriteExited);
         Assert.Equal(1, network.Writes);
         Assert.Equal(0, socket.Available);
@@ -127,13 +128,14 @@ public sealed class EthernetLoopbackDeadlineTests
     {
         public int Writes;
         public bool WriteExited;
+        public TaskCompletionSource WriteCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<IPAddress[]> ResolveAsync(string host, CancellationToken ct) => EthernetNetworkIo.Instance.ResolveAsync(host, ct);
         public Task ConnectTcpAsync(TcpClient client, string host, int port, CancellationToken ct) => EthernetNetworkIo.Instance.ConnectTcpAsync(client, host, port, ct);
         public async Task WriteTcpAsync(NetworkStream stream, byte[] data, CancellationToken ct)
         {
             Writes++;
             try { await Task.Delay(Timeout.Infinite, ct); }
-            finally { WriteExited = true; }
+            finally { WriteExited = true; WriteCompletion.TrySetResult(); }
         }
         public Task SendUdpAsync(UdpClient client, IPEndPoint endpoint, byte[] data, CancellationToken ct) => throw new InvalidOperationException("Unexpected UDP");
     }

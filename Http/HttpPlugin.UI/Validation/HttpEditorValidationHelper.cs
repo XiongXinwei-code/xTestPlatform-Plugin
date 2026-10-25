@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Http.Models;
+using Http.Helpers;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 
@@ -15,6 +16,12 @@ internal static class HttpEditorValidationHelper
         StepEditorValidationContext context, string variableName, Type expected, string code, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(variableName)) return;
+
+        if (!HttpOutputPreflight.IsScopedPath(variableName))
+        {
+            errors.Add(StepSettingError.Error(code, $"输出必须使用完整变量路径，如 Locals.result：{variableName}"));
+            return;
+        }
 
         if (!context.ExecutionContext.HasVariable(variableName))
         {

@@ -345,12 +345,13 @@ public sealed class CanopenCyclicService : IDisposable
         var timeout = target ? _options.CycleTimeoutMs : _monitor!.SendTimeoutMs;
         var period = target ? _options.PeriodMs : _monitor!.PeriodMs;
         var confirmed = !target || _options.RequireOnBusConfirmation;
+        var budget = CanConfirmationBudget.Start(timeout, ct);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(timeout);
         var elapsed = Stopwatch.StartNew();
         var sending = Task.Run(() => _connection.SendBatch(this, batch, confirmed, deadline.Token, done =>
         {
             lock (_gate) { if (done) _confirmed++; else { _submitted++; if (target) _partialCycle = true; } }
-        }));
+        }, budget));
         try { await sending.WaitAsync(deadline.Token).ConfigureAwait(false); }
         catch
         {
@@ -378,12 +379,13 @@ public sealed class CanopenCyclicService : IDisposable
         if (_controlledStop != null)
         {
             lock (_gate) _stopCommandAttempted = true;
+            var budget = CanConfirmationBudget.Start(_controlledStop.TimeoutMs, ct);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(_controlledStop.TimeoutMs);
             await _connection.RunOwnerCommandAsync(this, async () =>
             {
                 foreach (var command in _controlledStop.Commands)
                     await _nodes[command.NodeId].WriteObjectAsync(command.Index, command.SubIndex, command.Data.ToArray(), timeout.Token).ConfigureAwait(false);
-            }, timeout.Token).ConfigureAwait(false);
+            }, budget, timeout.Token).ConfigureAwait(false);
             lock (_gate) _stopAcknowledged = true;
         }
         lock (_gate)

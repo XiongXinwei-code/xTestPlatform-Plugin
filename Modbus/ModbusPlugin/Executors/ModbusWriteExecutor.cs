@@ -37,6 +37,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 
 			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -68,6 +69,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 			if (setting.RegisterType == ModbusRegisterType.Coil)
 			{
 				var bools = ModbusDataConverter.ParseCoils(valuesStr);
+				ModbusRequestPreflight.ValidateWrite(setting.RegisterType, startAddr, bools.Length);
 				if (bools.Length == 1)
 					await master.WithTimeoutAsync(
 						() => { epoch.ThrowIfExpired(); return master.Master.WriteSingleCoilAsync(setting.SlaveAddress, startAddr, bools[0]); },
@@ -80,6 +82,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 			else
 			{
 				var registers = ModbusDataConverter.ConvertToRegisters(valuesStr, setting.DataFormat);
+				ModbusRequestPreflight.ValidateWrite(setting.RegisterType, startAddr, registers.Length);
 				if (registers.Length == 1)
 					await master.WithTimeoutAsync(
 						() => { epoch.ThrowIfExpired(); return master.Master.WriteSingleRegisterAsync(setting.SlaveAddress, startAddr, registers[0]); },

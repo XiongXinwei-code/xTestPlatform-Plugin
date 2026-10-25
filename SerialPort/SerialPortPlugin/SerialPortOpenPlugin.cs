@@ -28,7 +28,7 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
         | Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even, 3=Mark, 4=Space |
         | ReadTimeoutMs | int | 否 | 3000 | 读超时毫秒数，-1 为无限等待 |
         | WriteTimeoutMs | int | 否 | 3000 | 写超时毫秒数，-1 为无限等待 |
-        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含旧资源收尾及本次 SDK 操作 |
+        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含设置求值、资源构造/登记、旧资源收尾、本次 SDK 操作及最终发布 |
 
         ## 行为
 

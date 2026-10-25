@@ -20,8 +20,8 @@ public sealed class LinReadExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new LinReadPlugin().CreateSerializer();
             var setting = (LinReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-            LinHelper.ValidateStringOutput(context, setting.ResultVariable);
-            LinHelper.ValidateStringOutput(context, setting.IdVariable);
+            LinHelper.ValidateStringOutput(context, setting.ResultVariable, guard.Check);
+            LinHelper.ValidateStringOutput(context, setting.IdVariable, guard.Check);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = LinHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ILinAdapter>(key, out var adapter))

@@ -33,6 +33,7 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
         - 路径语法支持点号属性访问与方括号数组索引，例如 `data.items[0].sn`
         - 路径留空表示取整个 JSON 文档
         - 标量值按原始文本写入变量，对象与数组按 JSON 字符串写入
+        - 首次写变量前验证全部目标：必须是已声明的完整作用域路径，已知值须为 string；配置错误不写入部分结果，实际发布失败或取消不承诺回滚已写结果
         - 先验证全部映射；FailOnMissingPath为true且存在未命中或非法路径时返回Error，不写入部分结果；为false时才使用DefaultValue
         - SourceJson 不是合法 JSON 时步骤报错
         - 正常完成返回 Completed；提取日志仅含变量名与长度，不记录原始值

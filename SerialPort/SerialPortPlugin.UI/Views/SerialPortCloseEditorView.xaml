@@ -22,7 +22,7 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 <TextBlock Text="关闭总期限(ms)" Margin="0,12,0,4"/>
-                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="整个步骤总期限，包含求值、查找、SDK关闭及最终发布；停止等待不等于原生调用已退出，也不改变已确认关闭的事实。"/>
             </StackPanel>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

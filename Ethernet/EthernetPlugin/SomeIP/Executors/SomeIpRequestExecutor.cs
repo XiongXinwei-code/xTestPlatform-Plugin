@@ -30,6 +30,7 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new SomeIpRequestPlugin().CreateSerializer();
             var setting = (SomeIpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
             if (!Enum.IsDefined(setting.Transport)) throw new ArgumentOutOfRangeException(nameof(setting.Transport), "SOME/IP Transport 无效，禁止回退到 UDP");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
@@ -67,9 +68,9 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
             using var operation = budget = new EthernetOperationBudget(setting.TimeoutMs, "SOME/IP 请求", cancellationToken, CheckExecution);
             SomeIpMessage response;
             if (setting.Transport == SomeIpTransport.Tcp)
-                response = await RequestOverTcpAsync(host, port, message, operation);
+                response = await RequestOverTcpAsync(host, port, message, operation, context.Resources);
             else
-                response = await RequestOverUdpAsync(host, port, message, operation);
+                response = await RequestOverUdpAsync(host, port, message, operation, context.Resources);
 
             var responseHex = SomeIpHelper.ToHex(response.Payload);
             context.Log(
@@ -126,47 +127,53 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
            && msg.MessageType is SomeIpMessageType.Response or SomeIpMessageType.Error;
 
     private async Task<SomeIpMessage> RequestOverUdpAsync(
-        string host, int port, SomeIpMessage message, EthernetOperationBudget budget)
+        string host, int port, SomeIpMessage message, EthernetOperationBudget budget, IResourceRegistry resources)
     {
-        using var udp = new UdpClient();
-        var endpoint = await EthernetNetworkIo.ResolveEndpointAsync(_network, host, port, udp.Client.AddressFamily, budget);
-        budget.Check();
-        udp.Connect(endpoint); // IP endpoint overload never performs synchronous DNS.
-        var encoded = message.Encode();
-        budget.BeforeSubmission();
-        await _network.SendUdpAsync(udp, endpoint, encoded, budget.Token);
-        budget.Phase = "等待完整响应";
-        budget.Check();
-
-        while (true)
+        using var owner = await TransientNetworkOperation<UdpClient>.OpenAsync(resources,
+            () => new UdpClient(), 0, budget.RemainingMs, budget.Token, budget.Check);
+        return await owner.RunAsync(async (udp, token) =>
         {
+            var endpoint = await EthernetNetworkIo.ResolveEndpointAsync(_network, host, port, udp.Client.AddressFamily, budget, token);
             budget.Check();
-            var recv = await udp.ReceiveAsync(budget.Token);
-            var msg = SomeIpMessage.TryDecode(recv.Buffer);
-            if (IsMatch(msg, message)) { budget.Check(); return msg!; }
-        }
+            udp.Connect(endpoint); // IP endpoint overload never performs synchronous DNS.
+            var encoded = message.Encode();
+            budget.BeforeSubmission();
+            await _network.SendUdpAsync(udp, endpoint, encoded, token);
+            budget.Phase = "等待完整响应";
+            budget.Check();
+            while (true)
+            {
+                budget.Check();
+                var recv = await udp.ReceiveAsync(token);
+                var msg = SomeIpMessage.TryDecode(recv.Buffer);
+                if (IsMatch(msg, message)) { budget.Check(); return msg!; }
+            }
+        }, budget.Token, budget.Check);
     }
 
     private async Task<SomeIpMessage> RequestOverTcpAsync(
-        string host, int port, SomeIpMessage message, EthernetOperationBudget budget)
+        string host, int port, SomeIpMessage message, EthernetOperationBudget budget, IResourceRegistry resources)
     {
-        using var tcp = new TcpClient();
-        budget.Phase = "TCP 连接及地址解析";
-        budget.Check();
-        await _network.ConnectTcpAsync(tcp, host, port, budget.Token);
-        var stream = tcp.GetStream();
-        var encoded = message.Encode();
-        budget.BeforeSubmission();
-        await _network.WriteTcpAsync(stream, encoded, budget.Token);
-        budget.Phase = "等待完整响应";
-        budget.Check();
-
-        while (true)
+        using var owner = await TransientNetworkOperation<TcpClient>.OpenAsync(resources,
+            () => new TcpClient(), 0, budget.RemainingMs, budget.Token, budget.Check);
+        return await owner.RunAsync(async (tcp, token) =>
         {
+            budget.Phase = "TCP 连接及地址解析";
             budget.Check();
-            var msg = await ReceiveTcpMessageAsync(stream, budget.Token);
-            if (IsMatch(msg, message)) { budget.Check(); return msg; }
-        }
+            await _network.ConnectTcpAsync(tcp, host, port, token);
+            var stream = tcp.GetStream();
+            var encoded = message.Encode();
+            budget.BeforeSubmission();
+            await _network.WriteTcpAsync(stream, encoded, token);
+            budget.Phase = "等待完整响应";
+            budget.Check();
+            while (true)
+            {
+                budget.Check();
+                var msg = await ReceiveTcpMessageAsync(stream, token);
+                if (IsMatch(msg, message)) { budget.Check(); return msg; }
+            }
+        }, budget.Token, budget.Check);
     }
 
     /// <summary>从 TCP 流按 SOME/IP 报文头 Length 字段拆包读取一条完整报文。</summary>

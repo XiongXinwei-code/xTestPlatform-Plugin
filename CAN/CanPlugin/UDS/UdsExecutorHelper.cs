@@ -29,7 +29,10 @@ internal static class UdsExecutorHelper
         guard?.Check();
         var key = CanHelper.GetAdapterKey(connName);
         if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
+        {
+            guard?.Check();
             return (null, $"CAN 连接未找到: {connName}");
+        }
         guard?.Watch(key, adapter);
 
         var txIdStr = await Evaluator.EvalStringAsync(common.TxId, context);

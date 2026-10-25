@@ -32,7 +32,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
             guard.Check();
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<OpcUaConnectionResource>(key, out var connection))
+            if (!guard.TryGetResource<OpcUaConnectionResource>(key, out var connection))
             {
                 return new ExecutionResult
                 {

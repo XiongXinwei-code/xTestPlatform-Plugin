@@ -63,24 +63,32 @@ public sealed class SomeIpFireAndForgetExecutor : IStepExecutor
             using var operation = budget = new EthernetOperationBudget(setting.SendTimeoutMs, "SOME/IP 无响应发送", cancellationToken, CheckExecution);
             if (setting.Transport == SomeIpTransport.Tcp)
             {
-                using var tcp = new TcpClient();
-                operation.Phase = "TCP 连接及地址解析";
-                operation.Check();
-                await _network.ConnectTcpAsync(tcp, host, port, operation.Token);
-                var stream = tcp.GetStream();
-                var encoded = message.Encode();
-                operation.BeforeSubmission();
-                await _network.WriteTcpAsync(stream, encoded, operation.Token);
-                operation.Check();
+                using var owner = await TransientNetworkOperation<TcpClient>.OpenAsync(context.Resources,
+                    () => new TcpClient(), 0, operation.RemainingMs, operation.Token, operation.Check);
+                await owner.RunAsync(async (tcp, token) =>
+                {
+                    operation.Phase = "TCP 连接及地址解析";
+                    operation.Check();
+                    await _network.ConnectTcpAsync(tcp, host, port, token);
+                    var stream = tcp.GetStream();
+                    var encoded = message.Encode();
+                    operation.BeforeSubmission();
+                    await _network.WriteTcpAsync(stream, encoded, token);
+                    operation.Check();
+                }, operation.Token, operation.Check);
             }
             else
             {
-                using var udp = new UdpClient();
-                var endpoint = await EthernetNetworkIo.ResolveEndpointAsync(_network, host, port, udp.Client.AddressFamily, operation);
-                var encoded = message.Encode();
-                operation.BeforeSubmission();
-                await _network.SendUdpAsync(udp, endpoint, encoded, operation.Token);
-                operation.Check();
+                using var owner = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources,
+                    () => new UdpClient(), 0, operation.RemainingMs, operation.Token, operation.Check);
+                await owner.RunAsync(async (udp, token) =>
+                {
+                    var endpoint = await EthernetNetworkIo.ResolveEndpointAsync(_network, host, port, udp.Client.AddressFamily, operation, token);
+                    var encoded = message.Encode();
+                    operation.BeforeSubmission();
+                    await _network.SendUdpAsync(udp, endpoint, encoded, token);
+                    operation.Check();
+                }, operation.Token, operation.Check);
             }
 
             context.Log(

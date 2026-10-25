@@ -1,4 +1,5 @@
 using System.Windows;
+using SerialPort.Helpers;
 using SerialPort.Models;
 using SerialPort.UI.Validation;
 using SerialPort.UI.Views;
@@ -50,15 +51,18 @@ public sealed class SerialPortQueryEditorPlugin : IStepEditorPlugin
 			errors.Add(StepSettingError.Error("SP_FRAME", "无限读取必须配置字节数或终止符"));
 		if (!Enum.IsDefined(s.DataFormat)) errors.Add(StepSettingError.Error("SP_FORMAT", "不支持的串口数据格式"));
 
-		if (string.IsNullOrWhiteSpace(s.ResultVariable))
-			errors.Add(StepSettingError.Error("SP_042", "结果变量不能为空"));
-		else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
-			errors.Add(StepSettingError.Error("SP_043", $"变量 {s.ResultVariable} 不存在"));
-		else
+		if (!string.IsNullOrWhiteSpace(s.ResultVariable))
 		{
-			var val = context.ExecutionContext.GetVariable(s.ResultVariable);
-			if (val is not null && val is not string)
-				errors.Add(StepSettingError.Error("SP_047", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
+			if (!SerialPortHelper.IsScopedOutputPath(s.ResultVariable))
+				errors.Add(StepSettingError.Error("SP_042", "结果变量必须为带作用域的完整变量路径，如 Locals.rx；留空不写入"));
+			else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+				errors.Add(StepSettingError.Error("SP_043", $"变量 {s.ResultVariable} 不存在"));
+			else
+			{
+				var val = context.ExecutionContext.GetVariable(s.ResultVariable);
+				if (val is not null && val is not string)
+					errors.Add(StepSettingError.Error("SP_047", $"变量 {s.ResultVariable} 类型不匹配，期望 string，实际类型 {val.GetType().Name}"));
+			}
 		}
 
 		SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);

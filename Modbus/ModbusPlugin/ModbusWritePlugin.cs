@@ -33,6 +33,8 @@ public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>
 
 		## 行为
 
+		- 发送前验证写入值、数量（线圈 1～1968、寄存器 1～123）及地址范围不超过 65535；局部配置错误不提交请求
+
 		- 连接不存在、从站无响应或写入失败时步骤报错
 		- RegisterType=Coil 时 Values 按布尔解析，DataFormat 不生效
 

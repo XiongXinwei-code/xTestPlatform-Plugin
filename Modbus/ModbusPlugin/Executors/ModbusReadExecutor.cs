@@ -34,6 +34,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 
 			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -49,6 +50,9 @@ public sealed class ModbusReadExecutor : IStepExecutor
 			var quantity = ushort.Parse(await Evaluator.EvalStringAsync(setting.Quantity, context));
 			epoch.ThrowIfExpired();
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
+			ModbusRequestPreflight.ValidateRead(setting.RegisterType, setting.DataFormat, startAddr, quantity);
+			ModbusRequestPreflight.ValidateDestination(context, setting.ResultVariable, setting.RegisterType, setting.DataFormat, quantity, optional: false, epoch.ThrowIfExpired);
+			epoch.ThrowIfExpired();
 
 			object result;
 			switch (setting.RegisterType)

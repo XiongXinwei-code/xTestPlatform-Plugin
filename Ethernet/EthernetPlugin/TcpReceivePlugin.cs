@@ -29,6 +29,8 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
 
         ## 行为
 
+        - ResultVariable 为空时跳过写入；非空须配置已声明的完整作用域 string 变量路径，当前值允许 null；建立/发送/消费响应前预检，不自动创建变量
+
         - 超时未收到数据时步骤报错
         - `ResultVariable` 为覆盖写入：每次执行都用本次接收结果替换该变量的原有值
 

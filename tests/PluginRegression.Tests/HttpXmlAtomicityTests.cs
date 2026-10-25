@@ -18,6 +18,7 @@ public sealed class HttpXmlAtomicityTests
             SourceXml = "\"<root><ok>123</ok></root>\"", FailOnMissingPath = true,
             Items = [new() { Path = "/root/ok", TargetVariable = "Locals.a" }, new() { Path = path, TargetVariable = "Locals.b" }]
         });
+        state.DeclaredVariables["Locals.a"] = ""; state.DeclaredVariables["Locals.b"] = "";
         var result = await plugin.CreateExecutor().ExecuteAsync(ctx);
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Empty(state.Variables);

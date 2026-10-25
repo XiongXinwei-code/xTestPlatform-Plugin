@@ -24,5 +24,6 @@ public sealed class EditorRuntimeTests
         cyclic.RouteGridEditsPersistAndRemovedRowsCannotChangeOtherSteps();
         cyclic.TargetBytesAndOrderSurviveSaveReload();
         cyclic.NewMonitoringTrajectoryAndStopFieldsPersistInActualControls();
+        FollowupFlashAndDtcUiTests.VerifyActualPages();
     }
 }

@@ -31,6 +31,8 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
 
         ## 行为
 
+        - 首次写变量前验证全部目标：必须是已声明的完整作用域路径，已知值须为 string；配置错误不写入部分结果，实际发布失败或取消不承诺回滚已写结果
+
         - IgnoreNamespaces 为 true 时会先剥离文档中的命名空间声明与前缀，XPath 无需写 soap: 之类的前缀
         - XPath 命中元素取其文本内容，命中属性取属性值
         - XPath 命中多个节点时取第一个节点

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using CAN.Flash.Models;
 using CAN.UI.Models;
 using CAN.UI.Services;
@@ -188,16 +189,89 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
     private string _analysisMessage = "尚未分析。选择固件文件后点击「分析固件」可查看数据段并获取格式标识建议值。";
     private string _suggestedAlfid = string.Empty;
     private long _analysisGeneration;
+    private readonly Dispatcher _analysisDispatcher = Dispatcher.CurrentDispatcher;
+    private bool _analysisSuspended;
+    private AnalysisOperation? _activeAnalysis;
+    private Task _analysisCompletion = Task.CompletedTask;
+    private int _segmentNotificationDepth;
+
+    internal Task AnalysisCompletion => _analysisCompletion;
+
+    private sealed class AnalysisOperation(CanFlashSetting setting, long generation)
+    {
+        internal readonly CanFlashSetting Setting = setting;
+        internal readonly long Generation = generation;
+        internal readonly CancellationTokenSource Cancellation = new();
+        internal readonly TaskCompletionSource WaitCancelled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal CancellationToken Token;
+        internal Task<FirmwareAnalysisResult> Worker = Task.FromResult(new FirmwareAnalysisResult());
+        internal Task CancellationCompletion = Task.CompletedTask;
+        internal bool CancelRequested;
+    }
 
     protected override void OnSettingLoaded() => InvalidateAnalysis();
 
     private void InvalidateAnalysis()
     {
-        _analysisGeneration++;
+        long generation = ++_analysisGeneration;
+        CancelAnalysisWait();
+        if (generation != _analysisGeneration) return;
+        if (_segmentNotificationDepth != 0)
+        {
+            _analysisDispatcher.BeginInvoke(() => ResetAnalysisView(generation));
+            return;
+        }
+        ResetAnalysisView(generation);
+    }
+
+    private void ResetAnalysisView(long generation)
+    {
+        if (generation != _analysisGeneration) return;
         SuggestedAlfid = string.Empty;
-        AnalysisSegments.Clear();
+        if (generation != _analysisGeneration) return;
+        _segmentNotificationDepth++;
+        try { AnalysisSegments.Clear(); }
+        finally { _segmentNotificationDepth--; }
+        if (generation != _analysisGeneration) return;
         AnalysisMessage = "固件配置已变化，请重新分析。";
     }
+
+    /// <summary>卸载只撤销结果归属和前台等待；后台文件调用实际退出前不启动另一次分析。</summary>
+    public void SuspendAnalysis()
+    {
+        _analysisDispatcher.VerifyAccess();
+        _analysisSuspended = true;
+        ++_analysisGeneration;
+        CancelAnalysisWait();
+        OnPropertyChanged(nameof(CanAnalyze));
+        OnPropertyChanged(nameof(HasSuggestion));
+    }
+
+    /// <summary>重新进入页面时丢弃旧建议；仍未退出的分析继续保留并收尾。</summary>
+    public void ResumeAnalysis()
+    {
+        _analysisDispatcher.VerifyAccess();
+        if (!_analysisSuspended) return;
+        _analysisSuspended = false;
+        InvalidateAnalysis();
+        OnPropertyChanged(nameof(CanAnalyze));
+    }
+
+    private void CancelAnalysisWait()
+    {
+        if (_activeAnalysis is not { CancelRequested: false } operation) return;
+        operation.CancelRequested = true;
+        // A worker callback can delay token callback delivery to WaitAsync. End
+        // the editor wait independently, without claiming the worker has exited.
+        operation.WaitCancelled.TrySetResult();
+        // Cancellation callbacks may themselves block. CancelAsync does not run
+        // those callbacks inline on the editor Dispatcher.
+        operation.CancellationCompletion = operation.Cancellation.CancelAsync();
+    }
+
+    private bool IsCurrentAnalysis(AnalysisOperation operation) => !_analysisSuspended &&
+        operation.Generation == _analysisGeneration && ReferenceEquals(Setting, operation.Setting) &&
+        !operation.Token.IsCancellationRequested;
 
     /// <summary>是否正在分析固件</summary>
     public bool IsAnalyzing
@@ -206,7 +280,7 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         private set { if (_isAnalyzing == value) return; _isAnalyzing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanAnalyze)); }
     }
 
-    public bool CanAnalyze => !_isAnalyzing;
+    public bool CanAnalyze => !_analysisSuspended && !_isAnalyzing;
 
     /// <summary>分析结果概述</summary>
     public string AnalysisMessage
@@ -225,46 +299,98 @@ public sealed class CanFlashViewModel : UdsViewModelBase<CanFlashSetting>
         private set { if (_suggestedAlfid == value) return; _suggestedAlfid = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasSuggestion)); }
     }
 
-    public bool HasSuggestion => !string.IsNullOrEmpty(_suggestedAlfid);
+    public bool HasSuggestion => !_analysisSuspended && !string.IsNullOrEmpty(_suggestedAlfid);
 
     /// <summary>解析当前配置的固件文件并刷新分析结果</summary>
     public async Task AnalyzeFirmwareAsync()
     {
-        if (Setting == null || IsAnalyzing)
+        _analysisDispatcher.VerifyAccess();
+        if (Setting == null || !CanAnalyze)
             return;
 
+        var operation = new AnalysisOperation(Setting, ++_analysisGeneration);
+        operation.Token = operation.Cancellation.Token;
+        // Capture immutable inputs before any property notification can refresh
+        // the page or replace its Setting.
+        string path = Setting.FilePath, baseAddress = Setting.BaseAddress;
+        var format = Setting.Format;
+        _activeAnalysis = operation;
         IsAnalyzing = true;
-        var setting = Setting;
-        long generation = _analysisGeneration;
-        AnalysisMessage = "正在解析固件文件...";
-        AnalysisSegments.Clear();
-        SuggestedAlfid = string.Empty;
+        if (IsCurrentAnalysis(operation)) AnalysisMessage = "正在解析固件文件...";
+        if (IsCurrentAnalysis(operation))
+        {
+            _segmentNotificationDepth++;
+            try { AnalysisSegments.Clear(); }
+            finally { _segmentNotificationDepth--; }
+        }
+        if (IsCurrentAnalysis(operation)) SuggestedAlfid = string.Empty;
+
+        if (IsCurrentAnalysis(operation))
+            operation.Worker = Task.Run(() =>
+            {
+                operation.Token.ThrowIfCancellationRequested();
+                return _analyze(path, format, baseAddress, operation.Token);
+            }, CancellationToken.None);
+        // This owns the actual worker and cancellation callbacks independently of
+        // the button handler's cancellable wait.
+        _analysisCompletion = ObserveAnalysisExitAsync(operation);
 
         try
         {
-            var result = await _analyze(setting.FilePath, setting.Format, setting.BaseAddress, default);
-            if (!ReferenceEquals(Setting, setting) || generation != _analysisGeneration) return;
+            var completed = await Task.WhenAny(operation.Worker, operation.WaitCancelled.Task);
+            if (completed != operation.Worker || !IsCurrentAnalysis(operation)) return;
+            var result = await operation.Worker;
+            if (!IsCurrentAnalysis(operation)) return;
 
             AnalysisMessage = result.Success
                 ? $"{result.Message}\n地址范围 0x{result.MinAddress:X8} - 0x{result.MaxAddress:X8}"
                 : result.Message;
 
             foreach (var detail in result.SegmentDetails)
-                AnalysisSegments.Add(detail);
+            {
+                if (!IsCurrentAnalysis(operation)) return;
+                _segmentNotificationDepth++;
+                try { AnalysisSegments.Add(detail); }
+                finally { _segmentNotificationDepth--; }
+            }
 
-            if (result.Success)
+            if (result.Success && IsCurrentAnalysis(operation))
                 SuggestedAlfid = result.SuggestedAddressAndLengthFormatId;
         }
-        finally
+        catch (OperationCanceledException) when (operation.Token.IsCancellationRequested) { }
+        catch (Exception ex)
         {
-            IsAnalyzing = false;
+            if (IsCurrentAnalysis(operation)) AnalysisMessage = $"分析失败：{ex.Message}";
         }
+    }
+
+    private async Task ObserveAnalysisExitAsync(AnalysisOperation operation)
+    {
+        try { await operation.Worker.ConfigureAwait(false); }
+        catch (Exception) { /* The foreground observes current failures; stale failures cannot publish. */ }
+        await _analysisDispatcher.InvokeAsync(async () =>
+        {
+            try { await operation.CancellationCompletion; }
+            catch (Exception ex)
+            {
+                if (IsCurrentAnalysis(operation)) AnalysisMessage = $"分析取消收尾失败：{ex.Message}";
+            }
+            finally
+            {
+                operation.Cancellation.Dispose();
+                if (ReferenceEquals(_activeAnalysis, operation))
+                {
+                    _activeAnalysis = null;
+                    IsAnalyzing = false;
+                }
+            }
+        }).Task.Unwrap().ConfigureAwait(false);
     }
 
     /// <summary>将分析得到的格式标识建议值写入设置</summary>
     public void ApplySuggestedAlfid()
     {
-        if (string.IsNullOrEmpty(SuggestedAlfid))
+        if (!HasSuggestion)
             return;
 
         AddressAndLengthFormatId = $"\"{SuggestedAlfid}\"";

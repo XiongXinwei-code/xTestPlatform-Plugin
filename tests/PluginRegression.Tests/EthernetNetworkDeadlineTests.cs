@@ -25,6 +25,7 @@ public sealed class EthernetNetworkDeadlineTests
         var result = await new SomeIpRequestExecutor(network).ExecuteAsync(context);
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Contains("40", result.StepResult.Error!.Message);
+        await network.ResolveCompletion.Task.WaitAsync(TimeSpan.FromSeconds(3));
         Assert.True(network.ResolveExited);
         Assert.Equal(0, network.UdpSends);
     }
@@ -42,6 +43,7 @@ public sealed class EthernetNetworkDeadlineTests
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Contains("40", result.StepResult.Error!.Message);
         Assert.Equal(0, network.UdpSends + network.TcpWrites);
+        await (tcp ? network.ConnectCompletion.Task : network.ResolveCompletion.Task).WaitAsync(TimeSpan.FromSeconds(3));
         Assert.True(tcp ? network.ConnectExited : network.ResolveExited);
     }
 
@@ -56,6 +58,7 @@ public sealed class EthernetNetworkDeadlineTests
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Contains("40", result.StepResult.Error!.Message);
         Assert.Contains("未知", result.StepResult.Error.Message);
+        await network.SendCompletion.Task.WaitAsync(TimeSpan.FromSeconds(3));
         Assert.True(network.SendExited);
         Assert.Equal(1, network.UdpSends);
     }
@@ -71,6 +74,7 @@ public sealed class EthernetNetworkDeadlineTests
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Equal(network.ResolveToken, network.SendToken);
         Assert.Equal(1, network.UdpSends);
+        await network.SendCompletion.Task.WaitAsync(TimeSpan.FromSeconds(3));
         Assert.True(network.SendExited);
     }
 
@@ -86,6 +90,7 @@ public sealed class EthernetNetworkDeadlineTests
         await network.ResolveEntered.Task.WaitAsync(TimeSpan.FromSeconds(3));
         caller.Cancel();
         Assert.Equal(TestStatus.Aborted, (await operation).StepResult.Status);
+        await network.ResolveCompletion.Task.WaitAsync(TimeSpan.FromSeconds(3));
         Assert.True(network.ResolveExited);
         Assert.Equal(0, network.UdpSends);
     }
@@ -112,6 +117,9 @@ public sealed class EthernetNetworkDeadlineTests
         public bool ResolveExited, ConnectExited, SendExited;
         public CancellationToken ResolveToken, SendToken;
         public TaskCompletionSource ResolveEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource ResolveCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource ConnectCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource SendCompletion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public async Task<IPAddress[]> ResolveAsync(string host, CancellationToken ct)
         {
@@ -122,14 +130,14 @@ public sealed class EthernetNetworkDeadlineTests
                 if (BlockResolve) await Task.Delay(Timeout.Infinite, ct);
                 return [IPAddress.Loopback];
             }
-            finally { ResolveExited = true; }
+            finally { ResolveExited = true; ResolveCompletion.TrySetResult(); }
         }
 
         public async Task ConnectTcpAsync(TcpClient client, string host, int port, CancellationToken ct)
         {
             Connects++;
             try { if (BlockConnect) await Task.Delay(Timeout.Infinite, ct); }
-            finally { ConnectExited = true; }
+            finally { ConnectExited = true; ConnectCompletion.TrySetResult(); }
         }
 
         public Task WriteTcpAsync(NetworkStream stream, byte[] data, CancellationToken ct)
@@ -139,7 +147,7 @@ public sealed class EthernetNetworkDeadlineTests
         {
             UdpSends++; SendToken = ct;
             try { if (BlockUdpSend) await Task.Delay(Timeout.Infinite, ct); }
-            finally { SendExited = true; }
+            finally { SendExited = true; SendCompletion.TrySetResult(); }
         }
     }
 }

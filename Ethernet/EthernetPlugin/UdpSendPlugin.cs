@@ -31,6 +31,7 @@ public sealed class UdpSendPlugin : StepPluginBase<UdpSendSetting>
         ## 行为
 
         - 无需预先建立连接；等待真实 Socket 发送调用退出后释放本次 Socket
+        - 临时 Socket 登记为本次执行资源；中断或退出调试时请求取消，后台确认原始 I/O 与取消回调退出后才释放；同端口重跑等待旧收尾计入原 SendTimeoutMs 总预算
         - 超过 SendTimeoutMs 返回 Error；只有原调用方取消返回 Aborted。开始提交后的取消/超时不证明报文被撤回，送达状态未知，不自动重发
         - Completed 仅表示本机发送调用成功，不表示远端已接收或执行
 

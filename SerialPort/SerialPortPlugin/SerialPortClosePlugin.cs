@@ -22,7 +22,7 @@ public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSettin
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | PortName | string([ExpressionField]) | 是 | — | 要关闭的端口名，如 COM1，求值结果为 string |
-        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含旧资源收尾及本次 SDK 操作 |
+        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含设置求值、资源查找、SDK 关闭及最终发布；期限结束不改变已确认关闭的事实 |
 
         ## 行为
 

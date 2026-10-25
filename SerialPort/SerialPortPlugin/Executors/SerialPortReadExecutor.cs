@@ -23,6 +23,8 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             var serializer = new SerialPortReadPlugin().CreateSerializer();
             var s = (SerialPortReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             if (!Enum.IsDefined(s.DataFormat)) throw new ArgumentOutOfRangeException(nameof(s.DataFormat), "不支持的串口数据格式，未读取响应");
+            SerialPortHelper.ValidateStringOutput(context, s.ResultVariable, epoch.ThrowIfExpired);
+            epoch.ThrowIfExpired();
             var portName = await Evaluator.EvalStringAsync(s.PortName, context);
             epoch.ThrowIfExpired();
 
@@ -39,6 +41,8 @@ public sealed class SerialPortReadExecutor : IStepExecutor
             var key = SerialPortHelper.GetPortKey(portName);
 
 			if (!context.Resources.TryGet<SerialConnectionResource>(key, out var port) || !port.IsOpen)
+            {
+                epoch.ThrowIfExpired();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -47,6 +51,7 @@ public sealed class SerialPortReadExecutor : IStepExecutor
                         Error = new ErrorInfo { Message = $"串口 {portName} 未打开，请先执行 SerialPort_Open" }
                     }
                 };
+            }
 
 			epoch.ThrowIfExpired();
 			var buffer = await port.ReadFrameAsync(s.ReadBytes, s.Terminator, s.ReadTimeoutMs, cancellationToken, epoch.ThrowIfExpired);

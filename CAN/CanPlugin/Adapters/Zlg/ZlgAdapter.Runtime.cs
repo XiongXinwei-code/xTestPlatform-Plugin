@@ -90,7 +90,7 @@ public sealed partial class ZlgAdapter
         finally { Monitor.Exit(_transmitGate); }
     }
 
-    private Pending? Submit(CanMessage message)
+    private Pending? Submit(CanMessage message, Action? checkBeforeNative = null)
     {
         if (!_isConnected || _closing) throw new InvalidOperationException("ZLG 未连接或正在关闭");
         if (_unknownSend) throw new InvalidOperationException("ZLG 存在超时/取消或失败发送，禁止新提交；仅允许确认收尾后关闭");
@@ -106,6 +106,7 @@ public sealed partial class ZlgAdapter
         lock (_runtimeGate)
         {
             ThrowIfPumpFailed();
+            checkBeforeNative?.Invoke();
             if (_echoSupported)
             {
                 if (_pending.Count >= 8192) throw new InvalidOperationException("ZLG 未决发送达到上限，旧发送尚未确认");
@@ -128,12 +129,23 @@ public sealed partial class ZlgAdapter
     }
 
     public void WriteConfirmed(CanMessage message, CancellationToken cancellationToken)
+        => WriteConfirmedCore(message, CanConfirmationBudget.Start(5000, cancellationToken), cancellationToken);
+
+    void ICanBudgetedConfirmedTransmitter.WriteConfirmed(CanMessage message, CanConfirmationBudget budget, CancellationToken cancellationToken)
+        => WriteConfirmedCore(message, budget, cancellationToken);
+
+    private void WriteConfirmedCore(CanMessage message, CanConfirmationBudget budget, CancellationToken cancellationToken)
     {
+        _ = budget.Remaining(cancellationToken);
         lock (_transmitGate)
         {
-            cancellationToken.ThrowIfCancellationRequested(); VerifyConfirmationAvailable();
-            var ticket = Submit(message)!;
-            try { ticket.Completion.Task.WaitAsync(TimeSpan.FromSeconds(5), cancellationToken).GetAwaiter().GetResult(); }
+            _ = budget.Remaining(cancellationToken); VerifyConfirmationAvailable();
+            var ticket = Submit(message, () => _ = budget.Remaining(cancellationToken))!;
+            try
+            {
+                ticket.Completion.Task.WaitAsync(TimeSpan.FromMilliseconds(budget.Remaining(cancellationToken)), cancellationToken).GetAwaiter().GetResult();
+                _ = budget.Remaining(cancellationToken);
+            }
             catch (TimeoutException ex)
             {
                 _unknownSend = true;

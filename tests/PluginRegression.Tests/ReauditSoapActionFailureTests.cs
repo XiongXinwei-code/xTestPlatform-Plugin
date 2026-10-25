@@ -25,6 +25,7 @@ public sealed class ReauditSoapActionFailureTests
             SoapAction = JsonSerializer.Serialize(action), LogPayload = log, ResponseVariable = "Locals.rx"
         });
         var handler = new CaptureActionHandler();
+        state.DeclaredVariables["Locals.rx"] = "";
         var owner = new HttpClientResource { Client = new HttpClient(handler) { BaseAddress = new("http://unit.invalid/") } };
         state.Items[HttpHelper.GetClientKey("Mes")] = owner;
         try
@@ -52,6 +53,7 @@ public sealed class ReauditSoapActionFailureTests
             SoapAction = JsonSerializer.Serialize(action), ResponseVariable = "Locals.rx"
         });
         var handler = new CaptureActionHandler();
+        state.DeclaredVariables["Locals.rx"] = "";
         var owner = new HttpClientResource { Client = new HttpClient(handler) { BaseAddress = new("http://unit.invalid/") } };
         state.Items[HttpHelper.GetClientKey("Mes")] = owner;
         try

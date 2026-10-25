@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.IO;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -104,7 +105,14 @@ public sealed class Round1NetworkErrataTests
         using var peer = new UdpClient();
         var plugin = new UdpReceivePlugin();
         var (ctx, state) = TestContext.Create(plugin, new UdpReceiveSetting { LocalPort = port, TimeoutMs = 2000, ExpectedLength = 8, ResultVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         var execution = plugin.CreateExecutor().ExecuteAsync(ctx);
+        using var bindingGuard = new CancellationTokenSource(5000);
+        while (!IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners().Any(endpoint => endpoint.Port == port))
+        {
+            Assert.False(execution.IsCompleted, "UDP listener exited before binding its localhost port");
+            await Task.Delay(10, bindingGuard.Token);
+        }
         await peer.SendAsync(new byte[length], new IPEndPoint(IPAddress.Loopback, port));
         var result = await execution.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Equal(TestStatus.Error, result.StepResult.Status);

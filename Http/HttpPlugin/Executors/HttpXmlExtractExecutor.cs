@@ -38,6 +38,9 @@ public sealed class HttpXmlExtractExecutor : IStepExecutor
             if (setting.Items.Count == 0)
                 return Error("提取映射列表为空");
 
+            foreach (var item in setting.Items)
+                HttpOutputPreflight.Validate(context, item.TargetVariable, typeof(string), CheckExecution, optional: false);
+
             var xml = await Evaluator.EvalStringAsync(setting.SourceXml, context);
             CheckExecution();
             if (string.IsNullOrWhiteSpace(xml))

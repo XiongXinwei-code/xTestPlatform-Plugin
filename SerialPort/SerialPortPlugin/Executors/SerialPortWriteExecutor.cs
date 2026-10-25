@@ -42,6 +42,8 @@ public sealed class SerialPortWriteExecutor : IStepExecutor
             var key = SerialPortHelper.GetPortKey(portName);
 
 			if (!context.Resources.TryGet<SerialConnectionResource>(key, out var port) || !port.IsOpen)
+            {
+                epoch.ThrowIfExpired();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -50,6 +52,7 @@ public sealed class SerialPortWriteExecutor : IStepExecutor
                         Error = new ErrorInfo { Message = $"串口 {portName} 未打开，请先执行 SerialPort_Open" }
                     }
                 };
+            }
 
             var writeData = await _evaluate(s.WriteData, context);
             epoch.ThrowIfExpired();

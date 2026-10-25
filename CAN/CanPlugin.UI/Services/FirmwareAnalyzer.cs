@@ -57,10 +57,25 @@ public static class FirmwareAnalyzer
         CancellationToken cancellationToken = default)
         => AnalyzeAsync(filePathExpression, format, baseAddressExpression, cancellationToken, FirmwareParserFactory.Create);
 
-    internal static async Task<FirmwareAnalysisResult> AnalyzeAsync(
+    internal static Task<FirmwareAnalysisResult> AnalyzeAsync(
         string filePathExpression, FirmwareFormat format, string baseAddressExpression,
         CancellationToken cancellationToken,
         Func<FirmwareFormat, string, IFirmwareParser> createParser)
+        => AnalyzeAsync(filePathExpression, format, baseAddressExpression, cancellationToken, createParser, File.Exists);
+
+    internal static Task<FirmwareAnalysisResult> AnalyzeAsync(
+        string filePathExpression, FirmwareFormat format, string baseAddressExpression,
+        CancellationToken cancellationToken,
+        Func<FirmwareFormat, string, IFirmwareParser> createParser, Func<string, bool> fileExists)
+        // Exists/open/read can all block on a network drive, before an awaited
+        // read yields. Keep their real task alive even after its caller cancels.
+        => Task.Run(() => AnalyzeFileAsync(filePathExpression, format, baseAddressExpression,
+            cancellationToken, createParser, fileExists), CancellationToken.None);
+
+    private static async Task<FirmwareAnalysisResult> AnalyzeFileAsync(
+        string filePathExpression, FirmwareFormat format, string baseAddressExpression,
+        CancellationToken cancellationToken,
+        Func<FirmwareFormat, string, IFirmwareParser> createParser, Func<string, bool> fileExists)
     {
         if (string.IsNullOrWhiteSpace(filePathExpression))
             return Fail("请先选择固件文件");
@@ -68,11 +83,12 @@ public static class FirmwareAnalyzer
         if (!TryExtractLiteral(filePathExpression, out var filePath))
             return Fail("固件路径包含变量或表达式，无法在编辑期解析，请改用固定路径后再分析");
 
-        if (!File.Exists(filePath))
-            return Fail($"固件文件不存在: {filePath}");
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!fileExists(filePath))
+                return Fail($"固件文件不存在: {filePath}");
+            cancellationToken.ThrowIfCancellationRequested();
             var actualFormat = format == FirmwareFormat.Auto
                 ? FirmwareParserFactory.Detect(filePath)
                 : format;
@@ -87,9 +103,7 @@ public static class FirmwareAnalyzer
 
             var content = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
             var parser = createParser(actualFormat, filePath);
-            // Even a synchronously completed file read must not run a large parser on
-            // the editor Dispatcher. This task owns the parser until its real exit.
-            var segments = await Task.Run(() => parser.Parse(content, baseAddress), cancellationToken).ConfigureAwait(false);
+            var segments = parser.Parse(content, baseAddress);
             cancellationToken.ThrowIfCancellationRequested();
 
             if (segments.Count == 0)

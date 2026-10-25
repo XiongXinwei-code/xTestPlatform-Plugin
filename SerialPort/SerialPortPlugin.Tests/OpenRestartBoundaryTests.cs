@@ -3,6 +3,7 @@ using SerialPort.Helpers;
 using SerialPort.Models;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Engine;
+using xTestPlatform.Core.Services.ExpressionEngine;
 using Xunit;
 
 namespace SerialPort.Tests;
@@ -21,6 +22,9 @@ public sealed class OpenRestartBoundaryTests
             if (!release.Wait(10000)) throw new TimeoutException("Test guard: open was not released");
         }));
         var (context, state) = PublicationContextProxy.Create(new SerialPortOpenPlugin(), new SerialPortOpenSetting { PortName = "\"" + name + "\"", TimeoutMs = 2000 });
+        // This fixture exercises native Open/Close ordering. Warm its expression
+        // before the whole-step budget starts; do not raise the configured limit.
+        await ExpressionEvaluatorFactory.Default.EvaluateAsync<string>("\"" + name + "\"", context);
         string key = SerialPortHelper.GetPortKey(name);
         var first = executor.ExecuteAsync(context, caller.Token);
         Task<ExecutionResult>? restarting = null, closing = null;
@@ -74,6 +78,7 @@ public sealed class OpenRestartBoundaryTests
             });
         });
         var (context, state) = PublicationContextProxy.Create(new SerialPortOpenPlugin(), new SerialPortOpenSetting { PortName = "\"" + name + "\"", TimeoutMs = 300 });
+        await ExpressionEvaluatorFactory.Default.EvaluateAsync<string>("\"" + name + "\"", context);
         string key = SerialPortHelper.GetPortKey(name);
         var first = executor.ExecuteAsync(context, caller.Token);
         SerialConnectionResource? old = null;

@@ -36,6 +36,9 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
             if (setting.Items.Count == 0)
                 return Error("提取映射列表为空");
 
+            foreach (var item in setting.Items)
+                HttpOutputPreflight.Validate(context, item.TargetVariable, typeof(string), CheckExecution, optional: false);
+
             var json = await Evaluator.EvalStringAsync(setting.SourceJson, context);
             CheckExecution();
             if (string.IsNullOrWhiteSpace(json))

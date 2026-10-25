@@ -6,7 +6,7 @@ namespace CAN.Adapters.NiXnet;
 /// <summary>NI-XNET CAN 适配器实现</summary>
 public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics, CAN.Runtime.ICanQueueStatistics,
     CAN.Runtime.ICanConfirmedTransmitter, CAN.Runtime.ICanClockValidity, CAN.Runtime.ICanCloseState,
-    CAN.Runtime.ICanTransmitQuiescence
+    CAN.Runtime.ICanTransmitQuiescence, CAN.Runtime.ICanBudgetedConfirmedTransmitter
 {
     // nxFrameVar_t 的最大长度：16 字节头 + 64 字节 CAN FD 数据。
     private const int MaxRawFrameSize = 80;

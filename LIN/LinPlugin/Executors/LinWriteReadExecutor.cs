@@ -21,7 +21,7 @@ public sealed class LinWriteReadExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new LinWriteReadPlugin().CreateSerializer();
             var setting = (LinWriteReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-            LinHelper.ValidateStringOutput(context, setting.ResultVariable);
+            LinHelper.ValidateStringOutput(context, setting.ResultVariable, guard.Check);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             if (setting.SendTimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.SendTimeoutMs));
             var key = LinHelper.GetAdapterKey(connName);

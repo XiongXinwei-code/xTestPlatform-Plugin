@@ -1,4 +1,5 @@
 using Ethernet.DoIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -23,6 +24,7 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new DoipDiagRequestPlugin().CreateSerializer();
             var setting = (DoipDiagRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
             if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "DoIP 请求总超时必须大于 0");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();

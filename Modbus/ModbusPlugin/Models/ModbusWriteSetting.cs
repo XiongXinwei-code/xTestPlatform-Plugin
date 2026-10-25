@@ -23,7 +23,7 @@ public class ModbusWriteSetting
 	[ExpressionField]
 	public string StartAddress { get; set; } = "0";
 
-	/// <summary>要写入的值，多个值用逗号分隔（支持表达式）</summary>
+	/// <summary>要写入的值，多个值用逗号分隔；每次最多 1968 位或 123 寄存器（支持表达式）</summary>
 	[ExpressionField]
 	public string Values { get; set; } = "0";
 

@@ -1,4 +1,5 @@
 using SerialPort.Models;
+using xTestPlatform.Core.Engine;
 
 namespace SerialPort.Helpers;
 
@@ -40,8 +41,34 @@ public static class SerialPortHelper
     {
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         double remaining = timeoutMs - System.Diagnostics.Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
-        if (remaining <= 0) throw new TimeoutException("串口打开/关闭总期限已到，旧资源收尾不另加固定等待");
+        if (remaining <= 0) throw new TimeoutException($"串口打开/关闭配置总期限 {timeoutMs} ms 已到，旧资源收尾不另加固定等待");
         return (int)Math.Ceiling(remaining);
+    }
+
+    /// <summary>只接受明确作用域下的目标路径，不把普通字符串当隐式变量名。</summary>
+    public static bool IsScopedOutputPath(string path)
+    {
+        var parts = path.Split('.', 2);
+        return parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1]) && parts[0].Length > 0 &&
+            (char.IsLetter(parts[0][0]) || parts[0][0] == '_') && parts[0].All(c => char.IsLetterOrDigit(c) || c == '_');
+    }
+
+    /// <summary>留空保持旧行为不写变量；非空在通信前验证声明与字符串类型。</summary>
+    public static void ValidateStringOutput(IExecutionContext context, string path)
+        => ValidateStringOutput(context, path, static () => { });
+
+    internal static void ValidateStringOutput(IExecutionContext context, string path, Action ensureActive)
+    {
+        ensureActive();
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (!IsScopedOutputPath(path)) throw new ArgumentException($"串口输出必须为带作用域的完整变量路径：{path}");
+        bool exists = context.HasVariable(path);
+        ensureActive();
+        if (!exists) throw new ArgumentException($"串口输出变量 {path} 未声明或路径不存在；请声明 string 变量，或留空不写入");
+        var value = context.GetVariable(path);
+        ensureActive();
+        if (value is not (null or string))
+            throw new ArgumentException($"串口输出变量 {path} 类型不匹配，需要 string");
     }
 
     /// <summary>

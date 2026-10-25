@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using Ethernet;
@@ -24,6 +25,7 @@ public sealed class EthernetAbortBoundaryTests
         var plugin = new TcpReceivePlugin();
         string name = "abort-" + Guid.NewGuid().ToString("N");
         state.SetStep(plugin, new TcpReceiveSetting { ConnectionName = $"\"{name}\"", TimeoutMs = 1000, ExpectedLength = 1, ResultVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         state.BlockPrefix = "TCP 接收:";
         var opening = TcpConnectionManager.ConnectAsync(name, "127.0.0.1", ((IPEndPoint)peer.LocalEndpoint).Port, 1000, guard.Token, ctx.Resources);
         using var connected = await peer.AcceptTcpClientAsync(guard.Token);
@@ -55,10 +57,18 @@ public sealed class EthernetAbortBoundaryTests
         var state = (ResponseLogGateProxy)(object)ctx;
         var plugin = new UdpReceivePlugin();
         state.SetStep(plugin, new UdpReceiveSetting { LocalPort = port, TimeoutMs = 2000, ResultVariable = "Locals.rx" });
+        state.DeclaredVariables["Locals.rx"] = "";
         state.BlockPrefix = "UDP 接收:";
         var execution = plugin.CreateExecutor().ExecuteAsync(ctx, caller.Token);
         try
         {
+            // The native bind is now owned by a background lifecycle worker. This fixture
+            // exercises publication after a receive, so send its one packet only after bind.
+            while (!IPGlobalProperties.GetIPGlobalProperties().GetActiveUdpListeners().Any(endpoint => endpoint.Port == port))
+            {
+                Assert.False(execution.IsCompleted, "UDP listener exited before binding its localhost port");
+                await Task.Delay(10, guard.Token);
+            }
             await peer.SendAsync(new byte[] { 0xA5 }, new IPEndPoint(IPAddress.Loopback, port), guard.Token);
             await state.LogEntered.Task.WaitAsync(guard.Token);
             caller.Cancel(); state.ReleaseLog.Set();

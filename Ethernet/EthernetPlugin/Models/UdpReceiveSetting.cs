@@ -7,7 +7,7 @@ namespace Ethernet.Models;
 [MessagePackObject(true)]
 public class UdpReceiveSetting
 {
-    /// <summary>绑定本机端口</summary>
+    /// <summary>绑定本机端口，0 表示由系统分配临时端口。</summary>
     public int LocalPort { get; set; } = 30490;
 
     /// <summary>绑定模式</summary>
@@ -22,7 +22,7 @@ public class UdpReceiveSetting
     /// <summary>数据编码格式（结果以此格式存入变量）</summary>
     public EthernetDataEncoding Encoding { get; set; } = EthernetDataEncoding.Hex;
 
-    /// <summary>结果存储变量路径</summary>
+    /// <summary>可选结果变量完整路径；非空时须已声明为 string（当前值允许 null），通信前预检。</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

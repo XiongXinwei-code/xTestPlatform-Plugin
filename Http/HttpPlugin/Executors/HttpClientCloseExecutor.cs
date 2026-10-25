@@ -56,6 +56,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
             _ = Remaining();
             if (!context.Resources.Contains(key))
             {
+                _ = Remaining();
                 if (setting.IgnoreIfNotFound)
                 {
                     context.Log(LogLevel.Warn, $"HTTP 客户端不存在，已忽略关闭操作: {clientName}");
@@ -67,14 +68,21 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
                 return Error($"未找到 HTTP 客户端: {clientName}");
             }
 
-            if (context.Resources.TryGet<HttpClientResource>(key, out var owner))
+            if (!context.Resources.TryGet<HttpClientResource>(key, out var owner))
             {
-                int remaining = Remaining(); // 禁止lookup跨代次后由旧步骤关闭新owner。
-                await owner.CloseAsync(remaining, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                CheckExecution();
+                _ = Remaining();
+                if (!setting.IgnoreIfNotFound) return Error($"未找到 HTTP 客户端: {clientName}");
+                context.Log(LogLevel.Warn, $"HTTP 客户端不存在或资源类型不匹配，已忽略关闭操作: {clientName}");
+                _ = Remaining();
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
             }
-            context.Resources.Remove(key);
+            int remaining = Remaining(); // 禁止lookup跨代次后由旧步骤关闭新owner。
+            await owner.CloseAsync(remaining, cancellationToken);
+            _ = Remaining();
+            bool sameOwner = context.Resources.TryGet<HttpClientResource>(key, out var current) && ReferenceEquals(current, owner);
+            _ = Remaining();
+            if (!sameOwner) throw new InvalidOperationException("HTTP 客户端所属代次已改变，原客户端已收尾，禁止移除其它运行的客户端");
+            context.Resources.Remove(key, false);
             context.Log($"HTTP 客户端已释放: {clientName}");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();

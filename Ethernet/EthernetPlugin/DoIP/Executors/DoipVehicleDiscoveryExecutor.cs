@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Ethernet.DoIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -30,6 +31,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new DoipVehicleDiscoveryPlugin().CreateSerializer();
             var setting = (DoipVehicleDiscoverySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
@@ -44,9 +46,11 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             request[2] = (byte)(PtVehicleIdentRequest >> 8);
             request[3] = (byte)PtVehicleIdentRequest;
 
-            using var udp = new UdpClient { EnableBroadcast = true };
+            using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources,
+                () => new UdpClient { EnableBroadcast = true }, 0, setting.TimeoutMs, cancellationToken, CheckExecution);
             CheckExecution();
-            await udp.SendAsync(request, new IPEndPoint(IPAddress.Parse(broadcast), setting.Port), cancellationToken);
+            await udp.RunAsync(async (socket, token) =>
+                { await socket.SendAsync(request, new IPEndPoint(IPAddress.Parse(broadcast), setting.Port), token); }, cancellationToken, CheckExecution);
 
             context.Log($"DoIP 车辆识别请求已广播: {broadcast}:{setting.Port}");
 
@@ -54,7 +58,7 @@ public sealed class DoipVehicleDiscoveryExecutor : IStepExecutor
             cts.CancelAfter(setting.TimeoutMs);
 
             CheckExecution();
-            var result = await udp.ReceiveAsync(cts.Token);
+            var result = await udp.RunAsync((socket, token) => socket.ReceiveAsync(token).AsTask(), cts.Token, CheckExecution);
             var data = result.Buffer;
 
             if (data.Length < 8 + 32)

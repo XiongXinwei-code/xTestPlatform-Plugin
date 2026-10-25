@@ -39,6 +39,7 @@ public sealed class ModbusBatchWriteEditorPlugin : IStepEditorPlugin
             var item = s.Items[i];
             if (!Enum.IsDefined(item.RegisterType)) errors.Add(StepSettingError.Error("MB_ENUM_TYPE", $"第 {i + 1} 行：不支持的寄存器类型"));
             if (!Enum.IsDefined(item.DataFormat)) errors.Add(StepSettingError.Error("MB_ENUM_FORMAT", $"第 {i + 1} 行：不支持的数据格式"));
+            ModbusRequestValidator.Write(item.RegisterType, item.DataFormat, item.StartAddress, item.Values, errors, $"第 {i + 1} 行：");
             if (string.IsNullOrWhiteSpace(item.Values))
                 errors.Add(StepSettingError.Error("MB_052", $"第 {i + 1} 行：写入值不能为空"));
             if (item.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister)

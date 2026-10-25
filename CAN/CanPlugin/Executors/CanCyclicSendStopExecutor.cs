@@ -23,7 +23,10 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
             var name = await evaluator.EvalStringAsync(setting.ConnectionName, context);
             var taskName = await evaluator.EvalStringAsync(setting.TaskName, context);
             if (!context.Resources.TryGet<CanConnectionResource>(CanHelper.GetAdapterKey(name), out var connection))
+            {
+                guard.Check();
                 throw new InvalidOperationException($"CAN 连接 {name} 未找到");
+            }
             guard.Watch(CanHelper.GetAdapterKey(name), connection);
             await guard.RunAsync(() => connection.StopJobAsync(taskName, setting.TimeoutMs, cancellationToken));
             return new() { StepResult = new() { Status = TestStatus.Completed, Value = $"周期工作任务已退出：{name}/{taskName}；不代表电机停止" } };

@@ -23,6 +23,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     private CanopenCyclicService? _sender;
     private readonly AsyncLocal<CanopenCyclicService?> _ownerCommand = new();
     private readonly AsyncLocal<CancellationToken> _ownerCommandToken = new();
+    private readonly AsyncLocal<CanConfirmationBudget?> _ownerCommandBudget = new();
     private Task? _receiveTask, _closeTask;
     private Task _foregroundCancellation = Task.CompletedTask;
     private int _activeIo;
@@ -144,12 +145,16 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         finally { lock (_gate) _activeIo--; }
     }
 
-    public async Task OpenAsync(CanAdapterConfig config, int timeoutMs, CancellationToken ct = default)
+    public Task OpenAsync(CanAdapterConfig config, int timeoutMs, CancellationToken ct = default)
+        => OpenAsync(config, timeoutMs, ct, null);
+
+    internal async Task OpenAsync(CanAdapterConfig config, int timeoutMs, CancellationToken ct, Action? checkLifetime)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeoutMs); ct.ThrowIfCancellationRequested();
         var clock = Stopwatch.StartNew();
         void CheckBudget()
         {
+            checkLifetime?.Invoke();
             ct.ThrowIfCancellationRequested();
             if (clock.ElapsedMilliseconds >= timeoutMs) throw new TimeoutException($"CAN 打开总期限 {timeoutMs} ms 已到");
         }
@@ -347,7 +352,14 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         WriteCore(copy, CancellationToken.None, 0, 0);
     }
 
-    private void WriteCore(CanMessage copy, CancellationToken callerToken, long started, int timeoutMs)
+    /// <summary>持久任务使用其自身取消及执行期身份，不继承启动步骤的短令牌。</summary>
+    internal void Write(CanMessage message, CancellationToken lifetimeToken, Action checkLifetime)
+    {
+        var copy = CanReceiveRouter.Copy(message);
+        WriteCore(copy, lifetimeToken, 0, 0, checkLifetime);
+    }
+
+    private void WriteCore(CanMessage copy, CancellationToken callerToken, long started, int timeoutMs, Action? checkLifetime = null)
     {
         CheckSubmission();
         CAN.Helpers.CanHelper.ValidateTransmitFrame(copy);
@@ -371,7 +383,8 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             try
             {
                 if (_ownerCommand.Value != null && _raw is ICanConfirmedTransmitter confirmed)
-                    confirmed.WriteConfirmed(copy, _ownerCommandToken.Value);
+                    WriteConfirmed(confirmed, copy, _ownerCommandBudget.Value
+                        ?? throw new InvalidOperationException("受控所有者发送缺少配置预算"), _ownerCommandToken.Value);
                 else _raw.Write(copy);
             }
             finally { lock (_gate) _activeIo--; }
@@ -379,7 +392,9 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
 
         void CheckSubmission()
         {
+            checkLifetime?.Invoke();
             if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
+            else if (_ownerCommandBudget.Value is { } ownerBudget) _ = ownerBudget.Remaining(_ownerCommandToken.Value);
             callerToken.ThrowIfCancellationRequested();
             if (timeoutMs > 0 && System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException($"CAN 发送排队已超过配置期限 {timeoutMs} ms，未提交此帧");
@@ -412,18 +427,20 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         }
     }
 
-    internal async Task RunOwnerCommandAsync(CanopenCyclicService owner, Func<Task> command, CancellationToken ct)
+    internal async Task RunOwnerCommandAsync(CanopenCyclicService owner, Func<Task> command, CanConfirmationBudget budget, CancellationToken ct)
     {
         lock (_gate) if (!ReferenceEquals(_sender, owner)) throw new InvalidOperationException("控制所有者已失效");
         // Do not hold _txGate across SDO: its Write runs on another task and requires that gate.
         var previous = _ownerCommand.Value; var previousToken = _ownerCommandToken.Value;
+        var previousBudget = _ownerCommandBudget.Value;
         _ownerCommand.Value = owner; _ownerCommandToken.Value = ct;
+        _ownerCommandBudget.Value = budget;
         try { await command().ConfigureAwait(false); }
-        finally { _ownerCommand.Value = previous; _ownerCommandToken.Value = previousToken; }
+        finally { _ownerCommand.Value = previous; _ownerCommandToken.Value = previousToken; _ownerCommandBudget.Value = previousBudget; }
     }
 
     internal void SendBatch(CanopenCyclicService owner, OrderedFrame[] frames, bool confirmed, CancellationToken ct,
-        Action<bool> submitted)
+        Action<bool> submitted, CanConfirmationBudget budget)
     {
         // Validate the whole immutable batch before any member can enter the driver.
         foreach (var frame in frames)
@@ -433,7 +450,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             foreach (var frame in frames)
             {
                 owner.CheckSending(); // 不依赖异步取消回调何时传递到 linked token。
-                ct.ThrowIfCancellationRequested();
+                _ = budget.Remaining(ct);
                 lock (_gate)
                 {
                     CheckLocked(finishingOwnedBatch: ReferenceEquals(_sender, owner));
@@ -444,13 +461,20 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
                 {
                     var message = new CanMessage { Id = frame.CobId, Data = frame.Data.ToArray() };
                     submitted(false); // 进入原生调用即视为可能已提交，异常也不能假定未发送。
-                    if (confirmed) ((ICanConfirmedTransmitter)_raw).WriteConfirmed(message, ct);
+                    if (confirmed) WriteConfirmed((ICanConfirmedTransmitter)_raw, message, budget, ct);
                     else _raw.Write(message);
                     if (confirmed) submitted(true);
                 }
                 finally { lock (_gate) _activeIo--; }
             }
         }
+    }
+
+    private static void WriteConfirmed(ICanConfirmedTransmitter transmitter, CanMessage message, CanConfirmationBudget budget, CancellationToken ct)
+    {
+        _ = budget.Remaining(ct);
+        if (transmitter is ICanBudgetedConfirmedTransmitter configured) configured.WriteConfirmed(message, budget, ct);
+        else transmitter.WriteConfirmed(message, ct); // 兼容既有提供者；外层仍追踪实际退出和软期限。
     }
 
     internal ReceiveSnapshot Snapshot(FeedbackSubscription subscription, bool running)
@@ -594,11 +618,14 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     public void Dispose()
     {
         // 同步资源回收不占住宿主线程；显式 CAN_Close 才确认退出。
-        _ = ObserveCloseAsync();
+        var actualClose = RequestClose();
+        _ = ObserveCloseAsync(actualClose);
     }
-    private async Task ObserveCloseAsync()
+    private async Task ObserveCloseAsync(Task actualClose)
     {
-        try { await CloseAsync().ConfigureAwait(false); }
+        // This observer owns no caller wait. The service already has its configured
+        // stop deadline; a legacy 5 s soft wait must not cancel an allowed 8 s stop.
+        try { await actualClose.ConfigureAwait(false); }
         catch (Exception ex)
         {
             Trace.TraceError($"CAN 自动收尾未确认：{GetLifecycleDiagnostics()}; {ex}");

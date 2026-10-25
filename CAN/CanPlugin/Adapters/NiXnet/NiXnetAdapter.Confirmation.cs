@@ -65,7 +65,7 @@ public sealed partial class NiXnetAdapter
         return true;
     }
 
-    private NiTransmitLedger.Ticket? Submit(CanMessage message)
+    private NiTransmitLedger.Ticket? Submit(CanMessage message, Action? checkBeforeNative = null)
     {
         if (!_isConnected || _closing) throw new InvalidOperationException("CAN 通道未打开或正在关闭");
         if (_unknownSend) throw new InvalidOperationException("NI 旧发送曾超时/取消或失败，禁止新提交；保留未决确认，仅允许受控关闭");
@@ -76,8 +76,11 @@ public sealed partial class NiXnetAdapter
         {
             RefreshTransmitCompletion();
             // Match the actual padded FD wire representation.
-            ticket = _transmits.Register(ParseFrames(frameBytes, frameBytes.Length).Single(), ReadInterfaceTime());
+            var barrier = ReadInterfaceTime();
+            checkBeforeNative?.Invoke();
+            ticket = _transmits.Register(ParseFrames(frameBytes, frameBytes.Length).Single(), barrier);
         }
+        else checkBeforeNative?.Invoke();
         var success = false;
         try { _io.Check(_io.Write(_txSession, frameBytes)); success = true; }
         catch { _unknownSend = true; throw; }
@@ -86,26 +89,36 @@ public sealed partial class NiXnetAdapter
     }
 
     public void WriteConfirmed(CanMessage message, CancellationToken cancellationToken)
+        => WriteConfirmedCore(message, CAN.Runtime.CanConfirmationBudget.Start(5000, cancellationToken), cancellationToken);
+
+    void CAN.Runtime.ICanBudgetedConfirmedTransmitter.WriteConfirmed(CanMessage message, CAN.Runtime.CanConfirmationBudget budget, CancellationToken cancellationToken)
+        => WriteConfirmedCore(message, budget, cancellationToken);
+
+    private void WriteConfirmedCore(CanMessage message, CAN.Runtime.CanConfirmationBudget budget, CancellationToken cancellationToken)
     {
+        _ = budget.Remaining(cancellationToken);
         lock (_transmitGate)
         {
-            cancellationToken.ThrowIfCancellationRequested();
+            _ = budget.Remaining(cancellationToken);
             if (!ConfirmationAvailable) throw new NotSupportedException("NI 不支持发送完成回显");
             if (!_strictEnabled) VerifyConfirmationAvailable();
-            var ticket = Submit(message)!;
-            var deadline = Stopwatch.StartNew();
+            var ticket = Submit(message, () => _ = budget.Remaining(cancellationToken))!;
             try
             {
                 while (true)
                 {
+                    _ = budget.Remaining(cancellationToken);
                     RefreshTransmitCompletion();
+                    _ = budget.Remaining(cancellationToken);
                     if (_transmits.IsConfirmed(ticket)) return;
-                    cancellationToken.ThrowIfCancellationRequested();
                     ThrowIfReceivePumpFailed();
-                    if (deadline.ElapsedMilliseconds >= 5000)
-                        throw new TimeoutException($"NI 发送确认超时，代次={ticket.Epoch}，顺序={ticket.Sequence}，ID=0x{message.Id:X}；未决项继续追踪");
                     Thread.Sleep(1);
                 }
+            }
+            catch (TimeoutException ex)
+            {
+                _unknownSend = true;
+                throw new TimeoutException($"NI 发送确认超时，代次={ticket.Epoch}，顺序={ticket.Sequence}，ID=0x{message.Id:X}，配置总期限={budget.TimeoutMs} ms；未决项继续追踪", ex);
             }
             catch { _unknownSend = true; throw; }
         }

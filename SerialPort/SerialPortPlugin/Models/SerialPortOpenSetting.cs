@@ -21,6 +21,6 @@ public class SerialPortOpenSetting
 
     public int WriteTimeoutMs { get; set; } = 3000;
 
-    /// <summary>打开总期限(ms)，包含旧资源收尾及本次操作；旧序列保留原默认行为。</summary>
+    /// <summary>打开整个步骤总期限(ms)，包含求值、构造/登记、旧资源收尾、SDK操作及最终发布。</summary>
     public int TimeoutMs { get; set; } = 5000;
 }

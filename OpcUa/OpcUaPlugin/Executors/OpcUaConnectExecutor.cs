@@ -50,8 +50,9 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
             {
                 epoch.ThrowIfExpired();
                 OpcUaHelper.ThrowIfOpenSuperseded(context.Resources, key, generation);
-                if (context.Resources.TryGet<OpcUaConnectionResource>(key, out var previous))
+                if (guard.TryGetResource<OpcUaConnectionResource>(key, out var previous))
                 {
+                    OpcUaHelper.ThrowIfOpenSuperseded(context.Resources, key, generation);
                     await previous.CloseAsync(OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs), cancellationToken);
                     guard.Check();
                     if (context.Resources.TryGet<OpcUaConnectionResource>(key, out var previousCurrent) && ReferenceEquals(previousCurrent, previous))

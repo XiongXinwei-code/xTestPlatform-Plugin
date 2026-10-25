@@ -36,7 +36,7 @@ public sealed class NiDaqSyncReadExecutor : IStepExecutor
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var resource = NiDaqTaskRegistry.Get(context, taskName);
+            var resource = NiDaqTaskRegistry.Get(context, taskName, guard.Check);
             guard.EnsureCurrent(taskName, resource);
             var acquired = await resource.RunAsync(() => { guard.EnsureCurrent(taskName, resource); return _read(resource, setting.SamplesToRead, setting.ReadTimeoutMs, true); }, setting.ReadTimeoutMs, "同步 AI/CI 逐点读取", cancellationToken);
             guard.EnsureCurrent(taskName, resource);

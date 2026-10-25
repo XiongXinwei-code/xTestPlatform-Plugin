@@ -33,7 +33,7 @@ public sealed class OpcUaReadExecutor : IStepExecutor
             var nodeIdStr = setting.NodeId;
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<OpcUaConnectionResource>(key, out var connection))
+            if (!guard.TryGetResource<OpcUaConnectionResource>(key, out var connection))
             {
                 return new ExecutionResult
                 {

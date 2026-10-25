@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Ethernet.SomeIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -28,6 +29,7 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new SomeIpSdDiscoverPlugin().CreateSerializer();
             var setting = (SomeIpSdDiscoverSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
@@ -42,15 +44,24 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             context.Log(
                 $"SOME/IP-SD 发现: {multicast}:{setting.Port} 查找 Service=0x{findServiceId:X4}，超时 {setting.TimeoutMs}ms");
 
-            using var udp = new UdpClient(AddressFamily.InterNetwork);
-            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            udp.Client.Bind(new IPEndPoint(IPAddress.Any, setting.Port));
-            udp.JoinMulticastGroup(multicast);
+            using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources, () =>
+            {
+                var socket = new UdpClient(AddressFamily.InterNetwork);
+                try
+                {
+                    socket.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    socket.Client.Bind(new IPEndPoint(IPAddress.Any, setting.Port));
+                    socket.JoinMulticastGroup(multicast);
+                    return socket;
+                }
+                catch { socket.Dispose(); throw; }
+            }, setting.Port, setting.TimeoutMs, cancellationToken, CheckExecution);
 
             // 发送 FindService
             var find = BuildFindService(findServiceId);
             CheckExecution();
-            await udp.SendAsync(find, new IPEndPoint(multicast, setting.Port), cancellationToken);
+            await udp.RunAsync(async (socket, token) =>
+                { await socket.SendAsync(find, new IPEndPoint(multicast, setting.Port), token); }, cancellationToken, CheckExecution);
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(setting.TimeoutMs);
@@ -58,18 +69,23 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             var offers = new List<string>();
             try
             {
-                while (true)
+                await udp.RunAsync(async (socket, token) =>
                 {
-                    CheckExecution();
-                    var recv = await udp.ReceiveAsync(timeoutCts.Token);
-                    foreach (var offer in ParseOffers(recv.Buffer, findServiceId, recv.RemoteEndPoint))
-                        if (!offers.Contains(offer)) offers.Add(offer);
-                }
+                    while (true)
+                    {
+                        CheckExecution();
+                        var recv = await socket.ReceiveAsync(token);
+                        foreach (var offer in ParseOffers(recv.Buffer, findServiceId, recv.RemoteEndPoint))
+                            if (!offers.Contains(offer)) offers.Add(offer);
+                    }
+                }, timeoutCts.Token, CheckExecution);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // 超时结束收集
             }
+
+            CheckExecution(); // Cleanup is not a successful collection-window expiry.
 
             if (offers.Count == 0)
                 return new ExecutionResult

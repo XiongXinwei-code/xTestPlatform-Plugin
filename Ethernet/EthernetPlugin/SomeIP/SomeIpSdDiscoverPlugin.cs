@@ -29,6 +29,11 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
 
         ## 行为
 
+        - ResultVariable 为空时跳过写入；非空须配置已声明的完整作用域 string 变量路径，当前值允许 null；建立/发送/消费响应前预检，不自动创建变量
+
+        - 临时发现 Socket 登记为执行资源；中断或退出调试时取消通信，后台确认原始 I/O 与取消回调退出后才释放；首轮重跑在 TimeoutMs 内等待旧绑定收尾，FindService 发送后的 Offer 收集窗口仍单独使用 TimeoutMs
+        - 活动监听保留 ReuseAddress 共享语义；资源回收不等于正常收集窗口结束，旧执行不能发布发现结果
+
         - 超时内未发现服务时步骤返回 Error
 
         ## 相关插件

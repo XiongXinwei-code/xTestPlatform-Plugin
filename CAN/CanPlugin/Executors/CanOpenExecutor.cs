@@ -95,7 +95,7 @@ public sealed class CanOpenExecutor : IStepExecutor
                 if (!context.Resources.TryAdd(key, adapter, ResourceLifetime.Execution))
                     throw new InvalidOperationException($"CAN 连接 {connName} 已被其他步骤注册");
                 epoch.ThrowIfExpired();
-                await adapter.OpenAsync(adapterConfig, Remaining(), cancellationToken);
+                await adapter.OpenAsync(adapterConfig, Remaining(), cancellationToken, epoch.ThrowIfExpired);
                 epoch.ThrowIfExpired();
                 _ = Remaining();
             }

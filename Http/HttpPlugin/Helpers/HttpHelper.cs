@@ -108,7 +108,11 @@ public sealed class HttpClientResource : IDisposable
         lock (_sync)
         {
             CheckAvailable();
-            if (!resources.TryGet<HttpClientResource>(key, out var current) || !ReferenceEquals(current, this))
+            bool found = resources.TryGet<HttpClientResource>(key, out var current);
+            caller.ThrowIfCancellationRequested();
+            CheckAvailable();
+            caller.ThrowIfCancellationRequested();
+            if (!found || !ReferenceEquals(current, this))
                 throw new InvalidOperationException("HTTP 客户端所属代次已被替换，拒绝发布旧请求结果");
         }
         caller.ThrowIfCancellationRequested();

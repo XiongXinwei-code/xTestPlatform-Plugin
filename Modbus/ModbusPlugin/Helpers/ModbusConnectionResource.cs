@@ -15,6 +15,9 @@ public sealed class ModbusConnectionResource : IDisposable
     private bool _ready, _closing;
     private readonly Action<Exception>? _report;
     private bool _masterReleased, _transportReleased;
+    private Task<Exception?>? _shutdown;
+    private Task? _closeObserver;
+    private bool _releasing, _releaseCompleted;
     public IModbusMaster Master => _master ?? throw new InvalidOperationException("Modbus 连接尚在建立，Master 尚不可用");
     public int TimeoutMs { get; }
     public string? PhysicalResourceKey { get; }
@@ -82,16 +85,67 @@ public sealed class ModbusConnectionResource : IDisposable
     {
         ct.ThrowIfCancellationRequested();
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
-        lock (_state) _closing = true;
+        var shutdown = RequestShutdown();
         TrackRetirement();
-        // 先冻结事务，再请求连接 token 取消 I/O；句柄仍由真实退出后的 Release 释放。
-        var closing = _io.CloseAsync(Release, timeoutMs, ct);
+        // Freeze admission immediately. Both the driver interrupt and cancellation
+        // callbacks run off the caller; release must await their real completion.
+        var closing = _io.CloseAsync(ReleaseAfterShutdown, timeoutMs, ct);
         ObserveRelease();
-        _lifetime.Cancel();
-        var interruptError = InterruptPendingIo();
         try { await closing.ConfigureAwait(false); }
-        catch (Exception ex) when (interruptError != null) { throw new AggregateException("Modbus 关闭及解除阻塞未确认", interruptError, ex); }
-        if (interruptError != null) throw new InvalidOperationException("Modbus 已收尾，但原始 I/O 取消失败", interruptError);
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) when (shutdown.IsCompletedSuccessfully && shutdown.Result is { } stopError)
+        { throw new AggregateException("Modbus 关闭及停止请求失败", stopError, ex); }
+        if (await shutdown.ConfigureAwait(false) is { } error)
+            throw new InvalidOperationException("Modbus 已收尾，但原始 I/O 取消或回调失败", error);
+    }
+
+    private Task<Exception?> RequestShutdown()
+    {
+        lock (_state)
+        {
+            _closing = true;
+            // A completed failed interrupt may be retried while I/O is pending.
+            // Once physical release starts, another abort must not touch that handle.
+            if (_shutdown == null || (!_releasing && !_releaseCompleted &&
+                _shutdown.IsCompletedSuccessfully && _shutdown.Result != null))
+                _shutdown = Task.Run(ShutdownCoreAsync, CancellationToken.None);
+            return _shutdown;
+        }
+    }
+
+    private async Task<Exception?> ShutdownCoreAsync()
+    {
+        var failures = new List<Exception>();
+        Task callbacks;
+        try { callbacks = _lifetime.CancelAsync(); }
+        catch (Exception ex) { callbacks = Task.FromException(ex); }
+        // An arbitrary transport implementation may block in its abort operation.
+        // Start it independently so a slow callback cannot prevent the I/O unblock.
+        var interrupt = Task.Run(InterruptPendingIo, CancellationToken.None);
+        try { await callbacks.ConfigureAwait(false); } catch (Exception ex) { failures.Add(ex); }
+        try { if (await interrupt.ConfigureAwait(false) is { } error) failures.Add(error); }
+        catch (Exception ex) { failures.Add(ex); }
+        return failures.Count switch { 0 => null, 1 => failures[0], _ => new AggregateException("Modbus 停止请求失败", failures) };
+    }
+
+    // PendingIoGate invokes this only on its actual background close worker, after
+    // admitted I/O exits. Failed callbacks have exited too; keep their diagnostics
+    // without permanently preventing an otherwise successful physical release.
+    private void ReleaseAfterShutdown()
+    {
+        Task<Exception?> shutdown;
+        lock (_state)
+        {
+            _releasing = true;
+            shutdown = _shutdown ??= Task.Run(ShutdownCoreAsync, CancellationToken.None);
+        }
+        try
+        {
+            _ = shutdown.GetAwaiter().GetResult();
+            Release();
+            lock (_state) _releaseCompleted = true;
+        }
+        finally { lock (_state) _releasing = false; }
     }
     private Exception? InterruptPendingIo()
     {
@@ -113,17 +167,28 @@ public sealed class ModbusConnectionResource : IDisposable
     }
     public void Dispose()
     {
-        lock (_state) _closing = true;
+        var shutdown = RequestShutdown();
         TrackRetirement();
-        _io.RequestClose(Release, _report);
+        _io.RequestClose(ReleaseAfterShutdown);
         ObserveRelease();
-        _lifetime.Cancel();
-        var error = InterruptPendingIo();
-        if (error != null)
+        var actualClose = _io.CloseCompletion ?? Task.CompletedTask;
+        lock (_state)
         {
-            System.Diagnostics.Trace.TraceError($"Modbus 取消原始 I/O 失败: {error}");
-            try { _report?.Invoke(error); } catch (Exception ex) { System.Diagnostics.Trace.TraceError($"Modbus 收尾日志回调失败: {ex}"); }
+            if (_closeObserver == null || _closeObserver.IsCompleted)
+                _closeObserver = Task.Run(() => ObserveCloseAsync(actualClose, shutdown), CancellationToken.None);
         }
+    }
+
+    private async Task ObserveCloseAsync(Task actualClose, Task<Exception?> shutdown)
+    {
+        Exception? failure = null;
+        try { await actualClose.ConfigureAwait(false); } catch (Exception ex) { failure = ex; }
+        if (await shutdown.ConfigureAwait(false) is { } stopError)
+            failure = failure == null ? stopError : new AggregateException("Modbus 后台收尾失败", failure, stopError);
+        if (failure == null) return;
+        Trace.TraceError($"Modbus 后台收尾诊断（已释放={IsClosed}）：{failure}");
+        try { _report?.Invoke(failure); }
+        catch (Exception ex) { Trace.TraceError($"Modbus 收尾日志回调失败：{ex}"); }
     }
     private void TrackRetirement()
     {

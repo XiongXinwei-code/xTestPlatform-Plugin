@@ -40,6 +40,7 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 		## 行为
 
 		- 按列表顺序逐项读取，每项读取后等待 IntervalMs 毫秒（包括最后一项）
+		- 首次通信前检查全部项的数量（位 1～2000、寄存器 1～125）、地址上界、32 位成对数量，以及非空结果路径的声明和已知类型/形状；局部配置错误不发送任何项
 		- 任意一项读取失败则步骤报错，之前已成功的项已写入变量，不回滚
 		- Items 为空时步骤直接通过
 

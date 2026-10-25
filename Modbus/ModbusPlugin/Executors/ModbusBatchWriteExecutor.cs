@@ -35,6 +35,7 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 
 			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -64,6 +65,8 @@ public sealed class ModbusBatchWriteExecutor : IStepExecutor
 			var prepared = setting.Items.Select(item => (Item: item,
 				Coils: item.RegisterType == ModbusRegisterType.Coil ? ModbusDataConverter.ParseCoils(item.Values) : null,
 				Registers: item.RegisterType == ModbusRegisterType.HoldingRegister ? ModbusDataConverter.ConvertToRegisters(item.Values, item.DataFormat) : null)).ToArray();
+			foreach (var entry in prepared)
+				ModbusRequestPreflight.ValidateWrite(entry.Item.RegisterType, entry.Item.StartAddress, entry.Coils?.Length ?? entry.Registers!.Length);
 			foreach (var entry in prepared)
 			{
 				var item = entry.Item;

@@ -17,6 +17,9 @@ namespace Http.Executors;
 public sealed class HttpSoapRequestExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<string, string?> _parseFault;
+    public HttpSoapRequestExecutor() : this(TryGetFaultMessage) { }
+    internal HttpSoapRequestExecutor(Func<string, string?> parseFault) => _parseFault = parseFault;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -45,12 +48,18 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
                 return Error("客户端标识名未配置");
 
             if (!context.Resources.TryGet<HttpClientResource>(HttpHelper.GetClientKey(clientName), out var resource))
+            {
+                CheckExecution();
                 return Error($"未找到 HTTP 客户端: {clientName}，请先执行 Http_ClientCreate 步骤");
+            }
 
             var path = await Evaluator.EvalStringAsync(setting.Path, context);
             CheckExecution();
             if (string.IsNullOrWhiteSpace(path))
                 return Error("服务端点路径未配置");
+
+            HttpOutputPreflight.Validate(context, setting.ResponseVariable, typeof(string), CheckExecution);
+            HttpOutputPreflight.Validate(context, setting.StatusCodeVariable, typeof(int), CheckExecution);
 
             var envelope = await Evaluator.EvalStringAsync(setting.Envelope, context);
             CheckExecution();
@@ -118,10 +127,15 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             if (!string.IsNullOrWhiteSpace(setting.ResponseVariable))
                 context.SetVariable(setting.ResponseVariable, responseXml);
             CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             if (!string.IsNullOrWhiteSpace(setting.StatusCodeVariable))
                 context.SetVariable(setting.StatusCodeVariable, statusCode);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
 
-            var faultMessage = setting.TreatSoapFaultAsFailure ? TryGetFaultMessage(responseXml) : null;
+            var faultMessage = setting.TreatSoapFaultAsFailure ? _parseFault(responseXml) : null;
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             if (faultMessage != null)
             {
                 var faultResult = ExecutionResults.Error($"服务端返回 SOAP Fault；{operation}",

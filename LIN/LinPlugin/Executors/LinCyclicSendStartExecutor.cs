@@ -28,6 +28,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
             var adapterKey = LinHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ILinAdapter>(adapterKey, out var adapter))
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult

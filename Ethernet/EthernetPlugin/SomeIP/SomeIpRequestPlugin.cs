@@ -34,6 +34,10 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
 
         ## 行为
 
+        - ResultVariable 为空时跳过写入；非空须配置已声明的完整作用域 string 变量路径，当前值允许 null；建立/发送/消费响应前预检，不自动创建变量
+
+        - 本次 UDP/TCP 临时连接登记为执行资源；中断或退出调试时取消解析、连接或通信，后台确认原始 I/O 与取消回调退出后才释放；旧资源收尾等待与建立计入原 TimeoutMs 总预算，已提交的请求不能据此视为撤回
+
         - ReturnCode 非 0x00 或错误响应时步骤返回 Error
         - UDP 域名异步解析与 TCP/UDP 发送均受同一个 TimeoutMs 控制，不按接收次数重置期限
         - 超时返回 Error、原调用方取消返回 Aborted；请求可能已发送时远端执行结果未知，不自动重试，真实网络调用退出后释放本次 Socket

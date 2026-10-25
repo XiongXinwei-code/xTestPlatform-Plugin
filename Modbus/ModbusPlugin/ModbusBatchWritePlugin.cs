@@ -39,6 +39,7 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 		## 行为
 
 		- 写入前先校验所有项的 RegisterType，存在只读类型（DiscreteInput/InputRegister）时步骤直接报错，不写入任何项
+		- 首次发送前解析全部 Values，并验证每项数量（线圈 1～1968、寄存器 1～123）及地址范围不超过 65535；配置错误不发送任何项
 		- 按列表顺序逐项写入，每项写入后等待 IntervalMs 毫秒（包括最后一项）
 		- 任意一项写入失败则步骤报错，之前已写入的项不回滚
 		- Items 为空时步骤直接通过

@@ -35,6 +35,7 @@ public sealed class ReauditEthernetProtocolTests
             RemoteHost = "\"127.0.0.1\"", RemotePort = $"\"{port}\"", Transport = transport,
             ClientId = "\"0x2211\"", TimeoutMs = 2000, ResultVariable = "Locals.reply"
         });
+        state.DeclaredVariables["Locals.reply"] = "";
         var executing = plugin.CreateExecutor().ExecuteAsync(context, guard.Token);
         try
         {
@@ -206,6 +207,7 @@ public sealed class ReauditEthernetProtocolTests
             BroadcastAddress = "\"127.0.0.1\"", Port = ((IPEndPoint)peer.Client.LocalEndPoint!).Port,
             TimeoutMs = 2000, ResultVariable = "Locals.vehicle"
         });
+        state.DeclaredVariables["Locals.vehicle"] = "";
         var executing = plugin.CreateExecutor().ExecuteAsync(context, guard.Token);
         try
         {
