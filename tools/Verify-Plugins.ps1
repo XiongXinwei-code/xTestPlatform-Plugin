@@ -118,8 +118,12 @@ foreach ($module in $modules) {
     })
     $records += @{ name = $module.Name; version = $module.Core.Version; stepCount = $steps.Count; files = $files }
 }
+$sourceCommit = & git rev-parse HEAD
+if ($LASTEXITCODE -ne 0) { throw '无法读取交付源码提交号，拒绝生成无法追溯的清单。' }
+$sourceChanges = @(& git status --porcelain=v1 --untracked-files=normal)
+if ($LASTEXITCODE -ne 0) { throw '无法读取工作区状态，拒绝猜测源码是否包含未提交改动。' }
 $manifest = @{ generatedUtc = [DateTime]::UtcNow.ToString('o'); target = 'net8.0-windows/win-x64';
-    hardwareValidated = $false; sourceCommit = (& git rev-parse HEAD); sourceIncludesUncommittedChanges = $true; plugins = $records }
+    hardwareValidated = $false; sourceCommit = $sourceCommit; sourceIncludesUncommittedChanges = ($sourceChanges.Count -gt 0); plugins = $records }
 $utf8 = [Text.UTF8Encoding]::new($false)
 [IO.File]::WriteAllText((Join-Path $outputPath 'build-manifest.json'), ($manifest | ConvertTo-Json -Depth 8), $utf8)
 Write-Output "已验证 $($records.Count) 个独立插件文件夹；清单：$outputPath/build-manifest.json"
