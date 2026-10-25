@@ -5,7 +5,7 @@
 ## 范围、基线和方法
 
 - 起点 `54ef5f5f38d64813fb409b1d000b966a8a1a2949`；原 `develop-backup-20261024` 及旧插件包保留。最新 fetch 的 `origin/master=5351a0a9d66594455b292fe65308303488a07537`；远端与本地开发手册同为 blob `9ca9f70eb10a14cd9a931bcc3fe7fe5995da93d0`，按该契约检查。
-- 10插件、120步骤；全文阅读产品 C#/XAML/csproj 共1116：CAN251、CiA402148、Ethernet118、HTTP52、LIN80、Modbus62、NI DAQ106、OPC UA87、Serial49、VISA59、Shared4。包括 Setting/默认值/Description、执行器和资源所有权、后台任务、C# interop、校验器、VM、独立步骤编辑器与实际页面。排除生成文件、测试、图标、第三方原生二进制内部；没有声称逐字阅读所有测试和厂商SDK内部实现。
+- 10插件、120步骤；全文阅读产品 C#/XAML/csproj 共1016：CAN251、CiA402148、Ethernet118、HTTP52、LIN80、Modbus62、NI DAQ106、OPC UA87、Serial49、VISA59、Shared4。包括 Setting/默认值/Description、执行器和资源所有权、后台任务、C# interop、校验器、VM、独立步骤编辑器与实际页面。排除生成文件、测试、图标、第三方原生二进制内部；没有声称逐字阅读所有测试和厂商SDK内部实现。
 - 当前逐文件库存和哈希：`artifacts/lifecycle-reaudit-20261025/full-product-inventory.json`；CAN/CiA/LIN补读台账 `can-fullread-inventory.json`。库存脚本证明文件范围和内容，不替代人工阅读和运行。
 - ECC planner/architect 已用于执行epoch→逻辑owner→实际I/O→退休物理占用→SDK清理的数据流审查；tdd-workflow/csharp-testing 用于实际RED/GREEN；C# reviewer/silent-failure-hunter 用于取消、超时、异常和后台退出；security-review 检查输入与凭据/正文诊断边界；windows-desktop-e2e 明确组件与宿主运行差别；最终使用 verification-loop。未启用额外框架、自动Hooks、自动重连或设备动作。
 - 独立审查由非作者读取源码和调用链，不写产品、不操作设备。主线程负责复核、集成与最终运行；读取作者TRX不写成审查者亲自运行。
@@ -58,7 +58,35 @@
 
 实际命令：`pwsh -NoProfile -File tools/Verify-Plugins.ps1 -Mode Test -OutputRoot artifacts/Release/2026-10-25-lifecycle-reaudit`。最后EDS源码变更后，只重跑受影响的CAN完整405项，保留其他8套同轮未变源码的完整结果；原400项回执先归档而非冒充最终状态。TRX在该目录`verification/*.Tests.trx`；主日志`artifacts/lifecycle-reaudit-20261025/round3-tests.log`和`round3-can-final-tests.log`。
 
-待完成：20核心/UI重编译、步骤/依赖/源码与产物指纹及最终静态检查。未完成项尚不写成通过。
+最终构建与交付检查已通过：
+
+| 检查与实际命令 | 结果/记录 |
+| --- | --- |
+| `tools/Verify-Plugins.ps1 -Mode Package -OutputRoot artifacts/Release/2026-10-25-lifecycle-reaudit` | 20个唯一核心/UI项目重编译，10模块构建日志0警告0错误；每个模块都通过类型/依赖严格加载，`round3-package.log`及`verification/*-build.log`。 |
+| `tools/Verify-PluginDelivery.ps1 -OutputRoot artifacts/Release/2026-10-25-lifecycle-reaudit -BaselineRoot artifacts/Release/2026-10-24-full-lifecycle` | 10模块/120步骤ID与显示路径保持，9套1369测试全绿，私有CAN2份SHA-256一致；包内README/CHANGELOG与当前版本一致，无测试运行库混入。`verification/delivery-contract-receipt.json`。 |
+| `tools/Verify-PluginBinarySources.ps1 -OutputRoot artifacts/Release/2026-10-25-lifecycle-reaudit` | 30个程序集/测试PE-PDB配对，1369次非生成本地C#源码文档出现记录与当前SHA-256匹配。`verification/delivery-source-receipt.json`；此项不独自证明XAML/SDK ABI/宿主实际加载版本。 |
+| 当前完整产品库存与`verification/source-snapshot.json`逐项哈希复核 | 1016产品文件+5个根构建/手册配置，共1021项一致，包含XAML/csproj补足PDB范围。代码冻结提交8c3f82e298b199d250563e5064fd3c6f0bf9ce38，最终文档回执不改变产品源码。 |
+| `tools/Verify-PluginSources.ps1`与`git diff --check`/提交前`git diff --cached --check` | 严格UTF-8、C#无BOM、120独立编辑器描述、执行状态静态检查和差异格式通过；不替代语义/运行/硬件验证。 |
+
+交付目录：`artifacts/Release/2026-10-25-lifecycle-reaudit/Plugins`，543文件、432546056字节。新包独立生成，不覆盖旧交付或部署目录。构建清单 `build-manifest.json` 列出逐文件SHA-256；源码/实际工作区状态以额外`source-snapshot.json`为准（构建脚本的`sourceIncludesUncommittedChanges`字段原模板保守固定为true，不据此推断存在未验证产品改动）。
+
+| 插件 | 本次版本 |
+| --- | --- |
+| CAN | 1.0.37 |
+| CiA402 | 1.0.9 |
+| LIN / SerialPort | 1.0.31 |
+| Ethernet / HTTP / NI DAQ / OPC UA / VISA | 1.0.23 |
+| Modbus | 1.0.22（本轮无新产品变更） |
+
+三轮结论：本轮确定的软件缺陷已修复并复测，当前修复范围经非作者复核无新增确定缺陷；不将“检查未再发现”扩展成所有现场条件绝对无缺陷。
+
+最后交付独立只读复核：逐文件重算全部543包文件/字节/SHA-256，核1021项源码快照、30二进制哈希及1369条PDB源码文档记录的当前内容；九份TRX逐UnitTestResult与Counters均核，合计1369 Passed，无失败、未执行、中止；120个(module,StepTypeId,DisplayName)与基线完全相同；20核心/UI版本、2份CAN及20份README/CHANGELOG哈希一致，10个构建日志0警告0错误。PE/PDB配对本身读取主线程检查器回执，非作者未再运行检查器、构建、测试或设备操作。模板字段解释和未执行硬件/实际调试标记均已核实，无交付阻断问题。
+
+## 与云端及本轮起点的差异
+
+- 比较冻结代码提交`8c3f82e298b199d250563e5064fd3c6f0bf9ce38`和远端master `5351a0a9d66594455b292fe65308303488a07537`：1055文件，新增41047行、删除4326行，包含此前已保存的全插件修复、AO/树分层及测试工具，不全部归为本轮新增。逐文件状态和增删行在`2026-10-25-reaudit-vs-origin-master-files.csv`。
+- 只比较本轮起点备份`54ef5f5f38d64813fb409b1d000b966a8a1a2949`：141文件，新增2653行、删除226行。上文修复表解释本轮功能修改及原因；原备份和此前相对云端的功能报告保留，未改master或推送。
+- 所有修复已存本地实施分支`codex/full-plugin-lifecycle-reaudit-20261025`。代码提交之后仅补最终验收说明；产物由明确的冻结代码版本编译，避免用文档提交冒充重新编译。
 
 ## 尚未执行的验证与回退
 

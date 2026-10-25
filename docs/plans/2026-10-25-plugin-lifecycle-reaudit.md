@@ -46,12 +46,15 @@ NI/OPC 子组完成后，构建权交接：reaudit_ni_opc 独占 Ethernet 三项
 ## 当前记录
 
 - 已完成：干净 Git 起点、云端手册 blob、ECC 方法与风险/架构边界核对。
-- 已完成第一轮：逐模块全文阅读，库存为 1116 个产品 C#/XAML/csproj（含 Shared4 和新增 CAN resolver1），不包含第三方二进制、bin/obj 和测试；逐文件路径与 SHA-256 保存在 `artifacts/lifecycle-reaudit-20261025/full-product-inventory.json`。阅读与脚本生成库存是两项证据，不以库存脚本冒充阅读。
-- 第二轮发现并修复：SOAP1.2 失败详情泄漏（4 RED/1合法正例→5 GREEN）；EDS 初始化通知重入覆盖新请求（2 RED→全部 EDS11+实际页调度组1 GREEN）。HTTP/网络定向62 GREEN；CAN全套在最后两项重入测试前398 GREEN，冻结后仍需重跑。
+- 已完成第一轮：逐模块全文阅读，库存为 1016 个产品 C#/XAML/csproj（含 Shared4 和新增 CAN resolver1），不包含第三方二进制、bin/obj 和测试；逐文件路径与 SHA-256 保存在 `artifacts/lifecycle-reaudit-20261025/full-product-inventory.json`。阅读与脚本生成库存是两项证据，不以库存脚本冒充阅读。
+- 第二轮发现并修复：SOAP1.2 失败详情泄漏（4 RED/1合法正例→5 GREEN）；EDS 初始化通知重入覆盖新请求（2 RED→全部 EDS11+实际页调度组1 GREEN）。HTTP/网络定向62 GREEN；该阶段CAN398 GREEN已由第三轮最终405项完整回归替代。
 - CAN补读四项已纳入：PEAK官方句柄映射、单一原生resolver、固件重叠记录文件顺序、Channel语法校验；第一批RED7/11→定向16/16，后补真实HEX链测试。ZLG内部动态依赖仍须实机验证。
 - 两个已有CAN夹具问题只改测试调度/STA归组，保留产品1000ms期限和原断言。新EDS实际页面Dispatcher泵被Syncfusion未注册许可提示窗口阻塞，转储定位为LicenseMessage.ShowDialog；撤回该探针的完整UI读文件结论，改为实际页Loaded/Unloaded调度/保存检查；纯VM WpfFact仍真实运行Dispatcher并测后台读取、换代、卸载、重入。旧失败/中止TRX与dump保留，不计通过。
 - 独立只读：reaudit_serial_visa_modbus 已复审 Root HTTP/VISA/Serial、Ethernet三项和CAN/CiA/LIN第一批；Root复核 NI/OPC 产品/测试/证据、Ethernet三项与CAN第二批；reaudit_ni_opc 再审 Root HTTP/VISA/Serial、CAN第二批和EDS。作者自测、非作者读取TRX和亲自运行测试分别记录。
 - 版本：9个受影响模块核心/UI按1.0补丁递增；Modbus本轮无新产品变更，维持1.0.22。步骤ID、显示树路径、设置键/枚举兼容；日志摘要语义和更早的异常输入拒绝已写模块文档。原备份/旧交付保留。
 - 第三轮软件测试已完成：九套1369/1369，0失败0跳过；最终CAN405包含多订阅者Add刷新/同文件改选重入的1+2项真实RED后修复。原400项完整CAN先归档，最后只重跑受影响的CAN，其余8套本轮源码未变有效结果保留。
 - 最后非作者复审已闭环：精确检查最终EDS VM/测试哈希及1+2项RED，无新增确定缺陷，源码冻结。
-- 待完成：20项目重编译、严格交付/源码指纹检查和新交付记录。用户已确认“暂无，先完成软件验证”；完整宿主调试重入及真实硬件未执行，不以软件绿色代替。
+- 第三轮已完成：20个唯一核心/UI项目重编译，10个模块构建日志0警告0错误；严格10包/120步骤身份与旧交付相同、私有CAN2份哈希一致、全部1369测试0失败0跳过；30个PE/PDB及1369次非生成源码文档匹配。冻结源1016产品文件和5项根配置哈希均复核。
+- 已生成 `artifacts/Release/2026-10-25-lifecycle-reaudit/Plugins`：543文件/432546056字节，构建代码提交8c3f82e298b199d250563e5064fd3c6f0bf9ce38。交付回执与功能修改说明见本轮review文档；三轮发现、修复、复测和非作者复审均保留。
+- 最后交付只读复核已完成：非作者独立重算543文件清单、1021源码快照、九份TRX逐条结果、120步骤身份、20版本和私有CAN哈希；无阻断问题。其未亲自重跑构建/测试/PE-PDB检查器，相关结论均与主线程执行证据区分。
+- 用户已确认“暂无，先完成软件验证”；本次软件范围完成，完整宿主调试重入及真实硬件未执行，不以软件绿色代替。
