@@ -217,22 +217,26 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
         _closing = true;
         if (!Monitor.TryEnter(_transmitGate, 1000))
             throw new TimeoutException("NI 原生发送尚未退出，保留接收泵及句柄");
+        var closeErrors = new List<Exception>();
         try
         {
-            // Keep RX alive until outstanding echoes have drained.
-            var wait = System.Diagnostics.Stopwatch.StartNew();
-            while (!_transmits.Quiescent)
-            {
-                RefreshTransmitCompletion();
-                if (_transmits.Quiescent) break;
-                if (wait.ElapsedMilliseconds >= 1000)
-                    throw new TimeoutException($"NI 仍有 {_transmits.PendingCount} 个未确认发送；保留泵和句柄，未报告已停止");
-                Thread.Sleep(1);
-            }
+            // Close is a terminal SDK operation, not permission to resume motion.
+            // A missing echo must not block nxClear after actual host I/O exits.
+            // Keep the ledger and error; never turn unconfirmed frames into ACKs.
+            if (!_transmits.Quiescent)
+                closeErrors.Add(new InvalidOperationException($"NI 关断时仍有 {_transmits.PendingCount} 个未确认发送；将按 SDK 关闭会话，原发送仍未知，不代表撤回或电机停稳"));
             StopReceivePump();
-            StopSession(_txSession); StopSession(_rxSession);
-            if (_txSession != 0) { _io.Check(_io.Clear(_txSession)); _txSession = 0; }
-            if (_rxSession != 0) { _io.Check(_io.Clear(_rxSession)); _rxSession = 0; }
+            // Match the cloud driver's SDK shutdown order. Host I/O and receive
+            // pump exit above are still real prerequisites;
+            // each handle is cleared only after its own nxClear succeeds.
+            Attempt(() => RequestSessionStop(_rxSession));
+            Attempt(() => RequestSessionStop(_txSession));
+            if (_rxSession != 0) Attempt(() => { _io.Check(_io.Clear(_rxSession)); _rxSession = 0; });
+            if (_txSession != 0) Attempt(() => { _io.Check(_io.Clear(_txSession)); _txSession = 0; });
+            // Stop is optional in the SDK: a failed Stop must not suppress a
+            // legal Clear, nor should one session's Clear suppress the other.
+            // An unsuccessful Clear retains that exact handle for retry.
+            if (_rxSession != 0 || _txSession != 0) ThrowCloseErrors();
         }
         finally { Monitor.Exit(_transmitGate); }
         _protocol = CanProtocolType.Classic;
@@ -251,7 +255,21 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
 
         _isConnected = false;
         _clock.Invalidate();
-        ThrowIfReceivePumpFailed();
+        Attempt(ThrowIfReceivePumpFailed);
+        ThrowCloseErrors();
+
+        void Attempt(Action operation)
+        {
+            try { operation(); }
+            catch (Exception ex) { closeErrors.Add(ex); }
+        }
+        void ThrowCloseErrors()
+        {
+            if (closeErrors.Count == 1)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(closeErrors[0]).Throw();
+            if (closeErrors.Count > 1)
+                throw new AggregateException("NI 关断存在 Stop/Clear 或接收错误；句柄是否释放以实际 Clear 结果为准", closeErrors);
+        }
     }
 
     public void Write(CanMessage message)
@@ -285,7 +303,9 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
         cts.Cancel();
         if (task != null && task.Id != Task.CurrentId)
         {
-            if (!task.Wait(1000)) throw new TimeoutException("NI 接收泵尚未实际退出，保留任务引用和驱动句柄");
+            // The connection's configured Close deadline bounds its caller.
+            // Keep this actual cleanup alive until the pump really exits; an
+            // extra fixed 1s failure would defeat a longer configured budget.
             task.GetAwaiter().GetResult();
         }
         _receivePumpCts = null;

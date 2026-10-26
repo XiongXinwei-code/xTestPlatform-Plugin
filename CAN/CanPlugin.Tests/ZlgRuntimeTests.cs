@@ -10,6 +10,95 @@ namespace CAN.ContractTests;
 public class ZlgRuntimeTests
 {
     [Fact]
+    public async Task Missing_echo_does_not_block_legal_device_close_or_become_a_false_confirmation()
+    {
+        var driver = new Driver { AutoEcho = false }; var adapter = new ZlgAdapter(driver, 41, false);
+        using var caller = new CancellationTokenSource();
+        var writing = Task.Run(() => adapter.WriteConfirmed(new() { Id = 0x201, Data = [3] }, caller.Token));
+        Assert.True(driver.Transmitting.Wait(2000));
+        caller.Cancel(); await Assert.ThrowsAnyAsync<OperationCanceledException>(() => writing);
+        try
+        {
+            var error = Assert.Throws<InvalidOperationException>(adapter.Close);
+            Assert.Contains("未确认", error.ToString());
+            Assert.True(adapter.HandlesReleased); Assert.Equal(1, driver.Closed);
+            Assert.False(adapter.ConfirmTransmitQuiescent());
+            Assert.Contains("关闭时未确认发送=1", adapter.GetReceiveDiagnostics());
+            driver.AutoEcho = true;
+            adapter.Open(new() { Channel = "USBCANFD-200U/0/0" });
+            adapter.WriteConfirmed(new() { Id = 0x201, Data = [3] }, default);
+            Assert.True(adapter.ConfirmTransmitQuiescent());
+            Assert.Contains("关闭时未确认发送=0", adapter.GetReceiveDiagnostics());
+        }
+        finally
+        {
+            // A regressed close that still retains the ticket can finish using its
+            // real echo; this is cleanup only, never the acceptance workaround.
+            driver.EmitLast();
+            if (!adapter.HandlesReleased) adapter.Close();
+        }
+    }
+
+    [Fact]
+    public async Task Failed_device_close_keeps_unknown_ticket_and_handles_until_real_retry()
+    {
+        var driver = new Driver { AutoEcho = false, FailClose = true }; var adapter = new ZlgAdapter(driver, 41, false);
+        using var caller = new CancellationTokenSource();
+        var writing = Task.Run(() => adapter.WriteConfirmed(new() { Id = 0x201, Data = [4] }, caller.Token));
+        Assert.True(driver.Transmitting.Wait(2000)); caller.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => writing);
+        try
+        {
+            var error = Assert.ThrowsAny<Exception>(adapter.Close);
+            Assert.Contains("CloseDevice", error.ToString());
+            Assert.False(adapter.HandlesReleased); Assert.False(adapter.ConfirmTransmitQuiescent());
+            Assert.Contains("未决发送=1", adapter.GetReceiveDiagnostics());
+            driver.FailClose = false;
+            var historical = Assert.Throws<InvalidOperationException>(adapter.Close);
+            Assert.Contains("未确认", historical.ToString());
+            Assert.True(adapter.HandlesReleased); Assert.False(adapter.ConfirmTransmitQuiescent());
+        }
+        finally
+        {
+            driver.FailClose = false; driver.EmitLast();
+            if (!adapter.HandlesReleased) adapter.Close();
+        }
+    }
+
+    [Fact]
+    public async Task Reset_failure_does_not_skip_final_device_release_after_real_pump_exit()
+    {
+        var driver = new Driver { FailReset = true }; var adapter = new ZlgAdapter(driver, 41, false);
+        string key = Guid.NewGuid().ToString(); var owner = new CanConnectionResource(adapter, key);
+        try
+        {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => owner.CloseAsync());
+            Assert.Contains("ResetCAN", error.ToString());
+            Assert.Equal(1, driver.Closed); Assert.True(adapter.HandlesReleased); Assert.True(owner.IsClosed);
+            await CanConnectionResource.WaitForPreviousOwnerAsync(key, 1000);
+        }
+        finally
+        {
+            driver.FailReset = false;
+            if (!adapter.HandlesReleased) await owner.CloseAsync();
+        }
+    }
+
+    [Fact]
+    public void Reset_and_final_close_failures_are_both_preserved_until_successful_retry()
+    {
+        var driver = new Driver { FailReset = true, FailClose = true }; var adapter = new ZlgAdapter(driver, 41, false);
+        try
+        {
+            var error = Assert.ThrowsAny<Exception>(adapter.Close);
+            Assert.Contains("ResetCAN", error.ToString()); Assert.Contains("CloseDevice", error.ToString());
+            Assert.False(adapter.HandlesReleased); Assert.Equal(0, driver.Closed);
+        }
+        finally { driver.FailReset = driver.FailClose = false; adapter.Close(); }
+        Assert.True(adapter.HandlesReleased); Assert.Equal(1, driver.Closed);
+    }
+
+    [Fact]
     public void HistoricalReceiveTimeoutIsReportedAfterActualHandleRelease()
     {
         var driver = new Driver { ReadFailure = new TimeoutException("driver receive failure") };
@@ -97,7 +186,6 @@ public class ZlgRuntimeTests
         cts.Cancel(); await Assert.ThrowsAnyAsync<OperationCanceledException>(() => next);
         Assert.False(adapter.ConfirmTransmitQuiescent());
         Assert.Throws<InvalidOperationException>(() => adapter.Write(new() { Id = 0x201, Data = [2] }));
-        Assert.Throws<TimeoutException>(adapter.Close); Assert.Equal(0, driver.Closed);
         driver.EmitLast();
         Assert.True(SpinWait.SpinUntil(adapter.ConfirmTransmitQuiescent, 2000));
         adapter.Close(); Assert.Equal(1, driver.Closed);
@@ -134,12 +222,23 @@ public class ZlgRuntimeTests
     {
         var driver = new Driver { BlockReceive = true }; var adapter = new ZlgAdapter(driver, 41, false);
         Assert.True(driver.Receiving.Wait(2000));
-        Assert.Throws<TimeoutException>(adapter.Close);
-        Assert.Equal(0, driver.Reset); Assert.Equal(0, driver.Closed);
-        driver.ReleaseReceive.Set(); await Task.Delay(30);
-        driver.FailClose = true;
-        Assert.Throws<InvalidOperationException>(adapter.Close); Assert.False(adapter.HandlesReleased);
-        driver.FailClose = false; adapter.Close(); Assert.True(adapter.HandlesReleased);
+        var owner = new CanConnectionResource(adapter);
+        var closing = owner.CloseAsync(5000);
+        try
+        {
+            var pumpStop = (CancellationTokenSource)typeof(ZlgAdapter).GetField("_receiveStop",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(adapter)!;
+            using var guard = new CancellationTokenSource(5000);
+            while (!pumpStop.IsCancellationRequested) await Task.Delay(2, guard.Token);
+            await Assert.ThrowsAsync<TimeoutException>(() => owner.CloseAsync(30));
+            await Task.Delay(1300);
+            Assert.False(closing.IsCompleted);
+            Assert.Equal(0, driver.Reset); Assert.Equal(0, driver.Closed);
+            driver.FailClose = true; driver.ReleaseReceive.Set();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => closing); Assert.False(adapter.HandlesReleased);
+            driver.FailClose = false; await owner.CloseAsync(5000); Assert.True(adapter.HandlesReleased);
+        }
+        finally { driver.ReleaseReceive.Set(); driver.FailClose = false; try { await owner.CloseAsync(5000); } catch (Exception) when (owner.IsClosed) { } }
     }
 
     internal sealed class Driver : ZlgIo
@@ -150,7 +249,7 @@ public class ZlgRuntimeTests
         public ManualResetEventSlim ReleaseTransmit { get; } = new();
         public ManualResetEventSlim Receiving { get; } = new();
         public ManualResetEventSlim ReleaseReceive { get; } = new();
-        public bool BlockTransmit, BlockReceive, FailClose;
+        public bool BlockTransmit, BlockReceive, FailClose, FailReset;
         public Exception? ReadFailure;
         public volatile bool AutoEcho = true;
         public int Writes, Reset, Closed;
@@ -199,7 +298,7 @@ public class ZlgRuntimeTests
             var count = 0; while (count < output.Length && Fd.TryDequeue(out var item)) output[count++] = item;
             return (uint)count;
         }
-        public override uint ResetCan(IntPtr channel) { Reset++; return 1; }
+        public override uint ResetCan(IntPtr channel) { Reset++; return FailReset ? 0u : 1u; }
         public override uint CloseDevice(IntPtr device) { if (FailClose) return 0; Closed++; return 1; }
     }
 }

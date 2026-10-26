@@ -322,7 +322,7 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
     }
 
     public string GetReceiveDiagnostics()
-    { lock (_runtimeGate) return $"{_diagnostics.Get()}; 代次={_epoch}; 回显能力={_echoSupported}; 未决发送={_pending.Count}; 发送未知={_unknownSend}; 接收错误={_pumpError}; 时钟={_clock.Id}"; }
+    { lock (_runtimeGate) return $"{_diagnostics.Get()}; 代次={_epoch}; 回显能力={_echoSupported}; 未决发送={_pending.Count}; 发送未知={_unknownSend}; 关闭时未确认发送={_closedUnknownCount}; 接收错误={_pumpError}; 时钟={_clock.Id}"; }
 
     public void Dispose() => Close();
 }

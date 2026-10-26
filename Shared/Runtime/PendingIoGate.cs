@@ -141,6 +141,13 @@ internal sealed class PendingIoGate
     public async Task CloseAsync(Action release, int timeoutMs, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(release);
+        await CloseWithReleaseAsync(() => { release(); return Task.CompletedTask; }, timeoutMs, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Await SDK-specific abort/close work without blocking a thread-pool worker.</summary>
+    internal async Task CloseWithReleaseAsync(Func<Task> release, int timeoutMs, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(release);
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         ct.ThrowIfCancellationRequested();
         var actualClose = BeginClose(release);
@@ -157,7 +164,7 @@ internal sealed class PendingIoGate
         lock (_state) { _closing = true; _stop.RequestStop(); }
     }
 
-    private Task BeginClose(Action release)
+    private Task BeginClose(Func<Task> release)
     {
         lock (_state)
         {
@@ -179,6 +186,12 @@ internal sealed class PendingIoGate
         // IDisposable cannot await. Keep the actual close task alive, do not dispose a handle
         // from underneath native code, and make failure observable to the owning plugin.
         ArgumentNullException.ThrowIfNull(release);
+        RequestAsyncClose(() => { release(); return Task.CompletedTask; }, report);
+    }
+
+    internal void RequestAsyncClose(Func<Task> release, Action<Exception>? report = null)
+    {
+        ArgumentNullException.ThrowIfNull(release);
         var actualClose = BeginClose(release); // Freeze synchronously, observe off the SDK cleanup thread.
         _ = Task.Run(() => ObserveCloseAsync(actualClose, report), CancellationToken.None);
     }
@@ -199,12 +212,12 @@ internal sealed class PendingIoGate
         }
     }
 
-    private async Task CloseCoreAsync(Action release)
+    private async Task CloseCoreAsync(Func<Task> release)
     {
         await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
-            release();
+            await release().ConfigureAwait(false);
             lock (_state) { _closed = true; _isolatedReason = null; }
         }
         catch (Exception ex)

@@ -170,12 +170,14 @@ public sealed class LifecycleRemediationTests
     }
 
     [Fact]
-    public async Task FaultedConfirmedMonitoringCanReleaseServiceWithoutHidingError()
+    public async Task FaultedConfirmedMotionCanReleaseServiceWithoutHidingError()
     {
         var raw = new ConfirmedAdapter(); var owner = new CanConnectionResource(raw);
+        // Monitoring no longer faults solely for a slow, confirmed batch.
+        // Motion retains the strict period guard and provides a confirmed fault.
         raw.OnWrite = _ => Thread.Sleep(40);
         var service = owner.StartService("monitor", [new("feedback", 0x181, 1, 100)]);
-        service.StartMonitoring(new(0x80, []), new(10, 1000, 5));
+        service.StartTargets([1], [new(0x201, [1])], new(0x80, []), new(10, 1000, 1000));
         try
         {
             var wait = System.Diagnostics.Stopwatch.StartNew();

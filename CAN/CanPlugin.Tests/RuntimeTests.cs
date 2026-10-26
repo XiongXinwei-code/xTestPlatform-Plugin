@@ -203,7 +203,10 @@ public sealed class RuntimeTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => s.StopTargetsAsync());
         Assert.Throws<InvalidOperationException>(() => s.StartTargets([1], Targets, Sync, new()));
         await Assert.ThrowsAsync<InvalidOperationException>(() => c.CloseAsync());
-        Assert.Equal(0, fake.CloseCount); // 无法证明失败写入未进入驱动，保留句柄。
+        Assert.True(c.IsClosed);
+        Assert.Equal(1, fake.CloseCount); // 发送仍未知，但实际 I/O 已退出，父连接仍执行合法 SDK 关闭。
+        Assert.True(s.Snapshot().Cycle.PartialCycle);
+        Assert.False(s.Snapshot().Cycle.StopCommandsAcknowledged);
     }
 
     [Fact]

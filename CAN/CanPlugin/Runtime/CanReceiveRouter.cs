@@ -7,6 +7,7 @@ namespace CAN.Runtime;
 /// <summary>唯一接收者；FIFO 消费与快照观察互不抢帧。</summary>
 internal sealed class CanReceiveRouter
 {
+    internal const int CapacityPerId = 64;
     private readonly object _gate = new();
     private readonly Dictionary<uint, Queue<CanMessage>> _queues = new();
     private readonly HashSet<FeedbackSubscription> _subscriptions = [];
@@ -36,7 +37,7 @@ internal sealed class CanReceiveRouter
         {
             if (_stopped) return;
             if (!_queues.TryGetValue(copy.Id, out var queue)) _queues[copy.Id] = queue = new();
-            if (queue.Count == 64) { queue.Dequeue(); _evictions++; }
+            if (queue.Count == CapacityPerId) { queue.Dequeue(); _evictions++; }
             queue.Enqueue(copy);
             foreach (var subscription in _subscriptions) subscription.Publish(copy);
             Pulse();

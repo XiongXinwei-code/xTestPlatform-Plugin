@@ -131,21 +131,36 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics, ICanClo
 
     public void Close()
     {
+        var errors = new List<Exception>();
         if (_isConnected)
         {
-            CheckCloseStatus(_deactivate(_portHandle, _accessMask), "DeactivateChannel");
-            _isConnected = false;
+            try
+            {
+                CheckCloseStatus(_deactivate(_portHandle, _accessMask), "DeactivateChannel");
+                _isConnected = false;
+            }
+            catch (Exception ex) { errors.Add(ex); }
         }
         if (_portHandle >= 0)
         {
-            CheckCloseStatus(_closePort(_portHandle), "ClosePort");
-            _portHandle = -1;
+            // XL Driver Library Manual 25.20, 3.3.13: ClosePort also deactivates
+            // its channels. A failed separate Deactivate must not skip this final
+            // release. A failed ClosePort still retains both port and driver lease.
+            try
+            {
+                CheckCloseStatus(_closePort(_portHandle), "ClosePort");
+                _portHandle = -1;
+                _isConnected = false;
+            }
+            catch (Exception ex) { errors.Add(ex); }
         }
-        if (_driverOpened)
+        if (_driverOpened && _portHandle < 0)
         {
-            CheckCloseStatus(_closeDriver(), "CloseDriver");
-            _driverOpened = false;
+            try { CheckCloseStatus(_closeDriver(), "CloseDriver"); _driverOpened = false; }
+            catch (Exception ex) { errors.Add(ex); }
         }
+        if (errors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Count > 1) throw new AggregateException("Vector 关闭存在失败；仅保留未确认释放的句柄，可重试关闭", errors);
     }
 
     private static void CheckCloseStatus(short status, string operation)

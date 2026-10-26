@@ -33,6 +33,7 @@ public sealed class CanCloseExecutor : IStepExecutor
             }
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = CanHelper.GetAdapterKey(connName);
+            string? closeDiagnostics = null;
             guard.Check();
             context.Resources.TryGet<ICanAdapter>(key, out var expected);
             guard.Check();
@@ -46,11 +47,32 @@ public sealed class CanCloseExecutor : IStepExecutor
             {
                 if (adapter is CanConnectionResource resource)
                 {
-                    try { await resource.CloseAsync(Remaining(), cancellationToken); }
+                    Exception? history = null;
+                    try { await resource.ClosePhysicalAsync(Remaining(), cancellationToken); }
+                    catch (Exception ex) when (resource.IsClosed && !cancellationToken.IsCancellationRequested)
+                    { history = ex; }
                     finally
                     {
-                        // 关闭后报告后台故障仍是 Error，但不让已释放的资源阻止重新打开。
-                        if (resource.IsClosed && context.Resources.TryGet<ICanAdapter>(key, out var current) && ReferenceEquals(current, adapter)) context.Resources.Remove(key);
+                        // Only verified physical release allows removal. Historical
+                        // communication/stop errors remain diagnostic, not an open handle.
+                        if (resource.IsClosed)
+                        {
+                            if (context.Resources.TryGet<ICanAdapter>(key, out var current) && ReferenceEquals(current, adapter)) context.Resources.Remove(key);
+                            // An old managed expression/log may still be pending.
+                            // It owns no physical driver and cannot hold this name.
+                            lifecycle.Dispose();
+                        }
+                    }
+                    try { await resource.WaitForWorkersAsync(Math.Max(0, setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds)), cancellationToken); }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                    catch (Exception ex) when (resource.IsClosed && !resource.HasPendingManagedWorkers && ex is not TimeoutException)
+                    { history = history == null ? ex : new AggregateException("CAN 已实际关闭，保留历史通信与回调错误", history, ex); }
+                    catch (Exception ex) when (history != null)
+                    { throw new AggregateException("CAN 物理句柄已释放，但后台退出尚未确认；同时保留历史关闭诊断", history, ex); }
+                    if (history != null)
+                    {
+                        closeDiagnostics = history.ToString();
+                        guard.Log(LogLevel.Warn, $"CAN 通道已确认关闭，历史通信/停止错误仍保留: {connName}；关闭不代表设备已停稳", closeDiagnostics);
                     }
                 }
                 else await Task.Run(adapter.Close, CancellationToken.None).WaitAsync(TimeSpan.FromMilliseconds(Remaining()), cancellationToken);
@@ -62,9 +84,11 @@ public sealed class CanCloseExecutor : IStepExecutor
                 guard.Log(LogLevel.Warn, $"CAN 通道未找到: {connName}");
             }
 
+            guard.Check();
+            _ = Remaining();
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Completed }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = closeDiagnostics ?? string.Empty }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

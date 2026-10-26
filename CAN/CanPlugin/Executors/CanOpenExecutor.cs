@@ -45,7 +45,7 @@ public sealed class CanOpenExecutor : IStepExecutor
             {
                 if (previous is not CanConnectionResource retiring || (!retiring.IsClosing && !retiring.IsClosed))
                     throw new InvalidOperationException($"CAN 连接 {connName} 已存在，请先成功关闭原连接");
-                try { await retiring.CloseAsync(Remaining(), cancellationToken); }
+                try { if (!retiring.IsClosed) await retiring.ClosePhysicalAsync(Remaining(), cancellationToken); }
                 catch (Exception ex) when (retiring.IsClosed && !cancellationToken.IsCancellationRequested)
                 {
                     context.Log(LogLevel.Error, "旧 CAN 连接已确认释放；保留历史收尾错误，本次继续打开", ex.ToString());

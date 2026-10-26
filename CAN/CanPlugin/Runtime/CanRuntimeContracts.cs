@@ -75,6 +75,10 @@ public sealed record ReceiveSnapshot(Guid ConnectionEpoch, Guid AcquisitionEpoch
     CanQueueStatistics QueueStatistics, string? BackgroundError)
 {
     public bool AllValid => Running && BackgroundError == null && Frames.All(f => f.Valid);
+    public string PendingFramesScope => "CANopenRouter.PerIdFifo";
+    public int RouterCapacityPerId => CanReceiveRouter.CapacityPerId;
+    public string LatestReplacementsScope => "Subscription.Latest";
+    public string QueueStatisticsScope => "Adapter";
 }
 
 public sealed record CycleStatus(string State, long Generation, long InputVersion, long CompletedCycles,
@@ -86,9 +90,43 @@ public sealed record CycleStatus(string State, long Generation, long InputVersio
     public bool StopCommandsAcknowledged { get; init; }
     public bool MotorStoppedVerified => false; // 通信 ACK 不能证明物理停稳。
     public int ExecutedTrajectoryPoints { get; init; }
+    public long SlowMonitoringBatches { get; init; }
+    public CycleTimingStatus? Timing { get; init; }
+    public bool ServiceClosed { get; init; }
+    public bool PartialCycle { get; init; }
+    public bool ConnectionClosed { get; init; }
+    public string OwnedTxQuiescenceEvidence => ConnectionClosed ? "SdkConnectionClosed"
+        : SubmittedFrames == ConfirmedFrames ? "AllFramesConfirmed" : "Unknown";
 }
 
-public sealed record CommunicationSnapshot(ReceiveSnapshot Receive, CycleStatus Cycle);
+/// <summary>主机分段耗时及实际采用的配置；AdapterBatchMs不是总线帧的纯线缆时间。</summary>
+public sealed record CycleTimingStatus(string Phase, int PeriodMs, int SendTimeoutMs, int MaxStartLatenessMs,
+    double? TotalElapsedMs = null, double? DispatchDelayMs = null,
+    double? AdapterBatchMs = null, double? ContinuationDelayMs = null);
+
+public sealed record CommunicationSnapshot(ReceiveSnapshot Receive, CycleStatus Cycle)
+{
+    public string? ShutdownHistory { get; init; }
+    // Receive.Running describes the independent receiver, not the SYNC worker.
+    public string? BackgroundError
+    {
+        get
+        {
+            var errors = new[] { Receive.BackgroundError, Cycle.Error, ShutdownHistory }
+                .Where(error => error != null).Distinct().ToArray();
+            return errors.Length == 0 ? null : string.Join(Environment.NewLine, errors);
+        }
+    }
+    public bool ServiceHealthy => Receive.Running && BackgroundError == null;
+    public bool ServiceShutdownConfirmed => Cycle.ServiceClosed && Cycle.HostExited &&
+        Cycle.OwnedTxQuiescent == true && !Cycle.PartialCycle && Cycle.SubmittedFrames == Cycle.ConfirmedFrames;
+    public string ServiceShutdownState => !ServiceShutdownConfirmed ? "NotConfirmed"
+        : BackgroundError == null ? "Stopped" : "StoppedWithHistory";
+    public string? ErrorSummary => BackgroundError == null ? null :
+        $"FailurePhase={Cycle.FailurePhase ?? "无"}; LastDurationMs={Cycle.LastDurationMs:F4}; Overruns={Cycle.Overruns}; " +
+        $"BatchElapsedMs={Cycle.Timing?.TotalElapsedMs?.ToString("F4") ?? "未知"}; AdapterBatchMs={Cycle.Timing?.AdapterBatchMs?.ToString("F4") ?? "未知"}; " +
+        $"发送确认期限={Cycle.Timing?.SendTimeoutMs.ToString() ?? "未知"} ms; {BackgroundError}";
+}
 
 public sealed record OrderedFrame(uint CobId, byte[] Data);
 

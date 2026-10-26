@@ -89,18 +89,32 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                             return CanopenExecutorHelper.Result(TestStatus.Error, JsonSerializer.Serialize(stoppedCycle), "发送已退出，但后台通信曾失败");
                         break;
                     case CyclicOperation.ServiceStop:
-                        await connection.StopServiceAsync(name, service, s.StopTimeoutMs, cancellationToken);
+                        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(s.StopTimeoutMs);
+                        try { await connection.StopServiceAsync(name, service, s.StopTimeoutMs, cancellationToken); }
+                        catch (Exception ex) when (!cancellationToken.IsCancellationRequested &&
+                            ReferenceEquals(ex, service.CloseHistory) && service.Snapshot().ServiceShutdownConfirmed)
+                        {
+                            // Only a fully closed service can classify this as history.
+                            // PartialCycle, pending TX, callbacks and native work still fail.
+                        }
                         var stopped = service.Snapshot();
-                        if (stopped.Cycle.Error != null || stopped.Receive.BackgroundError != null)
-                            return CanopenExecutorHelper.Result(TestStatus.Error, JsonSerializer.Serialize(stopped), "服务已退出，但后台通信曾失败");
-                        break;
+                        if (!stopped.ServiceShutdownConfirmed)
+                            throw new InvalidOperationException("服务关闭未确认；不能把宿主退出等同于订阅、发送与控制占用均已释放");
+                        guard.Check();
+                        var stopJson = JsonSerializer.Serialize(stopped);
+                        if (!string.IsNullOrWhiteSpace(s.ResultVariable)) guard.SetVariable(s.ResultVariable, stopJson);
+                        if (stopped.BackgroundError != null)
+                            context.Log(LogLevel.Warn, "CANopen 服务已完成关闭，历史故障仍保留：" + stopped.ErrorSummary);
+                        guard.Check();
+                        return CanopenExecutorHelper.Result(TestStatus.Completed, stopJson);
                     case CyclicOperation.SnapshotRead:
                         var snapshot = service.Snapshot();
                         var json = JsonSerializer.Serialize(snapshot);
                         guard.Check();
                         if (!string.IsNullOrWhiteSpace(s.ResultVariable)) guard.SetVariable(s.ResultVariable, json);
                         if (snapshot.Receive.BackgroundError != null || snapshot.Cycle.Error != null || (s.RequireAllValid && !snapshot.Receive.AllValid))
-                            return CanopenExecutorHelper.Result(TestStatus.Error, json, "CANopen 快照无效或后台任务故障；详情见完整快照");
+                            return CanopenExecutorHelper.Result(TestStatus.Error, json,
+                                "CANopen 快照无效或后台任务故障；" + (snapshot.ErrorSummary ?? "部分反馈缺失、过期或时间不可信；详情见完整快照"));
                         return CanopenExecutorHelper.Result(TestStatus.Completed, json);
                 }
             }

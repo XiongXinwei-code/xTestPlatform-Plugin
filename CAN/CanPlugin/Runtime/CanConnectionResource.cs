@@ -6,10 +6,11 @@ using PluginCommon;
 
 namespace CAN.Runtime;
 
-/// <summary>连接所有者：真实 I/O 与后台任务退出前不释放驱动句柄。</summary>
+/// <summary>连接所有者：真实 I/O/回调/受控停机退出后释放句柄，另行确认普通托管任务退出。</summary>
 public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
 {
     private static readonly ConcurrentDictionary<string, CanConnectionResource> PhysicalOwners = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<CanConnectionResource, Task> RetiredWorkers = new();
     private readonly object _gate = new();
     private readonly object _txGate = new();
     private readonly ICanAdapter _raw;
@@ -76,6 +77,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         (!_closing || (_ownerCommand.Value != null && ReferenceEquals(_sender, _ownerCommand.Value))); } }
     public bool Controlled { get { lock (_gate) return _controlled; } }
     public bool IsClosed { get { lock (_gate) return _closed; } }
+    internal bool HasPendingManagedWorkers { get { lock (_gate) return _jobs.Values.Any(j => !j.Completion.IsCompleted); } }
     internal bool IsClosing { get { lock (_gate) return _closing; } }
     // Owned stop commands may still complete through this connection after ordinary
     // foreground observers retire. They retain the service's separate stop budget.
@@ -98,7 +100,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
                 throw new InvalidOperationException($"物理 CAN 通道 {physicalKey} 仍由活动连接使用，不能接管。{previous.GetLifecycleDiagnostics()}");
             int remaining = timeoutMs - (int)Math.Min(int.MaxValue, watch.ElapsedMilliseconds);
             if (remaining <= 0) throw new TimeoutException($"等待物理 CAN 通道 {physicalKey} 旧连接退出超过 {timeoutMs} ms。{previous.GetLifecycleDiagnostics()}");
-            try { await previous.CloseAsync(remaining, ct).ConfigureAwait(false); }
+            try { await previous.ClosePhysicalAsync(remaining, ct).ConfigureAwait(false); }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception) when (previous.IsClosed)
             { previous.ReleasePhysicalClaim(); /* 历史错误仍在旧 owner 诊断；真实释放允许首次重跑。 */ }
@@ -576,7 +578,15 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             if (_jobs.TryGetValue(name, out var current) && ReferenceEquals(current, job)) _jobs.Remove(name);
     }
 
-    public Task CloseAsync(int timeoutMs = 5000, CancellationToken ct = default)
+    public async Task CloseAsync(int timeoutMs = 5000, CancellationToken ct = default)
+    {
+        if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
+        long started = Stopwatch.GetTimestamp();
+        await ClosePhysicalAsync(timeoutMs, ct).ConfigureAwait(false);
+        int remaining = Math.Max(0, timeoutMs - (int)Math.Min(int.MaxValue, Stopwatch.GetElapsedTime(started).TotalMilliseconds));
+        await WaitForWorkersAsync(remaining, ct).ConfigureAwait(false);
+    }
+    internal Task ClosePhysicalAsync(int timeoutMs, CancellationToken ct = default)
     {
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         return WaitCloseAsync(RequestClose(), timeoutMs, ct);
@@ -591,11 +601,15 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             _foregroundWait.RequestStop();
             if (!_foregroundStop.IsCancellationRequested) _foregroundCancellation = _foregroundStop.CancelAsync();
             if (_closeTask?.IsFaulted == true || _closeTask?.IsCanceled == true) _closeTask = null;
-            task = _closeTask ??= Task.Run(async () =>
+            if (_closeTask == null)
             {
-                try { await CloseCoreAsync().ConfigureAwait(false); }
-                catch (Exception ex) { lock (_gate) _closeError = $"{ex.GetType().Name}: {ex.Message}"; throw; }
-            });
+                using (ExecutionContext.SuppressFlow()) _closeTask = Task.Run(async () =>
+                {
+                    try { await CloseCoreAsync().ConfigureAwait(false); }
+                    catch (Exception ex) { lock (_gate) _closeError = $"{ex.GetType().Name}: {ex.Message}"; throw; }
+                });
+            }
+            task = _closeTask;
         }
         _ = task.ContinueWith(t => { _ = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
         return task;
@@ -605,7 +619,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         try { await task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false); }
         catch (Exception ex)
         {
-            if (!task.IsCompleted) Isolate("关闭等待结束，后台任务或原生 I/O 尚未实际退出；句柄保持占用");
+            if (!task.IsCompleted) Isolate("物理关闭等待结束，原生 I/O、回调或受控停机尚未实际退出；句柄保持占用");
             if (ex is TimeoutException && !task.IsCompleted)
                 throw new TimeoutException($"CAN 收尾超过 {timeoutMs} ms。{GetLifecycleDiagnostics()}", ex);
             throw;
@@ -620,12 +634,20 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         Phase("停止后台目标与周期任务");
         foreach (var service in services) service.FreezeForClose();
         foreach (var job in jobs) job.Dispose();
-        // A faulted cancellation callback is diagnostic, not proof that a task is still running.
-        // Await all real workers before proceeding; keep their failures for the final close result.
-        try { await Task.WhenAll(jobs.Select(j => j.Completion)).ConfigureAwait(false); }
+        RetainWorkers(jobs);
+        // Actual I/O stays in _activeIo; all real cancellation callbacks are joined.
+        // A managed expression/log cannot hold an otherwise released driver. Its
+        // worker remains strongly retained and old admission is permanently frozen.
+        try { await Task.WhenAll(jobs.Select(j => j.CancellationCompletion)).ConfigureAwait(false); }
         catch (Exception ex) { cleanupErrors.Add(ex); }
         Phase("确认有序服务退出与发送收尾");
-        foreach (var service in services) await service.CloseForConnectionAsync().ConfigureAwait(false);
+        foreach (var service in services)
+        {
+            // The service joins its actual worker before reporting historical or
+            // stop errors. Those errors must not skip other owners or SDK Close.
+            try { await service.CloseForConnectionAsync().ConfigureAwait(false); }
+            catch (Exception ex) { cleanupErrors.Add(ex); }
+        }
         Phase("等待 CANopen 接收任务退出");
         try { await _receiveStop.CancelAsync().ConfigureAwait(false); }
         catch (Exception ex) { cleanupErrors.Add(ex); }
@@ -641,24 +663,61 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         lock (_gate) if (_closed) return; // Failed Open may already have released this exact owner.
         if (Volatile.Read(ref _nativeCancellationError) is { } cancellationError) cleanupErrors.Add(cancellationError);
         Phase("驱动 Close/Dispose（含 NI 接收泵、发送确认与 Stop/Clear）");
-        try { _raw.Close(); _raw.Dispose(); }
+        bool closeSucceeded = false;
+        try { _raw.Close(); _raw.Dispose(); closeSucceeded = true; }
+        catch (Exception ex) { cleanupErrors.Add(ex); }
         finally
         {
             // A historical RX error can be reported after native handles were successfully released.
-            if (_raw is ICanCloseState { HandlesReleased: true })
+            if (closeSucceeded || _raw is ICanCloseState { HandlesReleased: true })
             {
                 MarkClosed();
             }
         }
-        MarkClosed();
         var failures = jobs.Select(j => j.Error)
             .Concat(services.Select(s => s.Snapshot().Cycle.Error))
             .Append(_router.Diagnostics.Error).Where(error => error != null).ToArray();
-        if (failures.Length != 0) cleanupErrors.Add(new InvalidOperationException("CAN 句柄已关闭，但后台通信任务曾失败：" + string.Join(Environment.NewLine, failures)));
+        if (failures.Length != 0) cleanupErrors.Add(new InvalidOperationException("CAN 后台通信任务曾失败：" + string.Join(Environment.NewLine, failures)));
         if (cleanupErrors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cleanupErrors[0]).Throw();
-        if (cleanupErrors.Count > 1) throw new AggregateException("CAN 句柄已释放，但收尾存在通信或取消回调错误", cleanupErrors);
+        if (cleanupErrors.Count > 1) throw new AggregateException(IsClosed
+            ? "CAN 句柄已释放，但收尾存在通信、取消回调或驱动错误"
+            : "CAN 最终关闭未确认；保留物理句柄与隔离，收尾同时存在通信、回调或驱动失败，可重试关闭", cleanupErrors);
     }
     private void Phase(string phase) { lock (_gate) _closePhase = phase; }
+    internal async Task WaitForWorkersAsync(int timeoutMs, CancellationToken ct = default)
+    {
+        CanBackgroundJob[] jobs;
+        lock (_gate) jobs = _jobs.Values.ToArray();
+        var completion = Task.WhenAll(jobs.Select(j => j.Completion));
+        if (!completion.IsCompleted)
+        {
+            try
+            {
+                if (timeoutMs <= 0 && timeoutMs != Timeout.Infinite) throw new TimeoutException();
+                await completion.WaitAsync(timeoutMs == Timeout.Infinite ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                const string reason = "CAN 物理句柄已释放，但普通后台任务尚未退出；旧所有者保持冻结并保留任务，不能报告完全停止";
+                lock (_gate) _closeError = reason;
+                throw new TimeoutException(reason + "。" + GetLifecycleDiagnostics(), ex);
+            }
+        }
+        await completion.ConfigureAwait(false);
+        var errors = jobs.Select(j => j.Error).Where(e => e != null).ToArray();
+        if (errors.Length != 0) throw new InvalidOperationException("CAN 物理句柄已释放，但后台任务曾失败：" + string.Join(Environment.NewLine, errors));
+    }
+    private void RetainWorkers(CanBackgroundJob[] jobs)
+    {
+        var completion = Task.WhenAll(jobs.Select(j => j.Completion));
+        RetiredWorkers.TryAdd(this, completion);
+        _ = completion.ContinueWith(t =>
+        {
+            string? failure = t.Exception?.ToString() ?? jobs.FirstOrDefault(j => j.Error != null)?.Error;
+            if (failure != null) lock (_gate) _closeError = failure;
+            RetiredWorkers.TryRemove(this, out _);
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
     private void MarkClosed()
     {
         lock (_gate) { _closed = true; _closePhase = "驱动句柄已释放"; }
@@ -669,7 +728,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     public string GetLifecycleDiagnostics()
     {
         lock (_gate) return $"连接={Epoch}; 物理通道={_physicalKey}; 关闭阶段={_closePhase}; 活动I/O={_activeIo}; " +
-            $"已关闭={_closed}; 隔离={_isolation ?? "无"}; 最近关闭错误={_closeError ?? "无"}";
+            $"已关闭={_closed}; 后台未退出={HasPendingManagedWorkers}; 隔离={_isolation ?? "无"}; 最近关闭错误={_closeError ?? "无"}";
     }
     public void Close() => CloseAsync().GetAwaiter().GetResult();
     public void Dispose()
@@ -682,7 +741,13 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     {
         // This observer owns no caller wait. The service already has its configured
         // stop deadline; a legacy 5 s soft wait must not cancel an allowed 8 s stop.
-        try { await actualClose.ConfigureAwait(false); }
+        try
+        {
+            await actualClose.ConfigureAwait(false);
+            // This observer owns no physical lease and has no user wait budget.
+            // Keep observing actual managed exit without declaring HostExited early.
+            await WaitForWorkersAsync(Timeout.Infinite).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             Trace.TraceError($"CAN 自动收尾未确认：{GetLifecycleDiagnostics()}; {ex}");
@@ -701,6 +766,7 @@ public sealed class CanBackgroundJob
     private readonly Task _work;
     private Task _callbacks = Task.CompletedTask;
     public Task Completion { get { lock (_gate) return Task.WhenAll(_work, _callbacks); } }
+    internal Task CancellationCompletion { get { lock (_gate) return _callbacks; } }
     public string? Error { get; private set; }
     internal CanBackgroundJob(Func<CancellationToken, Task> work)
     {

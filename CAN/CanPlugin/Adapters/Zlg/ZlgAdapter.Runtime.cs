@@ -32,6 +32,7 @@ public sealed partial class ZlgAdapter
     private volatile bool _closing, _unknownSend;
     private bool _echoSupported;
     private long _sendSequence, _managedDropped;
+    private int _closedUnknownCount;
     private ulong _lastEcho;
 
     public ZlgAdapter() => _io = new();
@@ -51,7 +52,7 @@ public sealed partial class ZlgAdapter
         lock (_runtimeGate)
         {
             if (_pending.Count != 0 || _receivePump != null) throw new InvalidOperationException("ZLG 旧接收泵/未决发送尚未释放");
-            _sendSequence = 0; _lastEcho = 0; _managedDropped = 0;
+            _sendSequence = 0; _lastEcho = 0; _managedDropped = 0; _closedUnknownCount = 0;
             _seenEchoTimes.Clear(); _echoHistory.Clear(); _received.Clear();
             _clock.Reset(); _epoch = Guid.NewGuid();
         }
@@ -86,14 +87,14 @@ public sealed partial class ZlgAdapter
     public bool ConfirmTransmitQuiescent()
     {
         if (!Monitor.TryEnter(_transmitGate)) return false;
-        try { lock (_runtimeGate) return _echoSupported && _pending.Count == 0; }
+        try { lock (_runtimeGate) return _echoSupported && _pending.Count == 0 && _closedUnknownCount == 0; }
         finally { Monitor.Exit(_transmitGate); }
     }
 
     private Pending? Submit(CanMessage message, Action? checkBeforeNative = null)
     {
         if (!_isConnected || _closing) throw new InvalidOperationException("ZLG 未连接或正在关闭");
-        if (_unknownSend) throw new InvalidOperationException("ZLG 存在超时/取消或失败发送，禁止新提交；仅允许确认收尾后关闭");
+        if (_unknownSend) throw new InvalidOperationException("ZLG 存在超时/取消或失败发送，禁止新提交；仅允许通过 SDK 关闭收尾");
         if (message.Data == null || message.Id > (message.FrameType == CanFrameType.Standard ? 0x7FFu : ZlgApi.CAN_ID_MASK) ||
             message.Data.Length > (message.IsFd ? 64 : 8) || (message.IsFd && !_isFd))
             throw new ArgumentException("ZLG 报文 ID、载荷长度或 CAN FD 协议无效");
@@ -149,7 +150,7 @@ public sealed partial class ZlgAdapter
             catch (TimeoutException ex)
             {
                 _unknownSend = true;
-                throw new TimeoutException($"ZLG 等待总线回显超时；代次={ticket.Epoch}；发送序号={ticket.Sequence}；ID=0x{ticket.Frame.Id:X}；DLC={ticket.Frame.Dlc}；票据保留，仅允许确认收尾后关闭", ex);
+                throw new TimeoutException($"ZLG 等待总线回显超时；代次={ticket.Epoch}；发送序号={ticket.Sequence}；ID=0x{ticket.Frame.Id:X}；DLC={ticket.Frame.Dlc}；票据保留至真实回显或 SDK 关闭，禁止新发送", ex);
             }
             catch { _unknownSend = true; throw; }
         }
@@ -249,36 +250,65 @@ public sealed partial class ZlgAdapter
             if (!Monitor.TryEnter(_transmitGate, 1000)) throw new TimeoutException("ZLG 原生发送/确认尚未退出，保留任务与句柄");
             try
             {
-                var elapsed = Stopwatch.StartNew();
-                lock (_runtimeGate)
-                {
-                    while (_pending.Count != 0)
-                    {
-                        if (elapsed.ElapsedMilliseconds >= 1000) throw new TimeoutException("ZLG 未决发送尚未回显确认，保留接收泵及句柄");
-                        Monitor.Wait(_runtimeGate, 10);
-                    }
-                }
+                // Missing on-bus confirmation is an unknown transmit result, not
+                // an SDK prerequisite for CloseDevice. Native writes are already
+                // excluded by _transmitGate; the real receive pump must exit next.
                 _receiveStop?.Cancel();
                 if (_receivePump != null)
                 {
-                    try { _receivePump.WaitAsync(TimeSpan.FromSeconds(1)).GetAwaiter().GetResult(); }
-                    catch (TimeoutException) when (!_receivePump.IsCompleted) { throw new TimeoutException("ZLG 接收泵尚未实际退出，未 Reset/Close 句柄"); }
+                    // The parent connection owns the configured foreground
+                    // deadline; actual cleanup must keep waiting and retain its
+                    // handles rather than fault after a hidden fixed 1s.
+                    try { _receivePump.GetAwaiter().GetResult(); }
                     catch (Exception) when (_receivePump.IsFaulted) { /* Report stored original after releasing safe handles. */ }
                 }
+                var closeErrors = new List<Exception>();
                 if (_channelHandle != IntPtr.Zero)
                 {
-                    if (_io.ResetCan(_channelHandle) != ZlgApi.STATUS_OK) throw new InvalidOperationException("ZLG ResetCAN 失败，保留通道/设备句柄");
-                    _channelHandle = IntPtr.Zero;
+                    try
+                    {
+                        if (_io.ResetCan(_channelHandle) != ZlgApi.STATUS_OK) throw new InvalidOperationException("ZLG ResetCAN 失败");
+                        _channelHandle = IntPtr.Zero;
+                    }
+                    catch (Exception ex) { closeErrors.Add(ex); }
                 }
                 if (_deviceHandle != IntPtr.Zero)
                 {
-                    if (_io.CloseDevice(_deviceHandle) != ZlgApi.STATUS_OK) throw new InvalidOperationException("ZLG CloseDevice 失败，保留设备句柄");
-                    _deviceHandle = IntPtr.Zero;
+                    // ZLGCAN manual V1.21 pairs CloseDevice with OpenDevice. Its
+                    // examples join real receive threads then close the device;
+                    // ResetCAN is a recoverable channel reset, not a close prerequisite.
+                    try
+                    {
+                        if (_io.CloseDevice(_deviceHandle) != ZlgApi.STATUS_OK) throw new InvalidOperationException("ZLG CloseDevice 失败，保留设备及未确认释放的通道句柄");
+                        _deviceHandle = IntPtr.Zero;
+                        _channelHandle = IntPtr.Zero;
+                    }
+                    catch (Exception ex) { closeErrors.Add(ex); }
                 }
-                _receivePump = null; _receiveStop?.Dispose(); _receiveStop = null;
-                _isConnected = false;
-                lock (_runtimeGate) { _clock.Reset(); _received.Clear(); Monitor.PulseAll(_runtimeGate); }
-                if (_pumpError != null) throw new InvalidOperationException("ZLG 句柄已关闭，但后台接收曾失败", _pumpError);
+                if (_deviceHandle == IntPtr.Zero && _channelHandle == IntPtr.Zero)
+                {
+                    _receivePump = null; _receiveStop?.Dispose(); _receiveStop = null;
+                    _isConnected = false;
+                    lock (_runtimeGate)
+                    {
+                        _closedUnknownCount = _pending.Count;
+                        if (_closedUnknownCount != 0)
+                        {
+                            _unknownSend = true;
+                            var unknown = new InvalidOperationException($"ZLG 物理句柄已关闭，但 {_closedUnknownCount} 条发送未确认（未获回显）；结果保持未知，不代表报文已撤回或设备已停稳");
+                            closeErrors.Add(unknown);
+                            while (_pending.TryDequeue(out var ticket))
+                            {
+                                ticket.Completion.TrySetException(unknown); // Retired, never confirmed.
+                                _ = ticket.Completion.Task.Exception;
+                            }
+                        }
+                        _clock.Reset(); _received.Clear(); Monitor.PulseAll(_runtimeGate);
+                    }
+                }
+                if (_pumpError != null) closeErrors.Add(new InvalidOperationException("ZLG 后台接收曾失败", _pumpError));
+                if (closeErrors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(closeErrors[0]).Throw();
+                if (closeErrors.Count > 1) throw new AggregateException("ZLG 关闭存在失败；未确认释放的资源保留供重试", closeErrors);
             }
             finally { Monitor.Exit(_transmitGate); }
         }

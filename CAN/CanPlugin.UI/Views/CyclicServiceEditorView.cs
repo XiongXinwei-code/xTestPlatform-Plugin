@@ -48,6 +48,10 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
             AddText("发送确认期限（ms）", "CycleTimeoutMs");
             AddText("最大起始迟到（ms）", "MaxLatenessMs");
             AddText("启动失败收尾总期限（ms）", "StopTimeoutMs");
+            var timingHint = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 8), Text =
+                "纯监测以发送确认期限判断传输超时；批次耗时略大于监测周期仅记录诊断。最大起始迟到单独校验。监测间隔从上一批发送完成后计算，快照 Timing 可查看实际配置及主机/适配器分段耗时。" };
+            RegisterName("MonitoringTimingHint", timingHint);
+            _panel.Children.Add(timingHint);
         }
         if (plugin.Operation is CyclicOperation.CycleStart or CyclicOperation.CycleInputsUpdate) AddGrid(false);
         if (plugin.Operation == CyclicOperation.CycleStart)
@@ -79,6 +83,13 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
         }
         if (plugin.Operation is CyclicOperation.CycleStop or CyclicOperation.ServiceStop)
             AddText("退出确认期限（ms）", "StopTimeoutMs");
+        if (plugin.Operation == CyclicOperation.ServiceStop)
+        {
+            var stopHint = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8), Text =
+                "完成仅表示服务、订阅及控制占用真实退出，发送已确认且无部分周期。历史故障仍在结果 JSON 和警告中；不伪造停机命令 ACK 或电机停稳。实际关闭失败、未知待发或退出超时仍报错并保留占用。" };
+            RegisterName("ServiceStopResultHint", stopHint);
+            _panel.Children.Add(stopHint);
+        }
     }
 
     private static Binding Bind(string property) => new(property)

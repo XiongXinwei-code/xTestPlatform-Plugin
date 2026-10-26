@@ -28,8 +28,12 @@ public sealed class CanopenCyclicService : IDisposable
     private string _state = "Idle";
     private string? _phase, _error;
     private double _lastDuration;
+    private long _slowMonitoringBatches;
+    private CycleTimingStatus? _lastTiming;
+    private Exception? _closeHistory;
+    internal Exception? CloseHistory { get { lock (_gate) return _closeHistory; } }
     private bool _closed, _closing, _faulted, _moving, _stopMotion, _partialCycle;
-    private bool _stopAcknowledged, _lateQuiescence, _stopCommandAttempted;
+    private bool _stopAcknowledged, _stopCommandAttempted;
     private int _pointIndex;
     internal bool IsClosed { get { lock (_gate) return _closed; } }
 
@@ -40,17 +44,21 @@ public sealed class CanopenCyclicService : IDisposable
 
     public CommunicationSnapshot Snapshot()
     {
-        CycleStatus cycle; bool running;
+        CycleStatus cycle; bool running; string? closeHistory;
+        bool connectionClosed = _connection.IsClosed;
         lock (_gate)
         {
             running = !_closed;
+            closeHistory = _closeHistory?.ToString();
             cycle = new(_state, _generation, _version, _cycles, _submitted, _confirmed, _lastDuration,
                 _overruns, _phase, _error, _worker.IsCompleted && _cancelCallbacks.IsCompleted,
-                _submitted == _confirmed || _lateQuiescence ? true : null)
+                _submitted == _confirmed || connectionClosed ? true : null)
             { MotionActive = _moving, MonitoringSyncActive = _monitor != null && !_worker.IsCompleted && !_faulted,
-                StopCommandsAcknowledged = _stopAcknowledged, ExecutedTrajectoryPoints = _pointIndex };
+                StopCommandsAcknowledged = _stopAcknowledged, ExecutedTrajectoryPoints = _pointIndex,
+                SlowMonitoringBatches = _slowMonitoringBatches, Timing = _lastTiming,
+                ServiceClosed = _closed, PartialCycle = _partialCycle, ConnectionClosed = connectionClosed };
         }
-        return new(_connection.Snapshot(_subscription, running), cycle);
+        return new(_connection.Snapshot(_subscription, running), cycle) { ShutdownHistory = closeHistory };
     }
 
     private static OrderedFrame[] CopyFrames(OrderedFrame[] frames)
@@ -373,14 +381,26 @@ public sealed class CanopenCyclicService : IDisposable
     {
         var timeout = target ? _options.CycleTimeoutMs : _monitor!.SendTimeoutMs;
         var period = target ? _options.PeriodMs : _monitor!.PeriodMs;
+        var maxStartLateness = target ? _options.MaxLatenessMs : _monitor!.MaxLatenessMs;
+        var phase = target ? "RPDO/SYNC" : "MonitoringSYNC";
         var confirmed = !target || _options.RequireOnBusConfirmation;
         var budget = CanConfirmationBudget.Start(timeout, ct);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct); deadline.CancelAfter(timeout);
         var elapsed = Stopwatch.StartNew();
-        var sending = Task.Run(() => _connection.SendBatch(this, batch, confirmed, deadline.Token, done =>
+        long queuedAt = Stopwatch.GetTimestamp(), enteredAt = 0, exitedAt = 0;
+        lock (_gate) _lastTiming = new(phase, period, timeout, maxStartLateness);
+        var sending = Task.Run(() =>
         {
-            lock (_gate) { if (done) _confirmed++; else { _submitted++; if (target) _partialCycle = true; } }
-        }, budget));
+            Volatile.Write(ref enteredAt, Stopwatch.GetTimestamp());
+            try
+            {
+                _connection.SendBatch(this, batch, confirmed, deadline.Token, done =>
+                {
+                    lock (_gate) { if (done) _confirmed++; else { _submitted++; if (target) _partialCycle = true; } }
+                }, budget);
+            }
+            finally { Volatile.Write(ref exitedAt, Stopwatch.GetTimestamp()); }
+        });
         try { await sending.WaitAsync(deadline.Token).ConfigureAwait(false); }
         catch
         {
@@ -390,11 +410,26 @@ public sealed class CanopenCyclicService : IDisposable
             catch (Exception late) { lock (_gate) { _faulted = true; _error = late.ToString(); } }
             throw;
         }
+        finally
+        {
+            long returnedAt = Stopwatch.GetTimestamp(), entered = Volatile.Read(ref enteredAt), exited = Volatile.Read(ref exitedAt);
+            double Milliseconds(long from, long to) => (to - from) * 1000d / Stopwatch.Frequency;
+            lock (_gate) _lastTiming = new(phase, period, timeout, maxStartLateness,
+                elapsed.Elapsed.TotalMilliseconds,
+                entered == 0 ? null : Milliseconds(queuedAt, entered),
+                entered == 0 || exited == 0 ? null : Milliseconds(entered, exited),
+                exited == 0 ? null : Milliseconds(exited, returnedAt));
+        }
         lock (_gate)
         {
             if (target) _partialCycle = false;
             _lastDuration = elapsed.Elapsed.TotalMilliseconds; _cycles++;
-            if (_lastDuration > period) throw new TimeoutException("发送周期执行超限");
+            if (!target && _lastDuration > period) _slowMonitoringBatches++;
+            // Monitoring cadence is not a second transmission timeout. The
+            // configured SendTimeout and actual confirmation budget remain strict.
+            // Keep the existing motion-period guard and finite trajectory policy.
+            if (target && _lastDuration > period)
+                throw new TimeoutException($"发送周期执行超限：阶段={phase}，耗时={_lastDuration:F4} ms，目标周期={period} ms，发送确认期限={timeout} ms");
         }
     }
 
@@ -511,12 +546,17 @@ public sealed class CanopenCyclicService : IDisposable
         lock (_gate)
         {
             if (!ReferenceEquals(_worker, expected)) throw new InvalidOperationException("旧代次停止确认已失效");
-            if (_submitted != _confirmed && !(closingConnection && _lateQuiescence))
+            if (!expected.IsCompleted || !_cancelCallbacks.IsCompleted)
+                throw new InvalidOperationException("服务真实 worker 或取消回调尚未退出，不能释放占用");
+            if (closingConnection && !_connection.IsClosing)
+                throw new InvalidOperationException("只有父连接已冻结准入后才能走终态关断路径");
+            if (_submitted != _confirmed && !closingConnection)
             { _state = "Isolated"; throw new InvalidOperationException(_error ??= "旧帧发送状态未知，不能确认停止"); }
             if (!closingConnection && _partialCycle)
             { _faulted = true; _state = "PartialCycle"; throw new InvalidOperationException(_error = "部分 RPDO 已发送但 SYNC 未确认，保留占用，禁止重启"); }
             _connection.ReleaseSender(this); ReleaseNodes(); _stop?.Dispose(); _stop = null; _moving = false; _monitor = null;
-            _state = _faulted ? "FaultedStopped" : "StoppedConfirmed";
+            _state = closingConnection && (_submitted != _confirmed || _partialCycle)
+                ? "ClosedWithUnconfirmedTransmit" : _faulted ? "FaultedStopped" : "StoppedConfirmed";
         }
     }
 
@@ -532,7 +572,7 @@ public sealed class CanopenCyclicService : IDisposable
         int remaining = timeoutMs - (int)Math.Min(int.MaxValue, clock.ElapsedMilliseconds);
         if (remaining <= 0) throw new TimeoutException("CANopen 服务关闭总期限已到，真实退出尚待确认");
         await Task.WhenAll(_worker, _cancelCallbacks).WaitAsync(TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false);
-        ConfirmExit(_worker); _subscription.Dispose(); lock (_gate) _closed = true;
+        ConfirmExit(_worker); _subscription.Dispose(); lock (_gate) { _closed = true; _closeHistory = history; }
         if (history != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(history).Throw();
     }
     internal async Task CloseForConnectionAsync()
@@ -547,18 +587,28 @@ public sealed class CanopenCyclicService : IDisposable
         }
         // The outer connection close has its own soft wait; it must not replace
         // the configured owned-stop budget with StopTargetsAsync's legacy default.
-        if (finishMotion) await StopTargetsAsync(stopTimeout).ConfigureAwait(false);
-        RequestStop(); await Task.WhenAll(_worker, _cancelCallbacks).ConfigureAwait(false);
-        if (_submitted != _confirmed)
+        var failures = new List<Exception>();
+        try { if (finishMotion) await StopTargetsAsync(stopTimeout).ConfigureAwait(false); }
+        catch (Exception ex) { failures.Add(ex); }
+        // A failed business stop must not suppress parent-connection teardown.
+        // Join real workers before releasing their managed claims or SDK handles.
+        RequestStop();
+        try { await Task.WhenAll(_worker, _cancelCallbacks).ConfigureAwait(false); }
+        catch (Exception ex) { failures.Add(ex); }
+        lock (_gate)
         {
-            var quiescent = await _connection.ConfirmTransmitQuiescentAsync().ConfigureAwait(false);
-            lock (_gate)
-            {
-                _lateQuiescence = quiescent;
-                if (quiescent) _error ??= "停止等待结束后收到迟到发送确认；仅允许关闭，不恢复目标或 SYNC";
-            }
+            if (_submitted != _confirmed || _partialCycle)
+                _error ??= "父连接终态关闭：部分周期或发送确认仍未知；不恢复目标/SYNC，不代表报文撤回或电机停稳";
         }
-        ConfirmExit(_worker, true); _subscription.Dispose(); lock (_gate) _closed = true;
+        Exception? history = failures.Count switch
+        {
+            0 => null,
+            1 => failures[0],
+            _ => new AggregateException("服务工作单元已退出，但父连接关断仍保留停机/取消历史错误", failures)
+        };
+        ConfirmExit(_worker, true); _subscription.Dispose();
+        lock (_gate) { _closed = true; if (history != null) _closeHistory = history; }
+        if (history != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(history).Throw();
     }
     public void Dispose()
     {

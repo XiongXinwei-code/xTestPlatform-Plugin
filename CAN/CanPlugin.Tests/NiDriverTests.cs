@@ -31,7 +31,7 @@ public class NiDriverTests
         await connection.CloseAsync(2000); Assert.True(connection.IsClosed);
     }
     [Fact]
-    public async Task LateEchoCanReleaseIsolatedConnectionWithoutReplayingTargets()
+    public async Task Missing_echo_keeps_motion_isolated_but_does_not_block_the_parent_Sdk_close()
     {
         var driver = new Driver { EmitEcho = false };
         var adapter = new NiXnetAdapter(driver, 1, 2); var key = Guid.NewGuid().ToString();
@@ -40,11 +40,11 @@ public class NiDriverTests
         service.StartTargets([1], [new(0x201, [1])], new(0x80, [0]), new(500, 200, 1000));
         Assert.True(driver.Written.Wait(2000));
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.StopTargetsAsync());
-        await Assert.ThrowsAsync<InvalidOperationException>(() => connection.CloseAsync());
-        Assert.Empty(driver.Cleared);
-        driver.EmitLast(); await Task.Delay(30);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => connection.CloseAsync());
+        await Assert.ThrowsAnyAsync<Exception>(() => connection.CloseAsync());
         Assert.True(connection.IsClosed); Assert.Equal(2, driver.Cleared.Count);
+        Assert.False(service.Snapshot().Cycle.StopCommandsAcknowledged);
+        Assert.False(service.Snapshot().Cycle.MotorStoppedVerified);
+        Assert.True(service.Snapshot().Cycle.SubmittedFrames > service.Snapshot().Cycle.ConfirmedFrames);
         var next = new CanConnectionResource(new CAN.Tests.FakeAdapter(), key); await next.CloseAsync();
     }
 
@@ -83,7 +83,7 @@ public class NiDriverTests
     }
 
     [Fact]
-    public async Task MissingConfirmationRetainedAfterCancellationAndClosedOnlyAfterLateEcho()
+    public async Task Missing_confirmation_is_retained_after_cancellation_until_the_Sdk_releases_the_session()
     {
         var driver = new Driver { EmitEcho = false };
         var adapter = new NiXnetAdapter(driver, 1, 2);
@@ -91,10 +91,9 @@ public class NiDriverTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.Run(() =>
             adapter.WriteConfirmed(new CanMessage { Id = 0x201, Data = [1] }, cts.Token)));
         Assert.Throws<InvalidOperationException>(() => adapter.Write(new() { Id = 0x201, Data = [2] }));
-        Assert.Throws<TimeoutException>(adapter.Close);
-        Assert.Empty(driver.Cleared);
-        driver.EmitLast(); await Task.Delay(30);
-        adapter.Close(); Assert.Equal(2, driver.Cleared.Count);
+        Assert.Throws<InvalidOperationException>(adapter.Close);
+        Assert.True(adapter.HandlesReleased); Assert.Equal(2, driver.Cleared.Count);
+        Assert.Contains("待确认=1", adapter.GetReceiveDiagnostics());
     }
 
     [Fact]
@@ -103,9 +102,22 @@ public class NiDriverTests
         var driver = new Driver { BlockRead = true };
         var adapter = new NiXnetAdapter(driver, 1, 2);
         Assert.True(driver.Reading.Wait(2000));
-        Assert.Throws<TimeoutException>(adapter.Close); Assert.Empty(driver.Cleared);
-        driver.ReleaseRead.Set(); await Task.Delay(30);
-        adapter.Close(); Assert.Equal(2, driver.Cleared.Count);
+        var owner = new CanConnectionResource(adapter);
+        var closing = owner.CloseAsync(5000);
+        try
+        {
+            var pumpStop = (CancellationTokenSource)typeof(NiXnetAdapter).GetField("_receivePumpCts",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(adapter)!;
+            using var guard = new CancellationTokenSource(5000);
+            while (!pumpStop.IsCancellationRequested) await Task.Delay(2, guard.Token);
+            await Assert.ThrowsAsync<TimeoutException>(() => owner.CloseAsync(30));
+            await Task.Delay(1300);
+            Assert.False(closing.IsCompleted); // The configured 5s wait must not become a hidden 1s failure.
+            Assert.Empty(driver.Cleared); Assert.False(owner.IsClosed);
+            driver.ReleaseRead.Set(); await closing;
+            Assert.True(owner.IsClosed); Assert.Equal(2, driver.Cleared.Count);
+        }
+        finally { driver.ReleaseRead.Set(); try { await owner.CloseAsync(5000); } catch (Exception) when (owner.IsClosed) { } }
     }
 
     [Fact]
@@ -113,7 +125,8 @@ public class NiDriverTests
     {
         var driver = new Driver { FailClear = true };
         var adapter = new NiXnetAdapter(driver, 1, 2);
-        Assert.Throws<InvalidOperationException>(adapter.Close);
+        var failure = Assert.ThrowsAny<Exception>(adapter.Close);
+        Assert.Contains("fake NI", failure.ToString(), StringComparison.OrdinalIgnoreCase);
         Assert.Empty(driver.Cleared);
         driver.FailClear = false; adapter.Close(); Assert.Equal(2, driver.Cleared.Count);
     }

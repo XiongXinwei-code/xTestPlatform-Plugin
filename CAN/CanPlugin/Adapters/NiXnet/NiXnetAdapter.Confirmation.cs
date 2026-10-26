@@ -124,12 +124,14 @@ public sealed partial class NiXnetAdapter
         }
     }
 
-    private void StopSession(uint session)
+    private void RequestSessionStop(uint session)
     {
         if (session == 0) return;
         _io.Check(_io.Stop(session));
-        _io.Check(_io.State(session, out var state, out var fault)); _io.Check(fault);
-        if ((state & 3) != 0) throw new InvalidOperationException("NI 会话尚未确认停止，禁止销毁句柄");
+        // Normal can return before this session stops when another session is
+        // running. NI permits nxClear on a started session: Clear itself stops
+        // communication and releases its resources. A one-shot SessionInfo read
+        // is not a legal precondition for Clear (nor proof of host I/O exit).
     }
 
     private void CalibrateClock(bool force)

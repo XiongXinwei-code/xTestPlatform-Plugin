@@ -70,6 +70,12 @@ public sealed class EditorTests
             Assert.NotNull(tab.Image);
             Assert.NotNull(view.GetType().GetProperty("SequenceFile"));
             Assert.NotNull(view.GetType().GetProperty("EditPosition"));
+            if (plugin.Operation == CyclicOperation.ServiceStop)
+            {
+                var hint = Assert.IsType<TextBlock>(view.FindName("ServiceStopResultHint"));
+                Assert.Equal(TextWrapping.Wrap, hint.TextWrapping);
+                Assert.Contains("历史故障", hint.Text);
+            }
         }
     }
 
@@ -92,6 +98,9 @@ public sealed class EditorTests
     {
         var monitorPlugin = new ServiceStartPlugin(); var monitorStep = Step(monitorPlugin);
         var monitorView = new CyclicServiceEditorView(monitorPlugin); monitorView.RefreshFromStep(monitorStep);
+        var timingHint = Assert.IsType<TextBlock>(monitorView.FindName("MonitoringTimingHint"));
+        Assert.Equal(TextWrapping.Wrap, timingHint.TextWrapping);
+        Assert.Contains("发送确认期限", timingHint.Text);
         Assert.False(monitorView.ViewModel.EnableMonitoringSync);
         monitorView.ViewModel.EnableMonitoringSync = true; monitorView.ViewModel.MonitoringPeriodMs = 20;
         monitorView.ViewModel.SyncData = "\"00\"";
