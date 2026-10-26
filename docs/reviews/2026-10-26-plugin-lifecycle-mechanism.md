@@ -2,7 +2,7 @@
 
 任务等级：L3。范围：CAN、CiA402、Ethernet、HTTP、LIN、Modbus、NI-DAQ、OPC UA、SerialPort、VISA，及其私有共享执行代码。用户已明确先做软件验证；本轮未连接设备、写入真实输出、运行设备序列或替换平台部署目录。
 
-当前记录为实施过程快照，最终验收与编译指纹在第三轮后回填；此处不将分组旧通过记录算作最终集成通过。
+本轮已确认的问题均已修复并经非作者读回，三轮软件勘误、冻结后的完整回归及独立插件打包已完成。该结论限定于下面列明的源码和软件验证范围，不宣称未知缺陷归零，也不代表现场设备或实际平台窗口已经验收。
 
 ## 1. BUG 的原理
 
@@ -56,13 +56,14 @@ SDK 中断/退出调试可以回收 Execution 资源而不取消当前 step toke
 
 新屏障同时检查前台及时返回、native/回调尚未退出时释放次数为 0、精确 owner/代次仍保留、放行后只释放一次、第一次重跑使用新结果，以及成功资源不受旧步骤 token 影响。模拟并行阻塞造成的测试线程池饥饿与产品缺陷分开：真实 Modbus 回环关闭的 500 ms 预算不变，该时序用例归入非并行隔离集合，单独复测通过后仍须参加最终完整回归。
 
-第三轮将在冻结源码后执行九套完整回归、十核心/十 UI 构建、120 步骤与工厂/编辑器检查、PE/PDB 来源和依赖指纹检查。结果待回填。
+第三轮在干净产品提交 `61b5fa8e68ba86948c22ad83b548a033aaac9810` 冻结后执行；九套完整回归全部通过，十核心/十 UI 完整构建通过，120 步骤与工厂/编辑器、PE/PDB 来源和依赖指纹均通过。与前一交付相比增加 79 项有效软件回归（1946 → 2025），没有跳过测试。此后只更新本报告和计划，不改产品代码或重写已编译源码身份。
 
 ## 5. 基线、阅读范围与能力检查
 
 - 起点 `260f749cd6d78af9ecf2fcfd9b3a1d30ab6e4273`；工作分支 `codex/plugin-lifecycle-mechanism-20261026`；旧 `develop-backup-20261024` 保留在 `54ef5f5f38d64813fb409b1d000b966a8a1a2949`。不推送远端。
 - `origin/master` 为 `5351a0a9d66594455b292fe65308303488a07537`；本地/远端开发手册 blob 均 `9ca9f70eb10a14cd9a931bcc3fe7fe5995da93d0`。依据手册的设置、状态、错误责任及资源规则实现。
 - 复用前轮已逐文件审阅的 1021 项自有产品源码基线，对未变文件以哈希核同；本轮重新读十模块生命周期入口、资源/后台任务、修改调用链和测试，逐项审当前差异。自动哈希不冒充新一轮人工逐文件阅读。
+- 最终产品源码清单为 1027 项：862 项与前轮全文记录哈希相同，159 项差异/调用链复核，6 项新增源码。明细保存在 `artifacts/lifecycle-mechanism-20261026/product-source-baseline-comparison.json`，不包含不透明厂商 DLL 的内部实现。
 - ECC planner/architect：已执行职责/调用流、兼容性、阶段依赖及失败恢复分析；计划见同日 `docs/plans/`。不引入新 SDK 契约、MCP、自动 hook 或学习写入。
 - ECC TDD / C# reviewer / silent-failure-hunter：保留屏障失败、修复、模块回归并检查异常聚合、未知 I/O、native callback join 与误释放。三组非作者只读交叉审查实际读取相关源码，不把自审称独立审查。
 - 安全检查：本轮不增加设备命令、凭据字段、文件写入或网络权限；通用晚到诊断不输出 payload、URL、Token、密钥或外部异常文本。原具体资源仍保留自身收尾详情。
@@ -70,6 +71,41 @@ SDK 中断/退出调试可以回收 Execution 资源而不取消当前 step toke
 
 ## 6. 最终验收、编译与使用边界
 
-待第三轮完成后回填最终命令、数量、版本、提交、产物指纹和差异清单。预定独立输出：`artifacts/Release/2026-10-26-lifecycle-mechanism/Plugins`；不覆盖前一交付或实际平台目录。
+最终输出：`artifacts/Release/2026-10-26-lifecycle-mechanism/Plugins`，十个可整体替换的插件目录；目标 `net8.0-windows/win-x64`。没有覆盖前一交付或平台目录，没有推送远端。包内 543 个文件、432,939,208 字节，不含测试程序集；核心/UI/依赖/模块文档均已核对。
+
+实际命令与证据：
+
+| 检查 | 命令/记录 | 结果 |
+| --- | --- | --- |
+| 最终完整回归 | `tools/Verify-Plugins.ps1 -Mode Test -OutputRoot artifacts/Release/2026-10-26-lifecycle-mechanism`；`round3-all-tests.log`、九份新 TRX | 9 套，2025/2025，通过；0 失败、0 跳过 |
+| Release 插件编译 | 同一工具 `-Mode Package`；`round3-package.log`、十份 build.log | 十核心、十 UI，0 警告、0 错误 |
+| 步骤/工厂/依赖 | 包内 StepInfoExtractor `--strict`，每个工厂返回独立作用域执行器 | 10 模块、120 个 ID、编辑器唯一、与上一交付身份/显示路径一致 |
+| UTF-8 与静态范式 | `tools/Verify-PluginSources.ps1` | 1394 个文本文件、120 个独立编辑器；C# 无 BOM，0 问题 |
+| 交付合同 | `tools/Verify-PluginDelivery.ps1 -OutputRoot ... -BaselineRoot artifacts/Release/2026-10-25-lifecycle-followup` | 10 模块、120 步骤、9 套/2025；两份私有 CAN 同 SHA-256 |
+| PE/PDB 对应 | `tools/Verify-PluginBinarySources.ps1 -OutputRoot ...` | 30 个程序集配对正确，1443 次非生成 C# 文档引用与当前文件匹配 |
+| 最终差异 | `git diff --check`，本地/远端手册 blob 再核同 | 通过；包构建时工作区干净，manifest 明确 `sourceIncludesUncommittedChanges=false` |
+
+最终完整套数：
+
+| 测试项目 | 通过 |
+| --- | ---: |
+| CAN | 567 |
+| CiA402 | 244 |
+| LIN | 121 |
+| Modbus | 173 |
+| NI-DAQ | 118 |
+| OPC UA | 195 |
+| SerialPort | 84 |
+| VISA | 92 |
+| Ethernet/HTTP 跨插件回归 | 431 |
+| 合计 | 2025 |
+
+产物版本（核心/UI 同版）：CAN `1.0.39`，CiA402 `1.0.11`，LIN/SerialPort `1.0.33`，Modbus `1.0.24`，Ethernet/HTTP/NI-DAQ/OPC UA/VISA `1.0.25`。
+
+CAN 指纹：AssemblyVersion/FileVersion `1.0.39.0`；MVID `8ea0e138-194d-4f3a-ab99-f91bb1d07fca`；SHA-256 `400d945df71e27b45fe6b44e1fd83874a52540a6d8676309758317e6179c181b`。独立 CAN 与 CiA402 内的私有 CAN 均为该文件。完整元数据分别在交付 `verification/delivery-contract-receipt.json`、`delivery-source-receipt.json` 和 `build-manifest.json`；后者 SHA-256 为 `fbe8dbea915befb63e1bfd10fe9f89b00c28f0d7b7c7d4a13910238390e25d01`。
+
+与云端 master 的完整文件差异见 [清单](2026-10-26-mechanism-vs-master-files.csv)：1141 项，其中 211 项本轮增量、930 项前轮已有；不把以前的 AO 新步骤、树分层和历史修复算成本轮新写，也不把清单/本报告自身循环计入。产品提交为 `61b5fa8e`，最终验收文档另存同一分支；原备份分支未移动。
+
+使用时先完全退出平台，再替换相应整套目录；CAN 和 CiA402 使用同批私有依赖。不要只拷主 DLL 或混用新旧 UI/依赖；本轮未安装驱动或代用户连接设备。交付根目录另有使用说明。
 
 剩余现场验收：实际平台“中途中止后首重跑”和“退出调试窗后重新进入”；NI/ZLG/DAQ/VISA 等真实驱动停止与回调时序；CAN 总线顺序/确认、实际轴停稳、OPC 设备断链及重连策略。真实 I/O 或回调永不退出时仍保持隔离并报告，不能为使重开成功而强行放行通道。
