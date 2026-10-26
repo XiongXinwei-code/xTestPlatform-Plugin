@@ -46,7 +46,7 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
         - `VISA_Write`：发送单条命令
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaBatchWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaBatchWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

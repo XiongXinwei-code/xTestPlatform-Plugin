@@ -23,9 +23,21 @@ public class OpeningOwnershipTests
             Assert.True(context.Resources.TryGet<ModbusConnectionResource>(ModbusHelper.GetConnectionKey("M"), out var registered));
             var closing = registered.CloseAsync(1000, default);
             Assert.False(transport.Disposed);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => opening.WaitAsync(TimeSpan.FromSeconds(1)));
+            Assert.Same(owner, registered); Assert.False(owner.IsClosed);
             exit.TrySetResult(); await closing;
-            await Assert.ThrowsAnyAsync<Exception>(() => opening);
-            Assert.False(context.Resources.TryGet<ModbusConnectionResource>(ModbusHelper.GetConnectionKey("M"), out _));
+            // The retired foreground no longer waits just to remove a registry key.
+            // A closed exact-owner tombstone may remain until Disconnect/next Connect.
+            Assert.True(owner.IsClosed); Assert.True(transport.Disposed);
+            var next = new ModbusConnectionResource(1000);
+            await ModbusLifecycle.OpenRegisteredAsync(context, "M", next, (resource, _) =>
+            {
+                resource.OwnTransport(new Transport()); resource.OwnMaster(DispatchProxy.Create<IModbusMaster, ModbusLifecycleTests.MasterProxy>());
+                return Task.CompletedTask;
+            }, default);
+            Assert.True(context.Resources.TryGet<ModbusConnectionResource>(ModbusHelper.GetConnectionKey("M"), out var current));
+            Assert.Same(next, current);
+            await next.CloseAsync(1000, default);
         }
         finally { exit.TrySetResult(); await opening.ContinueWith(task => { _ = task.Exception; }); }
     }

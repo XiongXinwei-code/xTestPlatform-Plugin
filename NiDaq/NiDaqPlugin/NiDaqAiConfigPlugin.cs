@@ -63,7 +63,7 @@ public sealed class NiDaqAiConfigPlugin : StepPluginBase<NiDaqAiConfigSetting>
         - `NiDaq_AI_Read`：读取采集数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqAiConfigExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqAiConfigExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -42,7 +42,7 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
         - `NiDaq_DO_Write`：设置数字输出
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqDiReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqDiReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

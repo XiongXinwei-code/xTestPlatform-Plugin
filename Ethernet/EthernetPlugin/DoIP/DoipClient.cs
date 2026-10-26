@@ -190,6 +190,8 @@ public sealed class DoipClient : IDisposable
             CheckUsable();
             CheckDeadline();
             operationStarted = true;
+            using var retirement = PluginCommon.ExecutionScopedExecutor.OwnOperation(() =>
+                Abort("DoIP 当前步骤退出，已提交事务的响应归属未知，请由序列决定重新连接"));
             var result = await operation(deadline.Token).ConfigureAwait(false);
             CheckDeadline();
             return result;

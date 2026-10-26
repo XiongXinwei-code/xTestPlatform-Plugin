@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using CAN.Adapters;
 using CAN.Models;
+using PluginCommon;
 
 namespace CAN.Runtime;
 
@@ -15,6 +16,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     private readonly string _physicalKey;
     private readonly CancellationTokenSource _receiveStop = new();
     private readonly CancellationTokenSource _foregroundStop = new();
+    private readonly OwnerStopSignal _foregroundWait = new();
     private readonly Action<Exception>? _reportCloseError;
     private readonly CanReceiveRouter _router = new();
     private readonly Dictionary<string, CanopenCyclicService> _services = new(StringComparer.Ordinal);
@@ -32,22 +34,33 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     private string? _isolation;
     private string _closePhase = "运行中";
     private string? _closeError;
+    private Exception? _nativeCancellationError;
     public Guid Epoch { get; } = Guid.NewGuid();
     public bool SupportsConfirmedTransmit => _raw is ICanConfirmedTransmitter { ConfirmationAvailable: true };
     internal void VerifyConfirmationAvailable(int timeoutMs, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         long started = Stopwatch.GetTimestamp();
+        int admitted = 0;
+        var observationStop = ForegroundWaitSignal;
+        using var stepOperation = observationStop == null ? null : ExecutionScopedExecutor.OwnOperation(() =>
+        {
+            if (Volatile.Read(ref admitted) != 0) Isolate("CAN 发送确认预检步骤取消或退出，原始预检尚待确认退出");
+        });
         var task = Task.Run(() =>
         {
             ct.ThrowIfCancellationRequested();
             if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException("发送能力预检在实际提交前已超时");
-            lock (_gate) { CheckLocked(); _activeIo++; }
-            try { (_raw as ICanConfirmedTransmitter)?.VerifyConfirmationAvailable(); }
+            lock (_gate) { CheckLocked(); _activeIo++; Volatile.Write(ref admitted, 1); }
+            try { ct.ThrowIfCancellationRequested(); if (observationStop != null) ExecutionScopedExecutor.ThrowIfCurrentStepRetired(); (_raw as ICanConfirmedTransmitter)?.VerifyConfirmationAvailable(); }
             finally { lock (_gate) _activeIo--; }
         });
-        try { task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).GetAwaiter().GetResult(); }
+        try
+        {
+            if (observationStop == null) task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).GetAwaiter().GetResult();
+            else observationStop.WaitAsync(task, TimeSpan.FromMilliseconds(timeoutMs), ct, "CAN 发送能力预检").GetAwaiter().GetResult();
+        }
         catch
         {
             if (!task.IsCompleted) Isolate("发送能力预检尚未实际退出");
@@ -64,6 +77,10 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     public bool Controlled { get { lock (_gate) return _controlled; } }
     public bool IsClosed { get { lock (_gate) return _closed; } }
     internal bool IsClosing { get { lock (_gate) return _closing; } }
+    // Owned stop commands may still complete through this connection after ordinary
+    // foreground observers retire. They retain the service's separate stop budget.
+    internal OwnerStopSignal? ForegroundWaitSignal => _ownerCommand.Value != null &&
+        ReferenceEquals(_sender, _ownerCommand.Value) ? null : _foregroundWait;
     public string? IsolationReason { get { lock (_gate) return _isolation; } }
 
     /// <summary>Only wait/retry an owner already closing; an active connection is never taken over.</summary>
@@ -154,6 +171,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         var clock = Stopwatch.StartNew();
         void CheckBudget()
         {
+            ExecutionScopedExecutor.ThrowIfCurrentStepRetired();
             checkLifetime?.Invoke();
             ct.ThrowIfCancellationRequested();
             if (clock.ElapsedMilliseconds >= timeoutMs) throw new TimeoutException($"CAN 打开总期限 {timeoutMs} ms 已到");
@@ -161,7 +179,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         var actual = Task.Run(() => OpenCore(config, CheckBudget));
         try
         {
-            await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            await _foregroundWait.WaitAsync(actual, TimeSpan.FromMilliseconds(timeoutMs), ct, "CAN 打开").ConfigureAwait(false);
             CheckBudget();
         }
         catch
@@ -256,7 +274,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     public Task<CanMessage?> ReadCanopenAsync(uint id, int timeoutMs, CancellationToken ct)
     {
         lock (_gate) CheckLocked();
-        return _router.ReadAsync(id, timeoutMs, ct);
+        return _router.ReadAsync(id, timeoutMs, ct, ForegroundWaitSignal);
     }
 
     internal void BeginSdoTransaction(byte node)
@@ -271,17 +289,25 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         if (timeoutMs == 0 || timeoutMs < Timeout.Infinite) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         ct.ThrowIfCancellationRequested();
         long started = Stopwatch.GetTimestamp();
+        int admitted = 0;
+        using var stepOperation = ForegroundWaitSignal == null ? null : ExecutionScopedExecutor.OwnOperation(() =>
+        {
+            if (Volatile.Read(ref admitted) != 0) Isolate("原始 CAN 接收步骤取消或退出，事务结果未确认消费");
+        });
         var actual = Task.Run(() =>
         {
             ct.ThrowIfCancellationRequested();
             int remaining = timeoutMs == Timeout.Infinite ? Timeout.Infinite :
                 timeoutMs - (int)Math.Min(int.MaxValue, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             if (timeoutMs != Timeout.Infinite && remaining <= 0) throw new TimeoutException("CAN 接收在提交前已超时");
-            return ReadRaw(id, remaining, ct);
+            return ReadRaw(id, remaining, ct, () => Volatile.Write(ref admitted, 1));
         }, CancellationToken.None);
         try
         {
-            var result = await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            var stop = ForegroundWaitSignal;
+            var result = stop == null
+                ? await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false)
+                : await stop.WaitAsync(actual, TimeSpan.FromMilliseconds(timeoutMs), ct, "CAN 接收").ConfigureAwait(false);
             ct.ThrowIfCancellationRequested();
             if (timeoutMs != Timeout.Infinite && Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException($"CAN 接收结果返回时已超过配置期限 {timeoutMs} ms，不能发布迟到结果");
@@ -294,7 +320,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             throw;
         }
     }
-    private CanMessage? ReadRaw(uint? id, int timeoutMs, CancellationToken ct)
+    private CanMessage? ReadRaw(uint? id, int timeoutMs, CancellationToken ct, Action? admitted = null)
     {
         if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
         lock (_gate)
@@ -302,15 +328,35 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             CheckLocked();
             if (_controlled) throw new InvalidOperationException("受控 CANopen 已占用接收入口，请使用 CANopen FIFO/快照步骤");
             _activeIo++;
+            admitted?.Invoke();
         }
         try
         {
             // Do not stop the controlled RX/echo pump here; only cancel foreground raw readers.
             // Owner-controlled shutdown commands keep their own cancellation budget.
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct,
-                _ownerCommand.Value == null ? _foregroundStop.Token : CancellationToken.None);
-            if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
-            return id.HasValue ? _raw.Read(id.Value, timeoutMs, linked.Token) : _raw.Read(timeoutMs, linked.Token);
+            var cancellation = new CanIoCancellation(ct,
+                _ownerCommand.Value == null ? _foregroundStop.Token : CancellationToken.None, Timeout.Infinite);
+            CanMessage? result = null;
+            Exception? failure = null;
+            try
+            {
+                if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
+                if (_ownerCommand.Value == null) ExecutionScopedExecutor.ThrowIfCurrentStepRetired();
+                ct.ThrowIfCancellationRequested(); cancellation.Token.ThrowIfCancellationRequested();
+                result = id.HasValue ? _raw.Read(id.Value, timeoutMs, cancellation.Token) : _raw.Read(timeoutMs, cancellation.Token);
+            }
+            catch (Exception ex) { failure = ex; }
+            finally
+            {
+                try { cancellation.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+                catch (Exception cleanup)
+                {
+                    failure = failure == null ? cleanup : new AggregateException("CAN 原始接收与取消回调均失败", failure, cleanup);
+                    Interlocked.CompareExchange(ref _nativeCancellationError, failure, null);
+                }
+            }
+            if (failure != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+            return result;
         }
         finally { lock (_gate) _activeIo--; }
     }
@@ -325,10 +371,17 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         ct.ThrowIfCancellationRequested();
         var copy = CanReceiveRouter.Copy(message);
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
-        var actual = Task.Run(() => WriteCore(copy, ct, started, timeoutMs), CancellationToken.None);
+        int admitted = 0;
+        using var stepOperation = ForegroundWaitSignal == null ? null : ExecutionScopedExecutor.OwnOperation(() =>
+        {
+            if (Volatile.Read(ref admitted) != 0) Isolate("原始 CAN 发送步骤取消或退出，实际发送或结果尚待确认");
+        });
+        var actual = Task.Run(() => WriteCore(copy, ct, started, timeoutMs, admitted: () => Volatile.Write(ref admitted, 1)), CancellationToken.None);
         try
         {
-            await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            var stop = ForegroundWaitSignal;
+            if (stop == null) await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            else await stop.WaitAsync(actual, TimeSpan.FromMilliseconds(timeoutMs), ct, "CAN 发送").ConfigureAwait(false);
             ct.ThrowIfCancellationRequested();
             if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException($"CAN 发送结果返回时已超过配置期限 {timeoutMs} ms；原始提交可能已经完成，不能视为撤回");
@@ -359,7 +412,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         WriteCore(copy, lifetimeToken, 0, 0, checkLifetime);
     }
 
-    private void WriteCore(CanMessage copy, CancellationToken callerToken, long started, int timeoutMs, Action? checkLifetime = null)
+    private void WriteCore(CanMessage copy, CancellationToken callerToken, long started, int timeoutMs, Action? checkLifetime = null, Action? admitted = null)
     {
         CheckSubmission();
         CAN.Helpers.CanHelper.ValidateTransmitFrame(copy);
@@ -379,9 +432,11 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
                     throw new ArgumentException("连接以 Classic CAN 打开，不能发送 CAN FD 帧；请使用 FD 配置重新打开，不能自动降级或截断数据");
                 if (_claimedIds.Contains(copy.Id)) throw new InvalidOperationException($"COB-ID 0x{copy.Id:X} 已由有序周期服务占用");
                 _activeIo++;
+                admitted?.Invoke();
             }
             try
             {
+                CheckSubmission();
                 if (_ownerCommand.Value != null && _raw is ICanConfirmedTransmitter confirmed)
                     WriteConfirmed(confirmed, copy, _ownerCommandBudget.Value
                         ?? throw new InvalidOperationException("受控所有者发送缺少配置预算"), _ownerCommandToken.Value);
@@ -393,7 +448,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         void CheckSubmission()
         {
             checkLifetime?.Invoke();
-            if (_ownerCommand.Value == null) CanExecutionGuard.CheckSubmission();
+            if (_ownerCommand.Value == null) { CanExecutionGuard.CheckSubmission(); ExecutionScopedExecutor.ThrowIfCurrentStepRetired(); }
             else if (_ownerCommandBudget.Value is { } ownerBudget) _ = ownerBudget.Remaining(_ownerCommandToken.Value);
             callerToken.ThrowIfCancellationRequested();
             if (timeoutMs > 0 && System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
@@ -533,6 +588,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
         {
             if (_closed) return _closeTask ?? Task.CompletedTask;
             _closing = true;
+            _foregroundWait.RequestStop();
             if (!_foregroundStop.IsCancellationRequested) _foregroundCancellation = _foregroundStop.CancelAsync();
             if (_closeTask?.IsFaulted == true || _closeTask?.IsCanceled == true) _closeTask = null;
             task = _closeTask ??= Task.Run(async () =>
@@ -583,6 +639,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
             await Task.Delay(10).ConfigureAwait(false);
         }
         lock (_gate) if (_closed) return; // Failed Open may already have released this exact owner.
+        if (Volatile.Read(ref _nativeCancellationError) is { } cancellationError) cleanupErrors.Add(cancellationError);
         Phase("驱动 Close/Dispose（含 NI 接收泵、发送确认与 Stop/Clear）");
         try { _raw.Close(); _raw.Dispose(); }
         finally
@@ -619,7 +676,7 @@ public sealed class CanConnectionResource : ICanAdapter, ICanAdapterDiagnostics
     {
         // 同步资源回收不占住宿主线程；显式 CAN_Close 才确认退出。
         var actualClose = RequestClose();
-        _ = ObserveCloseAsync(actualClose);
+        _ = Task.Run(() => ObserveCloseAsync(actualClose), CancellationToken.None);
     }
     private async Task ObserveCloseAsync(Task actualClose)
     {
@@ -647,6 +704,7 @@ public sealed class CanBackgroundJob
     public string? Error { get; private set; }
     internal CanBackgroundJob(Func<CancellationToken, Task> work)
     {
+        ExecutionScopedExecutor.Own(Dispose);
         _work = Task.Run(async () =>
         {
             try { await work(_stop.Token).ConfigureAwait(false); }

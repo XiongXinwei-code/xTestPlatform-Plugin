@@ -107,8 +107,9 @@ public sealed class ConnectionPoolTests
         await Assert.ThrowsAsync<TimeoutException>(() => pool.CloseAsync("same", 30, default));
         Assert.Throws<InvalidOperationException>(() => pool.Get("same"));
         Assert.Equal(0, handle.Releases);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => opening.WaitAsync(TimeSpan.FromSeconds(1)));
         exit.SetResult(handle);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await opening);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await opening);
         await pool.CloseAsync("same", 1000, default);
         Assert.Equal(1, handle.Releases);
     }
@@ -123,8 +124,9 @@ public sealed class ConnectionPoolTests
         var first = pool.OpenAsync("same", _ => { entered.SetResult(); return exit.Task; }, 1000, default);
         await entered.Task;
         var second = pool.OpenAsync("same", _ => Task.FromResult(current), 1000, default);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => first.WaitAsync(TimeSpan.FromSeconds(1)));
         exit.SetResult(old);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await first);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await first);
         Assert.Same(current, await second);
         Assert.Same(current, pool.Get("same"));
         Assert.Equal(1, old.Releases);

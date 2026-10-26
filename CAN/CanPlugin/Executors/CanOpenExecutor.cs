@@ -75,6 +75,7 @@ public sealed class CanOpenExecutor : IStepExecutor
             try { adapter = new CanConnectionResource(raw, physicalKey,
                 ex => context.Log(LogLevel.Error, "CAN 自动收尾未确认，请查看详情", ex.ToString())); }
             catch { raw.Dispose(); throw; } // No Open has been submitted for this losing reservation.
+            PluginCommon.ExecutionScopedExecutor.Own(adapter.Dispose);
             var adapterConfig = new CanAdapterConfig
             {
                 Channel = channel,

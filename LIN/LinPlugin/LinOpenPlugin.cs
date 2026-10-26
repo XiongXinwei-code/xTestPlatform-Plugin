@@ -54,7 +54,7 @@ public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
         - `LIN_Read` / `LIN_Write`：收发 LIN 帧
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

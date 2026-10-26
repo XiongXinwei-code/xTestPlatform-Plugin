@@ -60,8 +60,8 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
                 return Error("服务基地址不是合法的 HTTP(S) 绝对 URL");
 
             var key = HttpHelper.GetClientKey(clientName);
-            registrationGate = HttpHelper.GetRegistryGate(context.Resources);
-            if (!await registrationGate.WaitAsync(Remaining(), cancellationToken))
+            registrationGate = HttpHelper.GetRegistryGate(execution);
+            if (!await execution.StopSignal.EnterAsync(registrationGate, Remaining(), cancellationToken, "HTTP 客户端建立排队"))
                 throw new TimeoutException($"等待 HTTP 客户端建立生命周期操作超过 {setting.TimeoutMs} ms");
             ownsGate = true;
             _ = Remaining();
@@ -106,7 +106,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
                     return built;
                 }
                 catch { built.Dispose(); throw; }
-            }, creationRemaining, cancellationToken);
+            }, creationRemaining, cancellationToken, execution.StopSignal);
 
             var resource = stagedResource = new HttpClientResource
             {
@@ -116,6 +116,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
                 CheckExecutionScope = execution.ThrowIfExpired
             };
             stagedClient = null; // The staged resource now owns asynchronous cleanup.
+            PluginCommon.ExecutionScopedExecutor.Own(resource.Dispose);
 
             cancellationToken.ThrowIfCancellationRequested(); // Never publish a client after sequence cancellation.
             CheckExecution();
@@ -123,7 +124,8 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
             {
                 int remaining = Remaining(); // lookup可能跨越SDK回收，触碰返回owner前复查原执行代次。
                 if (remaining == Timeout.Infinite) remaining = int.MaxValue;
-                await previous.CloseAsync(remaining, cancellationToken);
+                await execution.StopSignal.WaitAsync(previous.CloseAsync(remaining, cancellationToken),
+                    TimeSpan.FromMilliseconds(remaining), cancellationToken, "替换 HTTP 客户端前等待旧资源关闭");
                 cancellationToken.ThrowIfCancellationRequested();
                 CheckExecution();
             }

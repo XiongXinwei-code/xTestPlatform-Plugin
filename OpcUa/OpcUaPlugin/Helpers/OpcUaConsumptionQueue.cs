@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
+using PluginCommon;
 
 namespace OpcUa.Helpers;
 
@@ -8,6 +10,7 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
 {
     private readonly object _state = new();
     private readonly HashSet<Task> _actual = [];
+    private readonly OwnerStopSignal _stop = new();
     private bool _frozen;
     private long _lastExportCommitSequence;
     private string? _lastError;
@@ -16,7 +19,15 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
     // 这里只确认真实退出；结果由原等待者和 LastError 传播，不能把已报告的历史故障当作尚未退出。
     public Task Completion { get { lock (_state) return Task.WhenAll(_actual.Select(ObserveExitAsync).ToArray()); } }
     public int PendingCount { get { lock (_state) return _actual.Count; } }
-    public void Freeze() { lock (_state) _frozen = true; }
+    public void Freeze()
+    {
+        lock (_state)
+        {
+            _frozen = true;
+            // 只通知前台结束等待；真实导出与取消回调仍归本队列，不触及其消费门。
+            _stop.RequestStop();
+        }
+    }
     private bool IsFrozen { get { lock (_state) return _frozen; } }
 
     public Task<T> RunAsync<T>(int maxCount, Func<IReadOnlyList<DataAcqRecord>, Consumption, Task<T>> prepare,
@@ -35,6 +46,7 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
             {
                 bool entered = false;
                 bool exportCommitted = false;
+                Exception? failure = null;
                 IReadOnlyList<DataAcqRecord> records = [];
                 try
                 {
@@ -55,15 +67,25 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
                 {
                     // 外部写入成功与后续转换/发布成功不是同一事务，已经确认的 CSV 不得再次导出。
                     if (operation.ExternalOutputCommitted) CommitExport();
-                    Volatile.Write(ref _lastError, ex.ToString());
+                    failure = ex;
                     prepared.TrySetException(ex);
-                    throw;
                 }
                 finally
                 {
                     // CancelAsync 的真实回调也是旧事务的一部分，不能在回调仍执行时放消费门。
-                    try { await operation.CancellationCompletion.ConfigureAwait(false); }
+                    try { await operation.SealCancellationAndGetCompletion().ConfigureAwait(false); }
+                    catch (Exception cleanup)
+                    {
+                        failure = failure == null ? cleanup : new AggregateException("OPC UA 消费与原生取消回调均失败", failure, cleanup);
+                        prepared.TrySetException(failure);
+                    }
                     finally { operation.Dispose(); if (entered) consumer.Release(); }
+                }
+                if (failure != null)
+                {
+                    // finally 中的取消回调失败不能覆盖原始消费故障，也不能随任务移出集合而丢失。
+                    Volatile.Write(ref _lastError, failure.ToString());
+                    ExceptionDispatchInfo.Capture(failure).Throw();
                 }
 
                 void CommitExport()
@@ -87,12 +109,12 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
         {
             try
             {
-                T result = await prepared.Task.WaitAsync(operation.Remaining, ct).ConfigureAwait(false);
+                T result = await _stop.WaitAsync(prepared.Task, operation.Remaining, ct, "OPC UA 采集消费").ConfigureAwait(false);
                 operation.ThrowIfActive();
                 // 只有本次仍在等待的前台允许发布变量；后台导出永远不调用序列上下文。
                 publish?.Invoke(result);
                 operation.Accept();
-                await actual.WaitAsync(operation.Remaining, ct).ConfigureAwait(false);
+                await _stop.WaitAsync(actual, operation.Remaining, ct, "OPC UA 采集消费收尾").ConfigureAwait(false);
                 return result;
             }
             catch (Exception ex)
@@ -120,11 +142,19 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
         private readonly TaskCompletionSource<bool> _accepted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private readonly object _state = new();
         private Task _callbacks = Task.CompletedTask;
-        private bool _abandoned, _disposed;
+        private bool _abandoned, _disposed, _sealed;
         public CancellationToken Token => _cancel.Token;
         public Task<bool> Accepted => _accepted.Task;
         public bool ExternalOutputCommitted { get; private set; }
-        public Task CancellationCompletion { get { lock (_state) return _callbacks; } }
+        public Task SealCancellationAndGetCompletion()
+        {
+            lock (_state)
+            {
+                // 捕获与封闭必须是同一个状态转换；finally 取快照后不得再启动新的原生取消回调。
+                _sealed = true;
+                return _callbacks;
+            }
+        }
         public TimeSpan Remaining => timeoutMs == Timeout.Infinite ? Timeout.InfiniteTimeSpan
             : TimeSpan.FromMilliseconds(Math.Max(0, timeoutMs - Stopwatch.GetElapsedTime(_started).TotalMilliseconds));
         public void ThrowIfActive()
@@ -147,9 +177,9 @@ internal sealed class OpcUaConsumptionQueue(ConcurrentQueue<DataAcqRecord> buffe
             {
                 _abandoned = true;
                 _accepted.TrySetResult(false);
-                if (!_disposed && !_cancel.IsCancellationRequested) _callbacks = _cancel.CancelAsync();
+                if (!_disposed && !_sealed && !_cancel.IsCancellationRequested) _callbacks = _cancel.CancelAsync();
             }
         }
-        public void Dispose() { lock (_state) { if (_disposed) return; _disposed = true; _cancel.Dispose(); } }
+        public void Dispose() { lock (_state) { if (_disposed) return; _sealed = true; _disposed = true; _cancel.Dispose(); } }
     }
 }

@@ -38,7 +38,7 @@ public sealed class CanWritePlugin : StepPluginBase<CanWriteSetting>
         - `CAN_Read`：接收报文
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

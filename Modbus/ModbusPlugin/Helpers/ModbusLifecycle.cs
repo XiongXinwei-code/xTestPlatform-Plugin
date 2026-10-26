@@ -53,10 +53,18 @@ public static class ModbusLifecycle
         catch (Exception openingError)
         {
             // 只停止本次等待；实际打开及收尾继续由原 owner 持有。
-            if (openingError is OperationCanceledException && ct.IsCancellationRequested)
+            bool callerCancelled = openingError is OperationCanceledException && ct.IsCancellationRequested;
+            if (callerCancelled || owner.IsClosing)
             {
                 try { owner.Dispose(); }
-                catch (Exception cleanupError) { throw new OperationCanceledException("Modbus 建立已中断，后台收尾未确认，保留原 owner", new AggregateException(openingError, cleanupError), ct); }
+                catch (Exception cleanupError)
+                {
+                    if (callerCancelled) throw new OperationCanceledException("Modbus 建立已中断，后台收尾未确认，保留原 owner", new AggregateException(openingError, cleanupError), ct);
+                    throw new AggregateException("Modbus 建立所属资源已退出，后台收尾未确认，保留原 owner", openingError, cleanupError);
+                }
+                // Retiring the foreground waiter must not await the same native
+                // close again. The registered owner and retirement keep real I/O.
+                if (registered) RemoveAfterActualClose(context, key, owner);
                 throw;
             }
             try
@@ -70,5 +78,20 @@ public static class ModbusLifecycle
                     if (context.Resources.TryGet<ModbusConnectionResource>(key, out var current) && ReferenceEquals(current, owner)) context.Resources.Remove(key);
             throw;
         }
+    }
+
+    private static void RemoveAfterActualClose(IExecutionContext context, string key, ModbusConnectionResource expected)
+    {
+        void RemoveExactOwner()
+        {
+            lock (ModbusHelper.RegistryLock(context.Resources))
+                if (context.Resources.TryGet<ModbusConnectionResource>(key, out var current) && ReferenceEquals(current, expected)) context.Resources.Remove(key);
+        }
+        if (expected.IsClosed) { RemoveExactOwner(); return; }
+        if (expected.CloseCompletion is not { } actualClose) return;
+        var removal = actualClose.ContinueWith(_ => RemoveExactOwner(), CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+        _ = removal.ContinueWith(task => System.Diagnostics.Trace.TraceError($"Modbus 旧连接登记移除失败，保留精确所有者诊断：{task.Exception}"),
+            CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
 }

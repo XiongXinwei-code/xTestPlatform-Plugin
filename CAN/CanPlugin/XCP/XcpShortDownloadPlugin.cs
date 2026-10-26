@@ -40,7 +40,7 @@ public sealed class XcpShortDownloadPlugin : StepPluginBase<XcpShortDownloadSett
         - `XCP_ShortUpload`：从 ECU 内存读取数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new XcpShortDownloadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new XcpShortDownloadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

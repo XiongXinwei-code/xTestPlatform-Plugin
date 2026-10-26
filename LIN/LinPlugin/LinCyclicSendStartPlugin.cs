@@ -49,7 +49,7 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
         - `LIN_Open`：打开 LIN 通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinCyclicSendStartExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinCyclicSendStartExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

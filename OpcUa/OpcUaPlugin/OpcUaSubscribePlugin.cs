@@ -42,7 +42,7 @@ public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
         - `OpcUa_Read`：一次性读取节点值
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaSubscribeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaSubscribeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -37,7 +37,7 @@ public sealed class SerialPortWritePlugin : StepPluginBase<SerialPortWriteSettin
         - `SerialPort_Query`：写入+读取一体操作
         """;
 
-    public override IStepExecutor CreateExecutor() => new SerialPortWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("SerialPort", () => new SerialPortWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

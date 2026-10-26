@@ -3,6 +3,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Http.Models;
+using PluginCommon;
 
 namespace Http.Helpers;
 
@@ -14,6 +15,7 @@ public sealed class HttpClientResource : IDisposable
     private readonly object _sync = new();
     private readonly HashSet<Task> _active = new();
     private readonly CancellationTokenSource _shutdown = new();
+    private readonly OwnerStopSignal _stop = new();
     private Task? _closeTask;
     private bool _closing;
     private bool _closed;
@@ -75,19 +77,19 @@ public sealed class HttpClientResource : IDisposable
             _active.Add(actual);
             _ = actual.ContinueWith(task =>
             {
-                if (task.Exception is not null) System.Diagnostics.Trace.TraceError($"HTTP 后台请求失败: {task.Exception}");
                 lock (_sync) _active.Remove(task);
-            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                if (task.Exception is not null) System.Diagnostics.Trace.TraceError($"HTTP 后台请求失败: {task.Exception}");
+            }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         }
         return WaitForResponseAsync(actual, timeout, started, cancellation, caller);
     }
 
-    private static async Task<Response> WaitForResponseAsync(Task<Response> actual, TimeSpan timeout, long started,
+    private async Task<Response> WaitForResponseAsync(Task<Response> actual, TimeSpan timeout, long started,
         RequestCancellation cancellation, CancellationToken caller)
     {
         try
         {
-            var result = await actual.WaitAsync(timeout, caller).ConfigureAwait(false);
+            var result = await _stop.WaitAsync(actual, timeout, caller, "HTTP 请求").ConfigureAwait(false);
             caller.ThrowIfCancellationRequested();
             if (timeout != Timeout.InfiniteTimeSpan && System.Diagnostics.Stopwatch.GetElapsedTime(started) >= timeout)
                 throw new TimeoutException("HTTP 请求结果已超过单调总期限");
@@ -140,6 +142,7 @@ public sealed class HttpClientResource : IDisposable
         lock (_sync)
         {
             _closing = true;
+            _stop.RequestStop();
             if (_closeTask is null || _closeTask.IsFaulted)
             {
                 _closeTask = Task.Run(async () =>
@@ -155,7 +158,7 @@ public sealed class HttpClientResource : IDisposable
                 _ = _closeTask.ContinueWith(task =>
                 {
                     if (task.Exception is not null) System.Diagnostics.Trace.TraceError($"HTTP 资源关闭未完成: {task.Exception}");
-                }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
             }
             return _closeTask;
         }
@@ -229,9 +232,11 @@ internal static class HttpHelper
     /// 按认证方式与 TLS 选项构建 HttpClient。
     /// 四种认证方式与 TLS 选项相互正交，未使用的字段全部忽略。
     /// </summary>
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<xTestPlatform.Core.Engine.IResourceRegistry, SemaphoreSlim> RegistryGates = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ExecutionEpoch, SemaphoreSlim> RegistryGates = new();
     public static SemaphoreSlim GetRegistryGate(xTestPlatform.Core.Engine.IResourceRegistry resources) =>
-        RegistryGates.GetValue(resources, _ => new SemaphoreSlim(1, 1));
+        GetRegistryGate(ExecutionEpoch.Capture(resources, "Http"));
+    internal static SemaphoreSlim GetRegistryGate(ExecutionEpoch execution) =>
+        RegistryGates.GetValue(execution, _ => new SemaphoreSlim(1, 1));
 
     public static string DescribeEndpoint(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"
@@ -240,21 +245,27 @@ internal static class HttpHelper
 
     // Certificate file/crypto initialization may block. A timed-out builder keeps ownership
     // of its exact late result and must not dispose a newer named client's handler.
-    internal static async Task<HttpClient> BuildClientAsync(Func<HttpClient> build, int timeoutMs, CancellationToken caller)
+    internal static async Task<HttpClient> BuildClientAsync(Func<HttpClient> build, int timeoutMs, CancellationToken caller,
+        OwnerStopSignal? observerStop = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(timeoutMs);
         caller.ThrowIfCancellationRequested();
+        observerStop?.ThrowIfStopped("HTTP 客户端建立");
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         var actual = Task.Run(() =>
         {
             caller.ThrowIfCancellationRequested();
+            observerStop?.ThrowIfStopped("HTTP 客户端建立");
             if (timeoutMs > 0 && System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException($"HTTP 客户端建立提交前超过 {timeoutMs} ms");
             return build();
         });
         try
         {
-            var client = await actual.WaitAsync(timeoutMs == 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(timeoutMs), caller).ConfigureAwait(false);
+            var timeout = timeoutMs == 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(timeoutMs);
+            var client = observerStop is null
+                ? await actual.WaitAsync(timeout, caller).ConfigureAwait(false)
+                : await observerStop.WaitAsync(actual, timeout, caller, "HTTP 客户端建立").ConfigureAwait(false);
             caller.ThrowIfCancellationRequested();
             if (timeoutMs > 0 && System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException($"HTTP 客户端建立返回时已超过总期限 {timeoutMs} ms");
@@ -270,7 +281,7 @@ internal static class HttpHelper
                     catch (Exception ex) { System.Diagnostics.Trace.TraceError($"HTTP 迟到客户端释放失败: {ex}"); }
                 }
                 else if (task.Exception is not null) System.Diagnostics.Trace.TraceError($"HTTP 后台客户端建立失败: {task.Exception}");
-            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
             throw;
         }
     }

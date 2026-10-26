@@ -45,7 +45,7 @@ public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
 		- `Modbus_BatchRead`：批量读取多个地址段
 		""";
 
-	public override IStepExecutor CreateExecutor() => new ModbusReadExecutor();
+	public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Modbus", () => new ModbusReadExecutor());
 
 	public override string GenerateDescription(byte[] setting)
 	{

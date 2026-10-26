@@ -45,7 +45,7 @@ public sealed class NiDaqSyncReadPlugin : StepPluginBase<NiDaqSyncReadSetting>
         - `NiDaq_Task_Start` / `NiDaq_Task_Stop`：启停任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqSyncReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqSyncReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

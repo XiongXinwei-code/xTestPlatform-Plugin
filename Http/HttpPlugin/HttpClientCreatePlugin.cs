@@ -58,7 +58,7 @@ public sealed class HttpClientCreatePlugin : StepPluginBase<HttpClientCreateSett
         - `Http_ClientClose`：释放该客户端
         """;
 
-    public override IStepExecutor CreateExecutor() => new HttpClientCreateExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Http", () => new HttpClientCreateExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

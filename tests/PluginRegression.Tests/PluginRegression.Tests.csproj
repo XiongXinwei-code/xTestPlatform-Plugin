@@ -14,7 +14,7 @@
     <PackageReference Include="Xunit.StaFact" PrivateAssets="all" />
     <ProjectReference Include="../../Ethernet/EthernetPlugin/EthernetPlugin.csproj" Aliases="global,EthernetCore" />
     <ProjectReference Include="../../Ethernet/EthernetPlugin.UI/EthernetPlugin.UI.csproj" />
-    <ProjectReference Include="../../Http/HttpPlugin/HttpPlugin.csproj" />
+    <ProjectReference Include="../../Http/HttpPlugin/HttpPlugin.csproj" Aliases="global,HttpCore" />
     <ProjectReference Include="../../Http/HttpPlugin.UI/HttpPlugin.UI.csproj" />
   </ItemGroup>
 </Project>

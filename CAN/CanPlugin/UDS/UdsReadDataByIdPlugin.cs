@@ -40,7 +40,7 @@ public sealed class UdsReadDataByIdPlugin : StepPluginBase<UdsReadDataByIdSettin
         - `UDS_WriteDataByID`：通过 DID 写入数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdsReadDataByIdExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new UdsReadDataByIdExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

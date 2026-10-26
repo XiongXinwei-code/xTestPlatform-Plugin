@@ -41,7 +41,7 @@ public sealed class UdsRawRequestPlugin : StepPluginBase<UdsRawRequestSetting>
         - `UDS_DiagSession` / `UDS_ReadDataByID` / `UDS_WriteDataByID`：常用服务的专用插件
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdsRawRequestExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new UdsRawRequestExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

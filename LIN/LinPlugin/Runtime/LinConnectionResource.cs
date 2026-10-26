@@ -11,8 +11,10 @@ public sealed class LinConnectionResource : ILinAdapter
     private static readonly ConditionalWeakTable<ILinAdapter, LinConnectionResource> Wrappers = new();
     private readonly ILinAdapter _raw;
     private readonly PendingIoGate _io = new();
+    private readonly OwnerStopSignal _foregroundWait = new();
     private readonly SemaphoreSlim _transactionGate = new(1, 1);
     private readonly AsyncLocal<bool> _insideTransaction = new();
+    private readonly AsyncLocal<bool> _insideWorker = new();
     private readonly object _state = new();
     private readonly List<LinCyclicJob> _jobs = [];
     private readonly CancellationTokenSource _lifetimeStop = new();
@@ -20,12 +22,16 @@ public sealed class LinConnectionResource : ILinAdapter
     private string? _retirementKey;
     private bool _closing;
     private Task? _close;
+    private Exception? _nativeCancellationError;
     public Exception? BackgroundError { get; private set; }
     public bool IsClosed => _io.IsClosed;
     internal bool IsClosing { get { lock (_state) return _closing; } }
     public LinCyclicJob[] Jobs { get { lock (_state) return _jobs.ToArray(); } }
     public bool IsConnected { get { lock (_state) return !_closing && _raw.IsConnected; } }
-    public LinConnectionResource(ILinAdapter raw, string? retirementKey = null) { _raw = raw; _retirementKey = retirementKey; }
+    public LinConnectionResource(ILinAdapter raw, string? retirementKey = null)
+    {
+        _raw = raw; _retirementKey = retirementKey;
+    }
     public static LinConnectionResource For(ILinAdapter adapter) => adapter as LinConnectionResource ?? Wrappers.GetValue(adapter, a => new(a));
     internal static string PhysicalKey(LinAdapterType type, string channel) => $"LIN:{type}:{channel.Trim().ToUpperInvariant()}";
     public void Open(LinAdapterConfig config) => OpenAsync(config, 5000, default).GetAwaiter().GetResult();
@@ -33,13 +39,11 @@ public sealed class LinConnectionResource : ILinAdapter
     internal async Task OpenAsync(LinAdapterConfig config, int timeoutMs, CancellationToken ct, Action? checkExecution)
     {
         lock (_state) { Check(); _retirementKey ??= PhysicalKey(LinAdapterType.NI, config.Channel); }
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetimeStop.Token);
-        var operationToken = linked.Token;
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
         void BeforeSubmit()
         {
             checkExecution?.Invoke();
-            operationToken.ThrowIfCancellationRequested(); Check();
+            ct.ThrowIfCancellationRequested(); _lifetimeStop.Token.ThrowIfCancellationRequested(); Check();
             if (System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
                 throw new TimeoutException("LIN 打开在后续原生提交前已超过总期限");
         }
@@ -47,11 +51,11 @@ public sealed class LinConnectionResource : ILinAdapter
         {
             BeforeSubmit();
             if (_raw is ILinOperationBoundary boundary) boundary.Open(config, BeforeSubmit); else _raw.Open(config);
-        }, timeoutMs, "LIN 打开", operationToken).ConfigureAwait(false);
+        }, timeoutMs, "LIN 打开", ct).ConfigureAwait(false);
         Check();
     }
     private void Check() { lock (_state) if (_closing) throw new InvalidOperationException("LIN 连接正在关闭，不能提交新操作"); }
-    public void Write(LinFrame frame) => Write(frame, default);
+    public void Write(LinFrame frame) => Write(frame, default, cancelWait: !_insideWorker.Value);
     internal void Write(LinFrame frame, CancellationToken ct, int timeoutMs = 3000, bool cancelWait = false, Action? checkExecution = null)
     {
         checkExecution?.Invoke();
@@ -60,7 +64,8 @@ public sealed class LinConnectionResource : ILinAdapter
         // 取消只能阻止尚未开始的写；已进入原生写必须由 gate 追踪到真实退出。
         // A cyclic worker must remain joined until its submitted write exits (or fails its
         // own deadline); cancelling only its waiter would falsely report the job stopped.
-        _io.RunBlockingAsync(() => { checkExecution?.Invoke(); ct.ThrowIfCancellationRequested(); _lifetimeStop.Token.ThrowIfCancellationRequested(); _raw.Write(frame); }, transaction.Remaining, "LIN 发送", cancelWait ? ct : default).GetAwaiter().GetResult();
+        _io.RunBlockingAsync(() => { checkExecution?.Invoke(); ct.ThrowIfCancellationRequested(); _lifetimeStop.Token.ThrowIfCancellationRequested(); _raw.Write(frame); },
+            transaction.Remaining, "LIN 发送", cancelWait ? ct : default, retireWaitOnClose: cancelWait).GetAwaiter().GetResult();
     }
     public LinFrame? Read(int timeoutMs, CancellationToken ct = default) => ReadCore(null, timeoutMs, ct);
     public LinFrame? Read(byte id, int timeoutMs, CancellationToken ct = default) => ReadCore(id, timeoutMs, ct);
@@ -69,11 +74,32 @@ public sealed class LinConnectionResource : ILinAdapter
         checkExecution?.Invoke();
         using var transaction = EnterOperation(timeoutMs, ct);
         Check();
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetimeStop.Token);
         int remaining = transaction.Remaining;
         int wait = remaining < 0 ? Timeout.Infinite : (int)Math.Min(int.MaxValue, (long)remaining + 100);
-        return _io.RunBlockingAsync(() => { checkExecution?.Invoke(); return id.HasValue ? _raw.Read(id.Value, remaining, linked.Token) : _raw.Read(remaining, linked.Token); },
-            wait, "LIN 接收", linked.Token).GetAwaiter().GetResult();
+        return _io.RunBlockingAsync(() =>
+        {
+            // Keep native cancellation links inside the tracked real worker. Disposing
+            // a link on the foreground thread can join a blocked driver callback.
+            var cancellation = new LinIoCancellation(ct, _lifetimeStop.Token, Timeout.Infinite);
+            LinFrame? result = null; Exception? failure = null;
+            try
+            {
+                checkExecution?.Invoke(); ct.ThrowIfCancellationRequested(); cancellation.Token.ThrowIfCancellationRequested();
+                result = id.HasValue ? _raw.Read(id.Value, remaining, cancellation.Token) : _raw.Read(remaining, cancellation.Token);
+            }
+            catch (Exception ex) { failure = ex; }
+            finally
+            {
+                try { cancellation.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+                catch (Exception cleanup)
+                {
+                    failure = failure == null ? cleanup : new AggregateException("LIN 原始接收与取消回调均失败", failure, cleanup);
+                    Interlocked.CompareExchange(ref _nativeCancellationError, failure, null);
+                }
+            }
+            if (failure != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+            return result;
+        }, wait, "LIN 接收", ct).GetAwaiter().GetResult();
     }
 
     internal Task<LinFrame?> WriteReadAsync(LinFrame frame, int sendTimeoutMs, int responseTimeoutMs, Action sent, CancellationToken ct, Action? checkExecution = null)
@@ -95,11 +121,11 @@ public sealed class LinConnectionResource : ILinAdapter
     {
         if (timeoutMs <= 0 && timeoutMs != Timeout.Infinite) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetimeStop.Token);
-        linked.Token.ThrowIfCancellationRequested(); Check();
+        ct.ThrowIfCancellationRequested(); _foregroundWait.ThrowIfStopped("LIN 事务"); Check();
         if (_insideTransaction.Value) return new(null, timeoutMs, started);
-        if (!_transactionGate.Wait(timeoutMs, linked.Token)) throw new TimeoutException($"等待 LIN 事务门超过 {timeoutMs} ms，未提交操作");
-        try { linked.Token.ThrowIfCancellationRequested(); Check(); return new(_transactionGate, timeoutMs, started); }
+        if (!_foregroundWait.EnterAsync(_transactionGate, timeoutMs, ct, "LIN 事务排队").GetAwaiter().GetResult())
+            throw new TimeoutException($"等待 LIN 事务门超过 {timeoutMs} ms，未提交操作");
+        try { ct.ThrowIfCancellationRequested(); _foregroundWait.ThrowIfStopped("LIN 事务"); Check(); return new(_transactionGate, timeoutMs, started); }
         catch { _transactionGate.Release(); throw; }
     }
 
@@ -141,7 +167,12 @@ public sealed class LinConnectionResource : ILinAdapter
         lock (_state)
         {
             if (_closing || _io.IsolatedReason != null) throw new InvalidOperationException("LIN 连接已关闭或隔离，不能启动周期任务");
-            var job = new LinCyclicJob(workers);
+            var job = new LinCyclicJob(workers.Select(work => new Func<CancellationToken, Task>(async ct =>
+            {
+                _insideWorker.Value = true;
+                try { await work(ct).ConfigureAwait(false); }
+                finally { _insideWorker.Value = false; }
+            })).ToArray());
             _jobs.Add(job);
             return job;
         }
@@ -154,6 +185,10 @@ public sealed class LinConnectionResource : ILinAdapter
         lock (_state)
         {
             _closing = true;
+            // Retire foreground/queued observers before cancellation callbacks or
+            // cyclic workers can block cleanup. The gate still owns actual native I/O.
+            _foregroundWait.RequestStop();
+            _io.RequestStop();
             if (_retirementKey != null)
                 RetiringResources.Track(_retirementKey, this, CloseAsync, () => IsClosed,
                     () => $"LIN 正在收尾；未退出I/O={_io.HasPendingOperation}；隔离={_io.IsolatedReason}；错误={BackgroundError?.Message}");
@@ -188,13 +223,18 @@ public sealed class LinConnectionResource : ILinAdapter
         var errors = jobs.Select(j => j.Error).Where(e => e != null).Cast<Exception>().ToArray();
         if (callbackError != null) errors = [.. errors, callbackError];
         if (releasedWithError != null) errors = [.. errors, releasedWithError];
+        if (Volatile.Read(ref _nativeCancellationError) is { } cancellationError) errors = [.. errors, cancellationError];
         if (errors.Length != 0) throw new AggregateException("LIN 已释放，但周期任务存在失败", errors);
     }
     public void Close() => CloseAsync().GetAwaiter().GetResult();
-    public void Dispose() => _ = ObserveClose();
-    private async Task ObserveClose()
+    public void Dispose()
     {
-        try { await CloseAsync().ConfigureAwait(false); }
+        var close = CloseAsync(); // Freeze managed admission before returning to the SDK.
+        _ = Task.Run(() => ObserveClose(close), CancellationToken.None);
+    }
+    private async Task ObserveClose(Task close)
+    {
+        try { await close.ConfigureAwait(false); }
         catch (Exception ex) { BackgroundError = ex; System.Diagnostics.Trace.TraceError($"LIN 异步收尾未确认：{ex}"); }
     }
 }
@@ -210,12 +250,15 @@ public sealed class LinCyclicJob : IDisposable
     public Exception? Error => Volatile.Read(ref _error);
     public Task Completion { get { lock (_gate) return Task.WhenAll(_work, _callbacks); } }
     internal LinCyclicJob(Func<CancellationToken, Task>[] workers)
-        => _work = Task.WhenAll(workers.Select(work => Task.Run(async () =>
+    {
+        ExecutionScopedExecutor.Own(Cancel);
+        _work = Task.WhenAll(workers.Select(work => Task.Run(async () =>
         {
             try { await work(_stop.Token).ConfigureAwait(false); }
             catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
             catch (Exception ex) { Interlocked.CompareExchange(ref _error, ex, null); Cancel(); }
         })));
+    }
     public void Cancel() { lock (_gate) if (!_stop.IsCancellationRequested) _callbacks = _stop.CancelAsync(); }
     public async Task StopAsync(int timeoutMs = 3000, CancellationToken ct = default)
     {

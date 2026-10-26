@@ -56,7 +56,7 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
         - `Http_Request`：REST/JSON 风格的接口调用
         """;
 
-    public override IStepExecutor CreateExecutor() => new HttpSoapRequestExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Http", () => new HttpSoapRequestExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

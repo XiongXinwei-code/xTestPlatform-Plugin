@@ -157,6 +157,8 @@ public sealed class OpcUaConnectionResource : IDisposable
             Exception? failure = null;
             try
             {
+                // 登记失败也进入 finally，回收已建立的期限 Timer 与取消注册；不泄漏未提交的请求。
+                PluginCommon.ExecutionScopedExecutor.Own(operation.RequestCancellation);
                 ThrowIfSubmissionStopped();
                 result = await action(operation.Token).ConfigureAwait(false);
                 ThrowIfSubmissionStopped();

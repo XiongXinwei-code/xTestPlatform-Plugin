@@ -1,6 +1,7 @@
 using CiA402.Models;
 using CiA402.Core;
 using System.Diagnostics;
+using PluginCommon;
 
 namespace CiA402.Transport;
 
@@ -8,6 +9,9 @@ namespace CiA402.Transport;
 public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int timeoutMs) : ICia402AxisTransport, IAsyncDisposable
 {
     private readonly SemaphoreSlim _ioGate = new(1, 1);
+    private readonly OwnerStopSignal _foregroundWait = new();
+    private readonly CancellationTokenSource _nativeStop = new();
+    private Exception? _nativeCancellationError;
     private string? _faultReason;
     private string? _pendingPassiveReceive;
     private string _lastFailure = "尚无通信失败";
@@ -47,17 +51,52 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
         var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var entered = false;
         var releaseLater = false;
+        IDisposable? stepOperation = null;
+        AxisIoCancellation? nativeCancellation = null;
         try
         {
             deadline.CancelAfter(timeoutMs);
-            await _ioGate.WaitAsync(deadline.Token).ConfigureAwait(false);
+            if (!await _foregroundWait.EnterAsync(_ioGate, Timeout.Infinite, deadline.Token, "CiA402 传输排队").ConfigureAwait(false))
+                throw new TimeoutException("等待 CiA402 传输门超时");
             entered = true;
             CheckAvailable();
+            stepOperation = ExecutionScopedExecutor.OwnOperation(() =>
+            {
+                // Mark this exact native token before the outer step can report
+                // Aborted; lower CAN submissions may be queued in another plugin.
+                Volatile.Read(ref nativeCancellation)?.RequestCancellation();
+                if (passiveReceive) Volatile.Write(ref _pendingPassiveReceive, $"{description}：原步骤取消或退出，等待真实接收退出");
+                else Interlocked.CompareExchange(ref _faultReason, $"{description}：原步骤取消或退出，事务结果未确认消费", null);
+            });
             // 调用入口本身也可能同步阻塞，不能在调用线程上直接取得其 Task。
-            var pending = Task.Run(() => { CheckBudget(); CheckAvailable(); return operation(deadline.Token); }, deadline.Token);
+            var pending = Task.Run(async () =>
+            {
+                CheckBudget(); CheckAvailable();
+                int remaining = Math.Max(1, timeoutMs - (int)Math.Min(int.MaxValue, clock.ElapsedMilliseconds));
+                var cancellation = new AxisIoCancellation(ct, _nativeStop.Token, remaining);
+                Volatile.Write(ref nativeCancellation, cancellation);
+                T result = default!; Exception? failure = null;
+                try
+                {
+                    CheckBudget(); cancellation.Token.ThrowIfCancellationRequested();
+                    result = await operation(cancellation.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex) { failure = ex; }
+                finally
+                {
+                    try { await cancellation.DisposeAsync().ConfigureAwait(false); }
+                    catch (Exception cleanup)
+                    {
+                        failure = failure == null ? cleanup : new AggregateException("轴原始调用与取消回调均失败", failure, cleanup);
+                        Interlocked.CompareExchange(ref _nativeCancellationError, failure, null);
+                    }
+                }
+                if (failure != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+                return result;
+            }, CancellationToken.None);
             try
             {
-                var result = await pending.WaitAsync(deadline.Token).ConfigureAwait(false);
+                var result = await _foregroundWait.WaitAsync(pending, Timeout.InfiniteTimeSpan, deadline.Token, "CiA402 传输").ConfigureAwait(false);
                 CheckBudget();
                 CheckAvailable();
                 return result;
@@ -100,8 +139,10 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
         }
         finally
         {
+            stepOperation?.Dispose();
             if (!releaseLater)
             {
+                if (entered && passiveReceive) Volatile.Write(ref _pendingPassiveReceive, null);
                 deadline.Dispose();
                 if (entered) Release();
             }
@@ -110,6 +151,7 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
         void CheckBudget()
         {
             ct.ThrowIfCancellationRequested();
+            ExecutionScopedExecutor.ThrowIfCurrentStepRetired();
             AxisOperationBoundary.Check();
             if (clock.ElapsedMilliseconds >= timeoutMs)
                 throw new TimeoutException($"单次轴通信超过配置总期限 {timeoutMs} ms，禁止迟到提交或发布结果");
@@ -140,7 +182,15 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
         if (Interlocked.Exchange(ref _innerDisposed, 1) != 0) return;
         _ = Task.Run(() =>
         {
-            try { inner.Dispose(); _released.TrySetResult(); }
+            try
+            {
+                Exception? failure = null;
+                try { inner.Dispose(); } catch (Exception ex) { failure = ex; }
+                if (Volatile.Read(ref _nativeCancellationError) is { } cancellationError)
+                    failure = failure == null ? cancellationError : new AggregateException("轴释放与原生取消回调均失败", failure, cancellationError);
+                if (failure != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+                _released.TrySetResult();
+            }
             catch (Exception ex)
             {
                 _released.TrySetException(ex);
@@ -153,6 +203,10 @@ public sealed class CoordinatedAxisTransport(ICia402AxisTransport inner, int tim
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+        _foregroundWait.RequestStop();
+        // Only our fast bridge callbacks are registered here; foreign callbacks
+        // execute on their separate CancelAsync task owned by the real transaction.
+        _nativeStop.Cancel();
         TryDisposeInner();
     }
 

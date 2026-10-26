@@ -48,6 +48,7 @@ internal static class DaqTaskFactory
         epoch.ThrowIfExpired();
         var resource = ownedResource ?? new DaqTaskResource(ex => context.Log(LogLevel.Error, $"DAQ {name} 收尾未确认", ex.ToString()), physicalChannels);
         resource.ExecutionCheck = epoch.ThrowIfExpired;
+        ExecutionScopedExecutor.Own(resource.Dispose);
         bool registered = false;
         try
         {

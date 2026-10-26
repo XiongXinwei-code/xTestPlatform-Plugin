@@ -14,6 +14,8 @@ internal sealed class ExecutionEpoch : IDisposable
     private readonly string _module;
     private readonly string _key;
     private int _retired;
+    private static readonly AsyncLocal<Binding?> Ambient = new();
+    internal OwnerStopSignal StopSignal { get; } = new();
 
     private ExecutionEpoch(IResourceRegistry resources, string module, string key)
         => (_resources, _module, _key) = (resources, module, key);
@@ -22,6 +24,14 @@ internal sealed class ExecutionEpoch : IDisposable
     {
         ArgumentNullException.ThrowIfNull(resources);
         ArgumentException.ThrowIfNullOrWhiteSpace(module);
+        for (var binding = Ambient.Value; binding != null; binding = binding.Parent)
+        {
+            // A detached continuation must never adopt a new execution's registry
+            // even if its mutable context now returns that registry.
+            binding.Epoch.ThrowIfExpired();
+            if (ReferenceEquals(binding.Epoch._resources, resources) && binding.Epoch._module == module)
+                return binding.Epoch;
+        }
         string key = "PluginCommon.ExecutionEpoch:" + module;
         if (resources.TryGet<ExecutionEpoch>(key, out var existing))
         {
@@ -52,15 +62,35 @@ internal sealed class ExecutionEpoch : IDisposable
     /// </summary>
     internal void ThrowIfExpired()
     {
+        ExecutionScopedExecutor.ThrowIfCurrentStepRetired();
         if (Volatile.Read(ref _retired) != 0 ||
             !_resources.TryGet<ExecutionEpoch>(_key, out var current) || !ReferenceEquals(current, this))
         {
             // SDK may remove entries before calling their IDisposable callbacks. The
             // identity check is therefore essential even when _retired is still zero.
-            Interlocked.Exchange(ref _retired, 1);
+            Dispose();
             throw new InvalidOperationException($"{_module} 当前执行资源作用域已回收或被新代次取代，禁止旧步骤迟到建立、登记或报告成功");
         }
     }
 
-    public void Dispose() => Interlocked.Exchange(ref _retired, 1);
+    internal IDisposable Bind()
+    {
+        ThrowIfExpired();
+        var binding = new Binding(this, Ambient.Value);
+        Ambient.Value = binding;
+        return binding;
+    }
+
+    private sealed class Binding(ExecutionEpoch epoch, Binding? parent) : IDisposable
+    {
+        internal readonly ExecutionEpoch Epoch = epoch;
+        internal readonly Binding? Parent = parent;
+        public void Dispose() => Ambient.Value = Parent;
+    }
+
+    public void Dispose()
+    {
+        Interlocked.Exchange(ref _retired, 1);
+        StopSignal.RequestStop(); // No driver, log or user cancellation callback runs here.
+    }
 }

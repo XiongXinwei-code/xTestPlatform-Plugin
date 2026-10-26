@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using CAN.CANopen;
+using PluginCommon;
 
 namespace CAN.Runtime;
 
@@ -184,6 +185,8 @@ public sealed class CanopenCyclicService : IDisposable
                     throw new ArgumentException("运动必须复用监测的 SYNC 配置及实际发送确认");
                 if (selectedStop?.Commands.Any(c => !nodes.Contains(c.NodeId)) == true)
                     throw new ArgumentException("停机命令只能访问当前控制所有者占用的节点");
+                long ownedGeneration = _generation + 1;
+                ExecutionScopedExecutor.Own(() => RetireMotion(ownedGeneration));
                 try
                 {
                     foreach (var node in nodes)
@@ -206,7 +209,33 @@ public sealed class CanopenCyclicService : IDisposable
         }
         finally { _tickGate.Release(); }
     }
-    private void StartWorker() { _stop = new(); var token = _stop.Token; _worker = Task.Run(() => RunAsync(token)); }
+    private void StartWorker()
+    {
+        _stop = new(); var token = _stop.Token;
+        long workerGeneration = _generation;
+        ExecutionScopedExecutor.Own(() => RetireWorkerStartup(workerGeneration));
+        _worker = Task.Run(() => RunAsync(token));
+    }
+    private void RetireWorkerStartup(long generation)
+    {
+        lock (_gate)
+        {
+            if (_generation != generation) return;
+            // Retiring a staged Start must keep its reviewed stop path alive.
+            // Cancelling the worker first would skip CompleteMotionAsync entirely.
+            if (_moving && (_controlledStop != null || _monitor != null)) { _stopMotion = true; _state = "Stopping"; }
+            else RequestStop();
+        }
+    }
+    private void RetireMotion(long generation)
+    {
+        lock (_gate)
+        {
+            if (!_moving || _motionGeneration != generation) return;
+            _stopMotion = true; _state = "Stopping";
+            if (_monitor == null && _controlledStop == null) RequestStop();
+        }
+    }
     private static void ValidateLayout(OrderedFrame[] expected, OrderedFrame[] actual)
     {
         if (actual.Length != expected.Length || actual.Where((f, i) => f.CobId != expected[i].CobId || f.Data.Length != expected[i].Data.Length).Any())

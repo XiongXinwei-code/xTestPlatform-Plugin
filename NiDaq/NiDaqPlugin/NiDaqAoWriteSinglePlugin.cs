@@ -35,7 +35,7 @@ public sealed class NiDaqAoWriteSinglePlugin : StepPluginBase<NiDaqAoWriteSingle
 
         - `NiDaq_AO_Config` → `NiDaq_Task_Start` → 本步骤 → `NiDaq_Task_Stop`。
         """;
-    public override IStepExecutor CreateExecutor() => new NiDaqAoWriteSingleExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqAoWriteSingleExecutor());
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);

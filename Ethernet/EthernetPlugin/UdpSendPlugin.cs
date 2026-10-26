@@ -40,7 +40,7 @@ public sealed class UdpSendPlugin : StepPluginBase<UdpSendSetting>
         - `Ethernet_UdpReceive`：接收 UDP 数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdpSendExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new UdpSendExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

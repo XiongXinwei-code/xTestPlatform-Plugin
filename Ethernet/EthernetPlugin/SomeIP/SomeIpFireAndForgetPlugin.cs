@@ -44,7 +44,7 @@ public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForg
         - `SomeIp_Request`：带响应的 RPC 请求
         """;
 
-    public override IStepExecutor CreateExecutor() => new SomeIpFireAndForgetExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new SomeIpFireAndForgetExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

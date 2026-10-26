@@ -32,17 +32,28 @@ internal static class CanProtocolTransaction
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(timeoutMs); caller.ThrowIfCancellationRequested();
         long started = Stopwatch.GetTimestamp(); var state = States.GetValue(adapter, _ => new());
-        if (!await state.Gate.WaitAsync(timeoutMs, caller).ConfigureAwait(false))
+        var stop = (adapter as CanConnectionResource)?.ForegroundWaitSignal;
+        bool ownedCommand = adapter is CanConnectionResource && stop == null;
+        bool entered = stop == null ? await state.Gate.WaitAsync(timeoutMs, caller).ConfigureAwait(false)
+            : await stop.EnterAsync(state.Gate, timeoutMs, caller, "CAN 协议事务排队").ConfigureAwait(false);
+        if (!entered)
             throw new TimeoutException($"等待协议事务超过 {timeoutMs} ms，未提交请求");
         Task<T>? actual = null;
+        IDisposable? stepOperation = null;
         try
         {
+            stepOperation = ownedCommand ? null : ExecutionScopedExecutor.OwnOperation(() =>
+            {
+                Invalidate(adapter, "原协议步骤取消或退出，事务结果未确认消费");
+                if (adapter is CanConnectionResource owner) owner.Isolate("原协议步骤取消或退出，原始事务仍须确认退出");
+            });
             caller.ThrowIfCancellationRequested();
+            stop?.ThrowIfStopped("CAN 协议事务");
             if (Volatile.Read(ref state.Isolation) is { } isolation) throw new InvalidOperationException($"原始协议连接已隔离，请关闭并重新打开：{isolation}");
             int remaining = new Budget(started, timeoutMs, caller).Remaining();
             actual = Task.Run(async () =>
             {
-                CanExecutionGuard.CheckSubmission();
+                if (!ownedCommand) { CanExecutionGuard.CheckSubmission(); ExecutionScopedExecutor.ThrowIfCurrentStepRetired(); }
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(caller);
                 var budget = new Budget(started, timeoutMs, deadline.Token);
                 deadline.CancelAfter(budget.Remaining());
@@ -58,7 +69,9 @@ internal static class CanProtocolTransaction
             }, CancellationToken.None);
             try
             {
-                var result = await actual.WaitAsync(TimeSpan.FromMilliseconds(remaining), caller).ConfigureAwait(false);
+                var result = stop == null
+                    ? await actual.WaitAsync(TimeSpan.FromMilliseconds(remaining), caller).ConfigureAwait(false)
+                    : await stop.WaitAsync(actual, TimeSpan.FromMilliseconds(remaining), caller, "CAN 协议事务").ConfigureAwait(false);
                 new Budget(started, timeoutMs, caller).Remaining();
                 return result;
             }
@@ -74,6 +87,7 @@ internal static class CanProtocolTransaction
         }
         finally
         {
+            stepOperation?.Dispose();
             if (actual == null || actual.IsCompleted) { _ = actual?.Exception; state.Gate.Release(); }
             else _ = actual.ContinueWith(t => { _ = t.Exception; state.Gate.Release(); }, CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);

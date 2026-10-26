@@ -50,7 +50,7 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
         - `NiDaq_Encoder_Read`：读取编码器位置
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqEncoderConfigExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqEncoderConfigExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

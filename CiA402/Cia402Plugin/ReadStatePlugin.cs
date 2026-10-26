@@ -44,7 +44,7 @@ public sealed class ReadStatePlugin : StepPluginBase<ReadStateSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new ReadStateExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new ReadStateExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

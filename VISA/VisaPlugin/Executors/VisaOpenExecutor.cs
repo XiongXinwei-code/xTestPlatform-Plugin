@@ -71,6 +71,7 @@ public sealed class VisaOpenExecutor : IStepExecutor
                 var owner = new VisaSessionResource(setting.IoTimeoutMs, setting.Terminator,
                     ex => context.Log(LogLevel.Error, $"VISA {connName} 收尾未确认", ex.ToString()), resource);
                 opening = owner;
+                ExecutionScopedExecutor.Own(owner.Dispose);
                 epoch.ThrowIfExpired();
                 if (!context.Resources.TryAdd(key, owner))
                 {

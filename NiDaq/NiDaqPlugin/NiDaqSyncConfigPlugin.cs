@@ -73,7 +73,7 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
         - `NiDaq_Sync_Read`：读取同步采集数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqSyncConfigExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqSyncConfigExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

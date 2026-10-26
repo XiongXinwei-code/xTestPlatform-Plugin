@@ -14,6 +14,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         internal long ValueGeneration;
         internal T? Value;
         internal CancellationTokenSource? Opening;
+        internal OwnerStopSignal? OpeningStop;
         internal readonly HashSet<Task> Operations = new();
         internal string? RetirementKeyOverride;
         internal bool RemoveAfterRetirement;
@@ -31,6 +32,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
 
     private readonly object _sync = new();
     private readonly Dictionary<string, Slot> _slots = new(StringComparer.Ordinal);
+    private readonly OwnerStopSignal _stop = new();
     private bool _disposed;
 
     internal static NamedConnectionPool<T> For(IResourceRegistry? resources, string key,
@@ -39,6 +41,8 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         if (resources is null) return legacy;
         if (resources.TryGet<NamedConnectionPool<T>>(key, out var existing)) return existing;
         var created = new NamedConnectionPool<T>();
+        // The pool is execution infrastructure, including when the first step
+        // only looks up a missing connection. Individual openings own generations.
         if (resources.TryAdd(key, created)) return created;
         created.Dispose();
         if (resources.TryGet<NamedConnectionPool<T>>(key, out existing)) return existing;
@@ -55,12 +59,15 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         ct.ThrowIfCancellationRequested();
         ensureExecution?.Invoke();
         var budget = Stopwatch.StartNew();
-        await RetiringResources.WaitForPreviousAsync(retirementKey ?? RetirementKey(name), timeoutMs, ct).ConfigureAwait(false);
+        await _stop.WaitAsync(RetiringResources.WaitForPreviousAsync(retirementKey ?? RetirementKey(name), timeoutMs, ct),
+            TimeSpan.FromMilliseconds(timeoutMs), ct, "等待旧网络连接收尾").ConfigureAwait(false);
         int remaining = timeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
         if (remaining <= 0) throw new TimeoutException($"连接建立总期限 {timeoutMs} ms 已到（包括旧执行收尾）");
         Slot slot;
         long generation;
         CancellationTokenSource? previous;
+        OwnerStopSignal? previousStop;
+        var openingStop = new OwnerStopSignal();
         var deadline = new CancellationTokenSource(remaining);
         var source = CancellationTokenSource.CreateLinkedTokenSource(ct, deadline.Token);
         lock (_sync)
@@ -75,12 +82,16 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
             }
             generation = ++slot.Generation;
             previous = slot.Opening;
+            previousStop = slot.OpeningStop;
             slot.Opening = source;
+            slot.OpeningStop = openingStop;
         }
+        previousStop?.RequestStop();
         Cancel(previous);
         void CheckOpeningDeadline()
         {
             ct.ThrowIfCancellationRequested();
+            openingStop.ThrowIfStopped("网络连接建立");
             ensureExecution?.Invoke();
             if (budget.ElapsedMilliseconds >= timeoutMs || deadline.IsCancellationRequested)
                 throw new TimeoutException($"连接建立已超过单调总期限 {timeoutMs} ms，不登记或提交迟到连接");
@@ -137,7 +148,8 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                 }
                 finally
                 {
-                    lock (_sync) if (ReferenceEquals(slot.Opening, source)) slot.Opening = null;
+                    lock (_sync)
+                        if (ReferenceEquals(slot.Opening, source)) { slot.Opening = null; slot.OpeningStop = null; }
                     source.Dispose();
                     deadline.Dispose();
                     if (entered) slot.Gate.Release();
@@ -147,7 +159,10 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         Track(slot, actual);
         try
         {
-            var result = await actual.WaitAsync(TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false);
+            // A reused execution pool may contain other connections. Retire only
+            // this step's captured opening generation, never the whole old pool.
+            ExecutionScopedExecutor.Own(() => { _ = BeginClose(name, generation); });
+            var result = await openingStop.WaitAsync(actual, TimeSpan.FromMilliseconds(remaining), ct, "网络连接建立").ConfigureAwait(false);
             CheckOpeningDeadline();
             lock (_sync)
                 if (_disposed || slot.Generation != generation)
@@ -201,12 +216,14 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         Slot slot;
         Retirement retirement;
         CancellationTokenSource? opening;
+        OwnerStopSignal? openingStop;
         lock (_sync)
         {
             if (!_slots.TryGetValue(name, out slot!)) return Task.CompletedTask;
             if (expectedGeneration.HasValue && slot.Generation != expectedGeneration.Value) return Task.CompletedTask;
             retirement = new(slot, ++slot.Generation);
             opening = slot.Opening;
+            openingStop = slot.OpeningStop;
             // Register the captured close while holding the lifecycle lock. Do not publish
             // an intermediate state with a changed generation but no tracked retirement.
             RetiringResources.Track(slot.RetirementKeyOverride ?? RetirementKey(name), retirement,
@@ -214,6 +231,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                 () => retirement.Released,
                 () => $"网络连接={name}; 关闭代次={retirement.Generation}; 旧执行已退出={_disposed}");
         }
+        openingStop?.RequestStop();
         Cancel(opening);
         return StartRetirement(name, retirement);
     }
@@ -268,9 +286,9 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         lock (_sync) slot.Operations.Add(actual);
         _ = actual.ContinueWith(task =>
         {
-            if (task.Exception is not null) Trace.TraceError($"网络连接后台操作失败: {task.Exception}");
             lock (_sync) slot.Operations.Remove(task);
-        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            if (task.Exception is not null) Trace.TraceError($"网络连接后台操作失败: {task.Exception}");
+        }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
     }
 
     private static void Cancel(CancellationTokenSource? source)
@@ -281,7 +299,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
             _ = source.CancelAsync().ContinueWith(task =>
             {
                 if (task.Exception is not null) Trace.TraceError($"网络连接取消回调失败: {task.Exception}");
-            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
         }
         catch (ObjectDisposedException) { /* The worker has already exited and disposed its token. */ }
     }
@@ -293,6 +311,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
         {
             if (_disposed) return;
             _disposed = true;
+            _stop.RequestStop();
             names = _slots.Keys.ToArray();
         }
         foreach (var name in names) _ = BeginClose(name);

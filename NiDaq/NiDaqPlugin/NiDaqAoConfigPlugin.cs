@@ -43,7 +43,7 @@ public sealed class NiDaqAoConfigPlugin : StepPluginBase<NiDaqAoConfigSetting>
 
         - `NiDaq_Task_Start`、`NiDaq_AO_WriteSingle`、`NiDaq_Task_Stop`。
         """;
-    public override IStepExecutor CreateExecutor() => new NiDaqAoConfigExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqAoConfigExecutor());
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);

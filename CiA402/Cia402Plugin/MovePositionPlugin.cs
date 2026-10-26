@@ -49,7 +49,7 @@ public sealed class MovePositionPlugin : StepPluginBase<MovePositionSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new MovePositionExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new MovePositionExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

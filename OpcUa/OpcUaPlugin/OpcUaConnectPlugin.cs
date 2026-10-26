@@ -44,7 +44,7 @@ public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
         - `OpcUa_Disconnect`：断开本插件建立的连接
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaConnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaConnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

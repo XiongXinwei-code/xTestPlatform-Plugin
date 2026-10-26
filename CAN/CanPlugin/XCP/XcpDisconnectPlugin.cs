@@ -35,7 +35,7 @@ public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
         - `XCP_Connect`：建立 XCP 连接
         """;
 
-    public override IStepExecutor CreateExecutor() => new XcpDisconnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new XcpDisconnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

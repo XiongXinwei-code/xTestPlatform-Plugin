@@ -80,7 +80,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - `CAN_Close`：关闭本插件打开的通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

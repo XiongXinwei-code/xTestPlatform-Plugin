@@ -57,7 +57,7 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 		- `Modbus_Disconnect`：关闭本插件建立的连接
 		""";
 
-	public override IStepExecutor CreateExecutor() => new ModbusConnectExecutor();
+	public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Modbus", () => new ModbusConnectExecutor());
 
 	public override string GenerateDescription(byte[] setting)
 	{

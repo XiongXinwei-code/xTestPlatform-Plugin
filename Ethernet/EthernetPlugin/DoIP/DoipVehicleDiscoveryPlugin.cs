@@ -38,7 +38,7 @@ public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDisco
         - `DoIP_Connect`：使用发现结果建立 DoIP 会话
         """;
 
-    public override IStepExecutor CreateExecutor() => new DoipVehicleDiscoveryExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new DoipVehicleDiscoveryExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

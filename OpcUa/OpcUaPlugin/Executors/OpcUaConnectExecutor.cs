@@ -65,6 +65,7 @@ public sealed class OpcUaConnectExecutor : IStepExecutor
                     OpcUaHelper.GetRetirementKey(endpointUrl, connName));
                 owner.ExecutionCheck = epoch.ThrowIfExpired;
                 created = owner;
+                PluginCommon.ExecutionScopedExecutor.Own(owner.Dispose);
                 guard.Check();
                 if (!context.Resources.TryAdd(key, owner))
                 {

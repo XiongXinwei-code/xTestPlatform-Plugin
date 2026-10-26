@@ -240,7 +240,8 @@ public sealed class ConcurrencyAndModeTests
         var reader = session.ExecuteAsync(async (_, ct) => { started.TrySetResult(); await Task.Delay(Timeout.Infinite, ct); }, false, 1, default);
         await started.Task;
         await Throws<InvalidOperationException>(() => session.ExecuteAsync((_, _) => Task.FromException(new InvalidOperationException("仿真控制失败")), true, 1, default));
-        await Throws<OperationCanceledException>(() => reader);
+        var retired = await Assert.ThrowsAsync<InvalidOperationException>(() => reader);
+        Assert.Contains("退出", retired.Message); // The reader's original caller was never cancelled.
         await session.CloseAsync();
         Check(probe.DisposeCount == 1);
     }
@@ -331,9 +332,9 @@ public sealed class ConcurrencyAndModeTests
             }
             finally { release.TrySetResult(); }
             // Close may win the post-I/O publication fence; either returned data or
-            // ObjectDisposed is valid, but native ownership must still release once.
+            // owner-retirement/ObjectDisposed is valid, but native ownership must still release once.
             try { await read; }
-            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException ex) when (ex is ObjectDisposedException || ex.Message.Contains("退出", StringComparison.Ordinal)) { }
             await probe.Disposed.Task.WaitAsync(TimeSpan.FromSeconds(3));
             Check(probe.DisposeCount == 1 && !probe.DisposedDuringCall);
         }

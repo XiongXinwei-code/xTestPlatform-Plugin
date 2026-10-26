@@ -39,7 +39,7 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
         - `LIN_Write`：发送 LIN 帧
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinWakeupExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinWakeupExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

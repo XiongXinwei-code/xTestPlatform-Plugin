@@ -51,7 +51,7 @@ public sealed class ReadFeedbackPlugin : StepPluginBase<ReadFeedbackSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new ReadFeedbackExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new ReadFeedbackExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

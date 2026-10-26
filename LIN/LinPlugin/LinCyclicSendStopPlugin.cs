@@ -34,7 +34,7 @@ public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSe
         - `LIN_Cyclic_SendStart`：启动周期发送任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinCyclicSendStopExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinCyclicSendStopExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -39,7 +39,7 @@ public sealed class LinWriteReadPlugin : StepPluginBase<LinWriteReadSetting>
         - `LIN_Write` / `LIN_Read`：单独收发 LIN 帧
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinWriteReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinWriteReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

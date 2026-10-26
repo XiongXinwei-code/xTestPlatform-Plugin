@@ -41,7 +41,7 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
         - `SomeIp_Request`：RPC 请求
         """;
 
-    public override IStepExecutor CreateExecutor() => new SomeIpSubscribeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new SomeIpSubscribeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

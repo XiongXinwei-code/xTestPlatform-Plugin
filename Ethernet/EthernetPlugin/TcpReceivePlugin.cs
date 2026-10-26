@@ -46,7 +46,7 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
         - `Ethernet_TcpSend`：发送数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new TcpReceiveExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new TcpReceiveExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

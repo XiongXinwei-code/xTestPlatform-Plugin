@@ -50,7 +50,7 @@ public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new SetModeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new SetModeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

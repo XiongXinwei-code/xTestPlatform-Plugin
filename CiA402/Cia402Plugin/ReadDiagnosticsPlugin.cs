@@ -46,7 +46,7 @@ public sealed class ReadDiagnosticsPlugin : StepPluginBase<ReadDiagnosticsSettin
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new ReadDiagnosticsExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new ReadDiagnosticsExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

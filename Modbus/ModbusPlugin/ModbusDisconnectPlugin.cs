@@ -40,7 +40,7 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 		- `Modbus_Connect`：建立连接
 		""";
 
-	public override IStepExecutor CreateExecutor() => new ModbusDisconnectExecutor();
+	public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Modbus", () => new ModbusDisconnectExecutor());
 
 	public override string GenerateDescription(byte[] setting)
 	{

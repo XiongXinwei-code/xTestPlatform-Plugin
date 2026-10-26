@@ -47,7 +47,7 @@ public sealed class HomePlugin : StepPluginBase<HomeSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new HomeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new HomeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

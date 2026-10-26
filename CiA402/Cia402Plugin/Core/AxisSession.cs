@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using CiA402.Models;
 using CiA402.Transport;
+using PluginCommon;
 
 namespace CiA402.Core;
 
@@ -11,6 +12,7 @@ public sealed class AxisSession : IDisposable, IAsyncDisposable
     public const int ShutdownTimeoutMs = 2000;
     private readonly object _sync = new();
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly OwnerStopSignal _foregroundWait = new();
     private readonly CancellationTokenRegistration _lifetimeCancellation;
     private readonly AxisDiagnosticLog _log;
     private readonly int _shutdownTimeoutMs;
@@ -83,19 +85,54 @@ public sealed class AxisSession : IDisposable, IAsyncDisposable
     public async Task ExecuteAsync(Func<AxisController, CancellationToken, Task> action, bool control, int pollMs, CancellationToken ct, string operation)
     {
         ct.ThrowIfCancellationRequested();
+        CheckOperationLifetime();
+        int admitted = 0;
+        using var stepOperation = control ? ExecutionScopedExecutor.OwnOperation(() =>
+        {
+            if (Volatile.Read(ref admitted) != 0) _ = RequestClose(source: "控制步骤取消或退出", operation: operation);
+        }) : null;
+        // Admission failures must not terminate an already running, unrelated
+        // control operation. Reserve the actual action before observing it.
         lock (_sync)
         {
-            if (_closed) throw new InvalidOperationException($"轴会话已终止，请先解除绑定后重新绑定；会话={_sessionId}；{_termination?.Summary}", _termination?.Error);
+            CheckOperationLifetime();
             if (control && _controlRunning) throw new InvalidOperationException("同一轴已有控制步骤执行中，不允许并发控制");
             if (_activeOperations != 0 && !Controller.Transport.SupportsConcurrentMonitoring)
                 throw new InvalidOperationException("当前通信后端未声明独立监控能力，不允许同轴并发访问");
             if (_activeOperations++ == 0) _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
             if (control) _controlRunning = true;
             _controlled |= control;
+            Volatile.Write(ref admitted, 1);
         }
+        var actual = ExecuteCoreAsync(action, control, pollMs, ct, operation);
+        try
+        {
+            await _foregroundWait.WaitAsync(actual, Timeout.InfiniteTimeSpan, ct, "CiA402 轴步骤").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // This is only the observer. ExecuteCoreAsync owns the activity count
+            // until the action really exits, so node release cannot overtake it.
+            Observe(actual);
+            if (control)
+            {
+                lock (_sync)
+                    Terminate(ex is OperationCanceledException
+                        ? $"控制步骤取消（步骤令牌取消={ct.IsCancellationRequested}，会话令牌取消={_lifetime.IsCancellationRequested}）"
+                        : "控制步骤失败", operation, ex);
+                Dispose();
+            }
+            throw;
+        }
+    }
+
+    private async Task ExecuteCoreAsync(Func<AxisController, CancellationToken, Task> action, bool control, int pollMs, CancellationToken ct, string operation)
+    {
         Exception? failure = null;
         try
         {
+            ct.ThrowIfCancellationRequested();
+            ExecutionScopedExecutor.ThrowIfCurrentStepRetired();
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
             if (control) Controller.PollIntervalMs = pollMs;
             await action(Controller, linked.Token).ConfigureAwait(false);
@@ -117,9 +154,14 @@ public sealed class AxisSession : IDisposable, IAsyncDisposable
         if (failure != null)
         {
             // 返回原始错误/取消，不用另一个通信超时拖延步骤结束。
-            if (control) Dispose();
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
+    }
+
+    internal void CheckOperationLifetime()
+    {
+        lock (_sync)
+            if (_closed) throw new InvalidOperationException($"轴会话已终止，请先解除绑定后重新绑定；会话={_sessionId}；{_termination?.Summary}", _termination?.Error);
     }
 
     public Task CloseAsync() => CloseAsync(CancellationToken.None);
@@ -145,10 +187,18 @@ public sealed class AxisSession : IDisposable, IAsyncDisposable
         lock (_sync)
         {
             if (_closing != null) return _closing;
+            _foregroundWait.RequestStop();
             Terminate(source, operation, null);
             _shutdown = new CancellationTokenSource(_shutdownTimeoutMs);
             if (ct.IsCancellationRequested) _shutdown.Cancel();
-            _closing = Task.Run(() => CloseCoreAsync(_shutdown.Token));
+            var shutdownToken = _shutdown.Token;
+            // Cleanup has its own owner, budget and real-I/O gate. It must not inherit
+            // a failed action's expression/step publication context.
+            if (ExecutionContext.IsFlowSuppressed()) _closing = Task.Run(() => CloseCoreAsync(shutdownToken));
+            else
+            {
+                using (ExecutionContext.SuppressFlow()) _closing = Task.Run(() => CloseCoreAsync(shutdownToken));
+            }
             Observe(_closing);
             return _closing;
         }

@@ -206,8 +206,10 @@ public sealed class RestartLifecycleTests
             await RetiringResources.WaitForPreviousAsync(Key(channel), 2000);
             Assert.True(read.IsCompleted || owner.IsClosed, "旧资源收尾必须等待其接收实际退出");
             Assert.True(raw.ReadCancelled); Assert.True(owner.IsClosed); Assert.Equal(1, raw.CloseCount);
+            var retired = await Assert.ThrowsAsync<InvalidOperationException>(() => read);
+            Assert.Contains("退出", retired.Message); // Owner retirement is not cancellation of the original caller.
         }
-        finally { raw.Release.Set(); try { await read; } catch (OperationCanceledException) { } await owner.CloseAsync(); }
+        finally { raw.Release.Set(); try { await read; } catch (InvalidOperationException) { } await owner.CloseAsync(); }
     }
 
     [Fact]
@@ -265,7 +267,7 @@ public sealed class RestartLifecycleTests
     private static async Task AssertRetiredWrite(Task write)
     {
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => write);
-        Assert.Contains("收尾", error.Message);
+        Assert.Contains("退出", error.Message);
     }
 
     private static async Task WarmExpressions(xTestPlatform.Core.Engine.IExecutionContext context, params string[] expressions)

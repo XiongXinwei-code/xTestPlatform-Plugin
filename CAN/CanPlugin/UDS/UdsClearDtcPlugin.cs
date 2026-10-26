@@ -38,7 +38,7 @@ public sealed class UdsClearDtcPlugin : StepPluginBase<UdsClearDtcSetting>
         - `UDS_ReadDTC`：读取故障码
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdsClearDtcExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new UdsClearDtcExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

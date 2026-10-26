@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Modbus.ContractTests;
 
+[Collection("Modbus followup isolated")]
 public class ModbusLifecycleTests
 {
     [Fact]

@@ -369,7 +369,9 @@ public sealed class ContractTests
         var operation = session.ExecuteAsync((_, _) => release.Task, true, 1, default);
         using var timeout = new CancellationTokenSource(50);
         await Throws<OperationCanceledException>(() => session.CloseAsync(timeout.Token)); Check(!fake.Disposed);
-        release.SetResult(); await Throws<OperationCanceledException>(() => operation);
+        release.SetResult();
+        var retired = await Assert.ThrowsAsync<InvalidOperationException>(() => operation);
+        Assert.Contains("退出", retired.Message); // Closing this session did not cancel the action's original caller.
         await session.Released.WaitAsync(TimeSpan.FromSeconds(3));
         Check(fake.Disposed);
     }

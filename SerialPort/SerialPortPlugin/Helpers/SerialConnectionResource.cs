@@ -29,6 +29,7 @@ public sealed class SerialConnectionResource : IDisposable
     public bool IsOpen => _ready && Volatile.Read(ref _closing) == 0 && _channel.IsOpen && !_io.IsClosed;
     public int WriteTimeout => _channel.WriteTimeout;
     public bool IsClosed => _io.IsClosed;
+    internal Task? CloseCompletion => _io.CloseCompletion;
     internal bool IsClosing => Volatile.Read(ref _closing) != 0;
 
     internal void EnsureAvailableForPublication()
@@ -39,7 +40,11 @@ public sealed class SerialConnectionResource : IDisposable
 
     public SerialConnectionResource(SysSerialPort port, Action<Exception>? report = null) : this(new SerialChannel(port), report, port.PortName) { _ready = false; }
     public SerialConnectionResource(ISerialChannel channel, Action<Exception>? report = null, string? physicalPort = null)
-    { _channel = channel; _report = report; _ready = true; PhysicalResourceKey = physicalPort == null ? null : SerialPortHelper.GetPhysicalPortKey(physicalPort); }
+    {
+        _channel = channel; _report = report; _ready = true;
+        PhysicalResourceKey = physicalPort == null ? null : SerialPortHelper.GetPhysicalPortKey(physicalPort);
+        ExecutionScopedExecutor.Own(Dispose);
+    }
     public async Task OpenAsync(Action open, int timeoutMs, CancellationToken ct)
     {
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));

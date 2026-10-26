@@ -35,7 +35,7 @@ public sealed class DoipDisconnectPlugin : StepPluginBase<DoipDisconnectSetting>
         - `DoIP_Connect`：建立 DoIP 会话
         """;
 
-    public override IStepExecutor CreateExecutor() => new DoipDisconnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new DoipDisconnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

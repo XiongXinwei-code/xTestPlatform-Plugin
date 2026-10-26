@@ -42,7 +42,7 @@ public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSett
         - `SomeIp_Subscribe`：监听事件通知
         """;
 
-    public override IStepExecutor CreateExecutor() => new SomeIpSdDiscoverExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new SomeIpSdDiscoverExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

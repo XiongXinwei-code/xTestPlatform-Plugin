@@ -34,7 +34,7 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
         - `LIN_Open`：打开 LIN 通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinCloseExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinCloseExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

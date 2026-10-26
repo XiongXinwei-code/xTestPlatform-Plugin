@@ -41,7 +41,7 @@ public sealed class OpcUaWritePlugin : StepPluginBase<OpcUaWriteSetting>
         - `OpcUa_BatchWrite`：批量写入多个节点
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

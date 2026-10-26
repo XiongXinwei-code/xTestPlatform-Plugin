@@ -143,7 +143,9 @@ public sealed class LifecycleAndQualityTests
         {
             Assert.Same(stopping, await Task.WhenAny(stopping, Task.Delay(300)));
             await Assert.ThrowsAsync<TimeoutException>(() => stopping);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => consume.WaitAsync(TimeSpan.FromSeconds(1)));
+            Assert.False(task.Completion.IsCompleted);
         }
-        finally { release.TrySetResult(1); await consume; try { await stopping; } catch (TimeoutException) { } task.Dispose(); }
+        finally { release.TrySetResult(1); await Assert.ThrowsAsync<InvalidOperationException>(() => consume); try { await stopping; } catch (TimeoutException) { } task.Dispose(); }
     }
 }

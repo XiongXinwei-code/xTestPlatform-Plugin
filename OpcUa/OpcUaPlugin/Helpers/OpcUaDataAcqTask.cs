@@ -5,6 +5,7 @@ using System.Text;
 using Opc.Ua;
 using Opc.Ua.Client;
 using OpcUa.Models;
+using PluginCommon;
 
 namespace OpcUa.Helpers;
 
@@ -27,6 +28,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
     private Task _cancelCallbacks = Task.CompletedTask;
     private Task<List<DataAcqRecord>>? _stopDrainTask;
     private int _disposeRequested;
+    private int _loopStarted;
     private long _sequence, _lastSuccessUtcTicks, _lastFailureUtcTicks;
     private int _consecutiveFailures, _stopRequested;
     private string? _lastError;
@@ -72,7 +74,11 @@ public sealed class OpcUaDataAcqTask : IDisposable
         _consumption = new(_buffer, _consumer);
         // 外部令牌和时长到期只请求异步取消，不能在宿主停止线程同步执行 SDK 的取消回调。
         _cts = new CancellationTokenSource(); _token = _cts.Token;
+        // 此时快停止只接触完整的缓冲/CTS；不读取尚未赋值的采集 Task。
+        // 退休步骤先冻结新 owner，再允许构造函数提交后台读取。
+        ExecutionScopedExecutor.Own(RequestStop);
         _loopTask = Task.Run(CollectLoop, CancellationToken.None);
+        Volatile.Write(ref _loopStarted, 1);
         _ = _loopTask.ContinueWith(t => { if (t.IsFaulted) _ = t.Exception; },
             CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         _lifetimeRegistration = lifetime.UnsafeRegister(static state => ((OpcUaDataAcqTask)state!).RequestStop(), this);
@@ -164,7 +170,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
     {
         lock (_lifecycle)
         {
-            if (_loopTask.IsCompleted || _cts.IsCancellationRequested) return;
+            if ((Volatile.Read(ref _loopStarted) != 0 && _loopTask.IsCompleted) || _cts.IsCancellationRequested) return;
             _cancelCallbacks = ObserveCancellationExitAsync(_cts.CancelAsync());
         }
     }

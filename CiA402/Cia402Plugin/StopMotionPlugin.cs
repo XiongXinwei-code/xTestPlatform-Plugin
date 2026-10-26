@@ -43,7 +43,7 @@ public sealed class StopMotionPlugin : StepPluginBase<StopMotionSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new StopMotionExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new StopMotionExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

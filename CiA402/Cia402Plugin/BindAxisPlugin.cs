@@ -78,7 +78,7 @@ public sealed class BindAxisPlugin : StepPluginBase<BindAxisSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new BindAxisExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new BindAxisExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

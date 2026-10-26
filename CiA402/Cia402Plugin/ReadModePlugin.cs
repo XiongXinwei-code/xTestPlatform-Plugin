@@ -43,7 +43,7 @@ public sealed class ReadModePlugin : StepPluginBase<ReadModeSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new ReadModeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new ReadModeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

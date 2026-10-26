@@ -59,7 +59,10 @@ public sealed class CanopenConnectionAccess
 
     internal async Task<IDisposable> EnterSdoAsync(byte node, object? owner, int timeoutMs, CancellationToken ct)
     {
-        if (!await _sdoGate.WaitAsync(timeoutMs, ct).ConfigureAwait(false))
+        var stop = (_adapter as CanConnectionResource)?.ForegroundWaitSignal;
+        bool entered = stop == null ? await _sdoGate.WaitAsync(timeoutMs, ct).ConfigureAwait(false)
+            : await stop.EnterAsync(_sdoGate, timeoutMs, ct, "CANopen SDO 事务排队").ConfigureAwait(false);
+        if (!entered)
             throw new TimeoutException($"等待 CANopen SDO 事务超时（{timeoutMs} ms）");
         try
         {
@@ -105,7 +108,12 @@ public sealed class CanopenConnectionAccess
 
     private async Task AwaitIo(Task task, int timeoutMs, CancellationToken ct)
     {
-        try { await task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false); }
+        try
+        {
+            var stop = (_adapter as CanConnectionResource)?.ForegroundWaitSignal;
+            if (stop == null) await task.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            else await stop.WaitAsync(task, TimeSpan.FromMilliseconds(timeoutMs), ct, "CANopen 原始接收").ConfigureAwait(false);
+        }
         catch
         {
             if (!task.IsCompleted)
@@ -134,7 +142,10 @@ public sealed class CanopenConnectionAccess
             return routed == null ? null : CanopenReceivedFrame.From(routed);
         }
         var clock = Stopwatch.StartNew();
-        if (!await _receiveGate.WaitAsync(timeoutMs, ct).ConfigureAwait(false)) throw new TimeoutException($"等待 CANopen 接收超时（{timeoutMs} ms）");
+        var stop = (_adapter as CanConnectionResource)?.ForegroundWaitSignal;
+        bool entered = stop == null ? await _receiveGate.WaitAsync(timeoutMs, ct).ConfigureAwait(false)
+            : await stop.EnterAsync(_receiveGate, timeoutMs, ct, "CANopen 接收排队").ConfigureAwait(false);
+        if (!entered) throw new TimeoutException($"等待 CANopen 接收超时（{timeoutMs} ms）");
         try
         {
             CheckUsable();

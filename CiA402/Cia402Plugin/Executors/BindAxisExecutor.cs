@@ -82,6 +82,7 @@ public sealed class BindAxisExecutor : ExecutorBase<BindAxisSetting>
                 (message, ex) => context.Log(ex == null && !message.StartsWith("轴会话终止", StringComparison.Ordinal) ? LogLevel.Debug : LogLevel.Warn,
                     $"轴 {name}：{message}", ex == null ? null : AxisFailureContext.ExceptionDetail(ex)),
                 $"轴={name}; 连接={connection}; 后端={setting.Transport}; 地址={values.Number(setting.Transport == TransportKind.CANopen ? nameof(setting.NodeId) : nameof(setting.SlaveAddress))}; 绑定时状态={AxisController.DecodeState(controller.BindingStatusWord)}(0x{controller.BindingStatusWord:X4}); 控制字=0x{controller.BindingControlWord:X4}; 绑定步骤=[{AxisFailureContext.Operation(context, setting)}]");
+            PluginCommon.ExecutionScopedExecutor.Own(session.Dispose);
             if (!context.Resources.TryAdd(key, session, ResourceLifetime.Execution)) throw new InvalidOperationException($"轴会话 {name} 已存在");
             checkExecution();
             if (!context.Resources.TryGet<AxisSession>(key, out var registered) || !ReferenceEquals(registered, session))

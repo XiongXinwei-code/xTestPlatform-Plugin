@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using CAN.Models;
+using PluginCommon;
 
 namespace CAN.Runtime;
 
@@ -42,13 +43,14 @@ internal sealed class CanReceiveRouter
         }
     }
 
-    public async Task<CanMessage?> ReadAsync(uint id, int timeoutMs, CancellationToken ct)
+    public async Task<CanMessage?> ReadAsync(uint id, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop = null)
     {
         if (id > 0x7FF || timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         var clock = Stopwatch.StartNew();
         while (true)
         {
             ct.ThrowIfCancellationRequested();
+            stop?.ThrowIfStopped("CANopen 接收");
             Task signal;
             lock (_gate)
             {
@@ -59,7 +61,11 @@ internal sealed class CanReceiveRouter
             }
             var remaining = timeoutMs - clock.Elapsed.TotalMilliseconds;
             if (remaining <= 0) return null;
-            try { await signal.WaitAsync(TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false); }
+            try
+            {
+                if (stop == null) await signal.WaitAsync(TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false);
+                else await stop.WaitAsync(signal, TimeSpan.FromMilliseconds(remaining), ct, "CANopen 接收").ConfigureAwait(false);
+            }
             catch (TimeoutException) { return null; }
         }
     }

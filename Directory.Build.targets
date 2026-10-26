@@ -4,6 +4,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/PendingIoGate.cs" Link="Internal/PendingIoGate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/RetiringResources.cs" Link="Internal/RetiringResources.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/ExecutionEpoch.cs" Link="Internal/ExecutionEpoch.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/OwnerStopSignal.cs" Link="Internal/OwnerStopSignal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/ExecutionScopedExecutor.cs" Link="Internal/ExecutionScopedExecutor.cs" />
   </ItemGroup>
   <!-- WPF temporary projects are named FooPlugin.UI_<id>_wpftmp, not FooPlugin.UI. -->
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').Contains('Plugin.UI'))">

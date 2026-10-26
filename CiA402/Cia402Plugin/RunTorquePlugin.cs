@@ -45,7 +45,7 @@ public sealed class RunTorquePlugin : StepPluginBase<RunTorqueSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new RunTorqueExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new RunTorqueExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

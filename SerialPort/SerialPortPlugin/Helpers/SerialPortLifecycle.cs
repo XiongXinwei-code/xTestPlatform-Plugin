@@ -53,10 +53,18 @@ public static class SerialPortLifecycle
         }
         catch (Exception openingError)
         {
-            if (openingError is OperationCanceledException && ct.IsCancellationRequested)
+            bool callerCancelled = openingError is OperationCanceledException && ct.IsCancellationRequested;
+            if (callerCancelled || resource.IsClosing)
             {
                 try { resource.Dispose(); }
-                catch (Exception cleanupError) { throw new OperationCanceledException("串口打开已中断，后台收尾未确认，保留原 owner", new AggregateException(openingError, cleanupError), ct); }
+                catch (Exception cleanupError)
+                {
+                    if (callerCancelled) throw new OperationCanceledException("串口打开已中断，后台收尾未确认，保留原 owner", new AggregateException(openingError, cleanupError), ct);
+                    throw new AggregateException("串口打开所属资源已退出，后台收尾未确认，保留原 owner", openingError, cleanupError);
+                }
+                // SDK cleanup has already retired this observer. Do not turn its
+                // prompt failure back into a wait for a noncooperative native open.
+                if (registered) RemoveAfterActualClose(context, key, resource);
                 throw;
             }
             try
@@ -73,5 +81,15 @@ public static class SerialPortLifecycle
     {
         lock (SerialPortHelper.RegistryLock(context.Resources))
             if (context.Resources.TryGet<SerialConnectionResource>(key, out var current) && ReferenceEquals(current, expected)) context.Resources.Remove(key);
+    }
+
+    private static void RemoveAfterActualClose(IExecutionContext context, string key, SerialConnectionResource expected)
+    {
+        if (expected.IsClosed) { RemoveClosed(context, key, expected); return; }
+        if (expected.CloseCompletion is not { } actualClose) return;
+        var removal = actualClose.ContinueWith(_ => RemoveClosed(context, key, expected), CancellationToken.None,
+            TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+        _ = removal.ContinueWith(task => System.Diagnostics.Trace.TraceError($"串口旧连接登记移除失败，保留精确所有者诊断：{task.Exception}"),
+            CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
 }

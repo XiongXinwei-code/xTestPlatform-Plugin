@@ -40,7 +40,7 @@ public sealed class UdsDiagSessionPlugin : StepPluginBase<UdsDiagSessionSetting>
         - `UDS_SecurityAccess`：会话切换后执行安全访问
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdsDiagSessionExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new UdsDiagSessionExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

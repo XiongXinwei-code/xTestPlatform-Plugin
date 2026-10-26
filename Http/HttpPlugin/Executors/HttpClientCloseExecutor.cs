@@ -49,8 +49,8 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
                 return Error("客户端标识名未配置");
 
             var key = HttpHelper.GetClientKey(clientName);
-            registrationGate = HttpHelper.GetRegistryGate(context.Resources);
-            if (!await registrationGate.WaitAsync(Remaining(), cancellationToken))
+            registrationGate = HttpHelper.GetRegistryGate(execution);
+            if (!await execution.StopSignal.EnterAsync(registrationGate, Remaining(), cancellationToken, "HTTP 客户端关闭排队"))
                 throw new TimeoutException($"等待 HTTP 客户端关闭生命周期操作超过 {setting.TimeoutMs} ms");
             ownsGate = true;
             _ = Remaining();
@@ -77,7 +77,8 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
             }
             int remaining = Remaining(); // 禁止lookup跨代次后由旧步骤关闭新owner。
-            await owner.CloseAsync(remaining, cancellationToken);
+            await execution.StopSignal.WaitAsync(owner.CloseAsync(remaining, cancellationToken),
+                TimeSpan.FromMilliseconds(remaining), cancellationToken, "HTTP 客户端关闭");
             _ = Remaining();
             bool sameOwner = context.Resources.TryGet<HttpClientResource>(key, out var current) && ReferenceEquals(current, owner);
             _ = Remaining();

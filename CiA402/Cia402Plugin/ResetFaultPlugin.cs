@@ -42,7 +42,7 @@ public sealed class ResetFaultPlugin : StepPluginBase<ResetFaultSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new ResetFaultExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new ResetFaultExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

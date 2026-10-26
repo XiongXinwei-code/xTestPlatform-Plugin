@@ -44,7 +44,7 @@ public sealed class EnablePlugin : StepPluginBase<EnableSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new EnableExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new EnableExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

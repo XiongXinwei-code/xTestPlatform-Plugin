@@ -58,6 +58,7 @@ public sealed class LinOpenExecutor : IStepExecutor
             epoch.ThrowIfExpired();
             int openingBudget = Remaining();
             var adapter = new LinConnectionResource(_create(setting.AdapterType), physicalKey);
+            PluginCommon.ExecutionScopedExecutor.Own(adapter.Dispose);
             try
             {
                 epoch.ThrowIfExpired();

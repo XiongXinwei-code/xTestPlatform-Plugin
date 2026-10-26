@@ -39,7 +39,7 @@ public sealed class LinSleepPlugin : StepPluginBase<LinSleepSetting>
         - `LIN_Open`：打开 LIN 通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinSleepExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinSleepExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

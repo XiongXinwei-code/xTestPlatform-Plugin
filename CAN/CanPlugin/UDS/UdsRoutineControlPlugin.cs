@@ -44,7 +44,7 @@ public sealed class UdsRoutineControlPlugin : StepPluginBase<UdsRoutineControlSe
         - `UDS_SecurityAccess`：解锁受保护例程
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdsRoutineControlExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new UdsRoutineControlExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

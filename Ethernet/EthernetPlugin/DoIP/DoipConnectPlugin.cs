@@ -41,7 +41,7 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
         - `DoIP_VehicleDiscovery`：发现车辆 DoIP 实体
         """;
 
-    public override IStepExecutor CreateExecutor() => new DoipConnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new DoipConnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

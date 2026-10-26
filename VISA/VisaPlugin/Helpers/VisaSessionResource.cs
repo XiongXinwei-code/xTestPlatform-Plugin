@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using Ivi.Visa;
 using PluginCommon;
 
@@ -23,6 +24,7 @@ public sealed class VisaSessionResource : IDisposable
     public bool IsClosed => _io.IsClosed;
     public string? IsolatedReason => _io.IsolatedReason;
     public Exception? LastCloseError { get; private set; }
+    public Exception? LastCancellationError { get; private set; }
 
     internal void EnsureAvailableForPublication()
     {
@@ -98,22 +100,57 @@ public sealed class VisaSessionResource : IDisposable
         var budget = new SubmissionBudget(Stopwatch.GetTimestamp(), timeoutMs, description, ct);
         return _io.RunAsync(async () =>
         {
-            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct, _stop.Token);
             lock (_state) _activeBudget = budget;
+            var cancellation = new VisaIoCancellation(ct, _stop.Token, timeoutMs == Timeout.Infinite ? Timeout.Infinite
+                : Math.Max(1, (int)Math.Ceiling(timeoutMs - Stopwatch.GetElapsedTime(budget.StartedAt).TotalMilliseconds)));
+            T result = default!;
+            Exception? failure = null;
             try
             {
                 ThrowIfSubmissionStopped();
-                if (timeoutMs != Timeout.Infinite)
-                    deadline.CancelAfter(TimeSpan.FromMilliseconds(Math.Max(1, timeoutMs - Stopwatch.GetElapsedTime(budget.StartedAt).TotalMilliseconds)));
-                T result;
-                try { result = await operation(deadline.Token).ConfigureAwait(false); }
-                catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && !_stop.IsCancellationRequested && deadline.IsCancellationRequested)
+                try { result = await operation(cancellation.Token).ConfigureAwait(false); }
+                catch (OperationCanceledException ex) when (!ct.IsCancellationRequested && !_stop.IsCancellationRequested && cancellation.IsCancellationRequested)
                 { throw new TimeoutException($"{description}：复合事务总期限已到，原始调用已退出", ex); }
                 ThrowIfSubmissionStopped();
-                return result;
             }
-            finally { lock (_state) _activeBudget = null; }
+            catch (Exception ex) { failure = ex; }
+            finally
+            {
+                try { await cancellation.DisposeAsync().ConfigureAwait(false); }
+                catch (Exception cleanup)
+                {
+                    failure = failure == null ? cleanup : new AggregateException("VISA 原始调用与取消回调均失败", failure, cleanup);
+                    LastCancellationError = failure;
+                    QueueCancellationReport(failure);
+                }
+                finally { lock (_state) _activeBudget = null; }
+            }
+            if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
+            return result;
         }, timeoutMs, description, ct);
+    }
+
+    private void QueueCancellationReport(Exception failure)
+    {
+        // 真实原生调用/取消回调已经退出。日志故障不能继续占用 I/O 门或延迟句柄释放。
+        Task Schedule() => Task.Run(() =>
+        {
+            try
+            {
+                Trace.TraceError($"VISA 取消相关事务未正常结束：{failure}");
+                _report?.Invoke(failure);
+            }
+            catch (Exception reportError)
+            {
+                try { Trace.TraceError($"VISA 取消回调诊断失败：{reportError}"); }
+                catch (Exception) { /* 最终诊断接收器也失败；原始聚合异常仍保存在 owner。 */ }
+            }
+        }, CancellationToken.None);
+        Task reporting;
+        if (ExecutionContext.IsFlowSuppressed()) reporting = Schedule();
+        else { using (ExecutionContext.SuppressFlow()) reporting = Schedule(); }
+        _ = reporting.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     /// <summary>每次后续原生提交前检查；不依赖 CancelAfter 回调是否已被线程池调度。</summary>
@@ -134,6 +171,7 @@ public sealed class VisaSessionResource : IDisposable
         ct.ThrowIfCancellationRequested();
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         Interlocked.Exchange(ref _closeRequested, 1);
+        _io.RequestStop();
         TrackRetirement();
         var closing = _io.CloseAsync(Release, timeoutMs, ct);
         ObserveRelease();
@@ -156,6 +194,7 @@ public sealed class VisaSessionResource : IDisposable
     public void Dispose()
     {
         Interlocked.Exchange(ref _closeRequested, 1);
+        _io.RequestStop();
         TrackRetirement();
         _io.RequestClose(Release, ex =>
         {

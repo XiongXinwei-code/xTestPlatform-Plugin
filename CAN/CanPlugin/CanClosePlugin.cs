@@ -36,7 +36,7 @@ public sealed class CanClosePlugin : StepPluginBase<CanCloseSetting>
         - `CAN_Open`：打开 CAN 通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanCloseExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanCloseExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

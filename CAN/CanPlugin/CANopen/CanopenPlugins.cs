@@ -52,7 +52,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
         - `CANopen_SdoWrite`：通过 SDO 写入对象
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenSdoReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenSdoReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -100,7 +100,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
         - `CANopen_SdoRead`：通过 SDO 读取对象
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenSdoWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenSdoWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -142,7 +142,7 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
         - `CANopen_WaitHeartbeat`：等待节点心跳状态
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenNmtControlExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenNmtControlExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -184,7 +184,7 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
         - `CANopen_NmtControl`：发送 NMT 命令
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenWaitHeartbeatExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenWaitHeartbeatExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -226,7 +226,7 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
         - `CANopen_PdoReceive`：接收 PDO
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenPdoSendExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenPdoSendExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -266,7 +266,7 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
         - `CANopen_PdoSend`：发送 PDO
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenPdoReceiveExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenPdoReceiveExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -310,7 +310,7 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
         - `CANopen_PdoSend`：发送 RPDO
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenSyncSendExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenSyncSendExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -358,7 +358,7 @@ public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceive
         - `CANopen_WaitHeartbeat`：等待节点心跳/Boot-up
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenEmcyReceiveExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenEmcyReceiveExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

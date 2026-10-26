@@ -115,13 +115,14 @@ public abstract class AxisActionExecutor<T> : ExecutorBase<T> where T : AxisSett
         {
             await session.ExecuteAsync(async (axis, token) =>
             {
-                checkExecution();
+                void CheckAction() { checkExecution(); session.CheckOperationLifetime(); }
+                CheckAction();
                 if (!context.Resources.TryGet<AxisSession>(AxisSession.Key(name), out var selected) || !ReferenceEquals(selected, session))
                     throw new InvalidOperationException("轴会话已被移除或替换，禁止旧步骤提交动作");
                 checkExecution();
                 // 每次底层 I/O 都重查当前步骤总期限；退出动作后恢复作用域，
                 // 会话独立清理不得继承已过期的普通动作边界。
-                using var boundary = AxisOperationBoundary.Enter(checkExecution);
+                using var boundary = AxisOperationBoundary.Enter(CheckAction);
                 await OperateAsync(setting, values, session, context, token).ConfigureAwait(false);
             }, IsControl, setting.PollIntervalMs, ct,
                 AxisFailureContext.Operation(context, setting)).ConfigureAwait(false);
@@ -139,6 +140,7 @@ public abstract class AxisActionExecutor<T> : ExecutorBase<T> where T : AxisSett
         {
             ct.ThrowIfCancellationRequested();
             values.CheckExecution?.Invoke();
+            session.CheckOperationLifetime();
             var key = AxisSession.Key(values.Text(nameof(AxisSetting.AxisName)));
             if (!context.Resources.TryGet<AxisSession>(key, out var current) || !ReferenceEquals(current, session))
                 throw new InvalidOperationException("轴会话已被移除或替换，不能发布旧调用结果");

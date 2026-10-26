@@ -38,7 +38,7 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
         - `Ethernet_TcpClose`：关闭连接
         """;
 
-    public override IStepExecutor CreateExecutor() => new TcpOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new TcpOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

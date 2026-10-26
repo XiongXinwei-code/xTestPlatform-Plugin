@@ -38,7 +38,7 @@ public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>
         - `VISA_Write`：发送耗时操作命令后配合本插件同步
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaWaitOpcExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaWaitOpcExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

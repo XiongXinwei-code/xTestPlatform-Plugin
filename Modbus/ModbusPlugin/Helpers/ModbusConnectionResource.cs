@@ -22,16 +22,22 @@ public sealed class ModbusConnectionResource : IDisposable
     public int TimeoutMs { get; }
     public string? PhysicalResourceKey { get; }
     public bool IsClosed => _io.IsClosed;
+    internal Task? CloseCompletion => _io.CloseCompletion;
     internal bool IsClosing { get { lock (_state) return _closing; } }
 
     public ModbusConnectionResource(int timeoutMs, Action<Exception>? report = null, string? physicalResourceKey = null)
+        : this(timeoutMs, report, physicalResourceKey, registerStepOwnership: true) { }
+
+    private ModbusConnectionResource(int timeoutMs, Action<Exception>? report, string? physicalResourceKey, bool registerStepOwnership)
     {
         TimeoutMs = timeoutMs > 0 ? timeoutMs : throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         _report = report;
         PhysicalResourceKey = physicalResourceKey;
+        if (registerStepOwnership) ExecutionScopedExecutor.Own(Dispose);
     }
-    public ModbusConnectionResource(IModbusMaster master, IDisposable transport, int timeoutMs, Action<Exception>? report = null, string? physicalResourceKey = null) : this(timeoutMs, report, physicalResourceKey)
-    { _master = master; _transport = transport; _ready = true; }
+    public ModbusConnectionResource(IModbusMaster master, IDisposable transport, int timeoutMs, Action<Exception>? report = null, string? physicalResourceKey = null)
+        : this(timeoutMs, report, physicalResourceKey, registerStepOwnership: false)
+    { _master = master; _transport = transport; _ready = true; ExecutionScopedExecutor.Own(Dispose); }
     internal void OwnTransport(IDisposable transport) => _transport = transport;
     internal void OwnMaster(IModbusMaster master) => _master = master;
     internal Task InitializeAsync(Func<ModbusConnectionResource, CancellationToken, Task> factory, CancellationToken ct, int? remainingTimeoutMs = null)

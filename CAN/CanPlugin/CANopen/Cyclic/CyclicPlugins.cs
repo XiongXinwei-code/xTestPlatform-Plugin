@@ -44,7 +44,7 @@ public abstract class CyclicPluginBase : StepPluginBase<CyclicSetting>
         - 取消严格确认仅用于明确接受主机提交顺序的验证；旧帧待发状态未知时 Stop 仍报错并保留占用。
         - 受控模式禁止 UDS/XCP/raw CAN_Read 混用；模式持续至 CAN_Close。
         """;
-    public override IStepExecutor CreateExecutor() => new CyclicExecutor(this);
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CyclicExecutor(this));
     public override string GenerateDescription(byte[] setting)
     {
         var s = DeserializeSetting(setting);

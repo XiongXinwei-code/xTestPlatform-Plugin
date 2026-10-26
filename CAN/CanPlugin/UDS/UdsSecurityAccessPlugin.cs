@@ -43,7 +43,7 @@ public sealed class UdsSecurityAccessPlugin : StepPluginBase<UdsSecurityAccessSe
         - `UDS_WriteDataByID` / `UDS_RoutineControl`：解锁后执行受保护操作
         """;
 
-    public override IStepExecutor CreateExecutor() => new UdsSecurityAccessExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new UdsSecurityAccessExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -41,7 +41,7 @@ public sealed class XcpShortUploadPlugin : StepPluginBase<XcpShortUploadSetting>
         - `XCP_ShortDownload`：向 ECU 内存写入数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new XcpShortUploadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new XcpShortUploadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

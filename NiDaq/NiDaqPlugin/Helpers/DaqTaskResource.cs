@@ -30,6 +30,7 @@ public sealed class DaqTaskResource : IDisposable
     internal Action? ExecutionCheck { get; set; }
     internal void RegisterTransient(IResourceRegistry registry, Action ensureCurrentExecution)
     {
+        ExecutionScopedExecutor.Own(Dispose);
         ensureCurrentExecution();
         _transientRegistry = registry;
         _transientKey = "NiDaq.Transient:" + Guid.NewGuid().ToString("N");
@@ -182,6 +183,8 @@ public sealed class DaqTaskResource : IDisposable
     public void RequireStarted() { if (!Started) throw new InvalidOperationException("DAQ 任务尚未启动，请先执行 TaskStart"); }
     private void BeginClose()
     {
+        // 先唤醒前台观察者；驱动 Abort、真实 I/O 与释放仍由后面的原任务拥有。
+        _io.RequestStop();
         lock (_state)
         {
             if (!_closing || _io.CloseCompletion is { IsFaulted: true } or { IsCanceled: true })

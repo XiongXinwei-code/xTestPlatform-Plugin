@@ -45,7 +45,7 @@ public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSettin
         - `Http_XmlExtract`：按 XPath 从 XML 中提取字段
         """;
 
-    public override IStepExecutor CreateExecutor() => new HttpJsonExtractExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Http", () => new HttpJsonExtractExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

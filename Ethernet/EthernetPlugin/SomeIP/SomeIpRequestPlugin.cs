@@ -48,7 +48,7 @@ public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
         - `SomeIp_SdDiscover`：发现 SOME/IP 服务
         """;
 
-    public override IStepExecutor CreateExecutor() => new SomeIpRequestExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new SomeIpRequestExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

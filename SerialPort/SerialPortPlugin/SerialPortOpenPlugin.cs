@@ -53,7 +53,7 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
         - `SerialPort_Close`：关闭本插件打开的端口
         """;
 
-    public override IStepExecutor CreateExecutor() => new SerialPortOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("SerialPort", () => new SerialPortOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

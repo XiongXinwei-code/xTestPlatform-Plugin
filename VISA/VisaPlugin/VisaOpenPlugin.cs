@@ -48,7 +48,7 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
         - `VISA_Close`：关闭本插件打开的会话
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -43,7 +43,7 @@ public sealed class SerialPortReadPlugin : StepPluginBase<SerialPortReadSetting>
         - `SerialPort_Query`：写入+读取一体操作
         """;
 
-    public override IStepExecutor CreateExecutor() => new SerialPortReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("SerialPort", () => new SerialPortReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

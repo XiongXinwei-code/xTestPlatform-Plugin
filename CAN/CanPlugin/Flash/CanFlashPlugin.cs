@@ -82,7 +82,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - `UDS_RawRequest`：烧录完成后发送 ECU 复位（0x11 0x01）
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanFlashExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanFlashExecutor());
 
     protected override CanFlashSetting MigrateSetting(byte[] data, int fromVersion)
     {

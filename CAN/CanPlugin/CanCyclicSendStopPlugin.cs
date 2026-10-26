@@ -37,7 +37,7 @@ public sealed class CanCyclicSendStopPlugin : StepPluginBase<CanCyclicSendStopSe
         - `CAN_Cyclic_SendStart`：启动周期发送任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanCyclicSendStopExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanCyclicSendStopExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -170,13 +170,15 @@ public sealed class AcquisitionBudgetTests
             await Assert.ThrowsAsync<TimeoutException>(() => connection.CloseAsync(30));
             Assert.Equal(0, closed); Assert.True(task.IsStopRequested);
             await Assert.ThrowsAsync<InvalidOperationException>(() => task.ConsumeAsync(-1, _ => Task.FromResult(0), default));
-            release.SetResult(); await consuming;
+            await Assert.ThrowsAsync<InvalidOperationException>(() => consuming.WaitAsync(TimeSpan.FromSeconds(1)));
+            Assert.False(connection.IsClosed);
+            release.SetResult(); await Assert.ThrowsAsync<InvalidOperationException>(() => consuming);
             await connection.CloseAsync(1000);
             Assert.True(connection.IsClosed); Assert.Equal(1, closed);
         }
         finally
         {
-            release.TrySetResult(); if (consuming != null) await consuming;
+            release.TrySetResult(); if (consuming != null) await Assert.ThrowsAsync<InvalidOperationException>(() => consuming);
             task.Dispose(); await connection.CloseAsync(1000);
         }
     }

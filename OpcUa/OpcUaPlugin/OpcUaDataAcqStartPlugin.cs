@@ -51,7 +51,7 @@ public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSe
         - `OpcUa_DataAcq_Stop`：停止采集任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaDataAcqStartExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaDataAcqStartExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

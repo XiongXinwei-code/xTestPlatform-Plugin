@@ -35,7 +35,7 @@ public sealed class NiDaqTaskStartPlugin : StepPluginBase<NiDaqTaskStartSetting>
         - `NiDaq_Task_Stop`：停止任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqTaskStartExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqTaskStartExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

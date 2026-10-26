@@ -16,8 +16,17 @@ public class OpeningOwnershipTests
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
             Assert.True(context.Resources.TryGet<SerialConnectionResource>(SerialPortHelper.GetPortKey("P"), out var owner));
             Assert.Same(resource, owner);
-            var closing = owner.CloseAsync(1000, default); exit.Set();
+            var closing = owner.CloseAsync(1000, default);
+            Assert.False(owner.IsClosed);
+            Assert.True(context.Resources.TryGet<SerialConnectionResource>(SerialPortHelper.GetPortKey("P"), out var stillOwned));
+            Assert.Same(resource, stillOwned);
+            exit.Set();
             await closing; await Assert.ThrowsAnyAsync<Exception>(() => opening);
+            // The foreground observer now ends before native close. Registry removal
+            // is a separate exact-owner continuation, not evidence of early release.
+            using var cleanupDeadline = new CancellationTokenSource(3000);
+            while (context.Resources.TryGet<SerialConnectionResource>(SerialPortHelper.GetPortKey("P"), out _))
+                await Task.Delay(1, cleanupDeadline.Token);
             Assert.False(context.Resources.TryGet<SerialConnectionResource>(SerialPortHelper.GetPortKey("P"), out _));
         }
         finally { exit.Set(); await opening.ContinueWith(task => { _ = task.Exception; }); }

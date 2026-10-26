@@ -42,7 +42,7 @@ public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSettin
         - `DoIP_Disconnect`：关闭 DoIP 会话
         """;
 
-    public override IStepExecutor CreateExecutor() => new DoipDiagRequestExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new DoipDiagRequestExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

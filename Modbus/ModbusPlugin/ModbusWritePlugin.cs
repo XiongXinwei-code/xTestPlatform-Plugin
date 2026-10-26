@@ -44,7 +44,7 @@ public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>
 		- `Modbus_BatchWrite`：批量写入多个地址段
 		""";
 
-	public override IStepExecutor CreateExecutor() => new ModbusWriteExecutor();
+	public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Modbus", () => new ModbusWriteExecutor());
 
 	public override string GenerateDescription(byte[] setting)
 	{

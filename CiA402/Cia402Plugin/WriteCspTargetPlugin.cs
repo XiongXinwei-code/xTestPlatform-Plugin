@@ -44,7 +44,7 @@ public sealed class WriteCspTargetPlugin : StepPluginBase<WriteCspTargetSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new WriteCspTargetExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new WriteCspTargetExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

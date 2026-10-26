@@ -55,12 +55,13 @@ public sealed class Round2SdkModeTransitionTests
         {
             Assert.False(reopening.IsCompleted);
             Assert.Equal(0, nextFactoryCalls);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => first.WaitAsync(TimeSpan.FromSeconds(1)));
             openingExit.TrySetResult(old);
             await disposing.Task.WaitAsync(guard.Token);
             Assert.False(reopening.IsCompleted);
             Assert.Equal(0, nextFactoryCalls);
             releaseDispose.Set();
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first.WaitAsync(guard.Token));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => first.WaitAsync(guard.Token));
             Assert.Same(current, await reopening.WaitAsync(guard.Token));
             Assert.Equal(1, nextFactoryCalls);
             Assert.Equal(1, old.Releases);
@@ -71,7 +72,7 @@ public sealed class Round2SdkModeTransitionTests
         {
             releaseDispose.Set();
             openingExit.TrySetResult(old);
-            try { await first.WaitAsync(guard.Token); } catch (OperationCanceledException) { }
+            try { await first.WaitAsync(guard.Token); } catch (InvalidOperationException) { }
             await reopening.WaitAsync(guard.Token);
             await next.CloseAsync(name, 1000, guard.Token);
             SdkResourceLifecycleTests.Cleanup(nextRegistry, "CleanupAll");
@@ -174,14 +175,12 @@ public sealed class Round2SdkModeTransitionTests
         {
             // Do not wait for the old foreground waiter or its request timeout before
             // proving that the first new execution can actually complete its request.
-            Assert.False(oldRead.IsCompleted);
+            Assert.Equal(TestStatus.Error, (await oldRead.WaitAsync(TimeSpan.FromSeconds(1))).StepResult.Status);
             Assert.False(old.IsClosed);
             Assert.Empty(state.Variables);
             Assert.Equal(TestStatus.Completed, (await read.CreateExecutor().ExecuteAsync(ctx, guard.Token)).StepResult.Status);
             Assert.Equal("new-result", state.Variables["Locals.received"]);
-            Assert.False(oldRead.IsCompleted);
-            oldCaller.Cancel();
-            Assert.Equal(TestStatus.Aborted, (await oldRead.WaitAsync(guard.Token)).StepResult.Status);
+            Assert.Equal(TestStatus.Error, (await oldRead.WaitAsync(guard.Token)).StepResult.Status);
             await Assert.ThrowsAsync<TimeoutException>(() => old.CloseAsync(50, guard.Token));
             lateResponse.TrySetResult(new(HttpStatusCode.OK) { Content = new StringContent("old-result") });
             await old.CloseAsync(1000, guard.Token);

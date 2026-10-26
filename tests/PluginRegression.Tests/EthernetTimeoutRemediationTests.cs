@@ -121,6 +121,23 @@ public sealed class EthernetTimeoutRemediationTests
         Assert.Equal(0, session.Peer.Available);
     }
 
+    [Fact]
+    public async Task Complete_Doip_negative_response_returns_Error_without_retiring_a_healthy_session()
+    {
+        await using var session = await Session.CreateAsync(connectionTimeoutMs: 2000, requestTimeoutMs: 1200);
+        using var guard = new CancellationTokenSource(10000);
+        var first = session.Plugin.CreateExecutor().ExecuteAsync(session.Context, guard.Token);
+        await ReadFrame(session.Peer, guard.Token);
+        await SendFrame(session.Peer, 0x8001, [0x10, 0, 0x0E, 0, 0x7F, 0x10, 0x22], guard.Token);
+        Assert.Equal(TestStatus.Error, (await first.WaitAsync(guard.Token)).StepResult.Status);
+        Assert.True(session.Client.IsUsable);
+        var next = session.Plugin.CreateExecutor().ExecuteAsync(session.Context, guard.Token);
+        await ReadFrame(session.Peer, guard.Token);
+        await SendFrame(session.Peer, 0x8001, [0x10, 0, 0x0E, 0, 0x50, 0x01], guard.Token);
+        Assert.Equal(TestStatus.Completed, (await next.WaitAsync(guard.Token)).StepResult.Status);
+        Assert.True(session.Client.IsUsable);
+    }
+
     private static async Task<byte[]> ReadFrame(TcpClient peer, CancellationToken ct)
     {
         var header = new byte[8];

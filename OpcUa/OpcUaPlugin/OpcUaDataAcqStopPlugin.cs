@@ -40,7 +40,7 @@ public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSett
         - `OpcUa_DataAcq_Read`：从 FIFO 缓冲读取（消费）采集数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaDataAcqStopExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaDataAcqStopExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

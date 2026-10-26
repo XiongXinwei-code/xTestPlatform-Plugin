@@ -46,7 +46,7 @@ public sealed class RunVelocityPlugin : StepPluginBase<RunVelocitySetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new RunVelocityExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new RunVelocityExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

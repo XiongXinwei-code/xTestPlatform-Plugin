@@ -65,6 +65,22 @@ foreach (var dll in dlls)
                 var stepTypeId = GetStringProperty(type, instance, "StepTypeId");
                 var displayName = GetStringProperty(type, instance, "DisplayName");
                 var description = GetStringProperty(type, instance, "Description");
+                if (strict)
+                {
+                    // Creating an executor must not open hardware. Validate the
+                    // actual inherited factories too (e.g. six CANopen cycle steps).
+                    var factory = type.GetMethod("CreateExecutor", Type.EmptyTypes)
+                        ?? throw new InvalidOperationException($"步骤缺少执行器工厂：{type.FullName}");
+                    var first = factory.Invoke(instance, null);
+                    var second = factory.Invoke(instance, null);
+                    if (first is null || second is null || ReferenceEquals(first, second) ||
+                        first.GetType().FullName != "PluginCommon.ExecutionScopedExecutor" ||
+                        second.GetType().FullName != "PluginCommon.ExecutionScopedExecutor")
+                    {
+                        invalid = true;
+                        Console.Error.WriteLine($"步骤工厂未返回独立的执行作用域观察器：{type.FullName}");
+                    }
+                }
                 if (strict && string.IsNullOrWhiteSpace(description))
                 {
                     invalid = true;

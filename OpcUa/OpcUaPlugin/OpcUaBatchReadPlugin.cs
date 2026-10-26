@@ -42,7 +42,7 @@ public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
         - `OpcUa_Read`：读取单个节点
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaBatchReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaBatchReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

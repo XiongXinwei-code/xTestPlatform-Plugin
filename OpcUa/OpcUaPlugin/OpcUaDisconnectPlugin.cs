@@ -38,7 +38,7 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
         - `OpcUa_Connect`：建立连接
         """;
 
-    public override IStepExecutor CreateExecutor() => new OpcUaDisconnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("OpcUa", () => new OpcUaDisconnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

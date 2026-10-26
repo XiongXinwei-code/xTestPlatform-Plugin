@@ -45,7 +45,7 @@ public sealed class UnbindAxisPlugin : StepPluginBase<UnbindAxisSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new UnbindAxisExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new UnbindAxisExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

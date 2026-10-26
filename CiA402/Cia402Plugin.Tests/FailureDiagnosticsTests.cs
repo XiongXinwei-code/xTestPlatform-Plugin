@@ -260,7 +260,8 @@ public sealed class FailureDiagnosticsTests
         var result = await reading;
         await closing;
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
-        Assert.Contains("会话或通信后端取消", result.StepResult.Error!.Message);
+        Assert.Contains("退出", result.StepResult.Error!.Message);
+        Assert.DoesNotContain("总超时", result.StepResult.Error.Message);
         Assert.Contains("显式关闭", result.StepResult.Error.Detail);
         Assert.Contains("步骤令牌取消=False", result.StepResult.Error.Detail);
     }
