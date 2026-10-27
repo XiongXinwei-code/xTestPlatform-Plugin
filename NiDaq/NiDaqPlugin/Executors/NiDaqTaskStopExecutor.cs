@@ -34,6 +34,9 @@ public sealed class NiDaqTaskStopExecutor : IStepExecutor
             await resource.CloseAsync(setting.TimeoutMs, cancellationToken);
             NiDaqTaskRegistry.RemoveClosed(context, taskName, resource);
             guard.Check();
+            if (resource.CloseWarning is { } warning)
+                context.Log(LogLevel.Warn, $"DAQ 任务 '{taskName}' 已释放；保留已完成的 Abort 诊断", warning.ToString());
+            guard.Check();
 
             return new ExecutionResult
             {

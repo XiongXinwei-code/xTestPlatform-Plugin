@@ -54,6 +54,9 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 					if (context.Resources.TryGet<ModbusConnectionResource>(key, out var current) && ReferenceEquals(current, resource))
 					context.Resources.Remove(key);
 				}
+				if (resource.CloseWarning is { } warning)
+					context.Log(LogLevel.Warn, $"Modbus 连接 {connName} 已释放；保留已退出的停止诊断", warning.ToString());
+				epoch.ThrowIfExpired();
 			}
 
 			context.Log($"Modbus 连接已关闭: {connName}");

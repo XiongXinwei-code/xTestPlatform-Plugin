@@ -163,7 +163,7 @@ public sealed class RuntimeTests
         {
             var s = c.StartService("one", Routes);
             Assert.Throws<InvalidOperationException>(() => c.ClaimRawProtocol());
-            Assert.Throws<InvalidOperationException>(() => c.Read(1));
+            Assert.Null(c.Read(1)); // Raw observation is now a separate routed copy.
             Assert.Throws<NotSupportedException>(() => s.StartTargets([1], Targets, Sync, new()));
             Assert.Empty(fake.Sent);
         }
@@ -263,15 +263,17 @@ public sealed class RuntimeTests
     }
 
     [Fact]
-    public async Task ExistingAxisOwnershipRejectsCycleWithoutAWrite()
+    public async Task ExistingAxisLeaseCanCoexistWithCycleAndSurvivesItsStop()
     {
         var fake = new ConfirmedAdapter(); var c = new CanConnectionResource(fake);
         try
         {
             using var axis = CanopenConnectionAccess.For(c).ReserveNode(1, 1000);
             var s = c.StartService("one", Routes);
-            Assert.Throws<InvalidOperationException>(() => s.StartTargets([1], Targets, Sync, new()));
-            Assert.Empty(fake.Sent);
+            s.StartTargets([1], Targets, Sync, new(60000, 5000, 1000));
+            await Until(() => s.Snapshot().Cycle.CompletedCycles == 1);
+            await s.StopTargetsAsync();
+            Assert.Throws<InvalidOperationException>(() => CanopenConnectionAccess.For(c).ReserveNode(1, 1000));
         }
         finally { await c.CloseAsync(); }
     }
@@ -283,7 +285,7 @@ public sealed class RuntimeTests
         var fake = new FakeAdapter { ReadBlock = release }; var c = new CanConnectionResource(fake);
         var reading = Task.Run(() => c.Read(5));
         await fake.ReadEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        try { Assert.Throws<InvalidOperationException>(() => c.StartService("one", Routes)); }
+        try { Assert.Throws<TimeoutException>(() => c.StartService("one", Routes, 30)); Assert.False(c.Controlled); }
         finally { release.Set(); }
         await reading;
         c.ClaimRawProtocol();
@@ -388,10 +390,11 @@ public sealed class RuntimeTests
         => Assert.Equal(CanChannelIdentity.Normalize(type, first), CanChannelIdentity.Normalize(type, second));
 
     [Fact]
-    public async Task MidBatchStopMustRetainSyncOwnershipForLatchedTargets()
+    public async Task MidBatchNativeFailureMustRetainSyncOwnershipForLatchedTargets()
     {
         using var release = new ManualResetEventSlim();
-        var fake = new ConfirmedAdapter { WriteBlock = release };
+        var fake = new ConfirmedAdapter { WriteBlock = release, OnWrite = frame =>
+            { if (frame.Id == 0x301) throw new IOException("fake second member failure"); } };
         var c = new CanConnectionResource(fake); var s = c.StartService("one", Routes);
         s.StartTargets([1], Targets, Sync, new(1000, 5000, 1000, true, 5000));
         await fake.WriteEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));

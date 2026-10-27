@@ -37,22 +37,38 @@ public sealed class LinCloseExecutor : IStepExecutor
             // Freeze the captured generation before waiting for a concurrent opening/registry lease.
             // Dispose only requests asynchronous cleanup; it does not pretend native I/O has exited.
             if (expected is LinConnectionResource captured) captured.Dispose();
-            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining());
+            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining(), key);
             guard.Check();
             if (context.Resources.TryGet<ILinAdapter>(key, out var adapter) && ReferenceEquals(adapter, expected))
             {
                 var resource = LinConnectionResource.For(adapter);
-                try { await resource.CloseAsync(Remaining(), cancellationToken); }
-                finally
+                Exception? closeError = null;
+                try { await resource.ClosePhysicalAsync(Remaining(), cancellationToken); }
+                catch (Exception ex) { closeError = ex; }
+                if (resource.IsClosed)
                 {
-                    if (resource.IsClosed)
+                    if (context.Resources.TryGet<ILinAdapter>(key, out var current) && ReferenceEquals(current, adapter)) context.Resources.Remove(key);
+                    // Never hold both a connection-name lease and a task-name
+                    // lease, or hold either one while joining a managed worker.
+                    registryLease.Dispose();
+                    try
                     {
                         foreach (var job in resource.Jobs)
-                            if (job.RegistrationKey is { } taskKey && context.Resources.TryGet<LinCyclicJob>(taskKey, out var registered) && ReferenceEquals(job, registered))
-                                context.Resources.Remove(taskKey);
-                        if (context.Resources.TryGet<ILinAdapter>(key, out var current) && ReferenceEquals(current, adapter)) context.Resources.Remove(key);
+                            if (job.RegistrationKey is { } taskKey)
+                            {
+                                using var taskLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining(), taskKey);
+                                guard.Check();
+                                if (context.Resources.TryGet<LinCyclicJob>(taskKey, out var registered) && ReferenceEquals(job, registered))
+                                    context.Resources.Remove(taskKey);
+                            }
                     }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                    catch (Exception ex) { closeError = closeError == null ? ex : new AggregateException("LIN 物理关闭与周期登记收尾同时报告错误", closeError, ex); }
                 }
+                if (closeError != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(closeError).Throw();
+                await resource.WaitForWorkersAsync(Math.Max(0, setting.TimeoutMs - (int)Math.Min(int.MaxValue, deadline.ElapsedMilliseconds)), cancellationToken);
+                if (resource.CloseWarning is { } warning)
+                    context.Log(LogLevel.Warn, $"LIN 通道 {connName} 已关闭；保留历史通信或已退出回调的诊断", warning.ToString());
                 guard.Log($"LIN 通道已关闭: {connName}");
             }
             else
@@ -62,6 +78,7 @@ public sealed class LinCloseExecutor : IStepExecutor
 
             guard.Check();
 
+            _ = Remaining();
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed }

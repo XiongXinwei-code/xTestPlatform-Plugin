@@ -16,10 +16,13 @@ public sealed class HttpClientResource : IDisposable
     private readonly HashSet<Task> _active = new();
     private readonly CancellationTokenSource _shutdown = new();
     private readonly OwnerStopSignal _stop = new();
+    private Task? _shutdownTask;
+    private Task? _disposeTask;
     private Task? _closeTask;
     private bool _closing;
     private bool _closed;
     public bool IsClosed { get { lock (_sync) return _closed; } }
+    internal Exception? CloseWarning { get; private set; }
     public required HttpClient Client { get; init; }
     internal Action? CheckExecutionScope { get; init; }
 
@@ -145,15 +148,30 @@ public sealed class HttpClientResource : IDisposable
             _stop.RequestStop();
             if (_closeTask is null || _closeTask.IsFaulted)
             {
+                // SDK Dispose is an abort entry point: a handler may finish Send
+                // only when it is disposed. Neither abort path waits for the other.
+                _shutdownTask ??= Task.Run(async () => await _shutdown.CancelAsync().ConfigureAwait(false));
+                _disposeTask ??= Task.Run(Client.Dispose);
+                var shutdown = _shutdownTask;
+                var disposal = _disposeTask;
                 _closeTask = Task.Run(async () =>
                 {
-                    await _shutdown.CancelAsync().ConfigureAwait(false);
+                    Exception? shutdownError = null;
+                    Exception? disposeError = null;
+                    try { await shutdown.ConfigureAwait(false); } catch (Exception ex) { shutdownError = ex; }
+                    bool disposed = false;
+                    try { await disposal.ConfigureAwait(false); disposed = true; } catch (Exception ex) { disposeError = ex; }
                     Task[] active;
                     lock (_sync) active = _active.ToArray();
                     try { await Task.WhenAll(active).ConfigureAwait(false); }
                     catch { /* Individual request errors are observed above; all actual tasks have exited. */ }
-                    Client.Dispose();
-                    lock (_sync) _closed = true;
+                    if (disposed)
+                    {
+                        lock (_sync) { CloseWarning = shutdownError; _closed = true; }
+                    }
+                    if (disposeError != null)
+                        throw new AggregateException("HTTP SDK 释放失败；原始请求与释放结果仍由本 owner 保留",
+                            shutdownError == null ? new[] { disposeError } : new[] { shutdownError, disposeError });
                 });
                 _ = _closeTask.ContinueWith(task =>
                 {
@@ -232,11 +250,23 @@ internal static class HttpHelper
     /// 按认证方式与 TLS 选项构建 HttpClient。
     /// 四种认证方式与 TLS 选项相互正交，未使用的字段全部忽略。
     /// </summary>
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ExecutionEpoch, SemaphoreSlim> RegistryGates = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<ExecutionEpoch,
+        System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim>> RegistryGates = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<xTestPlatform.Core.Engine.IResourceRegistry,
+        System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim>> PublicationGates = new();
     public static SemaphoreSlim GetRegistryGate(xTestPlatform.Core.Engine.IResourceRegistry resources) =>
         GetRegistryGate(ExecutionEpoch.Capture(resources, "Http"));
     internal static SemaphoreSlim GetRegistryGate(ExecutionEpoch execution) =>
-        RegistryGates.GetValue(execution, _ => new SemaphoreSlim(1, 1));
+        GetRegistryGate(execution, "Mes");
+    internal static SemaphoreSlim GetRegistryGate(ExecutionEpoch execution, string clientName) =>
+        RegistryGates.GetValue(execution, _ => new(StringComparer.OrdinalIgnoreCase))
+            .GetOrAdd(clientName, _ => new SemaphoreSlim(1, 1));
+    // Unlike the long lifecycle gate, this survives execution-epoch replacement.
+    // Hold it only over exact-owner checks and registry mutation, never SDK close,
+    // client construction, expression evaluation or logging. SDK Remove has no CAS.
+    internal static SemaphoreSlim GetPublicationGate(xTestPlatform.Core.Engine.IResourceRegistry resources, string clientName) =>
+        PublicationGates.GetValue(resources, _ => new(StringComparer.OrdinalIgnoreCase))
+            .GetOrAdd(clientName, _ => new SemaphoreSlim(1, 1));
 
     public static string DescribeEndpoint(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https"

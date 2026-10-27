@@ -30,16 +30,19 @@ public sealed class LinCyclicSendStopExecutor : IStepExecutor
             context.Resources.TryGet<LinCyclicJob>(taskKey, out var expected);
             guard.Check();
             expected?.Cancel();
-            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining());
+            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining(), taskKey);
             guard.Check();
             if (context.Resources.TryGet<LinCyclicJob>(taskKey, out var cts) && ReferenceEquals(cts, expected))
             {
                 await cts.StopAsync(Remaining(), cancellationToken);
                 if (context.Resources.TryGet<LinCyclicJob>(taskKey, out var current) && ReferenceEquals(current, cts)) context.Resources.Remove(taskKey);
+                if (cts.StopWarning is { } warning)
+                    context.Log(LogLevel.Warn, $"LIN 周期任务 {taskName} 的实际写调用已退出；保留历史诊断", warning.ToString());
                 guard.Log($"LIN 周期发送已停止: TaskName={taskName}");
 
                 guard.Check();
 
+                _ = Remaining();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -52,6 +55,7 @@ public sealed class LinCyclicSendStopExecutor : IStepExecutor
 
             guard.Check();
 
+            _ = Remaining();
             return new ExecutionResult
             {
                 StepResult = new StepResult

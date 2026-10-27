@@ -99,8 +99,9 @@ public sealed class OwnerRetirementMechanismTests
             if (!failBoth) await owner.CloseAsync();
             else
             {
-                var error = await Assert.ThrowsAsync<AggregateException>(() => owner.CloseAsync());
-                Assert.Contains("native failure", error.ToString()); Assert.Contains("callback failure", error.ToString());
+                await owner.CloseAsync();
+                var warning = owner.CloseWarning?.ToString() ?? "";
+                Assert.Contains("native failure", warning); Assert.Contains("callback failure", warning);
                 Assert.True(owner.IsClosed);
             }
         }

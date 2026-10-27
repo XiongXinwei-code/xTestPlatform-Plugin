@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CAN.CANopen.Cyclic;
+using CAN.Runtime;
 using xTestPlatform.Core.SequenceModels;
 
 namespace CAN.UI.ViewModels;
@@ -14,10 +15,16 @@ public sealed class CyclicServiceViewModel(CyclicPluginBase plugin) : INotifyPro
     public void Flush() => _save.Flush();
     public bool EnableMonitoringSync { get => _setting.EnableMonitoringSync; set { if (Equals(_setting.EnableMonitoringSync, value)) return; _setting.EnableMonitoringSync = value; Changed(); Save(); } }
     public int MonitoringPeriodMs { get => _setting.MonitoringPeriodMs; set { if (Equals(_setting.MonitoringPeriodMs, value)) return; _setting.MonitoringPeriodMs = value; Changed(); Save(); } }
+    public bool ResynchronizeLateMonitoring { get => _setting.ResynchronizeLateMonitoring; set { if (Equals(_setting.ResynchronizeLateMonitoring, value)) return; _setting.ResynchronizeLateMonitoring = value; Changed(); Save(); } }
+    public int MonitoringConsecutiveLatenessLimit { get => _setting.MonitoringConsecutiveLatenessLimit; set { if (Equals(_setting.MonitoringConsecutiveLatenessLimit, value)) return; _setting.MonitoringConsecutiveLatenessLimit = value; Changed(); Save(); } }
     public bool SuperviseFeedback { get => _setting.SuperviseFeedback; set { if (Equals(_setting.SuperviseFeedback, value)) return; _setting.SuperviseFeedback = value; Changed(); Save(); } }
     public int FeedbackStartupGraceMs { get => _setting.FeedbackStartupGraceMs; set { if (Equals(_setting.FeedbackStartupGraceMs, value)) return; _setting.FeedbackStartupGraceMs = value; Changed(); Save(); } }
     public bool UseFiniteTrajectory { get => _setting.UseFiniteTrajectory; set { if (Equals(_setting.UseFiniteTrajectory, value)) return; _setting.UseFiniteTrajectory = value; Changed(); Save(); } }
     public int TrajectoryDurationMs { get => _setting.TrajectoryDurationMs; set { if (Equals(_setting.TrajectoryDurationMs, value)) return; _setting.TrajectoryDurationMs = value; Changed(); Save(); } }
+    public TrajectoryMissPolicy MissPolicy { get => _setting.MissPolicy; set { if (_setting.MissPolicy == value) return; _setting.MissPolicy = value; Changed(); Save(); } }
+    public int LatenessWindowMs { get => _setting.LatenessWindowMs; set { if (_setting.LatenessWindowMs == value) return; _setting.LatenessWindowMs = value; Changed(); Save(); } }
+    public int MaxSkippedPoints { get => _setting.MaxSkippedPoints; set { if (_setting.MaxSkippedPoints == value) return; _setting.MaxSkippedPoints = value; Changed(); Save(); } }
+    public int HoldTimeoutMs { get => _setting.HoldTimeoutMs; set { if (_setting.HoldTimeoutMs == value) return; _setting.HoldTimeoutMs = value; Changed(); Save(); } }
     public string TrajectoryJson { get => _setting.TrajectoryJson; set { if (Equals(_setting.TrajectoryJson, value)) return; _setting.TrajectoryJson = value; Changed(); Save(); } }
     public string StopCommandsJson { get => _setting.StopCommandsJson; set { if (Equals(_setting.StopCommandsJson, value)) return; _setting.StopCommandsJson = value; Changed(); Save(); } }
     public ObservableCollection<CyclicRowViewModel> Routes { get; } = [];

@@ -210,6 +210,17 @@ public sealed class ConfirmationAdmissionFollowupTests
             var echo = buffer.ToArray(); echo[13] = 0x80; BinaryPrimitives.WriteUInt64LittleEndian(echo, Now);
             Interlocked.Exchange(ref _echo, echo); Volatile.Write(ref _written, 1); return 0;
         }
+        public override int WriteBatch(uint session, byte[] buffer, double timeoutSeconds)
+        {
+            var echo = buffer.ToArray(); int offset = 0;
+            foreach (var frame in NiOrderedBatchTests.BatchDriver.Split(echo))
+            {
+                echo[offset + 13] = 0x80;
+                BinaryPrimitives.WriteUInt64LittleEndian(echo.AsSpan(offset), Now);
+                offset += frame.Length;
+            }
+            Interlocked.Exchange(ref _echo, echo); Volatile.Write(ref _written, 1); return 0;
+        }
         public override int TransmitComplete(uint session)
         {
             if (Volatile.Read(ref _written) != 0 && Interlocked.CompareExchange(ref _query, 1, 0) == 0)

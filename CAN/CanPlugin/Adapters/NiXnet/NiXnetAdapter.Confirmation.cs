@@ -15,31 +15,62 @@ public sealed partial class NiXnetAdapter
     private string? _clockError;
     private bool _strictEnabled;
     private volatile bool _unknownSend;
+    private bool _hasUntrackedSubmissions;
 
-    public NiXnetAdapter() => _io = new();
+    public NiXnetAdapter() => _io = new NiXnetNativeIo();
     // Driver injection without loading native code. Handles are owned exactly as after OpenInternal.
-    internal NiXnetAdapter(NiXnetIo io, uint rx, uint tx)
+    internal NiXnetAdapter(NiXnetIo io, uint rx, uint tx, bool orderedBatchAvailable = true)
     {
         _io = io; _rxSession = rx; _txSession = tx; _echoTxEnabled = true;
         _maxPendingFrames = 16384; _isConnected = true;
+        _orderedBatchAvailable = orderedBatchAvailable; // Test fixture represents an already configured session.
         _transmits.Reset(_epoch); StartReceivePump();
     }
     public bool ConfirmationAvailable => _isConnected && !_closing && _echoTxEnabled && !_unknownSend;
+    bool CAN.Runtime.ICanBudgetedConfirmationProbe.HasUnresolvedTransmit => _unknownSend || !_transmits.Quiescent;
     public bool IsClockCurrent(string clockId) => _clock.IsCurrent(clockId, Stopwatch.GetTimestamp());
 
-    public void VerifyConfirmationAvailable()
+    public void VerifyConfirmationAvailable() => VerifyConfirmationAvailable(CAN.Runtime.CanConfirmationBudget.Start(1000, default), default);
+
+    void CAN.Runtime.ICanBudgetedConfirmationProbe.VerifyConfirmationAvailable(CAN.Runtime.CanConfirmationBudget budget, CancellationToken ct)
+        => VerifyConfirmationAvailable(budget, ct);
+
+    private void VerifyConfirmationAvailable(CAN.Runtime.CanConfirmationBudget budget, CancellationToken ct)
     {
-        if (!Monitor.TryEnter(_transmitGate, 1000)) throw new TimeoutException("NI 原生发送占用中，确认预检未执行");
+        budget.Enter(_transmitGate, ct);
         try
         {
             if (!ConfirmationAvailable) throw new NotSupportedException($"NI 发送回显不可用：0x{_echoTxConfigStatus:X8}");
             ThrowIfReceivePumpFailed();
             ReadInterfaceTime();
-            if (!RefreshTransmitCompletion()) throw new InvalidOperationException("旧发送尚未在总线上完成，不能切换严格模式");
-            if (!_transmits.Quiescent) throw new InvalidOperationException("NI 仍有未确认发送，不允许启动新目标");
+            DrainPriorTransmits(budget, ct, !_strictEnabled || _hasUntrackedSubmissions, RefreshTransmitCompletion);
+            _ = budget.Remaining(ct);
             _strictEnabled = true;
         }
+        catch { if (!_transmits.Quiescent) _unknownSend = true; throw; }
         finally { Monitor.Exit(_transmitGate); }
+    }
+
+    private void DrainPriorTransmits(CAN.Runtime.CanConfirmationBudget budget, CancellationToken ct,
+        bool untrackedQueue, Func<bool> refresh)
+    {
+        try
+        {
+            while (untrackedQueue || !_transmits.Quiescent)
+            {
+                long version = _transmits.Version;
+                _ = budget.Remaining(ct); ThrowIfReceivePumpFailed();
+                if (untrackedQueue || _transmits.PendingReadyForSessionQuery)
+                {
+                    bool completed = refresh();
+                    if (completed) untrackedQueue = false;
+                    _ = budget.Remaining(ct);
+                }
+                if (untrackedQueue || !_transmits.Quiescent)
+                    _transmits.WaitForChange(version, Math.Min(2, budget.Remaining(ct)));
+            }
+        }
+        catch { if (untrackedQueue || !_transmits.Quiescent) _unknownSend = true; throw; }
     }
 
     public bool ConfirmTransmitQuiescent()
@@ -61,7 +92,7 @@ public sealed partial class NiXnetAdapter
         var status = _io.TransmitComplete(_txSession);
         if (status == NiXnetApi.nxErrEventTimeout) return false;
         _io.Check(status);
-        _transmits.SessionTransmitted();
+        _transmits.SessionTransmitted(); _hasUntrackedSubmissions = false;
         return true;
     }
 
@@ -74,7 +105,7 @@ public sealed partial class NiXnetAdapter
         NiTransmitLedger.Ticket? ticket = null;
         if (_strictEnabled)
         {
-            RefreshTransmitCompletion();
+            if (_transmits.PendingReadyForSessionQuery) RefreshTransmitCompletion();
             // Match the actual padded FD wire representation.
             var barrier = ReadInterfaceTime();
             checkBeforeNative?.Invoke();
@@ -101,7 +132,7 @@ public sealed partial class NiXnetAdapter
         {
             _ = budget.Remaining(cancellationToken);
             if (!ConfirmationAvailable) throw new NotSupportedException("NI 不支持发送完成回显");
-            if (!_strictEnabled) VerifyConfirmationAvailable();
+            if (!_strictEnabled || _hasUntrackedSubmissions) VerifyConfirmationAvailable(budget, cancellationToken);
             var ticket = Submit(message, () => _ = budget.Remaining(cancellationToken))!;
             try
             {

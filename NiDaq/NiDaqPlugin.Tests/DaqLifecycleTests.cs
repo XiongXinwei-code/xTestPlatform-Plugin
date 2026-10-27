@@ -23,13 +23,14 @@ public class DaqLifecycleTests
         Assert.True(released);
     }
     [Fact]
-    public async Task AbortFailureKeepsOwnershipAndCanBeRetried()
+    public async Task AbortFailureDoesNotPreventConfirmedFinalRelease()
     {
         bool fail = true, released = false;
         var resource = new DaqTaskResource(() => { if (fail) throw new InvalidOperationException("fake abort"); }, () => released = true);
         await resource.ConfigureAsync(() => { }, default);
-        await Assert.ThrowsAnyAsync<Exception>(() => resource.CloseAsync(1000, default));
-        Assert.False(released);
+        await resource.CloseAsync(1000, default);
+        Assert.True(resource.IsClosed);
+        Assert.Contains("fake abort", resource.CloseWarning!.ToString());
         fail = false; await resource.CloseAsync(1000, default);
         Assert.True(released);
     }

@@ -21,7 +21,7 @@ public sealed class OpcUaConnectionResource : IDisposable
     private bool _closing, _closed;
     private string? _isolated;
     private Session? _session;
-    private bool _serverClosed;
+    private OpcUaSessionShutdown? _sessionShutdown;
     public Session Session => _session ?? throw new InvalidOperationException("此连接没有 OPC UA Session");
     public int DefaultTimeoutMs { get; }
     public CancellationToken LifetimeToken { get; }
@@ -29,6 +29,20 @@ public sealed class OpcUaConnectionResource : IDisposable
     public bool IsClosed { get { lock (_state) return _closed; } }
     public bool HasPendingOperation { get { lock (_state) return _requests.Any(t => !t.IsCompleted); } }
     public Exception? LastCloseError { get; private set; }
+    private readonly HashSet<Exception> _closeWarnings = new(ReferenceEqualityComparer.Instance);
+    internal Exception? CloseWarning
+    {
+        get
+        {
+            lock (_state) return _closeWarnings.Count switch
+            {
+                0 => null,
+                1 => _closeWarnings.First(),
+                _ => new AggregateException("OPC UA 已释放；保留远端关闭和已退出回调的诊断", _closeWarnings)
+            };
+        }
+    }
+    internal bool RemoteCloseCallSucceeded => _sessionShutdown?.RemoteCloseCallSucceeded ?? false;
     public string? RetirementKey { get; }
     internal Action? ExecutionCheck { get; set; }
     internal void EnsureAvailableForPublication() { ExecutionCheck?.Invoke(); lock (_state) CheckAvailable(); }
@@ -42,7 +56,7 @@ public sealed class OpcUaConnectionResource : IDisposable
     }
 
     public OpcUaConnectionResource(Session session, int timeoutMs, Action<Exception>? report = null)
-        : this(CreateClose(session), timeoutMs, report) => _session = session;
+        : this(timeoutMs, report) => _session = session;
 
     public OpcUaConnectionResource(int timeoutMs, Action<Exception>? report = null, string? retirementKey = null)
         : this(() => Task.CompletedTask, timeoutMs, report, retirementKey) => _close = CloseAttachedSessionAsync;
@@ -73,29 +87,11 @@ public sealed class OpcUaConnectionResource : IDisposable
     private async Task CloseAttachedSessionAsync()
     {
         if (_session == null) return;
-        if (!_serverClosed)
-        {
-            var status = await _session.CloseAsync(CancellationToken.None).ConfigureAwait(false);
-            if (StatusCode.IsBad(status)) throw new ServiceResultException(status.Code, "OPC UA 关闭 Session 失败");
-            _serverClosed = true;
-        }
-        _session.Dispose();
+        var session = _session;
+        _sessionShutdown ??= new OpcUaSessionShutdown(session.CloseAsync, session.Dispose);
+        await _sessionShutdown.CloseAsync().ConfigureAwait(false);
+        if (_sessionShutdown.Warning is { } warning) RecordCloseWarning(warning);
         _session = null;
-    }
-
-    private static Func<Task> CreateClose(Session session)
-    {
-        bool serverClosed = false;
-        return async () =>
-        {
-            if (!serverClosed)
-            {
-                var status = await session.CloseAsync(CancellationToken.None).ConfigureAwait(false);
-                if (StatusCode.IsBad(status)) throw new ServiceResultException(status.Code, "OPC UA 关闭 Session 失败");
-                serverClosed = true;
-            }
-            session.Dispose();
-        };
     }
 
     public async Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> action, int timeoutMs, string description, CancellationToken ct)
@@ -289,7 +285,9 @@ public sealed class OpcUaConnectionResource : IDisposable
 
     private async Task CloseCoreAsync()
     {
-        _lifetime.Cancel();
+        Task callbacks;
+        try { callbacks = _lifetime.CancelAsync(); }
+        catch (Exception ex) { callbacks = Task.FromException(ex); }
         Task[] pending;
         OpcUaDataAcqTask[] collectors;
         lock (_state)
@@ -297,16 +295,44 @@ public sealed class OpcUaConnectionResource : IDisposable
             collectors = _collectors.ToArray();
             pending = _requests.Concat(_activities.Select(a => a.Task)).ToArray();
         }
-        foreach (var task in collectors) task.Dispose();
-        pending = pending.Concat(collectors.Select(task => task.CloseCompletion)).ToArray();
+        foreach (var task in collectors)
+        {
+            try { task.Dispose(); }
+            catch (Exception ex) { RecordCloseWarning(ex); }
+        }
+        pending = pending.Concat(collectors.Select(task => task.CloseCompletion)).Append(callbacks).ToArray();
         foreach (var task in pending)
         {
             try { await task.ConfigureAwait(false); }
-            catch (Exception ex) { Trace.TraceWarning($"OPC UA 收尾已观察到原始任务退出及其失败：{ex}"); }
+            catch (Exception ex) { RecordCloseWarning(ex); }
         }
-        await _close().ConfigureAwait(false);
+        foreach (var collector in collectors)
+        {
+            if (collector.CancellationError is { } cancellationError) RecordCloseWarning(cancellationError);
+            if (collector.CleanupWarning is { } cleanupWarning) RecordCloseWarning(cleanupWarning);
+            if (collector.LastError is { } readError)
+                RecordCloseWarning(new InvalidOperationException($"OPC UA 采集 {collector.TaskName} 已退出；最近读取诊断：{readError}"));
+            if (collector.LastConsumptionError is { } consumptionError)
+                RecordCloseWarning(new InvalidOperationException($"OPC UA 采集 {collector.TaskName} 已退出；最近消费诊断：{consumptionError}"));
+        }
+        try { await _close().ConfigureAwait(false); }
+        catch (Exception releaseError)
+        {
+            if (CloseWarning is { } warning)
+                throw new AggregateException("OPC UA 本地释放失败；同时保留已退出任务及取消回调的诊断", warning, releaseError);
+            throw;
+        }
         lock (_state) _closed = true;
         _lifetime.Dispose();
+    }
+
+    private void RecordCloseWarning(Exception error)
+    {
+        lock (_state)
+        {
+            IEnumerable<Exception> items = error is AggregateException aggregate ? aggregate.Flatten().InnerExceptions : new[] { error };
+            foreach (var item in items) _closeWarnings.Add(item);
+        }
     }
 
     private void CheckAvailable()

@@ -130,7 +130,11 @@ public sealed class ServiceShutdownSemanticsTests
         using var release = new ManualResetEventSlim();
         var raw = new ConfirmedAdapter();
         if (unknown) raw.OnWrite = _ => throw new InvalidOperationException("fake unknown transmit");
-        else raw.WriteBlock = release;
+        else
+        {
+            raw.WriteBlock = release;
+            raw.OnWrite = frame => { if (frame.Id == 0x80) throw new InvalidOperationException("fake partial batch SDK failure"); };
+        }
         var owner = new CanConnectionResource(raw);
         var registry = (IResourceRegistry)Activator.CreateInstance(typeof(IResourceRegistry).Assembly
             .GetType("xTestPlatform.Core.Engine.ResourceRegistry", true)!, nonPublic: true)!;
@@ -155,7 +159,7 @@ public sealed class ServiceShutdownSemanticsTests
             }
             Assert.Equal(TestStatus.Error, (await stopping).StepResult.Status);
             Assert.False(service.IsClosed); Assert.True(service.Snapshot().Cycle.PartialCycle);
-            if (!unknown) Assert.Equal(service.Snapshot().Cycle.SubmittedFrames, service.Snapshot().Cycle.ConfirmedFrames);
+            if (!unknown) Assert.True(service.Snapshot().Cycle.SubmittedFrames > service.Snapshot().Cycle.ConfirmedFrames);
             await Assert.ThrowsAnyAsync<Exception>(() => owner.CloseAsync());
             Assert.True(owner.IsClosed); Assert.Equal(1, raw.CloseCount);
             Assert.False(service.Snapshot().Cycle.StopCommandsAcknowledged);

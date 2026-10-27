@@ -25,7 +25,7 @@ public sealed class StartCancellationTests
         state.Setting = new CyclicSetting
         {
             ConnectionName = "\"CAN1\"", ServiceName = "\"one\"", EnableMonitoringSync = monitoring,
-            CycleTimeoutMs = 3000, MaxLatenessMs = 1000,
+            CycleTimeoutMs = 3000, MaxLatenessMs = 1000, RequireOnBusConfirmation = true,
             FeedbackRoutes = [new() { Name = "feedback", CobId = "0x181", Dlc = 1 }],
             Targets = [new() { CobId = "0x201", Data = "\"01\"", Dlc = 1 }]
         };

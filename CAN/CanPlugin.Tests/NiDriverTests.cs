@@ -151,9 +151,10 @@ public class NiDriverTests
         }
         public void EmitLast()
         {
-            var echo = _last!.ToArray(); echo[13] = 0x80;
-            BinaryPrimitives.WriteUInt64LittleEndian(echo, Now); _echoes.Enqueue(echo);
+            foreach (var echo in CAN.Tests.NiOrderedBatchTests.BatchDriver.Split(_last!))
+            { echo[13] = 0x80; BinaryPrimitives.WriteUInt64LittleEndian(echo, Now); _echoes.Enqueue(echo); }
         }
+        public override int WriteBatch(uint session, byte[] buffer, double timeoutSeconds) => Write(session, buffer);
         public override int Write(uint session, byte[] buffer)
         {
             _last = buffer.ToArray(); if (EmitEcho) EmitLast(); Written.Set();

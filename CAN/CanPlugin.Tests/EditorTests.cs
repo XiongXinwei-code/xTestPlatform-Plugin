@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using CAN.CANopen.Cyclic;
+using CAN.Runtime;
 using CAN.UI.Views;
 using xTestPlatform.Core.SequenceModels;
 using Xunit;
@@ -14,7 +15,7 @@ public sealed class EditorTests
     {
         var step = new Step();
         step.StepSetting.StepType = plugin.StepTypeId;
-        step.StepSetting.SettingVersion = 1;
+        step.StepSetting.SettingVersion = plugin.CreateSerializer().SettingVersion;
         step.StepSetting.Setting = plugin.CreateSerializer().Serialize(new CyclicSetting());
         return step;
     }
@@ -91,7 +92,7 @@ public sealed class EditorTests
         Assert.Equal("Locals.TargetBytes", view.ViewModel.Targets[0].Data);
         Assert.Equal("0x301", view.ViewModel.Targets[1].CobId);
         Assert.Equal(25, view.ViewModel.PeriodMs);
-        Assert.True(view.ViewModel.RequireOnBusConfirmation);
+        Assert.False(view.ViewModel.RequireOnBusConfirmation);
     }
 
     internal void NewMonitoringTrajectoryAndStopFieldsPersistInActualControls()
@@ -101,12 +102,27 @@ public sealed class EditorTests
         var timingHint = Assert.IsType<TextBlock>(monitorView.FindName("MonitoringTimingHint"));
         Assert.Equal(TextWrapping.Wrap, timingHint.TextWrapping);
         Assert.Contains("发送确认期限", timingHint.Text);
+        Assert.Contains("不重置背景周期", timingHint.Text);
+        Assert.Contains("不合并", timingHint.Text);
         Assert.False(monitorView.ViewModel.EnableMonitoringSync);
-        monitorView.ViewModel.EnableMonitoringSync = true; monitorView.ViewModel.MonitoringPeriodMs = 20;
+        monitorView.ViewModel.EnableMonitoringSync = true; monitorView.ViewModel.MonitoringPeriodMs = 5;
+        monitorView.Measure(new Size(640, 450)); monitorView.Arrange(new Rect(0, 0, 640, 450)); monitorView.UpdateLayout();
+        var confirmation = Assert.IsType<CheckBox>(monitorView.FindName("RequireOnBusConfirmationEditor"));
+        var resynchronize = Assert.IsType<CheckBox>(monitorView.FindName("ResynchronizeLateMonitoringEditor"));
+        var lateLimit = Assert.IsType<TextBox>(monitorView.FindName("MonitoringConsecutiveLatenessLimitEditor"));
+        Assert.True(resynchronize.IsChecked); Assert.Equal("3", lateLimit.Text);
+        resynchronize.IsChecked = false; lateLimit.Text = "5";
+        Assert.False(confirmation.IsChecked);
+        confirmation.IsChecked = false;
+        monitorView.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent));
+        Assert.False(((CyclicSetting)monitorPlugin.CreateSerializer().Deserialize(monitorStep.StepSetting.Setting, 1)).RequireOnBusConfirmation);
         monitorView.ViewModel.SyncData = "\"00\"";
         monitorView.RefreshFromStep(monitorStep);
         Assert.True(monitorView.ViewModel.EnableMonitoringSync);
-        Assert.Equal(20, monitorView.ViewModel.MonitoringPeriodMs);
+        Assert.False(monitorView.ViewModel.RequireOnBusConfirmation);
+        Assert.False(monitorView.ViewModel.ResynchronizeLateMonitoring);
+        Assert.Equal(5, monitorView.ViewModel.MonitoringConsecutiveLatenessLimit);
+        Assert.Equal(5, monitorView.ViewModel.MonitoringPeriodMs);
         monitorView.Measure(new Size(640, 450)); monitorView.Arrange(new Rect(0, 0, 640, 450)); monitorView.UpdateLayout();
         var startupCleanup = Assert.IsType<TextBox>(monitorView.FindName("StopTimeoutMsEditor"));
         Assert.Equal("5000", startupCleanup.Text);
@@ -115,11 +131,26 @@ public sealed class EditorTests
         Assert.Equal(2345, ((CyclicSetting)monitorPlugin.CreateSerializer().Deserialize(monitorStep.StepSetting.Setting, 1)).StopTimeoutMs);
         var plugin = new CycleStartPlugin(); var step = Step(plugin); var view = new CyclicServiceEditorView(plugin);
         view.RefreshFromStep(step);
+        Assert.Equal(10, view.ViewModel.PeriodMs);
+        Assert.Equal(5, monitorView.ViewModel.MonitoringPeriodMs);
+        view.ViewModel.SyncCobId = "0x81"; view.ViewModel.SyncData = "\"55\"";
+        view.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent));
+        view.RefreshFromStep(step); monitorView.RefreshFromStep(monitorStep);
+        Assert.Equal("0x81", view.ViewModel.SyncCobId); Assert.Equal("\"55\"", view.ViewModel.SyncData);
+        Assert.Equal("0x80", monitorView.ViewModel.SyncCobId); Assert.Equal("\"00\"", monitorView.ViewModel.SyncData);
+        Assert.Equal(10, view.ViewModel.PeriodMs); Assert.Equal(5, monitorView.ViewModel.MonitoringPeriodMs);
         view.Measure(new Size(640, 450)); view.Arrange(new Rect(0, 0, 640, 450)); view.UpdateLayout();
         var input = Assert.IsAssignableFrom<DependencyObject>(view.FindName("TrajectoryJsonEditor"));
         input.GetType().GetProperty("ScriptText")!.SetValue(input, "Locals.PointsJson");
         var scriptProperty = (DependencyProperty)input.GetType().GetField("ScriptTextProperty")!.GetValue(null)!;
         BindingOperations.GetBindingExpression(input, scriptProperty)!.UpdateSource();
+        var policy = Assert.IsType<ComboBox>(view.FindName("MissPolicyEditor"));
+        Assert.Equal(TrajectoryMissPolicy.SkipAndCatchUp, policy.SelectedValue);
+        policy.SelectedValue = TrajectoryMissPolicy.HoldLast;
+        Assert.IsType<TextBox>(view.FindName("LatenessWindowMsEditor")).Text = "11";
+        Assert.IsType<TextBox>(view.FindName("MaxSkippedPointsEditor")).Text = "7";
+        Assert.IsType<TextBox>(view.FindName("HoldTimeoutMsEditor")).Text = "88";
+        Assert.IsType<CheckBox>(view.FindName("RequireOnBusConfirmationEditor")).IsChecked = true;
         view.ViewModel.StopCommandsJson = "Locals.ReviewedStopJson";
         view.ViewModel.UseFiniteTrajectory = true; view.ViewModel.SuperviseFeedback = true;
         view.Measure(new Size(640, 450)); view.Arrange(new Rect(0, 0, 640, 450)); view.UpdateLayout();
@@ -127,6 +158,10 @@ public sealed class EditorTests
         Assert.Equal("Locals.PointsJson", view.ViewModel.TrajectoryJson);
         Assert.Equal("Locals.ReviewedStopJson", view.ViewModel.StopCommandsJson);
         Assert.True(view.ViewModel.UseFiniteTrajectory); Assert.True(view.ViewModel.SuperviseFeedback);
+        Assert.Equal(TrajectoryMissPolicy.HoldLast, view.ViewModel.MissPolicy);
+        Assert.Equal(11, view.ViewModel.LatenessWindowMs); Assert.Equal(7, view.ViewModel.MaxSkippedPoints); Assert.Equal(88, view.ViewModel.HoldTimeoutMs);
+        Assert.True(view.ViewModel.RequireOnBusConfirmation);
+        Assert.Equal(2, step.StepSetting.SettingVersion);
         var tabs = Assert.IsType<Syncfusion.Windows.Tools.Controls.TabControlExt>(view.Content);
         var tab = Assert.IsType<Syncfusion.Windows.Tools.Controls.TabItemExt>(tabs.Items[0]);
         Assert.True(Assert.IsType<ScrollViewer>(tab.Content).ScrollableHeight > 0);

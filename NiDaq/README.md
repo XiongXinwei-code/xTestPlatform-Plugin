@@ -1,13 +1,8 @@
 # NiDaq 插件
 
-## 本轮修订 v1.0.25
+当前版本 **1.0.27**：非 AO 任务在 Abort 已返回后继续合法 Dispose，独立保留 Abort 诊断；真实 Dispose 失败缓存，防止空操作伪成功。AO 终值与未知输出约束保持不变。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
-本次生命周期机制修订：退出先冻结等待，再由原任务执行 Abort/释放；无限读取及新建临时任务可结束前台等待，保持实际原生调用归属。
-软件复现、非作者复审与三轮勘误见源码仓库 docs/reviews/2026-10-26-plugin-lifecycle-mechanism.md。完整平台窗口及真实设备仍未验收。
-
-六个前台步骤在任务查询前后核对原始取消和执行代次；保留AO配置、单点输出与任务实际停止和释放能力。
-
-设置字段、枚举与步骤身份保持兼容；非空输出须按手册显式声明完整变量路径。软件验证与三轮勘误记录在源码仓库 docs/reviews/2026-10-25-plugin-lifecycle-followup.md。真实平台调试窗口和设备尚需验收。
+修改汇总与交付边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
 ## 功能概述
 
@@ -53,14 +48,14 @@
 
 AI/同步读取的 `ReadTimeoutMs` 与新增 `ExportTimeoutMs` 分开配置；真实导出在途时保留任务与文件锁。配置、读写和回收不再同步预枚举全部 NI 设备。正常中断后等待原任务真实释放，再配置同物理资源；驱动永久不退出时只能明确隔离，不能承诺强制立即重跑。
 
-本机已只读确认 NI-DAQmx/NI-XNET 26.5 安装，但本次未创建真实 DAQ 设备任务、未输出电压。组件 WPF 与替身测试不代替完整平台及硬件验收；详见项目 `docs/reviews/2026-10-24-plugin-remediation-acceptance.md`。
+本机已只读确认 NI-DAQmx/NI-XNET 26.5 安装，但本次未创建真实 DAQ 设备任务、未输出电压。组件 WPF 与替身测试不代替完整平台及硬件验收；详见项目 `../docs/PLUGIN_CHANGES.md`。
 
 DI/DO 的实际表达式编辑框接收完整 `SequenceFile`/`EditPosition` 上下文；AI/同步/编码器配置在编辑校验时拒绝非有限数值、非法枚举和启用却未填写的触发源，仍由执行器/DAQmx 校验实际设备能力。参数 Description 的默认值与模型同步，编码器读取默认期限为 10000 ms，`-1` 保持原有可取消无限读取语义。
 
-本轮另以真实平台 SDK 注册表验证 `CleanupExecution`（原表重用）与 `CleanupAll`（新调试表）后，前一 fake 物理任务实际释放前不得开始下一次配置；这不是完整调试窗口端到端或硬件时序证据。当前审查及 62 项软件回归证据见 `artifacts/full-plugin-audit-20261024/initial-nidaq-opc.md`。
+本轮另以真实平台 SDK 注册表验证 `CleanupExecution`（原表重用）与 `CleanupAll`（新调试表）后，前一 fake 物理任务实际释放前不得开始下一次配置；这不是完整调试窗口端到端或硬件时序证据。历史过程日志已清理，当前修改范围见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
 第一轮独立勘误后，同一资源表中因中断进入 closing/closed 的旧任务可在本次配置期限内等待并按精确实例移除，首次重配不再被旧登记误挡；活动任务和 AO 输出结果未知仍拒绝接管。结果写入和 Completed 前重新核对原 caller 与当前 owner。AI/同步通道表按选中行删除，卸载/刷新先提交正在编辑的单元格；同步编码器可配置原有 `ZIndexEnable`。
 
 旧 AI/编码器/同步配置、TaskStart/Stop、DI/DO 的 `TimeoutMs` 计时范围是名称/通道/值表达式求值后的 SDK、排队及相关收尾阶段，并非可抢占任意表达式的全步骤期限；求值完成后会重查原 caller，取消后不继续登记/设备动作。AO 的既有更严格表达式+I/O 总预算保持不变。表达式引擎内部永久停顿的终止能力属于宿主边界，本轮未证明可强制中止。
 
-所有 12 步在首次等待前捕获 SDK 执行代次。资源表回收（即使 caller token 尚未取消）后，旧步骤不能查找新运行的同名任务、迟到配置或提交 DI/DO；普通 I/O 与发布返回中文 Error。宿主显式中断标志或原 caller 取消仍为 Aborted。代次检查不阻止已经启动的专用 Stop/Dispose 收尾：AO 仍等待真实 writer 退出，再按明确策略处理终值，未知终值不自动重发。第二轮软件证据见 `artifacts/full-plugin-audit-20261024/round2-nidaq-opc-epoch.md`。
+所有 12 步在首次等待前捕获 SDK 执行代次。资源表回收（即使 caller token 尚未取消）后，旧步骤不能查找新运行的同名任务、迟到配置或提交 DI/DO；普通 I/O 与发布返回中文 Error。宿主显式中断标志或原 caller 取消仍为 Aborted。代次检查不阻止已经启动的专用 Stop/Dispose 收尾：AO 仍等待真实 writer 退出，再按明确策略处理终值，未知终值不自动重发。验证边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。

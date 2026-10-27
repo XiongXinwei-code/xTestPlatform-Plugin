@@ -158,6 +158,9 @@ internal static class NiXnetApi
 
     // 读帧超时错误码（nxErrEventTimeout，0xBFF6300A）
     public const int nxErrEventTimeout = unchecked((int)0xBFF6300A);
+    // nixnet.h: interface stopped-only, write-only u32; setting flushes pending queues.
+    public const uint nxPropSession_IntfCANPendTxOrder = 0x00100020;
+    public const uint nxCANPendTxOrder_AsSubmitted = 0;
 
     /// <summary>检查 NI-XNET 返回状态码：负数为错误抛出异常，正数为警告忽略</summary>
     public static void CheckStatus(int status)

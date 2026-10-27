@@ -34,7 +34,9 @@ public sealed class CyclicSubmissionFollowupTests
             var stop = (CancellationTokenSource)typeof(CanBackgroundJob).GetField("_stop", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(job)!;
             while (!stop.IsCancellationRequested) await Task.Delay(1, guard.Token);
             await ((Task)typeof(CanBackgroundJob).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(job)!).WaitAsync(guard.Token);
-            Assert.False(stopping.IsCompleted); // A gate waiter is still an actual worker.
+            // Cancelling a queued unit now removes it without waiting for an
+            // unrelated older unit to leave the connection FIFO.
+            Assert.Equal(TestStatus.Completed, (await stopping.WaitAsync(guard.Token)).StepResult.Status);
             releaseGate.Set();
             Assert.Equal(TestStatus.Completed, (await stopping.WaitAsync(guard.Token)).StepResult.Status);
             Assert.Equal(0, raw.WriteCount);
@@ -171,10 +173,10 @@ public sealed class CyclicSubmissionFollowupTests
     private static (Task Entered, Task Completion) HoldTransmitGate(CanConnectionResource owner, ManualResetEventSlim release)
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var transmitGate = typeof(CanConnectionResource).GetField("_txGate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
+        var transmitGate = (CanSubmissionGate)typeof(CanConnectionResource).GetField("_txGate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
         var completion = Task.Run(() =>
         {
-            lock (transmitGate)
+            using (transmitGate.Enter(null, default, () => { }, 0))
             {
                 entered.TrySetResult();
                 if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("test transmit-gate barrier");

@@ -302,7 +302,7 @@ public sealed class OwnerRetirementMechanismTests
     {
         Assert.Same(waiting, await Task.WhenAny(waiting, Task.Delay(400)));
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => waiting);
-        Assert.Contains("退出", error.Message);
+        Assert.True(error.Message.Contains("退出", StringComparison.Ordinal) || error.Message.Contains("关闭", StringComparison.Ordinal), error.Message);
     }
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private sealed class CallbackExecutor(Func<CancellationToken, Task<ExecutionResult>> run) : IStepExecutor

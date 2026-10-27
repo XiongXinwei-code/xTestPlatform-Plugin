@@ -66,6 +66,9 @@ public sealed class SerialPortCloseExecutor : IStepExecutor
                         context.Resources.Remove(key);
                 }
                 Remaining();
+                if (port.CloseWarning is { } warning)
+                    context.Log(LogLevel.Warn, $"串口 {portName} 已释放；保留已退出的中断或取消回调诊断", warning.ToString());
+                Remaining();
                 context.Log($"串口 {portName} 已关闭");
                 Remaining();
             }

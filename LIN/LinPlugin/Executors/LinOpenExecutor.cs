@@ -37,13 +37,13 @@ public sealed class LinOpenExecutor : IStepExecutor
 
             var key = LinHelper.GetAdapterKey(connName);
 
-            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining());
+            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining(), key);
             epoch.ThrowIfExpired();
             if (context.Resources.TryGet<ILinAdapter>(key, out var previous))
             {
                 if (previous is not LinConnectionResource retiring || (!retiring.IsClosing && !retiring.IsClosed))
                     throw new InvalidOperationException($"LIN 连接 {connName} 已存在，请先确认关闭");
-                try { await retiring.CloseAsync(Remaining(), cancellationToken); }
+                try { if (!retiring.IsClosed) await retiring.ClosePhysicalAsync(Remaining(), cancellationToken); }
                 catch (Exception ex) when (retiring.IsClosed && !cancellationToken.IsCancellationRequested)
                 { context.Log(LogLevel.Error, "旧 LIN 连接已释放；记录历史收尾错误后继续本次打开", ex.ToString()); }
                 finally

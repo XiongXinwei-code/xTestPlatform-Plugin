@@ -30,7 +30,7 @@ public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSettin
 
         - 先冻结当前代次的新操作，再等待真实任务和 SDK 释放；只在确认释放后移除自己的资源。超时/取消不代表底层已退出，未完成或关闭失败的 owner 保留诊断与重试入口；立即重跑将按打开/配置步骤期限等待旧收尾，不强制关闭其他活动连接。
 
-        - 从运行期资源表中查找 `ConnectionName` 对应的会话，关闭会话并从表中移除
+        - 从运行期资源表中查找 `ConnectionName` 对应的会话，关闭会话并从表中移除；远端关闭失败与本地 Dispose 分别记录，本地真实释放成功后历史诊断记 Warn，不宣称服务器会话删除已确认
         - 连接名不存在或已断开时**不报错**，仅记录日志并按 Completed 返回
 
         ## 相关插件

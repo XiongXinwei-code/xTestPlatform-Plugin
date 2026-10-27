@@ -13,6 +13,9 @@ namespace Http.Executors;
 public sealed class HttpClientCreateExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<Func<System.Net.Http.HttpClient>, int, CancellationToken, PluginCommon.OwnerStopSignal?, Task<System.Net.Http.HttpClient>> _build;
+    public HttpClientCreateExecutor() : this(HttpHelper.BuildClientAsync) { }
+    internal HttpClientCreateExecutor(Func<Func<System.Net.Http.HttpClient>, int, CancellationToken, PluginCommon.OwnerStopSignal?, Task<System.Net.Http.HttpClient>> build) => _build = build;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -60,7 +63,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
                 return Error("服务基地址不是合法的 HTTP(S) 绝对 URL");
 
             var key = HttpHelper.GetClientKey(clientName);
-            registrationGate = HttpHelper.GetRegistryGate(execution);
+            registrationGate = HttpHelper.GetRegistryGate(execution, clientName);
             if (!await execution.StopSignal.EnterAsync(registrationGate, Remaining(), cancellationToken, "HTTP 客户端建立排队"))
                 throw new TimeoutException($"等待 HTTP 客户端建立生命周期操作超过 {setting.TimeoutMs} ms");
             ownsGate = true;
@@ -93,7 +96,7 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
             }
             int creationRemaining = setting.TimeoutMs == 0 ? 0 : setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
             if (setting.TimeoutMs != 0 && creationRemaining <= 0) throw new TimeoutException($"HTTP 客户端建立总超时 {setting.TimeoutMs} ms 已到");
-            var client = stagedClient = await HttpHelper.BuildClientAsync(() =>
+            var client = stagedClient = await _build(() =>
             {
                 CheckExecution();
                 var built = HttpHelper.BuildClient(baseUrl, setting.TimeoutMs, setting.AuthMode, userName, password,
@@ -120,20 +123,48 @@ public sealed class HttpClientCreateExecutor : IStepExecutor
 
             cancellationToken.ThrowIfCancellationRequested(); // Never publish a client after sequence cancellation.
             CheckExecution();
-            if (setting.ReplaceIfExists && context.Resources.TryGet<HttpClientResource>(key, out var previous))
+            HttpClientResource? previous = null;
+            if (setting.ReplaceIfExists && context.Resources.TryGet<HttpClientResource>(key, out var foundPrevious))
             {
+                previous = foundPrevious;
                 int remaining = Remaining(); // lookup可能跨越SDK回收，触碰返回owner前复查原执行代次。
                 if (remaining == Timeout.Infinite) remaining = int.MaxValue;
-                await execution.StopSignal.WaitAsync(previous.CloseAsync(remaining, cancellationToken),
+                await execution.StopSignal.WaitAsync(foundPrevious.CloseAsync(remaining, cancellationToken),
                     TimeSpan.FromMilliseconds(remaining), cancellationToken, "替换 HTTP 客户端前等待旧资源关闭");
                 cancellationToken.ThrowIfCancellationRequested();
                 CheckExecution();
             }
-            if (setting.TimeoutMs > 0 && budget.ElapsedMilliseconds >= setting.TimeoutMs)
-                throw new TimeoutException($"HTTP 客户端建立登记前已超过总期限 {setting.TimeoutMs} ms");
-            if (setting.ReplaceIfExists) context.Resources.Set(key, resource);
-            else if (!context.Resources.TryAdd(key, resource)) throw new InvalidOperationException("同名 HTTP 客户端已存在");
-            CheckExecution();
+            var publicationGate = HttpHelper.GetPublicationGate(context.Resources, clientName);
+            if (!await execution.StopSignal.EnterAsync(publicationGate, Remaining(), cancellationToken, "HTTP 客户端发布登记排队"))
+                throw new TimeoutException($"等待 HTTP 客户端发布登记超过总期限 {setting.TimeoutMs} ms");
+            try
+            {
+                _ = Remaining();
+                if (setting.ReplaceIfExists)
+                {
+                    bool found = context.Resources.TryGet<HttpClientResource>(key, out var current);
+                    _ = Remaining();
+                    if ((found && !ReferenceEquals(current, previous)) || (!found && context.Resources.Contains(key)))
+                        throw new InvalidOperationException("HTTP 同名客户端已被其它所有者替换，拒绝覆盖未收尾资源");
+                }
+                try
+                {
+                    _ = Remaining();
+                    if (setting.ReplaceIfExists) context.Resources.Set(key, resource);
+                    else if (!context.Resources.TryAdd(key, resource)) throw new InvalidOperationException("同名 HTTP 客户端已存在");
+                    CheckExecution();
+                }
+                catch
+                {
+                    // Cleanup may invalidate the epoch during a registry method.
+                    // The cross-epoch fence keeps a fresh publisher outside while
+                    // this exact staged owner is compensated; never remove another.
+                    if (context.Resources.TryGet<HttpClientResource>(key, out var current) && ReferenceEquals(current, resource))
+                        context.Resources.Remove(key, false);
+                    throw;
+                }
+            }
+            finally { publicationGate.Release(); }
 
             var endpoint = HttpHelper.DescribeEndpoint(baseUrl);
             if (setting.IgnoreServerCertificateErrors)

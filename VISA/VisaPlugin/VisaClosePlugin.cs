@@ -35,6 +35,8 @@ public sealed class VisaClosePlugin : StepPluginBase<VisaCloseSetting>
         - 确认真正关闭后才移除 `ConnectionName` 对应的会话及其终止符配置，不影响其他名称的活动会话
         - 连接名不存在时**不报错**，按 Completed 返回
 
+        - 真实 Dispose 失败保留句柄与原始异常；厂商后续空操作不作为释放成功证据。
+
         ## 相关插件
 
         - `VISA_Open`：打开仪器会话

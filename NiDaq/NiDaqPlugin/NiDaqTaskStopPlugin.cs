@@ -31,7 +31,7 @@ public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>
 
         - 先冻结当前代次的新操作，再等待真实任务和 SDK 释放；只在确认释放后移除自己的资源。超时/取消不代表底层已退出，未完成或关闭失败的 owner 保留诊断与重试入口；立即重跑将按打开/配置步骤期限等待旧收尾，不强制关闭其他活动连接。
 
-        - 停止后任务对象被释放，需重新配置才能再次使用
+        - 停止后任务对象被释放，需重新配置才能再次使用；非 AO 的 Abort 返回错误不阻止实际 I/O 退出后的合法 Dispose，历史诊断记 Warn。实际 Dispose 失败保留原实例，不以第二次空操作假报成功
         - AO 不并发 Abort 正在执行的 writer：等待真实调用后，按 AO_Config 的 StopPolicy 处理指定终值或设备默认行为，再 Stop/释放。其 CleanupTimeoutMs 限制真实输出收尾；本步骤 TimeoutMs 只限制本次等待。
         - 指定终值失败/结果未知时，即使 Stop 已返回也保留隔离与错误，不盲重发或假报电气安全。正常重试仅允许已确认终值的后续 Stop/释放，或此前期限到而尚未提交的清理；真正未退出的调用继续保留引用。
 

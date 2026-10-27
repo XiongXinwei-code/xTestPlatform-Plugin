@@ -51,13 +51,19 @@ public sealed class OpcUaDisconnectExecutor : IStepExecutor
                     await target.CloseAsync(OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs), cancellationToken);
                     if (context.Resources.TryGet<OpcUaConnectionResource>(key, out var current) && ReferenceEquals(current, target))
                         context.Resources.Remove(key, dispose: false);
-                    context.Log($"OPC UA 关闭请求捕获的原连接及其后台活动已确认退出: {connName}；后续新代次保持不变");
                 }
-                else context.Log(LogLevel.Warn, $"OPC UA 关闭请求开始时未找到原连接 {connName}；不处理后来注册的新代次");
             }
             finally { registration.Release(); }
 
+            if (target != null)
+            {
+                if (target.CloseWarning is { } warning)
+                    context.Log(LogLevel.Warn, $"OPC UA 连接 {connName} 本地资源已释放；保留远端关闭或已退出回调的诊断，SDK关闭调用成功={target.RemoteCloseCallSucceeded}（不等于服务器删除确认）", warning.ToString());
+                context.Log($"OPC UA 关闭请求捕获的原连接及其后台活动已确认退出: {connName}；后续新代次保持不变");
+            }
+            else context.Log(LogLevel.Warn, $"OPC UA 关闭请求开始时未找到原连接 {connName}；不处理后来注册的新代次");
             guard.Check();
+            _ = OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs);
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = target == null ? $"原连接不存在: {connName}" : $"原连接已断开: {connName}" }

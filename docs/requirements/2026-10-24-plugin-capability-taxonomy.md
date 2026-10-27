@@ -1,5 +1,7 @@
 # 全插件能力补齐与树形分层建议
 
+> 历史需求评估（2026-10-24）：以下计数、问题状态与候选能力反映编写时的基线，不能作为当前版本结论。当前修改、交付与未验证范围见 [插件修改说明](../PLUGIN_CHANGES.md)。
+
 2026-10-24；L3，只读评估。本文是后续实施的唯一汇总方案，**不是功能完成清单**。本轮没有修改插件代码、步骤名称、StepTypeId、设置、UI、版本、序列或交付包，没有提交/推送，没有设备动作。
 
 ## 一、先回答“现有插件是否都没有问题”
@@ -13,7 +15,7 @@
 
 其余问题根据源码未变保留“未修”，没有冒称本轮逐项动态复现。上一轮 9 个测试项目 545/545 的结果只能作为未变代码的已有回归证据，不能否定已复现的缺陷，也不是本轮重新执行的 545 项测试。
 
-详细问题和准入复核见 [生命周期审查](/D:/project/xTestPlatform_Plugin/docs/reviews/2026-10-24-plugin-lifecycle-blocking-audit.md)、[本轮复核记录](/D:/project/xTestPlatform_Plugin/artifacts/plugin-capability-audit/READINESS.md)。既有风险包括迟到 I/O、部分同步调用不受总预算约束、DAQ 枚举/导出边界、故障服务收尾以及个别步骤超时配置未接入。
+原过程审查报告已清理；现有修改与交付边界见 [插件修改说明](../PLUGIN_CHANGES.md)。
 
 因此推荐顺序是：**先修复和验证生命周期缺陷 → 单独整理树形展示 → 实施最小 AO 能力 → 按真实序列需求选择下一项协议能力。** 分类可以单独批准，不必等所有功能开发结束；但分类完成不是输出类新功能的安全准入证明。审查也无法证明软件在所有驱动、设备和交错下绝无问题。
 
@@ -41,7 +43,7 @@
 - 给出真实 pending、后台退出、句柄释放、最近错误和支持字段；未知统计为 Unknown/null，不填 0。
 - 查询成功只表示取得状态，不表示远端在线、电机停稳或端子达到安全电压。驱动状态读取若需要，必须显式、有界并标注观察时间。
 
-完整逐模块事实、候选输入输出和来源见 [NI-DAQ 报告](/D:/project/xTestPlatform_Plugin/artifacts/plugin-capability-audit/nidaq/REVIEW.md)、[八个通信插件报告](/D:/project/xTestPlatform_Plugin/artifacts/plugin-capability-audit/protocols/REVIEW.md)。这些报告中的储备项不是一次性实施清单。
+完整逐模块事实、候选输入输出和来源见 [NI-DAQ 报告（原过程记录已清理）](../PLUGIN_CHANGES.md)、[八个通信插件报告（原过程记录已清理）](../PLUGIN_CHANGES.md)。这些报告中的储备项不是一次性实施清单。
 
 ## 三、树形分层：CiA402 确实应该先整理
 
@@ -80,7 +82,7 @@ Motion
 - NI-DAQ：保持 AI / DI / DO / Encoder / Sync / Task；以后 AO 自成一组。现有 Sync 是 AI+CI，不扩张解释为 AO/AI 同步。
 - OPC UA 的 Session / Data、HTTP 的 Client / Extract 可选整理；LIN、Modbus、SerialPort、VISA 当前无需强行细分。
 
-已提供 [全部 118 项当前→候选映射](/D:/project/xTestPlatform_Plugin/artifacts/plugin-capability-audit/taxonomy/REVIEW.md:48) 和 [机器可读清单](/D:/project/xTestPlatform_Plugin/artifacts/plugin-capability-audit/taxonomy/proposed-metadata.json)。候选共 54 项更名、64 项保持：优先 CiA402 18、CANopen 14、Ethernet 6（共 38）；另 16 项 UDS/HTTP/OPC UA 只是可选项。**本轮未实际更名。**
+已提供 [全部 118 项当前→候选映射（原过程记录已清理）](../PLUGIN_CHANGES.md) 和 [机器可读清单（原过程记录已清理）](../PLUGIN_CHANGES.md)。候选共 54 项更名、64 项保持：优先 CiA402 18、CANopen 14、Ethernet 6（共 38）；另 16 项 UDS/HTTP/OPC UA 只是可选项。**本轮未实际更名。**
 
 ### 分类迁移与回退合同
 
@@ -166,7 +168,7 @@ StepTypeId、设置类型、SettingVersion、序列化键、枚举数值、Edito
 
 采用 ECC planner/architect、product-capability、C# 与异常传播审查方法、verification-loop；按 L3 安排原生子 Agent 只读模块审查和汇总方案独立复核。没有把方法文件名称当作已注册工具，没有安装额外能力。
 
-本轮已执行健康基线指纹比较、2 项离线缺陷探针，以及全 118 项元数据提取/映射校验。候选映射 ID/Category 不变、大小写路径唯一、叶父不冲突、最多 3 子层；NI-DAQ 98 个基线文件另做只读指纹核对。最终 UTF-8、文档和来源核对结果记录于 [执行计划与验收](/D:/project/xTestPlatform_Plugin/docs/plans/2026-10-24-plugin-capability-taxonomy-review.md)。探针退出码 0 只表示探针正常运行，不表示已复现的缺陷通过验收。
+本轮已执行健康基线指纹比较、2 项离线缺陷探针，以及全 118 项元数据提取/映射校验。候选映射 ID/Category 不变、大小写路径唯一、叶父不冲突、最多 3 子层；NI-DAQ 98 个基线文件另做只读指纹核对。最终 UTF-8、文档和来源核对结果记录于 [当前功能与交付说明](../PLUGIN_CHANGES.md)。探针退出码 0 只表示探针正常运行，不表示已复现的缺陷通过验收。
 
 未执行：新功能失败/通过测试、产品重新构建、覆盖率测量、宿主 WPF/工具箱 E2E、驱动/设备/电机动作、实际序列改造。原因是本轮只读评估、无产品行为变化，且未具备设备资格；不拿上一轮测试替代未来新增能力的测试。
 

@@ -6,7 +6,9 @@ namespace CAN.Adapters.NiXnet;
 /// <summary>NI-XNET CAN 适配器实现</summary>
 public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics, CAN.Runtime.ICanQueueStatistics,
     CAN.Runtime.ICanConfirmedTransmitter, CAN.Runtime.ICanClockValidity, CAN.Runtime.ICanCloseState,
-    CAN.Runtime.ICanTransmitQuiescence, CAN.Runtime.ICanBudgetedConfirmedTransmitter
+    CAN.Runtime.ICanTransmitQuiescence, CAN.Runtime.ICanBudgetedConfirmedTransmitter,
+    CAN.Runtime.ICanBudgetedConfirmedBatchTransmitter, CAN.Runtime.ICanBudgetedConfirmationProbe,
+    CAN.Runtime.ICanBudgetedBatchSubmitter
 {
     // nxFrameVar_t 的最大长度：16 字节头 + 64 字节 CAN FD 数据。
     private const int MaxRawFrameSize = 80;
@@ -89,6 +91,12 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
             NiXnetApi.nxMode_FrameOutStream,
             out _txSession);
         NiXnetApi.CheckStatus(status);
+
+        // Write-only interface property; only configure before any nxStart.
+        // ByIdentifier could put lower-ID SYNC ahead of pending RPDOs.
+        uint order = NiXnetApi.nxCANPendTxOrder_AsSubmitted;
+        _batchOrderStatus = NiXnetApi.nxSetProperty(_txSession, NiXnetApi.nxPropSession_IntfCANPendTxOrder, sizeof(uint), ref order);
+        _orderedBatchAvailable = _batchOrderStatus >= 0;
 
         // 设置仲裁段波特率。自定义位时序必须使用 U64 属性；普通模式保留原 U32
         // 写法作为兼容回退，避免改变既有序列在旧硬件/旧驱动上的行为。
@@ -190,7 +198,7 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
             config.AppliedDataSamplePoint = config.DataBitTiming.SamplePoint;
         }
 
-        _epoch = Guid.NewGuid(); _transmits.Reset(_epoch); _clock.Invalidate(); _closing = false; _strictEnabled = false; _unknownSend = false;
+        _epoch = Guid.NewGuid(); _transmits.Reset(_epoch); _clock.Invalidate(); _closing = false; _strictEnabled = false; _unknownSend = false; _hasUntrackedSubmissions = false;
         _isConnected = true;
         StartReceivePump();
     }
@@ -321,6 +329,7 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
             while (!ct.IsCancellationRequested)
             {
                 int status = _io.Read(_rxSession, buffer, out uint bytesRead);
+                long readReturned = System.Diagnostics.Stopwatch.GetTimestamp();
                 lock (_lock)
                 {
                     _pumpReadCalls++;
@@ -340,7 +349,7 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
 
                 foreach (var frame in ParseFrames(buffer, (int)bytesRead))
                 {
-                    if (frame.IsTransmitEcho) { _transmits.Observe(_epoch, frame); continue; }
+                    if (frame.IsTransmitEcho) { _transmits.Observe(_epoch, frame, readReturned); continue; }
                     frame.TimestampDomain = "NI-XNET.FILETIME100ns/UnixNs";
                     frame.ClockId = _clock.ClockId;
                     if (frame.RawTimestamp100ns is ulong timestamp)
@@ -376,6 +385,7 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
             {
                 _receivePumpError = ex;
             }
+            _transmits.Signal();
         }
     }
 
@@ -472,6 +482,7 @@ public sealed partial class NiXnetAdapter : ICanAdapter, ICanAdapterDiagnostics,
     {
         lock (_lock) return _lastReceiveDiagnostics +
             $"；NI代次={_epoch}；待确认={_transmits.PendingCount}；严格模式={_strictEnabled}；发送未知={_unknownSend}" +
+            $"；整批顺序已配置={_orderedBatchAvailable}；顺序属性状态=0x{_batchOrderStatus:X8}" +
             $"；时钟={_clock.ClockId}；时钟有效={IsClockCurrent(_clock.ClockId)}；校准错误={_clockError ?? "无"}";
     }
 

@@ -31,9 +31,12 @@ public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSett
 
 
 		- 先冻结当前代次的新操作，再等待真实任务和 SDK 释放；只在确认释放后移除自己的资源。超时/取消不代表底层已退出，未完成或关闭失败的 owner 保留诊断与重试入口；立即重跑将按打开/配置步骤期限等待旧收尾，不强制关闭其他活动连接。
+		- TCP 取消本连接的原生 I/O，RTU 调用本串口的 SDK 中断及关闭入口；原始任务和中断调用都退出后才最终释放。部分字节可能已发送，取消不保证撤回，也不自动重发。
 
 		- 从运行期资源表中移除 `ConnectionName` 对应的主站对象及其底层传输对象，移除时会自动释放
 		- 连接名不存在时**不报错**，按 Completed 返回
+
+		- 真实 I/O/中断已退出且最终 Dispose 成功时，历史诊断保留 Warn；最终释放失败仍报 Error 并保留原实例。
 
 		## 相关插件
 

@@ -145,9 +145,8 @@ public sealed class AcquisitionBudgetTests
             await reading.Task.WaitAsync(TimeSpan.FromSeconds(2));
             await ExpressionEvaluatorFactory.Default.EvalStringAsync(setting.TaskName, context);
             var result = await plugin.CreateExecutor().ExecuteAsync(context);
-            Assert.Equal(TestStatus.Error, result.StepResult.Status);
-            Assert.Contains("已实际退出", result.StepResult.Error!.Message);
-            Assert.Contains("SDK stop callback failed", result.StepResult.Error.Detail);
+            Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+            Assert.Contains("SDK stop callback failed", task.CancellationError!.ToString());
             Assert.False(state.Resources.ContainsKey(key));
             Assert.True(task.HasExited);
         }

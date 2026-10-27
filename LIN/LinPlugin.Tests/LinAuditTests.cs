@@ -86,14 +86,16 @@ public sealed class LinAuditTests
     }
 
     [Fact]
-    public async Task WorkerFailureIsReportedByStopAndCloseAfterSafeRelease()
+    public async Task WorkerFailureIsKeptAsDiagnosticAfterSafeStopAndClose()
     {
         var raw = new BlockingAdapter { WriteFailure = new InvalidOperationException("driver write failed") };
         var resource = new LinConnectionResource(raw);
         var job = resource.StartJob([ct => Task.Run(() => resource.Write(new() { Data = [1] }))]);
         await job.Completion.WaitAsync(TimeSpan.FromSeconds(2));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => job.StopAsync());
-        await Assert.ThrowsAsync<AggregateException>(() => resource.CloseAsync());
+        await job.StopAsync();
+        Assert.Contains("driver write failed", job.StopWarning!.ToString());
+        await resource.CloseAsync();
+        Assert.Contains("driver write failed", resource.CloseWarning!.ToString());
         Assert.True(resource.IsClosed); Assert.Equal(1, raw.CloseCount);
     }
 
@@ -103,7 +105,8 @@ public sealed class LinAuditTests
         var driver = new Driver { FailClear = false, FailStop = true };
         var resource = new LinConnectionResource(new NiXnetLinAdapter(driver));
         resource.Open(new() { Channel = "LIN1" });
-        await Assert.ThrowsAsync<AggregateException>(() => resource.CloseAsync());
+        await resource.CloseAsync();
+        Assert.NotNull(resource.CloseWarning);
         Assert.True(resource.IsClosed); Assert.Equal(2, driver.Clears.Count);
     }
 
@@ -221,7 +224,8 @@ public sealed class LinAuditTests
         await job.Completion;
         state.Plugin = new LinClosePlugin(); state.Setting = new LinCloseSetting { ConnectionName = "\"LIN1\"" };
         var result = await new LinCloseExecutor().ExecuteAsync(context);
-        Assert.Equal(TestStatus.Error, result.StepResult.Status);
+        Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+        Assert.Contains("driver failed", connection.CloseWarning?.ToString() ?? "");
         Assert.True(connection.IsClosed);
         Assert.DoesNotContain(state.Items, item => !item.Key.StartsWith("PluginCommon.ExecutionEpoch:", StringComparison.Ordinal));
     }

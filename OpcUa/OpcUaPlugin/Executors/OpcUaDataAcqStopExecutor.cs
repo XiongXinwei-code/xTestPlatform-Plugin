@@ -59,22 +59,26 @@ public sealed class OpcUaDataAcqStopExecutor : IStepExecutor
                 if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var current) || !ReferenceEquals(current, acqTask))
                     throw new InvalidOperationException("采集任务代次已改变，未关闭新任务，请重新执行停止");
                 records = await acqTask.StopAsync(OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs), cancellationToken);
+                acqTask.Dispose();
+                await acqTask.CloseCompletion.WaitAsync(
+                    TimeSpan.FromMilliseconds(OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs)), cancellationToken);
                 guard.Check();
                 if (!context.Resources.TryGet<OpcUaDataAcqTask>(taskKey, out var stoppedCurrent) || !ReferenceEquals(stoppedCurrent, acqTask))
                     throw new InvalidOperationException("旧采集任务已停止，但表中已是新代次，未移除后来任务");
                 context.Resources.Remove(taskKey, dispose: false);
                 context.Resources.Remove(taskKey + "_items");
-                acqTask.Dispose();
             }
             finally { registration.Release(); }
 
             if (acqTask.CancellationError is { } callbackError)
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(callbackError, "OPC UA 采集已实际退出并移除，但底层取消回调失败；请检查异常详情") } };
+                context.Log(LogLevel.Warn, $"OPC UA 采集 {taskName} 已实际退出并释放；保留已退出的取消回调诊断", callbackError.ToString());
+            if (acqTask.CleanupWarning is { } cleanupWarning)
+                context.Log(LogLevel.Warn, $"OPC UA 采集 {taskName} 已释放；保留已退出任务的收尾诊断", cleanupWarning.ToString());
 
             context.Log($"OPC UA 数据采集已停止: {taskName} (丢弃未消费数据 {records.Count} 条)");
             guard.Check();
 
+            _ = OpcUaHelper.RemainingBudget(startedAt, setting.TimeoutMs);
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = $"采集已停止: {taskName}" }

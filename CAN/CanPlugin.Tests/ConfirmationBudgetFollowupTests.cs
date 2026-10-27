@@ -120,6 +120,20 @@ public sealed class ConfirmationBudgetFollowupTests
         internal int Writes;
         private readonly ConcurrentQueue<byte[]> _incoming = new();
         private byte[]? _delayed;
+        private byte[][] _following = [];
+        public override int WriteBatch(uint session, byte[] buffer, double timeoutSeconds)
+        {
+            var frames = NiOrderedBatchTests.BatchDriver.Split(buffer).ToArray();
+            int delayed = Array.FindIndex(frames, frame => BinaryPrimitives.ReadUInt32LittleEndian(frame.AsSpan(8)) == delayedId);
+            if (delayed >= 0) _following = frames.Skip(delayed + 1).ToArray();
+            for (int i = 0; i < frames.Length; i++)
+            {
+                Interlocked.Increment(ref Writes);
+                if (i == delayed) { _delayed = frames[i]; written.TrySetResult(); }
+                else if (delayed < 0 || i < delayed) Echo(frames[i]);
+            }
+            return 0;
+        }
         private static ulong Now => 130000000000000000UL + (ulong)(Stopwatch.GetTimestamp() * (10_000_000m / Stopwatch.Frequency));
         public override int Read(uint session, byte[] buffer, out uint count)
         { if (_incoming.TryDequeue(out var frame)) { frame.CopyTo(buffer, 0); count = (uint)frame.Length; } else count = 0; return 0; }
@@ -134,6 +148,7 @@ public sealed class ConfirmationBudgetFollowupTests
         public void EmitDelayed()
         {
             var frame = _delayed!; Echo(frame);
+            foreach (var following in _following) Echo(following);
             if (delayedId == 0x601)
             {
                 var response = new byte[24]; BinaryPrimitives.WriteUInt32LittleEndian(response.AsSpan(8), 0x581);

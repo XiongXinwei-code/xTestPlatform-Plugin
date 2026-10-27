@@ -14,6 +14,12 @@ public interface ISerialChannel : IDisposable
     void Write(byte[] bytes);
 }
 
+/// <summary>关闭专用中断能力；返回不代表原始 I/O 已退出或全部字节未发送。</summary>
+public interface IInterruptibleSerialChannel
+{
+    void CancelPendingIo();
+}
+
 /// <summary>同一串口只有一个完整事务，余量帧归连接所有；取消不撤回已经发出的字节。</summary>
 public sealed class SerialConnectionResource : IDisposable
 {
@@ -23,12 +29,17 @@ public sealed class SerialConnectionResource : IDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly List<byte> _buffer = new();
     private readonly Action<Exception>? _report;
+    private readonly object _shutdownSync = new();
+    private Task<Exception?>? _shutdown;
+    private Task? _closeObserver;
+    private bool _releasing, _releaseCompleted;
     private volatile bool _ready;
     private int _closing;
     public string? PhysicalResourceKey { get; }
     public bool IsOpen => _ready && Volatile.Read(ref _closing) == 0 && _channel.IsOpen && !_io.IsClosed;
     public int WriteTimeout => _channel.WriteTimeout;
     public bool IsClosed => _io.IsClosed;
+    internal Exception? CloseWarning { get; private set; }
     internal Task? CloseCompletion => _io.CloseCompletion;
     internal bool IsClosing => Volatile.Read(ref _closing) != 0;
 
@@ -135,18 +146,86 @@ public sealed class SerialConnectionResource : IDisposable
     }
     private byte[] Take(int count) { var result = _buffer.GetRange(0, count).ToArray(); _buffer.RemoveRange(0, count); return result; }
     private static int Guard(int timeoutMs) => timeoutMs == -1 ? -1 : (int)Math.Min(int.MaxValue, (long)timeoutMs + 1000);
-    public Task CloseAsync(int timeoutMs, CancellationToken ct)
+    public async Task CloseAsync(int timeoutMs, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
-        Interlocked.Exchange(ref _closing, 1);
-        TrackRetirement();
-        var closing = _io.CloseAsync(_channel.Dispose, timeoutMs, ct);
+        var shutdown = RequestShutdown();
+        var closing = _io.CloseWithReleaseAsync(ReleaseAfterShutdownAsync, timeoutMs, ct);
         ObserveRelease();
-        _lifetime.Cancel();
-        return closing;
+        try { await closing.ConfigureAwait(false); }
+        catch (Exception ex) when (shutdown.IsCompletedSuccessfully && shutdown.Result is { } stopError && !ct.IsCancellationRequested)
+        { throw new AggregateException("串口关闭及中断请求失败", stopError, ex); }
+        // The release callback already joined shutdown. A completed interrupt
+        // failure is diagnostic once real I/O and final Dispose have succeeded.
     }
-    public void Dispose() { Interlocked.Exchange(ref _closing, 1); TrackRetirement(); _io.RequestClose(_channel.Dispose, _report); ObserveRelease(); _lifetime.Cancel(); }
+    public void Dispose()
+    {
+        var shutdown = RequestShutdown();
+        _io.RequestAsyncClose(ReleaseAfterShutdownAsync);
+        ObserveRelease();
+        var actualClose = _io.CloseCompletion!;
+        lock (_shutdownSync)
+            if (_closeObserver is null || _closeObserver.IsCompleted)
+                _closeObserver = Task.Run(() => ObserveCloseAsync(actualClose, shutdown));
+    }
+    private Task<Exception?> RequestShutdown()
+    {
+        Interlocked.Exchange(ref _closing, 1);
+        _io.RequestStop();
+        TrackRetirement();
+        lock (_shutdownSync)
+        {
+            if (_shutdown is null || (!_releasing && !_releaseCompleted &&
+                _shutdown.IsCompletedSuccessfully && _shutdown.Result is not null))
+                _shutdown = Task.Run(ShutdownCoreAsync);
+            return _shutdown;
+        }
+    }
+    private async Task<Exception?> ShutdownCoreAsync()
+    {
+        List<Exception> errors = [];
+        Task callbacks;
+        try { callbacks = _lifetime.CancelAsync(); } catch (Exception ex) { callbacks = Task.FromException(ex); }
+        var interrupt = _channel is IInterruptibleSerialChannel channel ? Task.Run(channel.CancelPendingIo) : Task.CompletedTask;
+        try { await callbacks.ConfigureAwait(false); } catch (Exception ex) { errors.Add(ex); }
+        try { await interrupt.ConfigureAwait(false); } catch (Exception ex) { errors.Add(ex); }
+        return errors.Count switch { 0 => null, 1 => errors[0], _ => new AggregateException("串口中断请求失败", errors) };
+    }
+    private async Task ReleaseAfterShutdownAsync()
+    {
+        Task<Exception?> shutdown;
+        lock (_shutdownSync) { _releasing = true; shutdown = _shutdown!; }
+        try
+        {
+            var warning = await shutdown.ConfigureAwait(false);
+            _channel.Dispose();
+            CloseWarning = warning;
+            // The shared gate publishes IsClosed after this callback returns.
+            // Keep physical-release success permanent across that publication gap.
+            lock (_shutdownSync) _releaseCompleted = true;
+        }
+        finally { lock (_shutdownSync) _releasing = false; }
+    }
+    private async Task ObserveCloseAsync(Task actualClose, Task<Exception?> shutdown)
+    {
+        Exception? failure = null;
+        try { await actualClose.ConfigureAwait(false); } catch (Exception ex) { failure = ex; }
+        if (await shutdown.ConfigureAwait(false) is { } stopError && failure != null)
+            failure = new AggregateException("串口后台收尾失败", failure, stopError);
+        if (failure is null)
+        {
+            if (CloseWarning is { } warning)
+            {
+                Trace.TraceWarning($"串口已实际释放，保留中断诊断：{warning}");
+                try { _report?.Invoke(warning); }
+                catch (Exception ex) { Trace.TraceError($"串口已释放后的诊断回调失败：{ex}"); }
+            }
+            return;
+        }
+        Trace.TraceError($"串口后台收尾诊断（已释放={IsClosed}）：{failure}");
+        try { _report?.Invoke(failure); } catch (Exception ex) { Trace.TraceError($"串口收尾诊断回调失败：{ex}"); }
+    }
     private void TrackRetirement()
     {
         if (PhysicalResourceKey != null && !_io.IsClosed)
@@ -159,13 +238,29 @@ public sealed class SerialConnectionResource : IDisposable
                 TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
-    private sealed class SerialChannel(SysSerialPort port) : ISerialChannel
+    private sealed class SerialChannel(SysSerialPort port) : ISerialChannel, IInterruptibleSerialChannel
     {
+        private readonly object _abortSync = new();
         public bool IsOpen => port.IsOpen;
         public int ReadTimeout { get => port.ReadTimeout; set => port.ReadTimeout = value; }
         public int WriteTimeout { get => port.WriteTimeout; set => port.WriteTimeout = value; }
         public int Read(byte[] buffer, int offset, int count) => port.Read(buffer, offset, count);
         public void Write(byte[] bytes) => port.Write(bytes, 0, bytes.Length);
-        public void Dispose() => port.Dispose();
+        public void CancelPendingIo()
+        {
+            lock (_abortSync)
+            {
+                List<Exception> errors = [];
+                bool open = true;
+                try { open = port.IsOpen; } catch (Exception ex) { errors.Add(ex); }
+                // .NET 8 Close flushes before disposing the stream. Purge first
+                // requests RX/TXABORT so infinite writes can reach that close.
+                if (open) { Attempt(port.DiscardOutBuffer); Attempt(port.DiscardInBuffer); }
+                Attempt(port.Close);
+                if (errors.Count != 0) throw new AggregateException("串口中断或关闭请求失败；已发送字节及远端结果未知", errors);
+                void Attempt(Action action) { try { action(); } catch (Exception ex) { errors.Add(ex); } }
+            }
+        }
+        public void Dispose() { lock (_abortSync) port.Dispose(); }
     }
 }

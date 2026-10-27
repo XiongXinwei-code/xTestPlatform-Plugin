@@ -84,15 +84,15 @@ public sealed class ResourceTests
     }
 
     [Fact]
-    public async Task FailedNativeDisposeRetainsHandleForConfirmedRetry()
+    public async Task FailedNativeDisposeRetainsHandleWithoutTrustingLaterNoop()
     {
         var session = DispatchProxy.Create<IMessageBasedSession, SessionProxy>();
         var proxy = (SessionProxy)(object)session; proxy.FailDisposals = 1;
         var resource = new VisaSessionResource(session, 1000, "\n");
         await Assert.ThrowsAsync<InvalidOperationException>(() => resource.CloseAsync(1000));
         Assert.False(resource.IsClosed);
-        await resource.CloseAsync(1000);
-        Assert.True(resource.IsClosed); Assert.Equal(2, proxy.Disposals);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resource.CloseAsync(1000));
+        Assert.False(resource.IsClosed); Assert.Equal(1, proxy.Disposals);
     }
 
     [Fact]
@@ -127,8 +127,8 @@ public sealed class ResourceTests
             () => (IDisposable)session, _ => throw new InvalidOperationException("configure failed"), 1000, default));
         await Assert.ThrowsAsync<InvalidOperationException>(() => resource.CloseAsync(1000));
         Assert.False(resource.IsClosed);
-        await resource.CloseAsync(1000);
-        Assert.True(resource.IsClosed); Assert.Equal(2, proxy.Disposals);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => resource.CloseAsync(1000));
+        Assert.False(resource.IsClosed); Assert.Equal(1, proxy.Disposals);
     }
 
     public class SessionProxy : DispatchProxy

@@ -126,7 +126,8 @@ public class ZlgRuntimeTests
         Assert.Equal("Monitoring", service.Snapshot().Cycle.State);
         Assert.True(service.Snapshot().Cycle.StopCommandsAcknowledged);
         Assert.False(service.Snapshot().Cycle.HostExited);
-        Assert.Throws<InvalidOperationException>(() => connection.Write(new() { Id = 0x201, Data = [2] }));
+        connection.Write(new() { Id = 0x201, Data = [2] });
+        Assert.True(SpinWait.SpinUntil(adapter.ConfirmTransmitQuiescent, 2000)); // Strict diagnostic fixture only.
         await connection.CloseAsync(); Assert.True(connection.IsClosed);
     }
     [Fact]

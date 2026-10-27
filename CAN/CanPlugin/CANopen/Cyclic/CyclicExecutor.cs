@@ -30,6 +30,8 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
             cancellationToken.ThrowIfCancellationRequested();
             if (plugin.Operation == CyclicOperation.ServiceStart)
             {
+                if (s.FeedbackRoutes.Count == 0 && !s.EnableMonitoringSync)
+                    throw new ArgumentException("未配置反馈时须启用周期SYNC；纯发送源不要求配置读取");
                 var routes = new List<FeedbackRoute>();
                 foreach (var route in s.FeedbackRoutes)
                     routes.Add(new(route.Name, await CanopenExecutorHelper.EvalNumberAsync(route.CobId, context, "COB-ID"), route.Dlc, route.MaxAgeMs));
@@ -39,10 +41,12 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                     CanopenExecutorHelper.ParseHex(await CanopenExecutorHelper.EvalTextAsync(s.SyncData, context))) : null;
                 cancellationToken.ThrowIfCancellationRequested();
                 guard.Check();
-                var created = connection.StartService(name, routes.ToArray());
+                var created = await connection.StartServiceAsync(name, routes.ToArray(), s.CycleTimeoutMs, cancellationToken, guard.Check);
                 if (monitorSync != null)
                 {
-                    try { await Task.Run(() => { guard.Check(); created.StartMonitoring(monitorSync, new(s.MonitoringPeriodMs, s.CycleTimeoutMs, s.MaxLatenessMs), cancellationToken); }, CancellationToken.None); }
+                    try { await Task.Run(() => { guard.Check(); created.StartMonitoring(monitorSync, new(s.MonitoringPeriodMs, s.CycleTimeoutMs, s.MaxLatenessMs)
+                        { RequireOnBusConfirmation = s.RequireOnBusConfirmation, ResynchronizeLateMonitoring = s.ResynchronizeLateMonitoring,
+                            MonitoringConsecutiveLatenessLimit = s.MonitoringConsecutiveLatenessLimit }, cancellationToken); }, CancellationToken.None); }
                     catch { await connection.StopServiceAsync(name, created, s.StopTimeoutMs, CancellationToken.None); throw; }
                 }
                 try { guard.Check(); }
@@ -65,7 +69,9 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                         var table = s.UseFiniteTrajectory ? CyclicInputParser.Trajectory(
                             await CanopenExecutorHelper.EvalTextAsync(s.TrajectoryJson, context), s.TrajectoryDurationMs) : null;
                         var options = new CycleOptions(s.PeriodMs, s.CycleTimeoutMs, s.MaxLatenessMs,
-                            s.RequireOnBusConfirmation, s.InputMaxAgeMs, s.SuperviseFeedback, s.FeedbackStartupGraceMs);
+                            s.RequireOnBusConfirmation, s.InputMaxAgeMs, s.SuperviseFeedback, s.FeedbackStartupGraceMs)
+                        { MissPolicy = s.MissPolicy, LatenessWindowMs = s.LatenessWindowMs,
+                            MaxSkippedPoints = s.MaxSkippedPoints, HoldTimeoutMs = s.HoldTimeoutMs };
                         cancellationToken.ThrowIfCancellationRequested();
                         await Task.Run(() =>
                         {
@@ -92,13 +98,13 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(s.StopTimeoutMs);
                         try { await connection.StopServiceAsync(name, service, s.StopTimeoutMs, cancellationToken); }
                         catch (Exception ex) when (!cancellationToken.IsCancellationRequested &&
-                            ReferenceEquals(ex, service.CloseHistory) && service.Snapshot().ServiceShutdownConfirmed)
+                            ReferenceEquals(ex, service.CloseHistory) && service.Snapshot().ServiceCleanupCompleted)
                         {
                             // Only a fully closed service can classify this as history.
                             // PartialCycle, pending TX, callbacks and native work still fail.
                         }
                         var stopped = service.Snapshot();
-                        if (!stopped.ServiceShutdownConfirmed)
+                        if (!stopped.ServiceCleanupCompleted)
                             throw new InvalidOperationException("服务关闭未确认；不能把宿主退出等同于订阅、发送与控制占用均已释放");
                         guard.Check();
                         var stopJson = JsonSerializer.Serialize(stopped);
@@ -112,9 +118,10 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                         var json = JsonSerializer.Serialize(snapshot);
                         guard.Check();
                         if (!string.IsNullOrWhiteSpace(s.ResultVariable)) guard.SetVariable(s.ResultVariable, json);
-                        if (snapshot.Receive.BackgroundError != null || snapshot.Cycle.Error != null || (s.RequireAllValid && !snapshot.Receive.AllValid))
+                        if (snapshot.BackgroundError != null || (s.RequireAllValid && !snapshot.Receive.AllValid))
                             return CanopenExecutorHelper.Result(TestStatus.Error, json,
-                                "CANopen 快照无效或后台任务故障；" + (snapshot.ErrorSummary ?? "部分反馈缺失、过期或时间不可信；详情见完整快照"));
+                                "CANopen 快照无效或后台任务故障；SnapshotStatus=" + snapshot.SnapshotStatus + "；" +
+                                (snapshot.ErrorSummary?.Split('\n')[0].TrimEnd('\r') ?? "部分反馈缺失、过期或时间不可信；历史故障与完整堆栈见结果 JSON"));
                         return CanopenExecutorHelper.Result(TestStatus.Completed, json);
                 }
             }

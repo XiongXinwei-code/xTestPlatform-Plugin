@@ -1,10 +1,19 @@
 using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
+using MessagePack;
 
 namespace CAN.CANopen.Cyclic;
 
 public abstract class CyclicPluginBase : StepPluginBase<CyclicSetting>
 {
+    protected override int CurrentSettingVersion => 2;
+    protected override CyclicSetting MigrateSetting(byte[] data, int fromVersion)
+    {
+        if (fromVersion != 1) return base.MigrateSetting(data, fromVersion);
+        var setting = MessagePackSerializer.Deserialize<CyclicSetting>(data, SerializerOptions);
+        setting.RequireOnBusConfirmation = false; // User-authorized v1 cycle semantic migration.
+        return setting;
+    }
     public abstract CyclicOperation Operation { get; }
     public override string StepTypeId => $"CANopen.{Operation}";
     public override string DisplayName => Operation switch
@@ -21,33 +30,31 @@ public abstract class CyclicPluginBase : StepPluginBase<CyclicSetting>
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_receive.png";
     public override string Description => """
         ## 功能
-        CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。
+        CAN / CANopen持续接收、独立最新快照及多个具名周期发送源。
         ## 参数
-        ConnectionName、ServiceName 为字符串表达式；FeedbackRoutes 配置名称、COB-ID 表达式、DLC、MaxAgeMs。
-        Targets 按列表顺序配置 COB-ID / Data 表达式及 DLC；Data 求值为十六进制字符串或 byte[]，不改变字节顺序。
-        NodeIds 求值为逗号分隔节点列表；SYNC 的 ID 和数据显式配置。
-        PeriodMs、CycleTimeoutMs、MaxLatenessMs、InputMaxAgeMs、StopTimeoutMs 单位毫秒。
-        StopTimeoutMs 默认 5000；ServiceStart 启用监测 SYNC 时用作启动失败的收尾期限，停止步骤用作退出确认期限；等待到期仍保留未实际退出的占用。
-        ResultVariable 为已声明的 string 变量路径，写入完整 JSON 快照；RequireAllValid 可要求所有反馈可信有效。
-        RequireOnBusConfirmation 默认 true；适配器不能证明发送完成时拒绝启动。
+        ConnectionName/ServiceName为字符串表达式。FeedbackRoutes为0~128路名称/COB-ID表达式/DLC/MaxAgeMs配置；非纯SYNC服务至少一路，反馈不固定四路。
+        Targets按列表顺序配置COB-ID/Data表达式/DLC；Data为十六进制字符串或byte[]，保持原始字节。NodeIds为逗号分隔节点字符串表达式。SyncCobId/SyncData是当前源独立配置，SYNC允许DLC0或1。
+        PeriodMs控制RPDO＋额外SYNC周期；MonitoringPeriodMs控制背景SYNC。CycleTimeoutMs约束单批提交/排队总期限，与周期分开；MaxLatenessMs约束起始迟到，InputMaxAgeMs约束实时目标断供。StopTimeoutMs为停止/关闭及启动失败收尾总期限，默认5000ms，尊重用户配置。
+        RequireOnBusConfirmation默认false：PDO/SYNC只提交、不等待回显或会话完成。true仅作独占诊断，不能与其它发送源混跑，同源背景/目标模式须一致。设置版本1显式迁移为false；版本2可保留显式true。
+        ResynchronizeLateMonitoring默认true，纯监测迟到跳拍重同步、不补发；MonitoringConsecutiveLatenessLimit默认3（1~10000）。准时起始、进入/退出运动清连续计数；false保留严格行为。
+        UseFiniteTrajectory启用不可变TrajectoryJson点表（OffsetMs/Frames/CobId/DataHex），TrajectoryDurationMs为总时长，不要求实时续期。MissPolicy默认SkipAndCatchUp只发最新到期点；Fail保留严格错点失败；HoldLast有限重复上次已提交字节，必须配置停机SDO。
+        LatenessWindowMs默认0表示PeriodMs；MaxSkippedPoints默认20为累计跳点上限；HoldTimeoutMs默认100为保持上限，不延长总时长。裸字节跳点不保证电机速度/加速度连续性，由序列规划层审查。
+        SuperviseFeedback监督每路有效期，FeedbackStartupGraceMs为宽限；ResultVariable写已声明string路径的完整JSON，RequireAllValid可要求全部反馈可信有效。
+        StopCommandsJson提供经设备审查的NodeId/Index/SubIndex/DataHex停机SDO列表；插件不猜测控制字，ACK不证明物理停稳。
         ## 行为
-        - ServiceStart 默认仅接收；显式 EnableMonitoringSync 后启动连接唯一 SYNC 调度者，MonitoringPeriodMs 独立配置。
-        - 纯监测以 CycleTimeoutMs 约束发送确认，以 MaxLatenessMs 约束起始迟到；单批耗时略大于监测周期只计入 SlowMonitoringBatches，不当作传输超时。周期仍为发送完成后的调度间隔，不提供硬实时保证。
-        - 快照 Timing 输出实际周期/发送期限/起始迟到配置，以及主机排程、适配器批次和返回续体耗时，适配器批次耗时不等于纯总线时间；目标运动保留既有周期完成限及点表错点保护。
-        - CycleStart 保留 NodeIds 控制占用；与 CiA402 占用冲突时报错，重复启动须先确认 CycleStop。
-        - CycleInputsUpdate 在当前序列步骤求值整组目标并原子发布；后台不读取活动序列上下文。
-        - SnapshotRead 不等待报文；Receive.Running 仅代表独立接收侧，顶层 ServiceHealthy / BackgroundError 汇总服务健康和全部后台错误。ErrorSummary 含阶段、旧成功批/实际失败批耗时、确认期限和 Overruns；未知时间不伪装有效。
-        - PendingFrames / FifoEvictions 属共享路由每 ID 64 帧 FIFO；LatestReplacements 属本服务最新帧观察；QueueStatistics 属适配器队列，三者独立，满队列及替换不证明驱动溢出，scope 字段标明来源。
-        - CycleStop 冻结新目标并处理发送收尾；配置的 StopCommandsJson 通过当前节点所有者串行执行 SDO。监测模式要求已配置停机命令。
-        - 停机 SDO 全部应答且无部分周期/未知待发时回到监测；停止命令应答不是电机停稳证明。
-        - UseFiniteTrajectory 时 TrajectoryJson（字符串表达式）提供 OffsetMs/Frames/CobId/DataHex 点表，TrajectoryDurationMs 为总时长，不要求 InputMaxAgeMs 续期。
-        - 点表按绝对偏移逐点执行，错过下一点时报错，不密集补发或静默跳点。SuperviseFeedback 可监督每路反馈有效期。
-        - ServiceStop 只有订阅/节点占用已释放、worker/回调实际退出、发送已确认且无 PartialCycle 才返回 Completed；历史故障保留于 JSON / Warn / ShutdownHistory，不再把本次成功关闭重复报为发送失败。名称不存在、非法期限、待发未知或真正关闭失败仍返回 Error，不关闭 CAN 连接。
-        - ServiceShutdownConfirmed / StoppedWithHistory 仅证明本服务关闭，不修改 StopCommandsAcknowledged，也不证明电机停稳；CycleStop 的错误锁存语义保持。
-        - 关闭期限届满保留隔离与占用。发送退出不等价于电机停止；Windows 软件周期不提供硬实时保证。
-        - CAN_Close 独立执行父连接终态关断，不要求此前 ServiceStop 成功或电机停机 ACK。冻结新提交并等待真实 I/O/回调/服务任务退出后调用 SDK 关闭；历史停机失败、PartialCycle 或缺回显仅保留为未知诊断，不能永久挡住 SDK 合法释放，也不补写 confirmed/ACK。SDK 尚未退出或关闭失败仍保留句柄。
-        - 取消严格确认仅用于明确接受主机提交顺序的验证；旧帧待发状态未知时 Stop 仍报错并保留占用。
-        - 受控模式禁止 UDS/XCP/raw CAN_Read 混用；模式持续至 CAN_Close。
+        - ServiceStart默认仅接收；EnableMonitoringSync显式启动本服务SYNC。不同ServiceName可创建多个独立源、共享SYNC ID，各自配置和停止，不限制两个。
+        - 连接FIFO队列项为完整[RPDO1,...,SYNC]或[SYNC]批次。同一单调时刻入队时按批次首帧ID决胜；已入队不拆散、不按成员ID排序、不插入其它源。队列有界，满时明确拒绝。
+        - 背景周期从自身批次起始计时；目标的额外SYNC不重置或合并背景SYNC。后台只用复制数据，不读取活动序列表达式。Windows软件周期不提供硬实时保证。
+        - NI正常周期一次AsSubmitted整批写入，SDK成功返回即结束提交，不轮询session、不等echo。SubmissionCompletedFrames与ConfirmedFrames分账，SDK接受不代表已上总线或电机停稳。其它适配器在同一整批租约内串行Write；实际SDK线上排队与外部发送者需硬件验收，Strategy注明路径。
+        - SDO仍等待协议响应；允许同连接CAN/CANopen/CiA402补充读写，完整事务串行。原始CAN观察、CANopen协议和每轴反馈使用独立副本，共享唯一硬件接收泵，外部模式/映射/目标改动由序列协调。
+        - CycleInputsUpdate原子发布同数量/布局整组字节。有限点表首次时钟锚在首批FIFO准入，后续每次准入重新选点和检查有效期；初点不可跳过、终点须真实提交，期限外不强发终点，不密集补发。
+        - CycleStop冻结目标，撤销未准入整批；已准入批次完整提交后按可选停机SDO收尾。只验证本次运动代次的主机退出，保留背景/其它源/接收；不等于电机停稳。
+        - PartialCycle、SDK失败、未退原生调用不能假成功；软等待结束不等于撤回报文。正常仅提交结束不要求echo，不补写confirmed或停机ACK。
+        - ServiceStop释放本服务订阅/节点/发送占用。本次清理已完成可返回Completed且保留历史故障；ServiceCleanupCompleted/HostSubmissionQuiescent是主机退出，ServiceShutdownConfirmed仍要求真实确认。
+        - CAN_Close独立冻结所有源，等待真实I/O/回调退出并检查SDK关闭，不要求此前ServiceStop或SDO停机成功；未退出/关闭失败保留句柄，合法关闭后允许下一次打开。
+        - SnapshotRead不等报文；Receive.Running只表示接收侧，ServiceHealthy/BackgroundError汇总健康。每路独立判有效期，未知时间保持TimeUnknown，不以出队时刻更新帧龄。
+        - Timing.Batch记录主机锁/SDK提交/原生退出与接受范围；AdapterBatchMs不是纯总线时间。SkippedTrajectoryPoints、HeldTrajectoryCycles、TerminalSubmitted不代表物理到位。PendingFrames/FifoEvictions、LatestReplacements、QueueStatistics分别属于共享每ID FIFO、快照和适配器，不能混算丢帧。
+        - 周期源间RPDO/历史ID冲突仍拒绝；普通CAN/PDO/SYNC补充发送可排队使用同ID，不插入完整批次。通用周期任务可共存；显式确认诊断只排斥其它后台发送源。UDS/XCP协议混用保持原限制。
         """;
     public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CyclicExecutor(this));
     public override string GenerateDescription(byte[] setting)

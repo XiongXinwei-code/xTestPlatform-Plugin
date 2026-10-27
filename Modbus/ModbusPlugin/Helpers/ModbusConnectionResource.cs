@@ -22,6 +22,7 @@ public sealed class ModbusConnectionResource : IDisposable
     public int TimeoutMs { get; }
     public string? PhysicalResourceKey { get; }
     public bool IsClosed => _io.IsClosed;
+    internal Exception? CloseWarning { get; private set; }
     internal Task? CloseCompletion => _io.CloseCompletion;
     internal bool IsClosing { get { lock (_state) return _closing; } }
 
@@ -95,14 +96,14 @@ public sealed class ModbusConnectionResource : IDisposable
         TrackRetirement();
         // Freeze admission immediately. Both the driver interrupt and cancellation
         // callbacks run off the caller; release must await their real completion.
-        var closing = _io.CloseAsync(ReleaseAfterShutdown, timeoutMs, ct);
+        var closing = _io.CloseWithReleaseAsync(ReleaseAfterShutdownAsync, timeoutMs, ct);
         ObserveRelease();
         try { await closing.ConfigureAwait(false); }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (shutdown.IsCompletedSuccessfully && shutdown.Result is { } stopError)
         { throw new AggregateException("Modbus 关闭及停止请求失败", stopError, ex); }
-        if (await shutdown.ConfigureAwait(false) is { } error)
-            throw new InvalidOperationException("Modbus 已收尾，但原始 I/O 取消或回调失败", error);
+        // Shutdown has actually returned before Release. Its old interrupt
+        // error does not negate confirmed disposal of this connection.
     }
 
     private Task<Exception?> RequestShutdown()
@@ -137,7 +138,7 @@ public sealed class ModbusConnectionResource : IDisposable
     // PendingIoGate invokes this only on its actual background close worker, after
     // admitted I/O exits. Failed callbacks have exited too; keep their diagnostics
     // without permanently preventing an otherwise successful physical release.
-    private void ReleaseAfterShutdown()
+    private async Task ReleaseAfterShutdownAsync()
     {
         Task<Exception?> shutdown;
         lock (_state)
@@ -147,8 +148,9 @@ public sealed class ModbusConnectionResource : IDisposable
         }
         try
         {
-            _ = shutdown.GetAwaiter().GetResult();
+            var warning = await shutdown.ConfigureAwait(false);
             Release();
+            CloseWarning = warning;
             lock (_state) _releaseCompleted = true;
         }
         finally { lock (_state) _releasing = false; }
@@ -175,7 +177,7 @@ public sealed class ModbusConnectionResource : IDisposable
     {
         var shutdown = RequestShutdown();
         TrackRetirement();
-        _io.RequestClose(ReleaseAfterShutdown);
+        _io.RequestAsyncClose(ReleaseAfterShutdownAsync);
         ObserveRelease();
         var actualClose = _io.CloseCompletion ?? Task.CompletedTask;
         lock (_state)
@@ -189,9 +191,18 @@ public sealed class ModbusConnectionResource : IDisposable
     {
         Exception? failure = null;
         try { await actualClose.ConfigureAwait(false); } catch (Exception ex) { failure = ex; }
-        if (await shutdown.ConfigureAwait(false) is { } stopError)
-            failure = failure == null ? stopError : new AggregateException("Modbus 后台收尾失败", failure, stopError);
-        if (failure == null) return;
+        if (await shutdown.ConfigureAwait(false) is { } stopError && failure != null)
+            failure = new AggregateException("Modbus 后台收尾失败", failure, stopError);
+        if (failure == null)
+        {
+            if (CloseWarning is { } warning)
+            {
+                Trace.TraceWarning($"Modbus 已实际释放，保留停止诊断：{warning}");
+                try { _report?.Invoke(warning); }
+                catch (Exception ex) { Trace.TraceError($"Modbus 已释放后的诊断回调失败：{ex}"); }
+            }
+            return;
+        }
         Trace.TraceError($"Modbus 后台收尾诊断（已释放={IsClosed}）：{failure}");
         try { _report?.Invoke(failure); }
         catch (Exception ex) { Trace.TraceError($"Modbus 收尾日志回调失败：{ex}"); }

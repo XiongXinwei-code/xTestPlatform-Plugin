@@ -33,6 +33,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
     private int _consecutiveFailures, _stopRequested;
     private string? _lastError;
     private Exception? _cancellationError;
+    private Exception? _cleanupWarning;
     private volatile bool _overflowed;
     public string TaskName { get; }
     public bool IsRunning => !_token.IsCancellationRequested && !_loopTask.IsCompleted;
@@ -53,6 +54,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
     public int ConsecutiveFailures => Volatile.Read(ref _consecutiveFailures);
     public string? LastError => Volatile.Read(ref _lastError);
     public Exception? CancellationError => Volatile.Read(ref _cancellationError);
+    internal Exception? CleanupWarning => Volatile.Read(ref _cleanupWarning);
     public DateTime? LastSuccessUtc => ReadUtc(ref _lastSuccessUtcTicks);
     public DateTime? LastFailureUtc => ReadUtc(ref _lastFailureUtcTicks);
     public string? BackgroundError => _loopTask.Exception?.GetBaseException().ToString();
@@ -182,7 +184,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
         {
             Volatile.Write(ref _cancellationError, ex);
             RecordFailure(ex);
-            Trace.TraceError($"OPC UA 采集 {TaskName} 的取消回调已退出但失败：{ex}");
+            // 保存诊断；日志接收器不得成为真实回调退出的前置条件。
         }
     }
 
@@ -280,7 +282,7 @@ public sealed class OpcUaDataAcqTask : IDisposable
         var cleanup = Task.Run(async () =>
         {
             try { await Completion.ConfigureAwait(false); }
-            catch (Exception ex) { Trace.TraceError($"OPC UA 采集实际收尾失败：{ex}"); }
+            catch (Exception ex) { Volatile.Write(ref _cleanupWarning, ex); }
             finally
             {
                 if (_durationTimer != null) await _durationTimer.DisposeAsync().ConfigureAwait(false);

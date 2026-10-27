@@ -2,6 +2,10 @@ using Xunit;
 
 namespace CAN.Tests;
 
+// Real WPF/Syncfusion initialization uses process-wide SDK caches. Do not
+// compete with unrelated short-deadline execution tests; their intentional
+// concurrency is exercised explicitly inside their own fixtures.
+[Collection("CAN blocked I/O")]
 public sealed class EditorRuntimeTests
 {
     // Syncfusion and WPF pack resources cache Dispatcher-owned objects process-wide.

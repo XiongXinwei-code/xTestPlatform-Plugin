@@ -55,8 +55,9 @@ public sealed class SubmissionBudgetTests
             () => handle, _ => { }, 1000, default));
         await Assert.ThrowsAsync<InvalidOperationException>(() => owner.CloseAsync(1000));
         Assert.False(owner.IsClosed);
-        await owner.CloseAsync(1000);
-        Assert.Equal(2, handle.Disposals);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => owner.CloseAsync(1000));
+        Assert.False(owner.IsClosed);
+        Assert.Equal(1, handle.Disposals);
     }
 
     private sealed class NativeHandle : IDisposable

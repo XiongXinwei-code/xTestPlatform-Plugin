@@ -29,6 +29,8 @@ public sealed class LinCyclicSendStopPlugin : StepPluginBase<LinCyclicSendStopSe
         - 从运行期资源表中查找 `TaskName` 对应的任务，取消发送并从表中移除
         - 任务名不存在时**不报错**，按 Completed 返回
 
+        - 已退出的后台错误保留 Warn；只有本任务工作者、取消回调和真实写调用全部退出后才完成，不关闭父连接。
+
         ## 相关插件
 
         - `LIN_Cyclic_SendStart`：启动周期发送任务

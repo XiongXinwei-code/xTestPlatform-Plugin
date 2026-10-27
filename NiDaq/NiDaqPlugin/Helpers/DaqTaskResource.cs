@@ -16,16 +16,19 @@ public sealed class DaqTaskResource : IDisposable
     private readonly Action<Exception>? _report;
     private readonly Action? _abortOverride, _releaseOverride;
     private readonly HashSet<DaqTask> _released = new();
+    private readonly Dictionary<DaqTask, Exception> _disposeFailures = new(ReferenceEqualityComparer.Instance);
     private Task? _abort;
     private OperationBudget? _activeBudget;
     private AnalogOutputSession? _analogOutput;
     private long _cleanupStartedAt;
     private bool _cleaningOutput;
     private bool _configured, _closing;
+    private bool _releasing, _releaseCompleted;
     private IResourceRegistry? _transientRegistry;
     private string? _transientKey;
     internal IReadOnlyList<string> PhysicalResourceKeys { get; }
     public bool IsClosed => _io.IsClosed;
+    internal Exception? CloseWarning { get; private set; }
     internal bool IsClosing { get { lock (_state) return _closing; } }
     internal Action? ExecutionCheck { get; set; }
     internal void RegisterTransient(IResourceRegistry registry, Action ensureCurrentExecution)
@@ -187,14 +190,15 @@ public sealed class DaqTaskResource : IDisposable
         _io.RequestStop();
         lock (_state)
         {
+            if (_releaseCompleted || _io.IsClosed) return;
             if (!_closing || _io.CloseCompletion is { IsFaulted: true } or { IsCanceled: true })
                 _cleanupStartedAt = Stopwatch.GetTimestamp();
             _closing = true;
             // AO 必须等待实际 writer 退出，然后按显式策略收尾；不能并发 Abort 改变输出语义。
             if (_analogOutput != null) { _abort = Task.CompletedTask; return; }
-            if (_abort is null || _abort.IsFaulted || _abort.IsCanceled)
+            if (_abort is null || (!_releasing && (_abort.IsFaulted || _abort.IsCanceled)))
             {
-                var tasks = _configured ? _tasks.ToArray() : [];
+                var tasks = _configured ? _tasks.Where(task => !_released.Contains(task) && !_disposeFailures.ContainsKey(task)).ToArray() : [];
                 _abort = Task.Run(() =>
                 {
                     if (_abortOverride != null) { _abortOverride(); return; }
@@ -208,8 +212,20 @@ public sealed class DaqTaskResource : IDisposable
     }
     private void Release()
     {
+        lock (_state) _releasing = true;
+        try
+        {
+            ReleaseCore();
+            lock (_state) _releaseCompleted = true;
+        }
+        finally { lock (_state) _releasing = false; }
+    }
+    private void ReleaseCore()
+    {
         // 只在 gate 的后台收尾线程等待 Abort，不阻塞 UI/平台资源回收线程。
-        _abort!.GetAwaiter().GetResult();
+        Exception? abortError = null;
+        try { _abort!.GetAwaiter().GetResult(); }
+        catch (Exception ex) { abortError = ex; }
         if (_analogOutput != null)
         {
             lock (_state) _cleaningOutput = true;
@@ -217,11 +233,39 @@ public sealed class DaqTaskResource : IDisposable
             finally { lock (_state) _cleaningOutput = false; }
         }
         if (_analogOutput != null) EnsureOutputCleanupActive();
-        if (_releaseOverride != null) { _releaseOverride(); Started = false; return; }
         var errors = new List<Exception>();
-        foreach (var task in _tasks.Where(task => !_released.Contains(task)))
-            try { if (_analogOutput != null) EnsureOutputCleanupActive(); task.Dispose(); _released.Add(task); } catch (Exception ex) { errors.Add(ex); }
-        if (errors.Count > 0) throw new AggregateException("DAQ 释放未全部完成，保留资源以便重试", errors);
+        if (_releaseOverride != null)
+        {
+            try { _releaseOverride(); } catch (Exception ex) { errors.Add(ex); }
+        }
+        else
+        {
+            foreach (var task in _tasks.Where(task => !_released.Contains(task)))
+            {
+                if (_disposeFailures.TryGetValue(task, out var priorFailure)) { errors.Add(priorFailure); continue; }
+                bool disposeEntered = false;
+                try
+                {
+                    if (_analogOutput != null) EnsureOutputCleanupActive();
+                    disposeEntered = true;
+                    task.Dispose();
+                    _released.Add(task);
+                }
+                catch (Exception ex)
+                {
+                    if (disposeEntered) _disposeFailures[task] = ex;
+                    errors.Add(ex);
+                }
+            }
+        }
+        if (errors.Count > 0)
+        {
+            if (errors.Count == 1 && abortError == null)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+            if (abortError != null) errors.Insert(0, abortError);
+            throw new AggregateException("DAQ 释放未全部完成，保留原实例；实际 Dispose 失败的实例状态未知，不以再次调用的空操作确认释放，其它实例可继续收尾", errors);
+        }
+        CloseWarning = abortError;
         Started = false;
     }
     private void EnsureOutputCleanupActive()

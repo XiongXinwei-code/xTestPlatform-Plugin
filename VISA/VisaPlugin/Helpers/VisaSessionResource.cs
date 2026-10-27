@@ -13,6 +13,7 @@ public sealed class VisaSessionResource : IDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly Action<Exception>? _report;
     private IDisposable? _nativeSession;
+    private Exception? _nativeDisposeFailure;
     private IMessageBasedSession? _session;
     private SubmissionBudget? _activeBudget;
     private int _closeRequested;
@@ -186,7 +187,15 @@ public sealed class VisaSessionResource : IDisposable
     private void Release()
     {
         // Only PendingIoGate's confirmed close owns this callback. Never clear the handle on failure.
-        _nativeSession?.Dispose();
+        if (_nativeDisposeFailure != null) ExceptionDispatchInfo.Capture(_nativeDisposeFailure).Throw();
+        try { _nativeSession?.Dispose(); }
+        catch (Exception ex)
+        {
+            // Arbitrary VISA implementations may set their disposed flag before
+            // failing. A later no-op provides no evidence of physical release.
+            _nativeDisposeFailure = ex;
+            throw;
+        }
         _nativeSession = null;
         _session = null;
     }

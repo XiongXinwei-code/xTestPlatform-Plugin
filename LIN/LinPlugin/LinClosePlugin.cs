@@ -26,7 +26,7 @@ public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
 
         ## 行为
 
-        - 从运行期资源表中查找 `ConnectionName` 对应的适配器，关闭硬件通道并从表中移除
+        - 从运行期资源表中查找 `ConnectionName` 对应的适配器，关闭硬件通道并从表中移除；历史周期或已退出回调的错误保留 Warn，不阻止已确认的本次释放
         - 连接名不存在时**不报错**，仅记录日志并按 Completed 返回
 
         ## 相关插件

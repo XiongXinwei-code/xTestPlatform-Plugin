@@ -19,6 +19,13 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
             var setting = (CanCyclicSendStopSetting)new CanCyclicSendStopPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "停止总超时必须大于 0");
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            int Remaining()
+            {
+                guard.Check();
+                return setting.TimeoutMs > clock.ElapsedMilliseconds ? setting.TimeoutMs - (int)clock.ElapsedMilliseconds
+                    : throw new TimeoutException($"CAN 周期停止超过总期限 {setting.TimeoutMs} ms");
+            }
             var evaluator = ExpressionEvaluatorFactory.Default;
             var name = await evaluator.EvalStringAsync(setting.ConnectionName, context);
             var taskName = await evaluator.EvalStringAsync(setting.TaskName, context);
@@ -28,7 +35,10 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
                 throw new InvalidOperationException($"CAN 连接 {name} 未找到");
             }
             guard.Watch(CanHelper.GetAdapterKey(name), connection);
-            await guard.RunAsync(() => connection.StopJobAsync(taskName, setting.TimeoutMs, cancellationToken));
+            var warning = await guard.RunAsync(() => connection.StopJobWithDiagnosticsAsync(taskName, Remaining(), cancellationToken));
+            if (warning != null)
+                guard.Log(LogLevel.Warn, $"CAN 周期任务 {name}/{taskName} 的实际写调用已退出；保留历史诊断", warning);
+            _ = Remaining();
             return new() { StepResult = new() { Status = TestStatus.Completed, Value = $"周期工作任务已退出：{name}/{taskName}；不代表电机停止" } };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

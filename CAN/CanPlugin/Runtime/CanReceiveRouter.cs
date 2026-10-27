@@ -11,6 +11,8 @@ internal sealed class CanReceiveRouter
     private readonly object _gate = new();
     private readonly Dictionary<uint, Queue<CanMessage>> _queues = new();
     private readonly HashSet<FeedbackSubscription> _subscriptions = [];
+    private readonly CanFrameInbox _raw = new();
+    private readonly HashSet<CanFrameInbox> _nodeInboxes = [];
     private TaskCompletionSource _changed = NewSignal();
     private Exception? _error;
     private bool _stopped;
@@ -30,12 +32,15 @@ internal sealed class CanReceiveRouter
 
     public void Publish(CanMessage frame)
     {
-        if (frame.IsTransmitEcho || frame.IsFd || frame.FrameType != CanFrameType.Standard || frame.Id > 0x7FF) return;
+        if (frame.IsTransmitEcho) return;
         var copy = Copy(frame);
         copy.IngressMonotonicTicks ??= Stopwatch.GetTimestamp();
         lock (_gate)
         {
             if (_stopped) return;
+            _raw.Publish(copy);
+            if (copy.IsFd || copy.FrameType != CanFrameType.Standard || copy.Id > 0x7FF) return;
+            foreach (var inbox in _nodeInboxes) inbox.Publish(copy);
             if (!_queues.TryGetValue(copy.Id, out var queue)) _queues[copy.Id] = queue = new();
             if (queue.Count == CapacityPerId) { queue.Dequeue(); _evictions++; }
             queue.Enqueue(copy);
@@ -43,6 +48,20 @@ internal sealed class CanReceiveRouter
             Pulse();
         }
     }
+
+    internal Task<CanMessage?> ReadRawAsync(uint? id, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop)
+        => _raw.ReadAsync(id, timeoutMs, ct, stop);
+    internal CanFrameInbox CreateNodeInbox()
+    {
+        lock (_gate)
+        {
+            if (_stopped || _error != null) throw new InvalidOperationException("共享接收路由已关闭或失败", _error);
+            var inbox = new CanFrameInbox(RemoveInbox); _nodeInboxes.Add(inbox); return inbox;
+        }
+    }
+    private void RemoveInbox(CanFrameInbox inbox) { lock (_gate) _nodeInboxes.Remove(inbox); }
+    internal string FanoutDiagnostics
+    { get { lock (_gate) return $"RawInboxDepth={_raw.Count}; RawInboxEvictions={_raw.Evictions}; NodeInboxes={_nodeInboxes.Count}; NodeInboxEvictions={_nodeInboxes.Sum(inbox => inbox.Evictions)}"; } }
 
     public async Task<CanMessage?> ReadAsync(uint id, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop = null)
     {
@@ -71,9 +90,9 @@ internal sealed class CanReceiveRouter
         }
     }
 
-    public FeedbackSubscription Subscribe(FeedbackRoute[] routes)
+    public FeedbackSubscription Subscribe(FeedbackRoute[] routes, bool allowEmpty = false)
     {
-        if (routes.Length == 0 || routes.Length > 128 || routes.Select(r => r.Name).Distinct().Count() != routes.Length ||
+        if ((!allowEmpty && routes.Length == 0) || routes.Length > 128 || routes.Select(r => r.Name).Distinct().Count() != routes.Length ||
             routes.Select(r => r.CobId).Distinct().Count() != routes.Length ||
             routes.Any(r => string.IsNullOrWhiteSpace(r.Name) || r.CobId > 0x7FF || r.Dlc is < 0 or > 8 || r.MaxAgeMs <= 0))
             throw new ArgumentException("反馈路由要求唯一名称/COB-ID、DLC 0~8、正数有效期，最多 128 路");
@@ -95,7 +114,8 @@ internal sealed class CanReceiveRouter
     { get { lock (_gate) return (_queues.Values.Sum(q => q.Count), _evictions, _error?.ToString()); } }
     public void Finish(Exception? error)
     {
-        lock (_gate) { _error = error; _stopped = true; Pulse(); }
+        lock (_gate)
+        { _error = error; _stopped = true; _raw.Finish(error); foreach (var inbox in _nodeInboxes) inbox.Finish(error); Pulse(); }
     }
     private void Pulse() { var old = _changed; _changed = NewSignal(); old.TrySetResult(); }
 }

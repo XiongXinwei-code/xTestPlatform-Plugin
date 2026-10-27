@@ -49,7 +49,7 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
                 return Error("客户端标识名未配置");
 
             var key = HttpHelper.GetClientKey(clientName);
-            registrationGate = HttpHelper.GetRegistryGate(execution);
+            registrationGate = HttpHelper.GetRegistryGate(execution, clientName);
             if (!await execution.StopSignal.EnterAsync(registrationGate, Remaining(), cancellationToken, "HTTP 客户端关闭排队"))
                 throw new TimeoutException($"等待 HTTP 客户端关闭生命周期操作超过 {setting.TimeoutMs} ms");
             ownsGate = true;
@@ -80,14 +80,29 @@ public sealed class HttpClientCloseExecutor : IStepExecutor
             await execution.StopSignal.WaitAsync(owner.CloseAsync(remaining, cancellationToken),
                 TimeSpan.FromMilliseconds(remaining), cancellationToken, "HTTP 客户端关闭");
             _ = Remaining();
-            bool sameOwner = context.Resources.TryGet<HttpClientResource>(key, out var current) && ReferenceEquals(current, owner);
+            var publicationGate = HttpHelper.GetPublicationGate(context.Resources, clientName);
+            if (!await execution.StopSignal.EnterAsync(publicationGate, Remaining(), cancellationToken, "HTTP 客户端移除登记排队"))
+                throw new TimeoutException($"等待 HTTP 客户端移除登记超过总期限 {setting.TimeoutMs} ms");
+            try
+            {
+                _ = Remaining();
+                bool sameOwner = context.Resources.TryGet<HttpClientResource>(key, out var current) && ReferenceEquals(current, owner);
+                _ = Remaining();
+                if (!sameOwner) throw new InvalidOperationException("HTTP 客户端所属代次已改变，原客户端已收尾，禁止移除其它运行的客户端");
+                context.Resources.Remove(key, false);
+                _ = Remaining();
+            }
+            finally { publicationGate.Release(); }
+            registrationGate.Release();
+            ownsGate = false;
+            if (owner.CloseWarning is { } warning)
+                context.Log(LogLevel.Warn, $"HTTP 客户端 {clientName} 已释放；保留已退出的取消回调诊断", warning.ToString());
             _ = Remaining();
-            if (!sameOwner) throw new InvalidOperationException("HTTP 客户端所属代次已改变，原客户端已收尾，禁止移除其它运行的客户端");
-            context.Resources.Remove(key, false);
             context.Log($"HTTP 客户端已释放: {clientName}");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
 
+            _ = Remaining();
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = clientName }

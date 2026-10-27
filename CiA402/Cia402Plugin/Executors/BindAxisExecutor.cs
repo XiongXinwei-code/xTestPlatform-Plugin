@@ -35,7 +35,8 @@ public sealed class BindAxisExecutor : ExecutorBase<BindAxisSetting>
                         throw new InvalidOperationException("绑定期间 CAN 连接已被移除或替换");
                 };
                 checkBackend();
-                var node = CanopenConnectionAccess.For(adapter).ReserveNode((byte)values.Number(nameof(setting.NodeId)), setting.CommunicationTimeoutMs);
+                var node = await Task.Run(() => CanopenConnectionAccess.For(adapter).ReserveNode(
+                    (byte)values.Number(nameof(setting.NodeId)), setting.CommunicationTimeoutMs, ct), CancellationToken.None).ConfigureAwait(false);
                 var canopen = new CanopenAxisTransport(node, setting);
                 transport = canopen;
                 checkBackend();

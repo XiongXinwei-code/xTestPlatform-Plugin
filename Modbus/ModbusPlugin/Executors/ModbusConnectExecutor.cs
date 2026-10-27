@@ -99,10 +99,11 @@ public sealed class ModbusConnectExecutor : IStepExecutor
 		{
 			token.ThrowIfCancellationRequested();
 			var port = new SerialPort(physicalTarget, setting.BaudRate, (Parity)setting.Parity, setting.DataBits, (StopBits)setting.StopBits);
-			owner.OwnTransport(port);
+            var adapter = new SerialPortAdapter(port);
+            owner.OwnTransport(adapter);
 			port.ReadTimeout = port.WriteTimeout = setting.TimeoutMs;
 			port.Open(); token.ThrowIfCancellationRequested();
-			master = factory.CreateRtuMaster(new SerialPortAdapter(port));
+            master = factory.CreateRtuMaster(adapter);
 		}
 		owner.OwnMaster(master);
 		master.Transport.ReadTimeout = master.Transport.WriteTimeout = setting.TimeoutMs;

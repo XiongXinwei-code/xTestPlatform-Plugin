@@ -106,7 +106,8 @@ internal sealed class CanopenSdoClient
     /// <param name="block">true 使用块上传；false 由服务器决定快速或分段上传</param>
     public async Task<byte[]> UploadAsync(ushort index, byte subIndex, bool block, CancellationToken ct)
     {
-        using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct).ConfigureAwait(false);
+        using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct, readOnly: true).ConfigureAwait(false);
+        using var scope = transaction.Activate();
         try { return await UploadCoreAsync(index, subIndex, block, ct).ConfigureAwait(false); }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or InvalidOperationException)
         {
@@ -241,6 +242,7 @@ internal sealed class CanopenSdoClient
     public async Task DownloadAsync(ushort index, byte subIndex, byte[] data, bool block, CancellationToken ct)
     {
         using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct).ConfigureAwait(false);
+        using var scope = transaction.Activate();
         try { await DownloadCoreAsync(index, subIndex, data, block, ct).ConfigureAwait(false); }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or InvalidOperationException)
         {

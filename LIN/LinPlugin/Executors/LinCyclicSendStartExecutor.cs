@@ -43,7 +43,7 @@ public sealed class LinCyclicSendStartExecutor : IStepExecutor
             guard.Watch(adapterKey, adapter);
             var taskKey = GetTaskKey(taskName);
 
-            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining());
+            using var registryLease = await LinRegistryGuard.Enter(context.Resources, cancellationToken, Remaining(), taskKey);
             guard.Check();
             var connection = LinConnectionResource.For(adapter);
             // 同名任务必须先确认真实退出

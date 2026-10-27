@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using LIN.Adapters;
 using LIN.Models;
@@ -5,10 +7,13 @@ using PluginCommon;
 
 namespace LIN.Runtime;
 
-/// <summary>拥有 LIN I/O 与周期任务。取消等待不释放仍在原生调用中的驱动。</summary>
+/// <summary>拥有 LIN I/O 与周期任务。物理释放与普通托管任务退出分别确认。</summary>
 public sealed class LinConnectionResource : ILinAdapter
 {
     private static readonly ConditionalWeakTable<ILinAdapter, LinConnectionResource> Wrappers = new();
+    // The execution registry can disappear while an expression/log callback is still
+    // running. Keep this old owner reachable until its real worker/callback exit.
+    private static readonly ConcurrentDictionary<LinConnectionResource, Task> RetiredWorkers = new();
     private readonly ILinAdapter _raw;
     private readonly PendingIoGate _io = new();
     private readonly OwnerStopSignal _foregroundWait = new();
@@ -23,8 +28,22 @@ public sealed class LinConnectionResource : ILinAdapter
     private bool _closing;
     private Task? _close;
     private Exception? _nativeCancellationError;
+    private readonly HashSet<Exception> _closeWarnings = new(ReferenceEqualityComparer.Instance);
+    internal Exception? CloseWarning
+    {
+        get
+        {
+            lock (_state) return _closeWarnings.Count switch
+            {
+                0 => null,
+                1 => _closeWarnings.First(),
+                _ => new AggregateException("LIN 已释放；保留历史通信与已退出的收尾诊断", _closeWarnings)
+            };
+        }
+    }
     public Exception? BackgroundError { get; private set; }
     public bool IsClosed => _io.IsClosed;
+    internal bool HasPendingManagedWorkers => Jobs.Any(j => !j.Completion.IsCompleted);
     internal bool IsClosing { get { lock (_state) return _closing; } }
     public LinCyclicJob[] Jobs { get { lock (_state) return _jobs.ToArray(); } }
     public bool IsConnected { get { lock (_state) return !_closing && _raw.IsConnected; } }
@@ -64,7 +83,12 @@ public sealed class LinConnectionResource : ILinAdapter
         // 取消只能阻止尚未开始的写；已进入原生写必须由 gate 追踪到真实退出。
         // A cyclic worker must remain joined until its submitted write exits (or fails its
         // own deadline); cancelling only its waiter would falsely report the job stopped.
-        _io.RunBlockingAsync(() => { checkExecution?.Invoke(); ct.ThrowIfCancellationRequested(); _lifetimeStop.Token.ThrowIfCancellationRequested(); _raw.Write(frame); },
+        _io.RunBlockingAsync(() =>
+        {
+            checkExecution?.Invoke(); ct.ThrowIfCancellationRequested(); _lifetimeStop.Token.ThrowIfCancellationRequested();
+            using var nativeWrite = LinCyclicJob.Current?.EnterNativeWrite();
+            _raw.Write(frame);
+        },
             transaction.Remaining, "LIN 发送", cancelWait ? ct : default, retireWaitOnClose: cancelWait).GetAwaiter().GetResult();
     }
     public LinFrame? Read(int timeoutMs, CancellationToken ct = default) => ReadCore(null, timeoutMs, ct);
@@ -181,7 +205,20 @@ public sealed class LinConnectionResource : ILinAdapter
     public async Task CloseAsync(int timeoutMs = 3000, CancellationToken ct = default)
     {
         if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
-        Task actual;
+        long started = Stopwatch.GetTimestamp();
+        await ClosePhysicalAsync(timeoutMs, ct).ConfigureAwait(false);
+        await WaitForWorkersAsync(Remaining(started, timeoutMs), ct).ConfigureAwait(false);
+    }
+
+    internal async Task ClosePhysicalAsync(int timeoutMs, CancellationToken ct = default)
+    {
+        if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
+        ct.ThrowIfCancellationRequested();
+        await RequestClose().WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+    }
+
+    private Task RequestClose()
+    {
         lock (_state)
         {
             _closing = true;
@@ -190,18 +227,17 @@ public sealed class LinConnectionResource : ILinAdapter
             _foregroundWait.RequestStop();
             _io.RequestStop();
             if (_retirementKey != null)
-                RetiringResources.Track(_retirementKey, this, CloseAsync, () => IsClosed,
-                    () => $"LIN 正在收尾；未退出I/O={_io.HasPendingOperation}；隔离={_io.IsolatedReason}；错误={BackgroundError?.Message}");
+                RetiringResources.Track(_retirementKey, this, ClosePhysicalAsync, () => IsClosed,
+                    () => $"LIN 正在收尾；物理已释放={IsClosed}；后台未退出={HasPendingManagedWorkers}；未退出I/O={_io.HasPendingOperation}；隔离={_io.IsolatedReason}；错误={BackgroundError?.Message}");
             if (!_lifetimeStop.IsCancellationRequested) _cancelCallbacks = _lifetimeStop.CancelAsync();
             foreach (var job in _jobs) job.Cancel();
             if (_close == null || (!_io.IsClosed && (_close.IsFaulted || _close.IsCanceled)))
             {
-                _close = Task.Run(CloseCore);
+                using (ExecutionContext.SuppressFlow()) _close = Task.Run(CloseCore);
                 _ = _close.ContinueWith(t => { BackgroundError = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
             }
-            actual = _close;
+            return _close;
         }
-        await actual.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
     }
 
     private async Task CloseCore()
@@ -209,38 +245,109 @@ public sealed class LinConnectionResource : ILinAdapter
         LinCyclicJob[] jobs;
         lock (_state) jobs = _jobs.ToArray();
         foreach (var job in jobs) job.Cancel();
+        RetainWorkers(jobs);
         // 不使用步骤取消令牌截断实际收尾；外层只有有界等待。
         Exception? callbackError = null;
-        try { await Task.WhenAll(jobs.Select(j => j.Completion).Append(_cancelCallbacks)).ConfigureAwait(false); }
-        catch (Exception ex) { callbackError = ex; } // All workers/callbacks have exited; still release the owned driver.
+        try { await Task.WhenAll(jobs.Select(j => j.CancellationCompletion).Append(_cancelCallbacks)).ConfigureAwait(false); }
+        catch (Exception ex) { callbackError = ex; } // Real callbacks have exited; preserve their error and release the driver.
         Exception? releasedWithError = null;
+        Exception? releaseError = null;
         try { await _io.CloseAsync(() =>
         {
             try { _raw.Close(); }
             catch (Exception ex) when (_raw is ILinCloseState { HandlesReleased: true }) { releasedWithError = ex; }
         }, int.MaxValue, default).ConfigureAwait(false); }
+        catch (Exception ex) { releaseError = ex; }
         finally { if (_retirementKey != null) RetiringResources.ForgetReleased(_retirementKey, this); }
         var errors = jobs.Select(j => j.Error).Where(e => e != null).Cast<Exception>().ToArray();
         if (callbackError != null) errors = [.. errors, callbackError];
         if (releasedWithError != null) errors = [.. errors, releasedWithError];
+        if (releaseError != null) errors = [.. errors, releaseError];
         if (Volatile.Read(ref _nativeCancellationError) is { } cancellationError) errors = [.. errors, cancellationError];
-        if (errors.Length != 0) throw new AggregateException("LIN 已释放，但周期任务存在失败", errors);
+        if (IsClosed)
+        {
+            foreach (var error in errors) RecordCloseWarning(error);
+            return;
+        }
+        if (errors.Length == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Length != 0) throw new AggregateException(
+            "LIN 最终关闭未确认；保留物理句柄与隔离，收尾同时存在通信、回调或驱动失败，可重试关闭", errors);
     }
+
+    internal async Task WaitForWorkersAsync(int timeoutMs, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var jobs = Jobs;
+        var workers = Task.WhenAll(jobs.Select(j => j.Completion));
+        // Join actual exit without turning a worker's old exception into a wait
+        // timeout. Observe that exception separately after the join succeeds.
+        var exited = workers.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        if (!exited.IsCompleted)
+        {
+            try
+            {
+                if (timeoutMs <= 0 && timeoutMs != Timeout.Infinite) throw new TimeoutException();
+                await exited.WaitAsync(timeoutMs == Timeout.Infinite ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
+            }
+            catch (TimeoutException ex)
+            {
+                var error = new TimeoutException("LIN 物理句柄已释放，但普通后台任务尚未退出；旧所有者保持冻结并保留任务，不能报告完全停止", ex);
+                BackgroundError = error;
+                throw error;
+            }
+        }
+        try { await workers.ConfigureAwait(false); }
+        catch (Exception ex) when (workers.IsCompleted && IsClosed && !ct.IsCancellationRequested)
+        { RecordCloseWarning(ex); }
+        ct.ThrowIfCancellationRequested();
+        var errors = jobs.Select(j => j.Error).Where(e => e != null).Cast<Exception>().ToArray();
+        foreach (var error in errors) RecordCloseWarning(error);
+    }
+
+    private void RecordCloseWarning(Exception error)
+    {
+        lock (_state)
+        {
+            IEnumerable<Exception> items = error is AggregateException aggregate ? aggregate.Flatten().InnerExceptions : new[] { error };
+            foreach (var item in items)
+                _closeWarnings.Add(item);
+            BackgroundError ??= error;
+        }
+    }
+
+    private void RetainWorkers(LinCyclicJob[] jobs)
+    {
+        var completion = Task.WhenAll(jobs.Select(j => j.Completion));
+        RetiredWorkers.TryAdd(this, completion);
+        _ = completion.ContinueWith(t =>
+        {
+            if (t.Exception != null) BackgroundError = t.Exception;
+            else if (jobs.FirstOrDefault(j => j.Error != null)?.Error is { } workerError) BackgroundError = workerError;
+            RetiredWorkers.TryRemove(this, out _);
+        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
+    private static int Remaining(long started, int timeoutMs) =>
+        Math.Max(0, timeoutMs - (int)Math.Min(int.MaxValue, Stopwatch.GetElapsedTime(started).TotalMilliseconds));
     public void Close() => CloseAsync().GetAwaiter().GetResult();
     public void Dispose()
     {
-        var close = CloseAsync(); // Freeze managed admission before returning to the SDK.
-        _ = Task.Run(() => ObserveClose(close), CancellationToken.None);
+        var close = RequestClose(); // Freeze admission; arbitrary managed callbacks do not hold the driver.
+        using (ExecutionContext.SuppressFlow()) _ = Task.Run(() => ObserveClose(close), CancellationToken.None);
     }
     private async Task ObserveClose(Task close)
     {
-        try { await close.ConfigureAwait(false); }
+        try { await close.ConfigureAwait(false); await WaitForWorkersAsync(Timeout.Infinite).ConfigureAwait(false); }
         catch (Exception ex) { BackgroundError = ex; System.Diagnostics.Trace.TraceError($"LIN 异步收尾未确认：{ex}"); }
     }
 }
 
 public sealed class LinCyclicJob : IDisposable
 {
+    private static readonly AsyncLocal<LinCyclicJob?> Ambient = new();
+    internal static LinCyclicJob? Current => Ambient.Value;
+    private readonly NativeWriteLifetime _nativeWrites = new();
     internal string? RegistrationKey { get; set; }
     private readonly CancellationTokenSource _stop = new();
     private readonly object _gate = new();
@@ -248,35 +355,118 @@ public sealed class LinCyclicJob : IDisposable
     private readonly Task _work;
     private Exception? _error;
     public Exception? Error => Volatile.Read(ref _error);
-    public Task Completion { get { lock (_gate) return Task.WhenAll(_work, _callbacks); } }
+    public Task Completion => JoinAsync();
+    internal Exception? StopWarning
+    {
+        get
+        {
+            lock (_gate)
+            {
+                var callbackError = _callbacks.Exception;
+                return Error == null ? callbackError : callbackError == null ? Error :
+                    new AggregateException("LIN 周期写已退出；保留历史错误及已退出回调的诊断", Error, callbackError);
+            }
+        }
+    }
+    internal Task CancellationCompletion { get { lock (_gate) return _callbacks; } }
     internal LinCyclicJob(Func<CancellationToken, Task>[] workers)
     {
         ExecutionScopedExecutor.Own(Cancel);
         _work = Task.WhenAll(workers.Select(work => Task.Run(async () =>
         {
+            var previous = Ambient.Value;
+            Ambient.Value = this;
             try { await work(_stop.Token).ConfigureAwait(false); }
             catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
             catch (Exception ex) { Interlocked.CompareExchange(ref _error, ex, null); Cancel(); }
+            finally { Ambient.Value = previous; }
         })));
     }
-    public void Cancel() { lock (_gate) if (!_stop.IsCancellationRequested) _callbacks = _stop.CancelAsync(); }
+    internal IDisposable EnterNativeWrite() => _nativeWrites.Enter();
+    public void Cancel()
+    {
+        lock (_gate)
+        {
+            _nativeWrites.Freeze();
+            if (!_stop.IsCancellationRequested) _callbacks = _stop.CancelAsync();
+        }
+    }
+    private async Task JoinAsync()
+    {
+        await _work.ConfigureAwait(false);
+        Task callbacks;
+        lock (_gate) callbacks = _callbacks;
+        await Task.WhenAll(callbacks, _nativeWrites.Completion).ConfigureAwait(false);
+    }
     public async Task StopAsync(int timeoutMs = 3000, CancellationToken ct = default)
     {
+        if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
+        ct.ThrowIfCancellationRequested();
+        long started = Stopwatch.GetTimestamp();
         Cancel();
-        await Completion.WaitAsync(TimeSpan.FromMilliseconds(timeoutMs), ct).ConfigureAwait(false);
-        if (Error != null) throw new InvalidOperationException("LIN 周期任务失败，已停止工作单元；请检查连接隔离及驱动状态", Error);
+        var completion = Completion;
+        var exited = completion.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        double remaining = timeoutMs - Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        if (remaining <= 0) throw new TimeoutException($"LIN 周期停止超过 {timeoutMs} ms，实际退出仍被追踪");
+        await exited.WaitAsync(TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false);
+        ct.ThrowIfCancellationRequested();
+        if (Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs)
+            throw new TimeoutException($"LIN 周期停止已超过总期限 {timeoutMs} ms；真实退出结果仍保留");
     }
     public void Dispose() => Cancel();
 }
 
 internal static class LinRegistryGuard
 {
-    private static readonly ConditionalWeakTable<object, SemaphoreSlim> Gates = new();
-    public static async Task<IDisposable> Enter(object registry, CancellationToken ct, int timeoutMs = Timeout.Infinite)
+    private sealed class RegistryGates
     {
-        var gate = Gates.GetValue(registry, _ => new(1, 1));
-        if (!await gate.WaitAsync(timeoutMs, ct).ConfigureAwait(false)) throw new TimeoutException($"LIN 等待连接登记门超过 {timeoutMs} ms");
-        return new Lease(gate);
+        internal readonly object Sync = new();
+        internal readonly HashSet<string> Names = new(StringComparer.OrdinalIgnoreCase);
+        internal bool Exclusive;
+        internal TaskCompletionSource Changed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
-    private sealed class Lease(SemaphoreSlim gate) : IDisposable { public void Dispose() => gate.Release(); }
+    private static readonly ConditionalWeakTable<object, RegistryGates> Gates = new();
+    // The legacy nameless lease remains an exclusive registry barrier. Production
+    // connection/task operations use a key so an unrelated close cannot block them.
+    public static async Task<IDisposable> Enter(object registry, CancellationToken ct, int timeoutMs = Timeout.Infinite, string? key = null)
+    {
+        if (timeoutMs <= 0 && timeoutMs != Timeout.Infinite) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
+        var gates = Gates.GetValue(registry, _ => new());
+        long started = Stopwatch.GetTimestamp();
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            Task changed;
+            lock (gates.Sync)
+            {
+                if (!gates.Exclusive && (key == null ? gates.Names.Count == 0 : !gates.Names.Contains(key)))
+                {
+                    if (key == null) gates.Exclusive = true; else gates.Names.Add(key);
+                    return new Lease(gates, key);
+                }
+                changed = gates.Changed.Task;
+            }
+            int remaining = timeoutMs == Timeout.Infinite ? Timeout.Infinite : Remaining(started, timeoutMs);
+            if (remaining == 0) throw new TimeoutException($"LIN 等待登记门 {key ?? "全部连接"} 超过 {timeoutMs} ms");
+            await changed.WaitAsync(remaining == Timeout.Infinite ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(remaining), ct).ConfigureAwait(false);
+        }
+    }
+    private static int Remaining(long started, int timeoutMs) =>
+        Math.Max(0, timeoutMs - (int)Math.Min(int.MaxValue, Stopwatch.GetElapsedTime(started).TotalMilliseconds));
+    private sealed class Lease(RegistryGates gates, string? key) : IDisposable
+    {
+        private int _released;
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) != 0) return;
+            lock (gates.Sync)
+            {
+                if (key == null) gates.Exclusive = false; else gates.Names.Remove(key);
+                var changed = gates.Changed;
+                gates.Changed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                changed.TrySetResult();
+            }
+        }
+    }
 }
