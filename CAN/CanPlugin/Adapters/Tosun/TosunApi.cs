@@ -48,7 +48,10 @@ internal static class TosunApi
 
     // ── API 函数 ──────────────────────────────────────────
     [DllImport(DllName, EntryPoint = "initialize_lib_tscan")]
-    public static extern void InitializeLib(bool enableFifo, bool enableTurbo);
+    public static extern void InitializeLib(
+        [MarshalAs(UnmanagedType.I1)] bool enableFifo,
+        [MarshalAs(UnmanagedType.I1)] bool enableErrorFrames,
+        [MarshalAs(UnmanagedType.I1)] bool useHardwareConnectionTime);
 
     [DllImport(DllName, EntryPoint = "finalize_lib_tscan")]
     public static extern void FinalizeLib();

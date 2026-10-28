@@ -34,6 +34,7 @@ public partial class LinCyclicSendStopEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new LinCyclicSendStopViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

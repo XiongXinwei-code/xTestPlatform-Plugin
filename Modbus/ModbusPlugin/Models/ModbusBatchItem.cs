@@ -27,7 +27,7 @@ public class ModbusBatchItem : INotifyPropertyChanged
 	/// <summary>起始地址</summary>
 	public ushort StartAddress { get => _startAddress; set => SetProperty(ref _startAddress, value); }
 
-	/// <summary>读取数量</summary>
+	/// <summary>读取数量：位 1～2000，寄存器 1～125；32 位格式须为偶数</summary>
 	public ushort Quantity { get => _quantity; set => SetProperty(ref _quantity, value); }
 
 	/// <summary>数据解析格式</summary>

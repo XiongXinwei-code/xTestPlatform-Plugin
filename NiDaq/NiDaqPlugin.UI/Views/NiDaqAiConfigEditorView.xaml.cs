@@ -26,10 +26,12 @@ public partial class NiDaqAiConfigEditorView : UserControl, IRefreshableEditor
     {
         InitializeComponent();
         DataContext = ViewModel;
+        Unloaded += (_, _) => FlushEditor();
     }
 
     public void RefreshFromStep(Step step)
     {
+        FlushEditor();
         ViewModel.AttachSerializer(new NiDaqAiConfigPlugin().CreateSerializer());
         ViewModel.AttachStep(step);
     }
@@ -37,7 +39,13 @@ public partial class NiDaqAiConfigEditorView : UserControl, IRefreshableEditor
     private void AddChannel_Click(object sender, RoutedEventArgs e) => ViewModel.AddChannel();
     private void RemoveChannel_Click(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.Channels.Count > 0)
-            ViewModel.RemoveChannel(ViewModel.Channels[^1]);
+        FlushEditor();
+        if (ChannelsGrid.SelectedItem is NiDaqAiChannel channel) ViewModel.RemoveChannel(channel);
+    }
+    private void FlushEditor()
+    {
+        ChannelsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
+        ChannelsGrid.CommitEdit(DataGridEditingUnit.Row, true);
+        ViewModel.FlushPendingSave();
     }
 }

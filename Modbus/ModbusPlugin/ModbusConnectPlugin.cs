@@ -26,24 +26,24 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 		|------|------|------|--------|------|
 		| ConnectionName | string([ExpressionField]) | 是 | Modbus1 | 连接标识名，序列内唯一，求值结果为 string |
 		| TransportType | 枚举 | 是 | TCP | 可选值：TCP, RTU |
-		| IpAddress | string([ExpressionField]) | TCP 时 | 127.0.0.1 | TCP 服务器地址，求值结果为 string |
+		| IpAddress | string([ExpressionField]) | TCP 时 | 192.168.1.1 | TCP 服务器地址，求值结果为 string |
 		| TcpPort | int | 否 | 502 | TCP 端口 |
 		| PortName | string([ExpressionField]) | RTU 时 | — | 串口名，如 COM1，求值结果为 string |
 		| BaudRate | int | 否 | 9600 | 波特率（RTU） |
 		| DataBits | int | 否 | 8 | 数据位（RTU） |
-		| StopBits | int | 否 | 1 | 停止位（RTU） |
-		| Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even（RTU） |
-		| TimeoutMs | int | 否 | 3000 | 通信超时毫秒数 |
+		| StopBits | int | 否 | 1 | 停止位：1=One, 2=Two, 3=OnePointFive（RTU） |
+		| Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even, 3=Mark, 4=Space（RTU） |
+		| TimeoutMs | int | 否 | 3000 | 建立总期限（含旧收尾等待），后续每次通信也复用此期限 |
 
 		## 行为
 
 		- TransportType=TCP 时使用 IpAddress/TcpPort，RTU 时使用串口参数
 		- 连接失败时步骤报错
-		- 建立的主站对象会以 `ConnectionName` 为标识名注册到运行期资源表（同时以同一标识名注册底层传输对象与超时配置），供后续 Modbus_Read / Modbus_Write / Modbus_Disconnect 步骤取用
-		- 用同一个 ConnectionName 重复连接时：**静默替换**——旧对象会被自动释放，再注册新对象，不会报错
+		- 连接 owner 以 `ConnectionName` 为逻辑标识统一持有主站、传输对象与超时配置，供后续读写/断开步骤使用
+		- 同名活动连接拒绝覆盖；已请求收尾或已确认释放的旧代次可在 TimeoutMs 同一总期限内接续关闭后重开，不强清未退出调用，不关闭其他活动连接
 		- 仅支持 TCP 与 RTU 两种传输方式，不支持 Modbus ASCII
 
-		## 检索关键词
+		### 检索关键词
 
 		Modbus、Modbus TCP、Modbus RTU、模总线、
 		从站地址、从机地址、Slave ID、Unit ID、功能码、
@@ -57,7 +57,7 @@ public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
 		- `Modbus_Disconnect`：关闭本插件建立的连接
 		""";
 
-	public override IStepExecutor CreateExecutor() => new ModbusConnectExecutor();
+	public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Modbus", () => new ModbusConnectExecutor());
 
 	public override string GenerateDescription(byte[] setting)
 	{

@@ -32,17 +32,21 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
         | Headers | 集合 | 否 | 空 | 本次请求附加的请求头；Name 为请求头名称，Value 为请求头值（string([ExpressionField])，求值结果为 string） |
         | ResponseVariable | string(VariablePathField) | 否 | Locals.SoapResponse | 响应 XML 写入的变量名，写入类型为 string，为空时不写入 |
         | StatusCodeVariable | string(VariablePathField) | 否 | — | 响应状态码写入的变量名，写入类型为 int；如 Locals.statusCode |
-        | TreatSoapFaultAsFailure | bool | 否 | true | 响应中包含 SOAP Fault 时是否判定步骤失败 |
-        | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 状态码是否判定步骤失败 |
-        | LogPayload | bool | 否 | true | 是否将请求与响应内容写入运行日志 |
+        | TreatSoapFaultAsFailure | bool | 否 | true | 响应包含 SOAP Fault 时是否返回执行 Error，不判定测试通过/失败 |
+        | TreatNonSuccessAsFailure | bool | 否 | true | 非 2xx 是否返回执行 Error，关闭时按配置忽略该状态 |
+        | LogPayload | bool | 否 | true | 兼容字段名，仅控制脱敏摘要，不记录Action/Envelope、响应正文或路径参数 |
 
         ## 行为
+
+        - 非空响应/状态码路径在发送前验证声明及已知 string/int 类型，并要求完整作用域；每项发布及最终结果均复查本次连接归属、运行代次和原始取消
 
         - 客户端不存在时步骤报错，需先执行 Http_ClientCreate
         - 请求固定使用 POST 方法，Envelope 以 UTF-8 编码发送
         - SoapVersion 为 Soap11 时 Content-Type 为 text/xml，SOAPAction 作为独立请求头发送
         - SoapVersion 为 Soap12 时 Content-Type 为 application/soap+xml，action 作为 Content-Type 的参数
-        - 响应体中检测到 Fault 元素且 TreatSoapFaultAsFailure 为 true 时，步骤判定为失败并输出 faultstring
+        - Fault 且 TreatSoapFaultAsFailure 开启时返回 Error；正常完成返回 Completed，不作测试通过/失败判定
+        - Fault 原文只在配置的响应变量中保留，不自动写入错误消息或日志；LogPayload 也只记录脱敏通信摘要
+        - 表达式 null 不作为脚本文本发送；空 SOAPAction 不添加该请求头，含换行的请求头在发送前报错
         - Envelope 内容为空时步骤报错
 
         ## 相关插件
@@ -52,7 +56,7 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
         - `Http_Request`：REST/JSON 风格的接口调用
         """;
 
-    public override IStepExecutor CreateExecutor() => new HttpSoapRequestExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Http", () => new HttpSoapRequestExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

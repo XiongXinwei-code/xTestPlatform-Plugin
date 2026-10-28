@@ -27,6 +27,7 @@ public partial class VisaWriteEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new VisaWriteViewModel();
 		DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 
 	public void RefreshFromStep(Step step)

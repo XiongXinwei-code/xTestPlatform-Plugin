@@ -46,6 +46,7 @@ public sealed class VisaBatchWriteEditorPlugin : IStepEditorPlugin
                 errors.Add(StepSettingError.Error("VISA_062E", $"第 {i + 1} 行：Command 表达式无效: {cmdErr}"));
         }
         VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        if (s.TimeoutMs < 0) errors.Add(StepSettingError.Error("VISA_099", "总期限不能为负数，0 表示兼容默认预算"));
         return errors;
     }
 }

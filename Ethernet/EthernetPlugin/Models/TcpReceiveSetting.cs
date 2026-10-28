@@ -20,7 +20,7 @@ public class TcpReceiveSetting
     /// <summary>数据编码格式（结果以此格式存入变量）</summary>
     public EthernetDataEncoding Encoding { get; set; } = EthernetDataEncoding.Hex;
 
-    /// <summary>结果存储变量路径</summary>
+    /// <summary>可选结果变量完整路径；非空时须已声明为 string（当前值允许 null），通信前预检。</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

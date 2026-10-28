@@ -41,12 +41,8 @@ public sealed class SerialPortWriteEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.WriteData, context.ExecutionContext, out var dataErr))
             errors.Add(StepSettingError.Error("SP_021E", $"WriteData 表达式无效: {dataErr}"));
 
-        if (s.DataFormat == SerialPortDataFormat.Hex && !string.IsNullOrWhiteSpace(s.WriteData))
-        {
-            var hex = s.WriteData.Trim().Replace(" ", "");
-            if (hex.Length % 2 != 0 || !System.Text.RegularExpressions.Regex.IsMatch(hex, @"^[0-9A-Fa-f]+$"))
-                errors.Add(StepSettingError.Warning("SP_022", "HEX 格式数据应为偶数位十六进制字符串（如 48656C6C6F）"));
-        }
+        // WriteData 是表达式，不能把含引号的脚本或变量名当 HEX 数据验证；运行时解析求值结果。
+        if (!Enum.IsDefined(s.DataFormat)) errors.Add(StepSettingError.Error("SP_FORMAT", "不支持的串口数据格式"));
 
         SerialPortLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.PortName, errors);
 

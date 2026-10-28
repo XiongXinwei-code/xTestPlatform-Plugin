@@ -1,4 +1,4 @@
-﻿using SerialPort.Models;
+using SerialPort.Models;
 
 namespace SerialPort.UI.ViewModels;
 

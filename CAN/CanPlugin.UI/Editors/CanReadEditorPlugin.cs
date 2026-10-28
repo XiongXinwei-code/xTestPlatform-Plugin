@@ -27,6 +27,8 @@ public sealed class CanReadEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (CanReadSetting)new CanReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!string.IsNullOrWhiteSpace(s.FilterId) && !context.Evaluator.ValidateExpression(s.FilterId, context.ExecutionContext, out var filterError))
+            errors.Add(StepSettingError.Error("CAN_FILTER_EXPR", $"FilterId 表达式无效：{filterError}"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("CAN_050", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))

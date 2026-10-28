@@ -44,8 +44,16 @@ public sealed class DoipConnectEditorPlugin : IStepEditorPlugin
 
         if (string.IsNullOrWhiteSpace(s.SourceAddress))
             errors.Add(StepSettingError.Error("DOIP_107", "SourceAddress 不能为空"));
-        else if (!context.Evaluator.ValidateExpression(s.SourceAddress, context.ExecutionContext, out var e4))
-            errors.Add(StepSettingError.Error("DOIP_108", $"SourceAddress 表达式无效: {e4}"));
+        else
+        {
+            string address = s.SourceAddress.Trim();
+            bool valid = address.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? ushort.TryParse(address.AsSpan(2), System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out _)
+                : ushort.TryParse(address, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out _);
+            if (!valid) errors.Add(StepSettingError.Error("DOIP_108", "SourceAddress必须是0~65535的十进制或0x十六进制常量，不带引号、不求值表达式"));
+        }
+        if (!Enum.IsDefined(s.ActivationType))
+            errors.Add(StepSettingError.Error("DOIP_110", "DoIP 路由激活类型无效"));
 
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("DOIP_109", "TimeoutMs 必须大于 0"));

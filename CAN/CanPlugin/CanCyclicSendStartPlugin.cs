@@ -39,10 +39,11 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
         - 每条启用的报文独立按各自 CycleTimeMs 周期发送，每次发送前重新求值 CanId 和 Data，可随变量变化实时更新
         - 仅发送经典 CAN 帧（非 CAN FD）
         - 没有启用的报文时步骤直接通过，不启动发送
-        - 后台单次发送异常仅记录警告日志，该报文的发送循环随即结束，不影响步骤结果
+        - 后台发送异常停止本任务全部报文，保存错误供 Stop 报告；启动步骤的历史结果不被改写
         - 连接名未找到时步骤报错
-        - 任务会以 `TaskName` 为标识名注册到运行期资源表，供 CAN_Cyclic_SendStop 步骤取用
-        - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会先被停止并从表中移除，再注册新任务，不会报错
+        - 任务注册到 ConnectionName 对应的连接资源内，以 TaskName 标识；不同连接的同名任务互不影响
+        - 同一连接同名启动时报错；须先执行 Stop 确认旧任务实际退出，不能用启动覆盖旧任务
+        - 本步骤为独立报文定时发送，不保证 RPDO 与 SYNC 顺序；受控周期发送期间拒绝启动
 
         ## 相关插件
 
@@ -50,7 +51,7 @@ public sealed class CanCyclicSendStartPlugin : StepPluginBase<CanCyclicSendStart
         - `CAN_Cyclic_SendStop`：停止本插件启动的周期发送任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanCyclicSendStartExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanCyclicSendStartExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

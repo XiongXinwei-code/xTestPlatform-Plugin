@@ -38,4 +38,7 @@ public class CanOpenSetting
     /// <summary>运行时连接标识名（供其他步骤引用）</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"CAN1\"";
+
+    /// <summary>打开总超时：含生命周期排队、旧连接收尾及本次原生打开，单位毫秒，必须大于 0。</summary>
+    public int TimeoutMs { get; set; } = 5000;
 }

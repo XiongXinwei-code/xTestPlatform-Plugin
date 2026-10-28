@@ -12,25 +12,25 @@ public sealed class UdsClearDtcExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new UdsClearDtcPlugin().CreateSerializer();
-        var setting = (UdsClearDtcSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdsClearDtcPlugin().CreateSerializer();
+            var setting = (UdsClearDtcSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
             var groupStr = await Evaluator.EvaluateAsync<string>(setting.DtcGroup, context) ?? setting.DtcGroup;
-            uint group = UdsExecutorHelper.ParseId(groupStr);
+            uint group = UdsExecutorHelper.ParseBoundedId(groupStr, 0xFFFFFF, "DtcGroup");
 
             var request = new byte[] { 0x14, (byte)(group >> 16), (byte)(group >> 8), (byte)(group & 0xFF) };
-            var response = await client.RequestAsync(request, cancellationToken);
+            var response = await guard.RunAsync(() => client.RequestAsync(request, cancellationToken));
 
             if (response.IsPositive)
             {
-                context.Log($"UDS ClearDTC: 清除成功 (Group=0x{group:X6})");
+                guard.Log($"UDS ClearDTC: 清除成功 (Group=0x{group:X6})");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = $"0x{group:X6}" } };
             }
             else

@@ -1,4 +1,5 @@
 using Ethernet.DoIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -9,29 +10,49 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new DoipDiagRequestPlugin().CreateSerializer();
-        var setting = (DoipDiagRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         string? name = null;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new DoipDiagRequestPlugin().CreateSerializer();
+            var setting = (DoipDiagRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
+            if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "DoIP 请求总超时必须大于 0");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
             name = await EthernetExecutorHelper.EvalStringAsync(setting.SessionName, context);
+            CheckExecution();
             var targetStr = await EthernetExecutorHelper.EvalStringAsync(setting.TargetAddress, context);
+            CheckExecution();
             var dataStr = await EthernetExecutorHelper.EvalStringAsync(setting.RequestData, context);
+            CheckExecution();
 
-            var client = DoipConnectionManager.Get(name);
+            var client = DoipConnectionManager.Get(name, context.Resources);
             var targetAddress = DoipHelper.ParseAddress(targetStr);
             var requestData = DoipHelper.ParseHexData(dataStr);
 
             context.Log(
                 $"DoIP 诊断请求: {name} -> 0x{targetAddress:X4} [{DoipHelper.ToHex(requestData)}]");
 
-            var response = await client.DiagRequestAsync(targetAddress, requestData, cancellationToken);
+            CheckExecution();
+            var response = await client.DiagRequestAsync(targetAddress, requestData, setting.TimeoutMs, cancellationToken);
             var responseHex = DoipHelper.ToHex(response);
 
             context.Log($"DoIP 诊断响应: [{responseHex}]");
+            cancellationToken.ThrowIfCancellationRequested(); // 日志可能阻塞；取消后不向序列发布迟到结果。
+            CheckExecution();
+            if (!ReferenceEquals(client, DoipConnectionManager.Get(name!, context.Resources)))
+                throw new InvalidOperationException("DoIP 会话已关闭或被替换，拒绝发布旧代次响应");
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, responseHex);
 
@@ -60,17 +81,15 @@ public sealed class DoipDiagRequestExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (OperationCanceledException)
+        catch (TimeoutException ex)
         {
-            // 超时后迟到的响应会残留在 TCP 流中，关闭会话防止后续请求读到旧数据
-            if (name != null)
-                DoipConnectionManager.Close(name);
+            // 排队未提交时不能声称连接已关闭；真实事务失败只影响捕获的原实例。
             return new ExecutionResult
             {
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = "DoIP 诊断请求超时: 未在超时时间内收到响应，会话已关闭，请重新执行 DoIP_Connect" }
+                    Error = ErrorInfo.FromException(ex, $"DoIP 诊断请求超时: {ex.Message}")
                 }
             };
         }

@@ -10,4 +10,6 @@ public class DoipDisconnectSetting
     /// <summary>要断开的会话标识名</summary>
     [ExpressionField]
     public string SessionName { get; set; } = "\"DOIP1\"";
+    /// <summary>等待关闭实际完成的总期限（毫秒），必须大于0。</summary>
+    public int TimeoutMs { get; set; } = 5000;
 }

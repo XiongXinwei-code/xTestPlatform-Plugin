@@ -34,6 +34,7 @@ public partial class LinSleepEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new LinSleepViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

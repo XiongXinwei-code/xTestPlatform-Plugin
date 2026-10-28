@@ -1,0 +1,41 @@
+name: 插件构建与回归验证
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-dotnet@v4.3.1
+        with:
+          # .slnx needs a modern SDK; retain .NET 8 for the plugin/test runtime.
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: 还原全部插件与测试
+        run: |
+          dotnet restore xTestPlatform-PluginDev.slnx -r win-x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet restore tools/StepInfoExtractor/StepInfoExtractor.csproj
+      - name: 无设备回归测试
+        run: |
+          pwsh -NoProfile -File tools/Verify-PluginSources.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pwsh -NoProfile -File tools/Verify-Plugins.ps1 -Mode Test
+      - name: 编译并校验独立插件目录
+        run: pwsh -NoProfile -File tools/Verify-Plugins.ps1 -Mode Package
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-verification
+          path: |
+            artifacts/Release/2026-10-23-audit-fixes/verification
+            artifacts/Release/2026-10-23-audit-fixes/build-manifest.json

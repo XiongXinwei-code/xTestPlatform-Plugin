@@ -1,5 +1,6 @@
 using CAN.Helpers;
 using CAN.Models;
+using CAN.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -9,55 +10,40 @@ namespace CAN.Executors;
 
 public sealed class CanCyclicSendStopExecutor : IStepExecutor
 {
-    private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
-
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new CanCyclicSendStopPlugin().CreateSerializer();
-        var setting = (CanCyclicSendStopSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
-            var taskKey = CanCyclicSendStartExecutor.GetTaskKey(taskName);
-
-            if (context.Resources.TryGet<CancellationTokenSource>(taskKey, out var cts))
+            var guard = new CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var setting = (CanCyclicSendStopSetting)new CanCyclicSendStopPlugin().CreateSerializer()
+                .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "停止总超时必须大于 0");
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            int Remaining()
             {
-                await cts.CancelAsync();
-                context.Resources.Remove(taskKey);
-
-                context.Log($"CAN 周期发送已停止: TaskName={taskName}");
-
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Completed,
-                        Value = $"已停止周期发送任务: {taskName}"
-                    }
-                };
+                guard.Check();
+                return setting.TimeoutMs > clock.ElapsedMilliseconds ? setting.TimeoutMs - (int)clock.ElapsedMilliseconds
+                    : throw new TimeoutException($"CAN 周期停止超过总期限 {setting.TimeoutMs} ms");
             }
-
-            return new ExecutionResult
+            var evaluator = ExpressionEvaluatorFactory.Default;
+            var name = await evaluator.EvalStringAsync(setting.ConnectionName, context);
+            var taskName = await evaluator.EvalStringAsync(setting.TaskName, context);
+            if (!context.Resources.TryGet<CanConnectionResource>(CanHelper.GetAdapterKey(name), out var connection))
             {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Completed,
-                    Value = $"未找到运行中的周期发送任务: {taskName}"
-                }
-            };
+                guard.Check();
+                throw new InvalidOperationException($"CAN 连接 {name} 未找到");
+            }
+            guard.Watch(CanHelper.GetAdapterKey(name), connection);
+            var warning = await guard.RunAsync(() => connection.StopJobWithDiagnosticsAsync(taskName, Remaining(), cancellationToken));
+            if (warning != null)
+                guard.Log(LogLevel.Warn, $"CAN 周期任务 {name}/{taskName} 的实际写调用已退出；保留历史诊断", warning);
+            _ = Remaining();
+            return new() { StepResult = new() { Status = TestStatus.Completed, Value = $"周期工作任务已退出：{name}/{taskName}；不代表电机停止" } };
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        { return new() { StepResult = new() { Status = TestStatus.Aborted } }; }
         catch (Exception ex)
-        {
-            return new ExecutionResult
-            {
-                StepResult = new StepResult
-                {
-                    Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex, $"CAN 周期发送停止失败: {ex.Message}")
-                }
-            };
-        }
+        { return new() { StepResult = new() { Status = TestStatus.Error, Error = ErrorInfo.FromException(ex, $"周期停止失败：{ex.Message}") } }; }
     }
 }

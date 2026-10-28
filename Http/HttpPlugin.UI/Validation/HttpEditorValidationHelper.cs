@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Http.Models;
+using Http.Helpers;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 
@@ -15,6 +16,12 @@ internal static class HttpEditorValidationHelper
         StepEditorValidationContext context, string variableName, Type expected, string code, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(variableName)) return;
+
+        if (!HttpOutputPreflight.IsScopedPath(variableName))
+        {
+            errors.Add(StepSettingError.Error(code, $"输出必须使用完整变量路径，如 Locals.result：{variableName}"));
+            return;
+        }
 
         if (!context.ExecutionContext.HasVariable(variableName))
         {
@@ -47,7 +54,7 @@ internal static class HttpEditorValidationHelper
 
     /// <summary>校验提取映射集合：路径与目标变量不可为空，且不能重复写入同一变量</summary>
     public static void CheckExtractItems(
-        ObservableCollection<HttpExtractItem> items, string pathLabel, string code, List<StepSettingError> errors)
+        ObservableCollection<HttpExtractItem> items, string pathLabel, string code, List<StepSettingError> errors, bool allowRootPath = false)
     {
         if (items.Count == 0)
         {
@@ -63,7 +70,7 @@ internal static class HttpEditorValidationHelper
                 errors.Add(StepSettingError.Error($"{code}V", "提取映射中存在目标变量为空的行"));
                 continue;
             }
-            if (string.IsNullOrWhiteSpace(item.Path))
+            if (!allowRootPath && string.IsNullOrWhiteSpace(item.Path))
                 errors.Add(StepSettingError.Error($"{code}P", $"变量 {item.TargetVariable} 的{pathLabel}不能为空"));
             if (!seen.Add(item.TargetVariable))
                 errors.Add(StepSettingError.Warning($"{code}D", $"目标变量 {item.TargetVariable} 被重复写入，后一行会覆盖前一行"));

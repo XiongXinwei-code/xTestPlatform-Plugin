@@ -19,26 +19,44 @@ public sealed class HttpRequestExecutor : IStepExecutor
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         var operation = "HTTP 请求";
-        var step = context.CurrentStep!.Step;
-        var serializer = new HttpRequestPlugin().CreateSerializer();
-        var setting = (HttpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        HttpRequestMessage? pendingRequest = null;
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Http");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new HttpRequestPlugin().CreateSerializer();
+            var setting = (HttpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             var clientName = await Evaluator.EvalStringAsync(setting.ClientName, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(clientName))
                 return Error("客户端标识名未配置");
 
             if (!context.Resources.TryGet<HttpClientResource>(HttpHelper.GetClientKey(clientName), out var resource))
+            {
+                CheckExecution();
                 return Error($"未找到 HTTP 客户端: {clientName}，请先执行 Http_ClientCreate 步骤");
+            }
 
             var path = await Evaluator.EvalStringAsync(setting.Path, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(path))
                 return Error("请求路径未配置");
 
-            using var request = new HttpRequestMessage(
+            HttpOutputPreflight.Validate(context, setting.ResponseVariable, typeof(string), CheckExecution);
+            HttpOutputPreflight.Validate(context, setting.StatusCodeVariable, typeof(int), CheckExecution);
+            HttpOutputPreflight.Validate(context, setting.ElapsedVariable, typeof(int), CheckExecution);
+
+            var request = pendingRequest = new HttpRequestMessage(
                 HttpHelper.ToHttpMethod(setting.Method),
                 BuildRequestUri(path));
             operation = HttpHelper.DescribeRequest(clientName, resource.Client, request);
@@ -47,8 +65,8 @@ public sealed class HttpRequestExecutor : IStepExecutor
             {
                 if (string.IsNullOrWhiteSpace(header.Name)) continue;
                 var value = await Evaluator.EvalStringAsync(header.Value, context);
-                request.Headers.Remove(header.Name);
-                request.Headers.TryAddWithoutValidation(header.Name, value);
+                CheckExecution();
+                HttpHelper.SetRequestHeader(request.Headers, header.Name, value);
             }
 
             var mediaType = HttpHelper.ToMediaType(setting.ContentType);
@@ -56,31 +74,42 @@ public sealed class HttpRequestExecutor : IStepExecutor
             if (mediaType != null)
             {
                 body = await Evaluator.EvalStringAsync(setting.Body, context);
+                CheckExecution();
                 request.Content = new StringContent(body, Encoding.UTF8, mediaType);
             }
 
             if (setting.LogPayload)
-                context.Log($"HTTP 请求: {request.Method} {path}{(string.IsNullOrEmpty(body) ? string.Empty : " | " + body)}");
+                context.Log($"HTTP 请求: {operation}；正文长度={body.Length} 字符，正文与路径参数不记录");
 
-            var stopwatch = Stopwatch.StartNew();
-            using var response = await resource.Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            stopwatch.Stop();
-
-            var statusCode = (int)response.StatusCode;
-            var elapsedMs = (int)stopwatch.ElapsedMilliseconds;
-
-            if (!string.IsNullOrWhiteSpace(setting.ResponseVariable))
-                context.SetVariable(setting.ResponseVariable, content);
-            if (!string.IsNullOrWhiteSpace(setting.StatusCodeVariable))
-                context.SetVariable(setting.StatusCodeVariable, statusCode);
-            if (!string.IsNullOrWhiteSpace(setting.ElapsedVariable))
-                context.SetVariable(setting.ElapsedVariable, elapsedMs);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+            HttpHelper.ValidateRequestDestination(resource, request);
+            var sending = resource.SendAsync(request, cancellationToken);
+            pendingRequest = null; // Resource retains request ownership through the real worker's exit.
+            var response = await sending;
+            var content = response.Content;
+            var statusCode = response.StatusCode;
+            var elapsedMs = (int)Math.Min(int.MaxValue, response.ElapsedMs);
 
             if (setting.LogPayload)
-                context.Log($"HTTP 响应: {statusCode} ({elapsedMs} ms) | {content}");
+                context.Log($"HTTP 响应: {statusCode} ({elapsedMs} ms)，正文长度={content.Length} 字符");
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
 
-            var succeeded = response.IsSuccessStatusCode || !setting.TreatNonSuccessAsFailure;
+            CheckExecution();
+            if (!string.IsNullOrWhiteSpace(setting.ResponseVariable))
+                context.SetVariable(setting.ResponseVariable, content);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+            if (!string.IsNullOrWhiteSpace(setting.StatusCodeVariable))
+                context.SetVariable(setting.StatusCodeVariable, statusCode);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+            if (!string.IsNullOrWhiteSpace(setting.ElapsedVariable))
+                context.SetVariable(setting.ElapsedVariable, elapsedMs);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+
+            var succeeded = response.IsSuccess || !setting.TreatNonSuccessAsFailure;
 
             var result = succeeded
                 ? ExecutionResults.Completed(statusCode.ToString())
@@ -103,6 +132,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
         {
             return Error($"HTTP 请求失败；{operation}", ex);
         }
+        finally { pendingRequest?.Dispose(); }
     }
 
     /// <summary>路径为绝对 URL 时直接使用，否则作为相对于基地址的相对路径</summary>

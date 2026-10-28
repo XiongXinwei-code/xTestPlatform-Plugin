@@ -30,6 +30,9 @@ public interface ILinAdapter : IDisposable
     bool IsConnected { get; }
 }
 
+/// <summary>驱动明确确认全部本地句柄已释放；断连标记不等价于此状态。</summary>
+public interface ILinCloseState { bool HandlesReleased { get; } }
+
 /// <summary>LIN 适配器配置</summary>
 public class LinAdapterConfig
 {

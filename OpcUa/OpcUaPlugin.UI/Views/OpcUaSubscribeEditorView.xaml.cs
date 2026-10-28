@@ -24,6 +24,7 @@ public partial class OpcUaSubscribeEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaSubscribeViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

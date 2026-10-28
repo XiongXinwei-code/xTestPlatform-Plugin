@@ -27,4 +27,8 @@ public class UdsCommonSetting
 
     /// <summary>响应超时 (ms)</summary>
     public int ResponseTimeoutMs { get; set; } = 5000;
+    /// <summary>单个 UDS 事务总期限，包含排队、发送、接收及 NRC 0x78 等待，不是整个 Flash 步骤期限。</summary>
+    public int TransactionTimeoutMs { get; set; } = 60000;
+    /// <summary>ISO-TP 最大重组响应字节数；由 UDS 编辑器配置，必须大于 0，默认 4 MiB。</summary>
+    public int MaxResponseBytes { get; set; } = IsoTp.IsoTpTransport.DefaultMaxReceivePayloadBytes;
 }

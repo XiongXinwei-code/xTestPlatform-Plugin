@@ -8,13 +8,21 @@ namespace CiA402.Tests;
 
 public sealed class FakeCanAdapter : ICanAdapter
 {
-    public ConcurrentQueue<CanMessage> Incoming { get; } = new();
+    // 模拟驱动首次入队时刻，绝不能在 Read 出队时补时间。
+    public IngressQueue Incoming { get; } = new();
     public ConcurrentQueue<CanMessage> Sent { get; } = new();
     public Dictionary<(ushort, byte), byte[]> Objects { get; } = new();
     public bool IsConnected { get; private set; } = true;
     public bool Respond { get; set; } = true;
+    public Func<int, CancellationToken, CanMessage?>? ReadOverride { get; set; }
+    private int _closeCount;
+    public int CloseCount => Volatile.Read(ref _closeCount);
     public void Open(CanAdapterConfig config) => IsConnected = true;
-    public void Close() => IsConnected = false;
+    public void Close()
+    {
+        IsConnected = false;
+        Interlocked.Increment(ref _closeCount);
+    }
     public void Write(CanMessage message)
     {
         Sent.Enqueue(message);
@@ -43,6 +51,7 @@ public sealed class FakeCanAdapter : ICanAdapter
     }
     public CanMessage? Read(int timeoutMs, CancellationToken ct = default)
     {
+        if (ReadOverride is { } read) return read(timeoutMs, ct);
         var watch = Stopwatch.StartNew();
         while (watch.ElapsedMilliseconds < timeoutMs)
         {

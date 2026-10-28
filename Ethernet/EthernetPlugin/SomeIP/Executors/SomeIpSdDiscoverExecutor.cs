@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Ethernet.SomeIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -16,14 +17,26 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new SomeIpSdDiscoverPlugin().CreateSerializer();
-        var setting = (SomeIpSdDiscoverSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new SomeIpSdDiscoverPlugin().CreateSerializer();
+            var setting = (SomeIpSdDiscoverSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
             var addrStr = await EthernetExecutorHelper.EvalStringAsync(setting.MulticastAddress, context);
+            CheckExecution();
             var serviceStr = await EthernetExecutorHelper.EvalStringAsync(setting.ServiceId, context);
+            CheckExecution();
 
             var multicast = IPAddress.Parse(addrStr.Trim());
             var findServiceId = SomeIpHelper.ParseId(serviceStr, "ServiceId");
@@ -31,14 +44,24 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             context.Log(
                 $"SOME/IP-SD 发现: {multicast}:{setting.Port} 查找 Service=0x{findServiceId:X4}，超时 {setting.TimeoutMs}ms");
 
-            using var udp = new UdpClient(AddressFamily.InterNetwork);
-            udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            udp.Client.Bind(new IPEndPoint(IPAddress.Any, setting.Port));
-            udp.JoinMulticastGroup(multicast);
+            using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources, () =>
+            {
+                var socket = new UdpClient(AddressFamily.InterNetwork);
+                try
+                {
+                    socket.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                    socket.Client.Bind(new IPEndPoint(IPAddress.Any, setting.Port));
+                    socket.JoinMulticastGroup(multicast);
+                    return socket;
+                }
+                catch { socket.Dispose(); throw; }
+            }, setting.Port, setting.TimeoutMs, cancellationToken, CheckExecution);
 
             // 发送 FindService
             var find = BuildFindService(findServiceId);
-            await udp.SendAsync(find, new IPEndPoint(multicast, setting.Port), cancellationToken);
+            CheckExecution();
+            await udp.RunAsync(async (socket, token) =>
+                { await socket.SendAsync(find, new IPEndPoint(multicast, setting.Port), token); }, cancellationToken, CheckExecution);
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(setting.TimeoutMs);
@@ -46,17 +69,23 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
             var offers = new List<string>();
             try
             {
-                while (true)
+                await udp.RunAsync(async (socket, token) =>
                 {
-                    var recv = await udp.ReceiveAsync(timeoutCts.Token);
-                    foreach (var offer in ParseOffers(recv.Buffer, findServiceId, recv.RemoteEndPoint))
-                        if (!offers.Contains(offer)) offers.Add(offer);
-                }
+                    while (true)
+                    {
+                        CheckExecution();
+                        var recv = await socket.ReceiveAsync(token);
+                        foreach (var offer in ParseOffers(recv.Buffer, findServiceId, recv.RemoteEndPoint))
+                            if (!offers.Contains(offer)) offers.Add(offer);
+                    }
+                }, timeoutCts.Token, CheckExecution);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 // 超时结束收集
             }
+
+            CheckExecution(); // Cleanup is not a successful collection-window expiry.
 
             if (offers.Count == 0)
                 return new ExecutionResult
@@ -70,7 +99,10 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
 
             var result = string.Join("; ", offers);
             context.Log($"SOME/IP-SD 发现服务: {result}");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, result);
 
@@ -135,17 +167,20 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
         var msg = SomeIpMessage.TryDecode(data);
         if (msg == null || msg.ServiceId != SdServiceId || msg.MethodId != SdMethodId) return offers;
         var p = msg.Payload;
-        if (p.Length < 8) return offers;
+        if (p.Length < 12) return offers;
 
-        var entriesLength = (int)BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(4));
+        var entriesLength = BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(4));
+        // 先以无符号长度核对完整 Entries 和其后的 OptionsLength，禁止溢出或截短后误解析。
+        if (entriesLength > (uint)(p.Length - 12) || entriesLength % 16 != 0) return offers;
         var entriesStart = 8;
-        var entriesEnd = Math.Min(entriesStart + entriesLength, p.Length);
+        var entriesEnd = entriesStart + (int)entriesLength;
 
         // 解析 Options 区（位于 Entries 之后：OptionsLength(4) + Options）
         var options = ParseOptions(p, entriesEnd);
+        if (options == null) return offers;
 
         var offset = entriesStart;
-        while (offset + 16 <= entriesEnd)
+        while (entriesEnd - offset >= 16)
         {
             var type = p[offset];
             var index1 = p[offset + 1];
@@ -176,23 +211,25 @@ public sealed class SomeIpSdDiscoverExecutor : IStepExecutor
     }
 
     /// <summary>解析 SD Options 区，返回按索引排列的选项描述（仅支持 IPv4 Endpoint 0x04，其他选项占位 null）。</summary>
-    private static List<string?> ParseOptions(byte[] p, int entriesEnd)
+    private static List<string?>? ParseOptions(byte[] p, int entriesEnd)
     {
         var options = new List<string?>();
-        if (entriesEnd + 4 > p.Length) return options;
+        if (entriesEnd < 0 || entriesEnd > p.Length - 4) return null;
 
-        var optionsLength = (int)BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(entriesEnd));
+        var optionsLength = BinaryPrimitives.ReadUInt32BigEndian(p.AsSpan(entriesEnd));
         var offset = entriesEnd + 4;
-        var end = Math.Min(offset + optionsLength, p.Length);
+        if (optionsLength > (uint)(p.Length - offset)) return null;
+        var end = offset + (int)optionsLength;
 
-        while (offset + 3 <= end)
+        while (offset < end)
         {
+            if (end - offset < 3) return null;
             // Option: Length(2, 不含 Length 和 Type 字段) + Type(1) + 内容
             var optLen = BinaryPrimitives.ReadUInt16BigEndian(p.AsSpan(offset));
             var optType = p[offset + 2];
             var contentStart = offset + 3;
             var optTotal = 3 + optLen;
-            if (offset + optTotal > end) break;
+            if (optTotal > end - offset) return null;
 
             // IPv4 Endpoint Option: Reserved(1) + IPv4(4) + Reserved(1) + Protocol(1) + Port(2)
             if (optType == 0x04 && optLen >= 9)

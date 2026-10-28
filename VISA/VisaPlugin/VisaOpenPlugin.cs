@@ -26,17 +26,17 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | VISA1 | 连接标识名，序列内唯一，求值结果为 string |
         | ResourceString | string([ExpressionField]) | 是 | — | VISA 资源字符串，如 TCPIP::192.168.1.1::INSTR、GPIB0::1::INSTR，求值结果为 string |
-        | OpenTimeoutMs | int | 否 | 5000 | 打开超时毫秒数 |
-        | IoTimeoutMs | int | 否 | 3000 | IO 超时毫秒数 |
+        | OpenTimeoutMs | int | 否 | 5000 | 包含登记、旧收尾和打开的总期限；-1 为无限打开，此时 IoTimeoutMs 必须有限 |
+        | IoTimeoutMs | int | 否 | 10000 | I/O 超时毫秒数，-1 为无限等待；不能与 OpenTimeoutMs 同时为 -1 |
         | Terminator | string | 否 | \n | 终止符 |
 
         ## 行为
 
         - 资源不存在或打开超时时步骤报错
         - 打开的会话会以 `ConnectionName` 为标识名注册到运行期资源表（同时以同一标识名注册 `Terminator` 配置），供后续 VISA_Write / VISA_Read / VISA_Query / VISA_Close 步骤取用
-        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧会话会被自动关闭并释放，再注册新会话，不会报错
+        - 同名重开先在 OpenTimeoutMs 同一预算内确认捕获的旧会话真实关闭；关闭失败或调用未退出时保留原 owner 并报错，不静默丢弃句柄
 
-        ## 检索关键词
+        ### 检索关键词
 
         VISA、NI-VISA、Keysight IO Libraries、Resource String、资源字符串、
         GPIB、IEEE-488、USB-TMC、USBTMC、TCPIP、INSTR、SOCKET、ASRL、
@@ -48,7 +48,7 @@ public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
         - `VISA_Close`：关闭本插件打开的会话
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

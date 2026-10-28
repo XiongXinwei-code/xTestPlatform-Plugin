@@ -24,8 +24,8 @@ public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名，求值结果为 string |
         | FilterFrameId | string([ExpressionField]) | 否 | 空 | 过滤帧 ID 0-63，空则接收任意帧；求值结果为字符串，支持十进制（如 "\"63\""）或 0x 前缀十六进制（如 "\"0x3F\""），求值结果为 string |
         | ReadTimeoutMs | int | 否 | 1000 | 读取超时毫秒数 |
-        | ResultVariable | string(VariablePathField) | 是 | — | 结果变量名，写入类型为 string（十六进制数据）；如 Locals.result |
-        | IdVariable | string(VariablePathField) | 否 | 空 | 存储帧 ID 的变量路径；如 Locals.id |
+        | ResultVariable | string(VariablePathField) | 否 | 空 | 已声明的 string 变量完整路径（十六进制数据）；如 Locals.result，留空不写入；读取前校验 |
+        | IdVariable | string(VariablePathField) | 否 | 空 | 已声明的 string 变量完整路径（帧 ID 十进制字符串）；如 Locals.id，留空不写入；读取前校验 |
 
         ## 行为
 
@@ -37,7 +37,7 @@ public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
         - `LIN_Write`：发送 LIN 帧
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

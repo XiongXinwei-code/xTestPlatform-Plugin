@@ -24,6 +24,7 @@ public partial class CanOpenEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new CanOpenViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

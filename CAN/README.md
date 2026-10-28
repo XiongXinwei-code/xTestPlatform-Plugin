@@ -1,5 +1,20 @@
 # CAN 插件
 
+当前版本 **1.0.49**：通用周期停止等待该任务真实写调用退出；历史后台错误保留为警告，任务退出后释放名称，不影响其它周期任务。CAN/CANopen/CiA402 混用、整批 FIFO、独立 SYNC 与异步读取保持兼容。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+
+修改汇总与交付边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+
+## 中断与协议验证边界
+
+- 同名连接只有在旧 owner 已确认真实释放后才允许首次重开；旧收尾历史错误仍输出日志。原生调用未退出、未确认发送或部分 RPDO 周期仍保持隔离，不清空占用强行重开。
+- 监测 SYNC/目标启动在确认能力预检和周期门等待中响应步骤取消，并在发布前再次检查同一总期限；启动成功后服务生命周期不绑定短期步骤令牌。
+- PEAK/Vector/TOSUN 关闭返回错误时保留尚未释放句柄，可通过关闭步骤重试。Vector/TOSUN 在部分打开后失败也按真实资源状态清理。
+- TOSUN 当前为单库所有者模式，仅支持一个并发 TOSUN 连接（不同通道/设备也不能并行）。后续连接在初始化/连接前拒绝，旧 Disconnect 或 Finalize 失败则保留租约到真实释放。官方初始化接口按 FIFO、接收错误帧、使用硬件连接时间三个一字节 bool 传入 `true,false,false`。这不是多通道共享句柄实现，也未验证插件之外的 libTSCAN 消费者共存；部署时应由此插件独占该库生命周期。
+- TOSUN Connect 返回 5（已经连接）或失败时返回非零但归属未知的句柄，会保持库隔离，绝不擅自 Disconnect/Finalize。此类冲突不能靠重复打开解决；请关闭同进程其他 libTSCAN 使用者并重启宿主。只有 Connect 成功取得的句柄，其后配置失败才由插件配对断开；普通释放失败仍可重试关闭。
+- XCP SHORT_UPLOAD 正应答长度必须完整；UDS 数据不接受残缺半字节。RawRequest 的 0x27 安全访问日志及结果显示隐藏负载，显式结果变量仍保留响应字节供序列使用。
+- 原始 CAN 单次/周期发送拒绝残缺半字节、越界标准/扩展 ID、Classic 超过 8 字节或 FD 超过 64 字节；保留空格、连字符、逗号分隔与全部合法 FD DLC。Classic 打开的连接不接受 FD 请求，不依赖厂商截断或隐式降级。通用周期的动态表达式在每次实际发送前校验，后台失败保留诊断；停止/关闭按真实退出和最终释放判定。
+- CANopen 反馈的入队时间只作为诊断，不代替可信采集时间。以上均需真实硬件、驱动及设备协议进一步验收。
+
 ## 功能概述
 
 通过 CAN 总线与被测设备通信，支持 CAN 2.0 Classic 与 CAN FD 报文的收发、周期发送，并内置 UDS 诊断（ISO 14229）与 XCP 标定协议步骤。
@@ -23,20 +38,26 @@
 | CAN_Open | 打开 CAN 通道并建立连接，支持 CAN 2.0 Classic、CAN FD 协议。 |
 | CAN_Read | 从已打开的 CAN 通道接收一帧报文，可按 ID 过滤，结果存入变量。 |
 | CAN_Write | 向已打开的 CAN 通道发送一帧报文。 |
-| CANopen_SdoRead | 通过 SDO 上传读取节点对象字典条目（支持快速/分段/块传输），可从 EDS/DCF 选择对象，结果写入变量。 |
-| CANopen_SdoWrite | 通过 SDO 下载写入节点对象字典条目（支持快速/分段/块传输），可从 EDS/DCF 选择对象。 |
-| CANopen_NmtControl | 发送 NMT 命令（启动、停止、进入预运行、复位节点、复位通信），NodeId 为 0 时广播。 |
-| CANopen_WaitHeartbeat | 等待指定节点的心跳/Boot-up 报文，可校验 NMT 状态并写入变量。 |
-| CANopen_PdoSend | 按 COB-ID 发送一帧 PDO（0~8 字节）。 |
-| CANopen_PdoReceive | 等待指定 COB-ID 的 PDO，数据以十六进制字符串写入变量。 |
-| CANopen_SyncSend | 发送一帧 SYNC 同步报文（可选 1 字节计数器），用于触发同步 PDO。 |
-| CANopen_EmcyReceive | 等待节点 EMCY 紧急报文，解析错误码、错误寄存器与厂商数据，可校验期望错误码。 |
+| CANopen_Cycle_InputsUpdate | CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。 |
+| CANopen_Cycle_Start | CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。 |
+| CANopen_Cycle_Stop | CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。 |
+| CANopen_Network_EmcyReceive | 等待指定节点上报的 CANopen EMCY 紧急报文，解析错误码、错误寄存器与厂商数据并写入变量；可校验是否为期望的错误码。 |
+| CANopen_Network_NmtControl | 发送 CANopen NMT 命令，切换节点的网络管理状态。 |
+| CANopen_Network_SyncSend | 发送一帧 CANopen SYNC 同步报文，触发使用同步传输类型（1~240）的 TPDO 刷新或 RPDO 生效。 |
+| CANopen_Network_WaitHeartbeat | 等待 CANopen 节点的心跳（或 Boot-up）报文，并确认节点进入期望的 NMT 状态。 |
+| CANopen_PDO_Receive | 接收一帧指定 COB-ID 的 CANopen PDO（通常为节点的 TPDO），数据以十六进制字符串存入变量。 |
+| CANopen_PDO_Send | 发送一帧 CANopen PDO（通常为节点的 RPDO）。 |
+| CANopen_SDO_Read | 通过 SDO 读取 CANopen 节点对象字典中的一个对象（Upload），按数据类型解析后存入变量。支持快速、分段与块传输。 |
+| CANopen_SDO_Write | 通过 SDO 向 CANopen 节点对象字典写入一个对象（Download）。支持快速、分段与块传输。 |
+| CANopen_Service_SnapshotRead | CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。 |
+| CANopen_Service_Start | CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。 |
+| CANopen_Service_Stop | CAN / CANopen 连接级持续接收、最新帧快照与有序周期发送。 |
 | UDS_ClearDTC | 清除 ECU 故障码（UDS 服务 0x14）。 |
 | UDS_DiagSession | 切换 ECU 诊断会话模式（UDS 服务 0x10）。 |
-| UDS_Flash | 通过 UDS 擦除、下载、传输、校验烧录 Intel HEX、S-Record 或 BIN 固件；支持连续映射范围、地址空洞填充、自动块大小与 FlashDriver 激活延时。 |
+| UDS_Flash | 通过 UDS 服务将固件文件烧录到 ECU，依次执行擦除例程（0x31）、请求下载（0x34）、 |
 | UDS_RawRequest | 发送原始 UDS 请求数据（通用，任意服务），适用于其他专用 UDS 插件未覆盖的服务。 |
-| UDS_ReadDataByID | 通过 DID 读取 ECU 数据（UDS 服务 0x22），结果以十六进制字符串存入变量。 |
 | UDS_ReadDTC | 读取 ECU 故障码（UDS 服务 0x19），结果以十六进制字符串存入变量。 |
+| UDS_ReadDataByID | 通过 DID 读取 ECU 数据（UDS 服务 0x22），结果以十六进制字符串存入变量。 |
 | UDS_RoutineControl | 执行 ECU 例程控制（UDS 服务 0x31）。 |
 | UDS_SecurityAccess | 执行 UDS 安全访问（Seed & Key，服务 0x27）解锁 ECU，自动完成 Request Seed → 计算 Key（通过表达式）→ Send Key 全流程。 |
 | UDS_WriteDataByID | 通过 DID 向 ECU 写入数据（UDS 服务 0x2E）。 |

@@ -12,15 +12,13 @@ namespace Modbus.UI.ViewModels;
 public class ModbusDisconnectViewModel : INotifyPropertyChanged
 {
 	/// <summary>保存防抖延迟（毫秒）</summary>
-	private const int SaveDebounceMs = 200;
-	private CancellationTokenSource? _saveCts;
 	private bool _suppressSave;
 	private Step? _step;
 	private IStepSettingSerializer? _serializer;
 	private ModbusDisconnectSetting? _setting;
 
-	public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-	public void AttachStep(Step step) { _step = step; Load(); }
+	public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+	public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
 	private void Load()
 	{
@@ -36,15 +34,21 @@ public class ModbusDisconnectViewModel : INotifyPropertyChanged
 		finally { _suppressSave = false; }
 	}
 
-	private void QueueSave()
-	{
-		if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-		_saveCts?.Cancel();
-		var cts = _saveCts = new CancellationTokenSource();
-		_ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
-	}
+	private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+    private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public void FlushPendingSave() => _saves.Flush();
+    public Exception? LastSaveError => _saves.LastError;
+    private void QueueSave()
+    {
+        if (!_dispatcher.CheckAccess()) { _dispatcher.Invoke(QueueSave); return; }
+        if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
+        // 防抖保存留在 Dispatcher；刷新、卸载前 Flush 固定的原绑定。
+        _saves.Schedule(_step, _serializer, _setting);
+    }
 
 	public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
+
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 0; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
 
 	public event PropertyChangedEventHandler? PropertyChanged;
 	protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

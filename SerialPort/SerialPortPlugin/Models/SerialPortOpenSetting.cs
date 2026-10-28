@@ -1,4 +1,4 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace SerialPort.Models;
@@ -20,4 +20,7 @@ public class SerialPortOpenSetting
     public int ReadTimeoutMs { get; set; } = 3000;
 
     public int WriteTimeoutMs { get; set; } = 3000;
+
+    /// <summary>打开整个步骤总期限(ms)，包含求值、构造/登记、旧资源收尾、SDK操作及最终发布。</summary>
+    public int TimeoutMs { get; set; } = 5000;
 }

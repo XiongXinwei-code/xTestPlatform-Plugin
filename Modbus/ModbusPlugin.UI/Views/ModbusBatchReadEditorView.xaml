@@ -4,6 +4,7 @@
 			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
 			 xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
 			 xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+			 xmlns:vm="clr-namespace:Modbus.UI.ViewModels"
 			 syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
 			 d:DesignHeight="500" d:DesignWidth="800"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -36,22 +37,16 @@
 					<Button Content="Remove Selected" Padding="12,4" Margin="8,0,0,0" Click="RemoveItem_Click"/>
 				</StackPanel>
 				<DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
-						  CanUserAddRows="False" CanUserDeleteRows="False">
+						  CanUserAddRows="False" CanUserDeleteRows="False" ToolTip="首次通信前检查全部项：位 1～2000、寄存器 1～125，32 位数量为偶数，地址不越界；结果路径可留空，否则须声明且类型/形状匹配。">
 					<DataGrid.Columns>
-						<DataGridTextColumn Header="Slave" Binding="{Binding SlaveAddress}" Width="60"/>
-						<DataGridComboBoxColumn Header="RegisterType" SelectedValueBinding="{Binding RegisterType}" Width="130">
-							<DataGridComboBoxColumn.ItemsSource>
-								<x:Array Type="sys:String" xmlns:sys="clr-namespace:System;assembly=mscorlib">
-									<sys:String>Coil</sys:String>
-									<sys:String>DiscreteInput</sys:String>
-									<sys:String>HoldingRegister</sys:String>
-									<sys:String>InputRegister</sys:String>
-								</x:Array>
-							</DataGridComboBoxColumn.ItemsSource>
-						</DataGridComboBoxColumn>
-						<DataGridTextColumn Header="StartAddr" Binding="{Binding StartAddress}" Width="80"/>
-						<DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="70"/>
-						<DataGridTextColumn Header="Variable" Binding="{Binding ResultVariable}" Width="*"/>
+						<DataGridTextColumn Header="Slave" Binding="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+						<DataGridComboBoxColumn Header="RegisterType" SelectedItemBinding="{Binding RegisterType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140"
+							ItemsSource="{x:Static vm:ModbusEditorChoices.RegisterTypes}"/>
+						<DataGridTextColumn Header="StartAddr" Binding="{Binding StartAddress, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+						<DataGridTextColumn Header="Quantity" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+						<DataGridComboBoxColumn Header="DataFormat" SelectedItemBinding="{Binding DataFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"
+							ItemsSource="{x:Static vm:ModbusEditorChoices.DataFormats}"/>
+						<DataGridTextColumn Header="Variable" Binding="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
 					</DataGrid.Columns>
 				</DataGrid>
 			</DockPanel>

@@ -7,19 +7,35 @@ namespace Ethernet.Executors;
 
 public sealed class TcpOpenExecutor : IStepExecutor
 {
+    private readonly Func<string, IExecutionContext, Task<string>> _evaluate;
+    public TcpOpenExecutor() : this(EthernetExecutorHelper.EvalStringAsync) { }
+    internal TcpOpenExecutor(Func<string, IExecutionContext, Task<string>> evaluate) => _evaluate = evaluate;
+
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new TcpOpenPlugin().CreateSerializer();
-        var setting = (TcpOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         string? host = null;
         var port = 0;
+        int timeoutMs = 0;
         try
         {
-            host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
-            var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.RemotePort, context);
-            var name = await EthernetExecutorHelper.EvalStringAsync(setting.ConnectionName, context);
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new TcpOpenPlugin().CreateSerializer();
+            var setting = (TcpOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            timeoutMs = setting.ConnectTimeoutMs;
+            host = await _evaluate(setting.RemoteHost, context);
+            CheckExecution();
+            var portStr = await _evaluate(setting.RemotePort, context);
+            CheckExecution();
+            var name = await _evaluate(setting.ConnectionName, context);
+            CheckExecution();
 
             if (!int.TryParse(portStr, out port))
                 return new ExecutionResult
@@ -31,9 +47,13 @@ public sealed class TcpOpenExecutor : IStepExecutor
                     }
                 };
 
-            await TcpConnectionManager.ConnectAsync(name!, host!, port, setting.ConnectTimeoutMs, cancellationToken);
+            var client = await TcpConnectionManager.ConnectAsync(name!, host!, port, setting.ConnectTimeoutMs, cancellationToken, context.Resources, execution.ThrowIfExpired);
 
             context.Log($"TCP 连接成功: {name} -> {host}:{port}");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
+            if (!ReferenceEquals(client, TcpConnectionManager.Get(name!, context.Resources)))
+                throw new InvalidOperationException("TCP 刚建立的连接已被关闭或替换，不能报告旧代次成功");
 
             return new ExecutionResult
             {
@@ -48,14 +68,14 @@ public sealed class TcpOpenExecutor : IStepExecutor
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             return new ExecutionResult
             {
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = new ErrorInfo { Message = $"TCP 连接超时({setting.ConnectTimeoutMs}ms): {host}:{port}" }
+                    Error = ErrorInfo.FromException(ex, $"TCP 连接超时({timeoutMs}ms): {host}:{port}")
                 }
             };
         }

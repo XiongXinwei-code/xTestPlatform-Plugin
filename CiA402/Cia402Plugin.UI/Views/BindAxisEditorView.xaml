@@ -11,6 +11,7 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="16">
                     <TextBlock Text="周期目标由序列循环编排：非实时控制，不保证确定性周期。EtherCAT 需另行接入主站适配器。" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock x:Name="BindingSafetyHint" Text="允许绑定已使能、QuickStop 或故障状态的轴。绑定只核对通信与映射，不自动停轴、使能、切模式或改目标；绑定成功不代表驱动已停止。只读会话解绑不主动发送停轴指令，执行控制步骤后仍按原策略清理。" TextWrapping="Wrap" Margin="0,0,0,12" />
                     <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="通信后端" FontWeight="SemiBold" Margin="0,4,0,4" />
@@ -49,9 +50,14 @@
                         <TextBlock Text="阻塞通信软超时；不得无限等待" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="轴清理总超时（ms）" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ShutdownTimeoutEditor" Text="{Binding ShutdownTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="默认 2000；范围 1~3600000。等待活动操作、停轴/释放使能及本轴传输释放共用预算；显式解绑还受解绑步骤总超时限制。不会关闭父 CAN，也不会提前释放仍在执行的底层调用。" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="反馈有效期（ms）" FontWeight="SemiBold" Margin="0,4,0,4" />
                         <TextBox Text="{Binding FeedbackMaxAgeMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
-                        <TextBlock Text="共享接收队列中反馈的最大驻留时间；不保证硬件采样年龄" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                        <TextBlock Text="共享队列驻留有效期及多 TPDO 时间戳合并窗口；不保证硬件采样年龄或同一 SYNC 周期。被动 TPDO 缺帧返回失败，接收退出后可退避重读；此参数不是通信取消期限。" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12" Visibility="{Binding IsCANopen, Converter={StaticResource Visible}}">
                         <TextBlock Text="CSP RPDO 编号" FontWeight="SemiBold" Margin="0,4,0,4" />
@@ -83,15 +89,37 @@
                         <TextBox Text="{Binding CstPdoLayout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
                         <TextBlock Text="显式索引:子索引:位数；仅允许目标转矩及可选控制字" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
-                    <StackPanel Margin="0,0,0,12" Visibility="{Binding IsCANopen, Converter={StaticResource Visible}}">
+                    <StackPanel Margin="0,0,0,12" Visibility="{Binding IsSingleFeedbackPdo, Converter={StaticResource Visible}}">
                         <TextBlock Text="反馈 TPDO 编号" FontWeight="SemiBold" Margin="0,4,0,4" />
                         <TextBox Text="{Binding FeedbackPdoNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
                         <TextBlock Text="0 使用 SDO 顺序读取；非零使用指定 TPDO，须包含状态字" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
-                    <StackPanel Margin="0,0,0,12" Visibility="{Binding IsCANopen, Converter={StaticResource Visible}}">
+                    <StackPanel Margin="0,0,0,12" Visibility="{Binding IsSingleFeedbackPdo, Converter={StaticResource Visible}}">
                         <TextBlock Text="反馈 TPDO 布局" FontWeight="SemiBold" Margin="0,4,0,4" />
                         <TextBox Text="{Binding FeedbackPdoLayout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
-                        <TextBlock Text="允许 0x6041、0x6064、0x606C、0x6077；索引需包含轴偏移" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                        <TextBlock Text="完整描述设备已有映射；解码 0x6041、0x6064、0x606C、0x6077，其他对象按长度跳过。索引须含轴偏移。" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12" Visibility="{Binding IsCANopen, Converter={StaticResource Visible}}">
+                        <CheckBox Content="使用多个反馈 TPDO" IsChecked="{Binding UseMultipleFeedbackPdos, Mode=TwoWay}" />
+                        <TextBlock Text="关闭时使用上方旧单 TPDO / SDO 设置；开启后仅使用下表，不自动修改驱动器映射。" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,12" Visibility="{Binding IsMultipleFeedbackPdos, Converter={StaticResource Visible}}">
+                        <TextBlock Text="反馈 TPDO 列表" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <DataGrid x:Name="FeedbackPdoGrid" ItemsSource="{Binding FeedbackPdos}"
+                                  SelectedItem="{Binding SelectedFeedbackPdo, Mode=TwoWay}"
+                                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False"
+                                  MinHeight="100" MaxHeight="260" HeadersVisibility="Column">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="TPDO 编号" Width="100" Binding="{Binding Number, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                                <DataGridTextColumn Header="映射布局（索引:子索引:位数）" Width="*" Binding="{Binding Layout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,4">
+                            <Button Content="添加 TPDO" Command="{Binding AddFeedbackPdoCommand}" Margin="0,0,8,0" Padding="10,3" />
+                            <Button Content="删除选中项" Command="{Binding RemoveFeedbackPdoCommand}" Padding="10,3" />
+                        </StackPanel>
+                        <TextBlock Text="示例：TPDO1=状态字+位置；TPDO2=速度+转矩，每帧不超过 8 字节。整体须含状态字；重复字段采用上方靠前的来源。" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
+                        <TextBlock Text="仅收集本次输出所需的帧，共用单次通信期限；反馈有效期也约束合并窗口，不保证同一 SYNC 周期或硬件采样年龄。" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="硬件诊断对象索引" FontWeight="SemiBold" Margin="0,4,0,4" />

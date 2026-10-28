@@ -22,7 +22,7 @@ public sealed class NiDaqEncoderReadPlugin : StepPluginBase<NiDaqEncoderSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | TaskName | string([ExpressionField]) | 是 | — | 要读取的编码器任务名，求值结果为 string |
-        | ReadTimeoutMs | int | 否 | 5000 | 读取超时 ms |
+        | ReadTimeoutMs | int | 否 | 10000 | 读取超时 ms，-1=无限等待 |
         | ResultVariable | string(VariablePathField) | 是 | — | 结果变量名，写入类型为 double（位置值）；如 Locals.result |
 
         ## 行为
@@ -35,7 +35,7 @@ public sealed class NiDaqEncoderReadPlugin : StepPluginBase<NiDaqEncoderSetting>
         - `NiDaq_Task_Start` / `NiDaq_Task_Stop`：启停任务
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqEncoderReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqEncoderReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

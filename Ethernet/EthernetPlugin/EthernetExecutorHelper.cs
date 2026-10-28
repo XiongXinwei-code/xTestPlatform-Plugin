@@ -7,7 +7,7 @@ internal static class EthernetExecutorHelper
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
 
-    /// <summary>对表达式字段求值并返回字符串，求值失败时回退到原始表达式字符串。</summary>
+    /// <summary>字符串表达式的 null 结果为空；不把脚本文本当成实际报文或地址。</summary>
     public static async Task<string> EvalStringAsync(string expr, IExecutionContext context)
-        => await Evaluator.EvaluateAsync<string>(expr, context) ?? expr;
+        => await Evaluator.EvaluateAsync<string>(expr, context) ?? string.Empty;
 }

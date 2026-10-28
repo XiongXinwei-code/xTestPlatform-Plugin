@@ -25,18 +25,24 @@ public sealed class VisaClosePlugin : StepPluginBase<VisaCloseSetting>
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | — | 要关闭的连接标识名，求值结果为 string |
+        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含旧资源收尾及本次 SDK 操作 |
 
         ## 行为
 
-        - 从运行期资源表中移除 `ConnectionName` 对应的会话及其终止符配置，移除时会自动释放会话
+
+        - 先冻结当前代次的新操作，再等待真实任务和 SDK 释放；只在确认释放后移除自己的资源。超时/取消不代表底层已退出，未完成或关闭失败的 owner 保留诊断与重试入口；立即重跑将按打开/配置步骤期限等待旧收尾，不强制关闭其他活动连接。
+
+        - 确认真正关闭后才移除 `ConnectionName` 对应的会话及其终止符配置，不影响其他名称的活动会话
         - 连接名不存在时**不报错**，按 Completed 返回
+
+        - 真实 Dispose 失败保留句柄与原始异常；厂商后续空操作不作为释放成功证据。
 
         ## 相关插件
 
         - `VISA_Open`：打开仪器会话
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaCloseExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaCloseExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

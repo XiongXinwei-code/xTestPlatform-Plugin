@@ -35,6 +35,7 @@ public partial class XcpConnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new XcpConnectViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

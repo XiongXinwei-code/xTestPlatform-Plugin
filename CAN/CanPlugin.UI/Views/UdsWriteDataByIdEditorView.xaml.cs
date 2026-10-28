@@ -24,6 +24,7 @@ public partial class UdsWriteDataByIdEditorView : UserControl, IRefreshableEdito
         InitializeComponent();
         ViewModel = new UdsWriteDataByIdViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

@@ -12,15 +12,13 @@ namespace Modbus.UI.ViewModels;
 public class ModbusWriteViewModel : INotifyPropertyChanged
 {
 	/// <summary>保存防抖延迟（毫秒）</summary>
-	private const int SaveDebounceMs = 200;
-	private CancellationTokenSource? _saveCts;
 	private bool _suppressSave;
 	private Step? _step;
 	private IStepSettingSerializer? _serializer;
 	private ModbusWriteSetting? _setting;
 
-	public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-	public void AttachStep(Step step) { _step = step; Load(); }
+	public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+	public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
 	private void Load()
 	{
@@ -36,17 +34,22 @@ public class ModbusWriteViewModel : INotifyPropertyChanged
 		finally { _suppressSave = false; }
 	}
 
-	private void QueueSave()
-	{
-		if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-		_saveCts?.Cancel();
-		var cts = _saveCts = new CancellationTokenSource();
-		_ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
-	}
+	private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+    private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public void FlushPendingSave() => _saves.Flush();
+    public Exception? LastSaveError => _saves.LastError;
+    private void QueueSave()
+    {
+        if (!_dispatcher.CheckAccess()) { _dispatcher.Invoke(QueueSave); return; }
+        if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
+        // 防抖保存留在 Dispatcher；刷新、卸载前 Flush 固定的原绑定。
+        _saves.Schedule(_step, _serializer, _setting);
+    }
 
 	public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }
-	public int SlaveAddress { get => _setting?.SlaveAddress ?? 1; set { if (_setting == null || _setting.SlaveAddress == (byte)value) return; _setting.SlaveAddress = (byte)value; OnPropertyChanged(); QueueSave(); } }
-	public int RegisterType { get => (int)(_setting?.RegisterType ?? ModbusRegisterType.HoldingRegister); set { if (_setting == null) return; _setting.RegisterType = (ModbusRegisterType)value; OnPropertyChanged(); QueueSave(); } }
+	public int SlaveAddress { get => _setting?.SlaveAddress ?? 1; set { if (_setting == null || _setting.SlaveAddress == checked((byte)value)) return; _setting.SlaveAddress = checked((byte)value); OnPropertyChanged(); QueueSave(); } }
+	// 编辑器仅展示两种可写类型，不能把下拉索引当成持久化枚举值。
+	public int RegisterType { get => _setting?.RegisterType == ModbusRegisterType.Coil ? 0 : 1; set { if (_setting == null || value is < 0 or > 1) return; _setting.RegisterType = value == 0 ? ModbusRegisterType.Coil : ModbusRegisterType.HoldingRegister; OnPropertyChanged(); QueueSave(); } }
 	public string StartAddress { get => _setting?.StartAddress ?? "0"; set { if (_setting == null || _setting.StartAddress == value) return; _setting.StartAddress = value; OnPropertyChanged(); QueueSave(); } }
 	public string Values { get => _setting?.Values ?? "0"; set { if (_setting == null || _setting.Values == value) return; _setting.Values = value; OnPropertyChanged(); QueueSave(); } }
 	public int DataFormat { get => (int)(_setting?.DataFormat ?? ModbusDataFormat.UInt16); set { if (_setting == null) return; _setting.DataFormat = (ModbusDataFormat)value; OnPropertyChanged(); QueueSave(); } }

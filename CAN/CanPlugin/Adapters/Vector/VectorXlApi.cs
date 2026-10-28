@@ -14,6 +14,7 @@ internal static class VectorXlApi
     // 运行时会退回系统默认搜索顺序，即使用现场已安装的 Vector 驱动。
     static VectorXlApi()
     {
+        CanNativeLibraryResolver.EnsureRegistered();
         var tried = new List<string>();
         try
         {
@@ -27,7 +28,6 @@ internal static class VectorXlApi
                     continue;
 
                 NativeDir = dir;
-                NativeLibrary.SetDllImportResolver(typeof(VectorXlApi).Assembly, ResolveNativeLibrary);
                 break;
             }
         }
@@ -92,14 +92,14 @@ internal static class VectorXlApi
         return $"已定位插件自带原生库目录：{NativeDir}；{detail}；已探测：{dirs}";
     }
 
-    private static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
+    internal static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
     {
         if (NativeDir is null || !string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
             return IntPtr.Zero;
 
         try
         {
-            return NativeLibrary.Load(Path.Combine(NativeDir, DllName));
+            return CanNativeLibraryResolver.LoadBundled(Path.Combine(NativeDir, DllName), assembly);
         }
         catch (Exception ex)
         {

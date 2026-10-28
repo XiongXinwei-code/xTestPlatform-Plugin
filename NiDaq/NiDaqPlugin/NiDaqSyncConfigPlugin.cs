@@ -28,9 +28,10 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
         | SamplesPerChannel | int | 是 | 100 | 每通道采样数 |
         | SampleMode | 枚举 | 否 | FiniteSamples | 可选值：FiniteSamples, ContinuousSamples |
         | ClockSource | string | 否 | 空 | 时钟源，空为内部时钟 |
-        | UseTrigger | bool | 否 | false | 是否使用触发；TriggerSource 为空时不配置触发 |
+        | UseTrigger | bool | 否 | false | 是否使用触发；启用时 TriggerSource 必填 |
         | TriggerSource | string | 否 | 空 | 触发源 |
         | TriggerEdge | 枚举 | 否 | Rising | 可选值：Rising, Falling |
+        | TimeoutMs | int | 否 | 10000 | 名称求值后的配置阶段总期限（毫秒），包含登记、旧资源收尾及 SDK 配置；不包含表达式求值 |
 
         AiChannels 元素字段：
 
@@ -49,7 +50,7 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
         - Unit：枚举，可选值：Pulses, Degrees, Millimeters，默认 Degrees；本插件当前未使用该字段，编码器通道固定按计数（Ticks）采集
         - ZIndexEnable：bool，是否启用 Z 索引，默认 false
 
-        ## 物理通道命名规则
+        ### 物理通道命名规则
 
         格式为 `<设备名>/<通道>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
 
@@ -59,8 +60,11 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
 
         ## 行为
 
+
+        - 建立前先登记当前 owner，关闭请求可以冻结建立期资源；同名活动资源明确拒绝覆盖。同一插件上次执行的同物理资源正在收尾时，在本步骤期限内等待，真实退出前不再次占用设备。
+
         - 仅创建任务，不启动采集
-        - 已存在同名任务时先释放旧任务再创建
+        - 已存在同名任务时明确报错；请先 Task_Stop 成功释放，不能销毁其他步骤的任务
         - AiChannels 或 EncoderChannels 为空时步骤报错
 
         ## 相关插件
@@ -69,7 +73,7 @@ public sealed class NiDaqSyncConfigPlugin : StepPluginBase<NiDaqSyncConfigSettin
         - `NiDaq_Sync_Read`：读取同步采集数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqSyncConfigExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqSyncConfigExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

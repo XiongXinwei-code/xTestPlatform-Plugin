@@ -29,18 +29,18 @@
                     </Grid.RowDefinitions>
 					<TextBlock Grid.Row="0" Grid.Column="0" Text="XML 源:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,6"
-						ScriptText="{Binding SourceXml, Mode=TwoWay}"
+                        ScriptText="{Binding SourceXml, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="1" Grid.Column="0" Text="忽略命名空间:" VerticalAlignment="Center" Margin="0,6" />
 					<CheckBox Grid.Row="1" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
 							  IsChecked="{Binding IgnoreNamespaces}" />
-					<TextBlock Grid.Row="2" Grid.Column="0" Text="未命中判失败:" VerticalAlignment="Center" Margin="0,6" />
+					<TextBlock Grid.Row="2" Grid.Column="0" Text="未命中返回执行错误:" VerticalAlignment="Center" Margin="0,6" />
 					<CheckBox Grid.Row="2" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
 							  IsChecked="{Binding FailOnMissingPath}" />
 					<TextBlock Grid.Row="3" Grid.Column="0" Text="提取映射:" VerticalAlignment="Top" Margin="0,10" />
 					<DataGrid Grid.Row="3" Grid.Column="1" Margin="0,6" Height="200"
-							  ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="True">
+							  ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="True" ToolTip="全部目标须是已声明的 string 完整路径，如 Locals.result；配置错误在首次写变量前报告。">
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="XPath" Width="*" Binding="{Binding Path, UpdateSourceTrigger=PropertyChanged}" />
 							<DataGridTextColumn Header="目标变量" Width="200" Binding="{Binding TargetVariable, UpdateSourceTrigger=PropertyChanged}" />

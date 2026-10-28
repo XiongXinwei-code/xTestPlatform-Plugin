@@ -41,6 +41,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" Margin="0,0,0,8"
@@ -52,9 +53,13 @@
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SamplesPerChannel, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="采样模式" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding Source={StaticResource AiSampleModeValues}}" SelectedItem="{Binding SampleMode}" Width="200" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="配置总期限(ms)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="时钟配置">
+        <syncfusion:TabItemExt Header="时钟配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -64,7 +69,9 @@
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="触发配置">
+        <syncfusion:TabItemExt Header="触发配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -82,13 +89,15 @@
                 <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Source={StaticResource TriggerEdgeValues}}" SelectedItem="{Binding TriggerEdge}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="通道列表">
+        <syncfusion:TabItemExt Header="通道列表"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="16">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <DataGrid Grid.Row="0" ItemsSource="{Binding Channels}" AutoGenerateColumns="False" CanUserAddRows="False">
+                <DataGrid x:Name="ChannelsGrid" Grid.Row="0" ItemsSource="{Binding Channels}" AutoGenerateColumns="False" CanUserAddRows="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="物理通道" Binding="{Binding PhysicalChannel}" Width="*"/>
                         <DataGridTextColumn Header="列名" Binding="{Binding ColumnName}" Width="100"/>

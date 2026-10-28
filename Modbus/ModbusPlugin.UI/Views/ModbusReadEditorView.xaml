@@ -35,7 +35,7 @@
 
 				<TextBlock Grid.Row="1" Grid.Column="0" Text="SlaveAddress:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-						 Text="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}"/>
+						 Text="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
 
 				<TextBlock Grid.Row="2" Grid.Column="0" Text="RegisterType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<ComboBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
@@ -54,7 +54,7 @@
 
 				<TextBlock Grid.Row="4" Grid.Column="0" Text="Quantity:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
-					ScriptText="{Binding Quantity, Mode=TwoWay}" ExpectedResultType="String"
+					ScriptText="{Binding Quantity, Mode=TwoWay}" ExpectedResultType="String" ToolTip="线圈/离散量 1～2000，寄存器 1～125；32 位格式必须为偶数。完整地址范围不能超过 65535。"
 					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -72,7 +72,7 @@
 				</ComboBox>
 
 				<TextBlock Grid.Row="6" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+				<TextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8" ToolTip="必填：已声明的完整变量路径，如 Locals.result。类型及标量/一维数组形状须与读取格式匹配。"
 					Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
 			</Grid>
 		</syncfusion:TabItemExt>

@@ -33,6 +33,7 @@ public partial class ModbusConnectEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new ModbusConnectViewModel();
 		DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 
 	public void RefreshFromStep(Step step)

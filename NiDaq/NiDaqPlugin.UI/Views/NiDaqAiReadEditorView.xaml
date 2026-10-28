@@ -11,11 +11,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="800">
     <UserControl.Resources>
-        <ObjectDataProvider x:Key="DaqExportFormatValues" MethodName="GetValues" ObjectType="{x:Type sys:Enum}">
-            <ObjectDataProvider.MethodParameters>
-                <x:Type TypeName="models:DaqExportFormat"/>
-            </ObjectDataProvider.MethodParameters>
-        </ObjectDataProvider>
+        <x:Array x:Key="DaqExportFormatValues" Type="{x:Type models:DaqExportFormat}">
+            <x:Static Member="models:DaqExportFormat.Csv"/>
+            <x:Static Member="models:DaqExportFormat.CsvAndVariable"/>
+            <x:Static Member="models:DaqExportFormat.Variable"/>
+        </x:Array>
     </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="AI 读取"
@@ -31,20 +31,23 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" Margin="0,0,0,8"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="读取样本数" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="样本数（-1=现有可用）" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SamplesToRead, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="读取超时 (ms)" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ReadTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="结果变量" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="导出/结果期限 (ms)" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <TextBox x:Name="ExportTimeoutBox" Grid.Row="4" Grid.Column="1" Text="{Binding ExportTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="数据存盘">
+        <syncfusion:TabItemExt Header="数据存盘" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ai_read.png" ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -58,9 +61,9 @@
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="启用存盘" VerticalAlignment="Center"/>
                 <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding SaveToFile}" Content="将采集数据保存到文件" Margin="0,0,0,8"/>
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="导出格式" VerticalAlignment="Center"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="导出格式（不支持 TDMS）" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Source={StaticResource DaqExportFormatValues}}" SelectedItem="{Binding ExportFormat}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-                          IsEnabled="{Binding SaveToFile}"/>
+                          ToolTip="CSV 和变量输出可用；旧 TDMS 设置会明确报错，需改选支持的格式。"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="输出目录" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="2" Grid.Column="1" ScriptText="{Binding OutputDirectory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"  Margin="0,0,0,8"
                     IsEnabled="{Binding SaveToFile}"

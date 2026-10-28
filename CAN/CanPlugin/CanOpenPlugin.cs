@@ -34,6 +34,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | DataSamplePoint | double | FD 时 | 80.0 | 数据段目标采样点百分比，范围 7.5%~97.5%；与仲裁段采样点独立配置 |
         | RxQueueSize | int | 否 | 8192 | 接收缓冲区大小（帧数）；NI-XNET 同时由后台接收泵持续排空驱动队列 |
         | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一，求值结果为 string |
+        | TimeoutMs | int | 否 | 5000 | 可配置打开总超时（ms，必须大于 0），包含登记排队、旧连接实际收尾与本次驱动打开；不是各阶段各等待一次 |
 
         ## 通道命名规则
 
@@ -51,7 +52,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         ## 行为
 
         - 打开的适配器会以 `ConnectionName` 为标识名注册到运行期资源表，供后续 CAN_Read / CAN_Write / CAN_Cyclic / CAN_Close / XCP 步骤取用
-        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧适配器会被自动关闭并释放，再注册新适配器，不会报错
+        - 活动连接禁止重复打开；若旧连接已经进入关闭，在 TimeoutMs 总预算内等待/重试其实际收尾，成功后才创建新连接。旧任务仍未退出或原生释放失败时报告具体阶段，不清空占用来伪装成功
+        - 当前 TOSUN 接入采用单库所有者：同一插件实例库内仅允许一个 TOSUN 连接，不支持并行打开其不同通道或设备。后来的打开在 Init/Connect 前明确拒绝；旧 Disconnect/Finalize 未成功时继续保留所有权，须重试关闭。此限制避免单个连接关闭时全局 Finalize 影响其他连接，不表示已经实现共享设备管理
+        - TOSUN 须由本插件独占当前进程的 libTSCAN 生命周期；Connect 返回已连接（5）或失败时提供归属未知句柄，将禁止 Disconnect/Finalize 并保持隔离。须关闭同进程其他使用者后重启宿主，不将外部连接强行接管或伪装为可立即重开
         - 硬件不存在或通道被占用时步骤报错
         - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
         - 界面只配置采样点百分比，不暴露厂商专用的 BRP/SJW/TSEG1/TSEG2；适配器内部根据设备时钟与驱动能力换算
@@ -77,7 +80,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - `CAN_Close`：关闭本插件打开的通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -87,6 +90,6 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         string samplePoint = s.Protocol == CanProtocolType.FD
             ? $"NominalSP={s.ArbitrationSamplePoint:F1}%, DataSP={s.DataSamplePoint:F1}%"
             : $"SP={s.ArbitrationSamplePoint:F1}%";
-        return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps, {samplePoint}{termination})";
+        return $"Open {s.ConnectionName} ({s.AdapterType}, {proto}, {s.BaudRate} bps, {samplePoint}{termination}, 总超时={s.TimeoutMs} ms)";
     }
 }

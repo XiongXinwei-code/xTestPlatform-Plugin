@@ -4,8 +4,11 @@ using LIN.Models;
 namespace LIN.Adapters.NiXnet;
 
 /// <summary>NI-XNET LIN 适配器实现（基于 nixnet.dll P/Invoke）</summary>
-public sealed class NiXnetLinAdapter : ILinAdapter
+public sealed class NiXnetLinAdapter : ILinAdapter, ILinCloseState, ILinOperationBoundary
 {
+    private readonly NiLinIo _io;
+    public NiXnetLinAdapter() : this(new NiLinIo()) { }
+    internal NiXnetLinAdapter(NiLinIo io) => _io = io;
     private uint _rxSession;
     private uint _txSession;
     private bool _isConnected;
@@ -14,13 +17,16 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     private const int MaxPendingFrames = 4096;
 
     public bool IsConnected => _isConnected;
+    public bool HandlesReleased => _rxSession == 0 && _txSession == 0;
 
-    public void Open(LinAdapterConfig config)
+    public void Open(LinAdapterConfig config) => Open(config, static () => { });
+    void ILinOperationBoundary.Open(LinAdapterConfig config, Action beforeSubmit) => Open(config, beforeSubmit);
+    private void Open(LinAdapterConfig config, Action beforeSubmit)
     {
-        if (_isConnected) throw new InvalidOperationException("LIN 通道已打开");
+        if (!HandlesReleased) throw new InvalidOperationException("LIN 通道已打开或上次释放尚未成功");
         try
         {
-            OpenInternal(config);
+            OpenInternal(config, beforeSubmit);
         }
         catch (DllNotFoundException)
         {
@@ -28,66 +34,77 @@ public sealed class NiXnetLinAdapter : ILinAdapter
                 "未找到 nixnet.dll，请安装 NI-XNET 驱动程序。" +
                 "下载地址: https://www.ni.com/zh-cn/support/downloads/drivers/download.ni-xnet.html");
         }
-        catch
+        catch (Exception ex)
         {
-            // 中途失败时清理已创建的会话，避免接口被占用
-            if (_rxSession != 0) { NiXnetLinApi.nxClear(_rxSession); _rxSession = 0; }
-            if (_txSession != 0) { NiXnetLinApi.nxClear(_txSession); _txSession = 0; }
+            try { Close(); }
+            catch (Exception cleanup) { throw new AggregateException("LIN 打开失败且会话清理未完成", ex, cleanup); }
             throw;
         }
     }
 
-    private void OpenInternal(LinAdapterConfig config)
+    private void OpenInternal(LinAdapterConfig config, Action beforeSubmit)
     {
+        // NI 官方 FrameOutStreamSession 契约：此模式仅支持主节点，未定义数据库帧使用 Enhanced。
+        if (config.LinVersion != LinVersionType.LIN_2x || !config.IsMaster)
+            throw new NotSupportedException("当前 NI-XNET 无 LDF 流模式仅支持 LIN 2.x 主节点；LIN 1.x/从节点需要数据库会话，本插件尚未实现。请改选 LIN 2.x、主节点。");
         var interfaceName = config.Channel; // 如 "LIN1"
 
         // 创建接收会话（Frame In Stream，使用内存数据库，无需 LDF 数据库文件）
-        var status = NiXnetLinApi.nxCreateSession(
+        beforeSubmit();
+        var status = _io.Create(
             NiXnetLinApi.InMemoryDatabase, "", "", interfaceName,
             NiXnetLinApi.nxMode_FrameInStream,
             out _rxSession);
-        NiXnetLinApi.CheckStatus(status, "创建接收会话");
+        _io.Check(status, "创建接收会话");
 
         // 创建发送会话（Frame Out Stream）
-        status = NiXnetLinApi.nxCreateSession(
+        beforeSubmit();
+        status = _io.Create(
             NiXnetLinApi.InMemoryDatabase, "", "", interfaceName,
             NiXnetLinApi.nxMode_FrameOutStream,
             out _txSession);
-        NiXnetLinApi.CheckStatus(status, "创建发送会话");
+        _io.Check(status, "创建发送会话");
 
         // 设置波特率
         uint baudRate = (uint)config.BaudRate;
-        status = NiXnetLinApi.nxSetProperty(_rxSession,
+        beforeSubmit();
+        status = _io.Set(_rxSession,
             NiXnetLinApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
-        NiXnetLinApi.CheckStatus(status, "设置接收会话波特率");
+        _io.Check(status, "设置接收会话波特率");
 
-        status = NiXnetLinApi.nxSetProperty(_txSession,
+        beforeSubmit();
+        status = _io.Set(_txSession,
             NiXnetLinApi.nxPropSession_IntfBaudRate, 4, ref baudRate);
-        NiXnetLinApi.CheckStatus(status, "设置发送会话波特率");
+        _io.Check(status, "设置发送会话波特率");
 
         // 设置主/从节点（主节点才能主动发送帧头；属性类型为 U32，4 字节）
         uint isMaster = config.IsMaster ? 1u : 0u;
-        status = NiXnetLinApi.nxSetProperty(_txSession,
+        beforeSubmit();
+        status = _io.Set(_txSession,
             NiXnetLinApi.nxPropSession_IntfLINMaster, 4, ref isMaster);
-        NiXnetLinApi.CheckStatus(status, "设置主/从节点");
+        _io.Check(status, "设置主/从节点");
 
         // 设置接收队列大小（QueueSize 单位为字节；LIN 每帧按 nxFrameVar_t 24 字节估算，
         // 防止两次 Read 步骤之间驱动队列溢出丢帧）
         if (config.RxQueueSize > 0)
         {
             uint queueBytes = (uint)(config.RxQueueSize * 24);
-            status = NiXnetLinApi.nxSetProperty(_rxSession,
+            beforeSubmit();
+            status = _io.Set(_rxSession,
                 NiXnetLinApi.nxPropSession_QueueSize, 4, ref queueBytes);
-            NiXnetLinApi.CheckStatus(status, "设置接收队列大小");
+            _io.Check(status, "设置接收队列大小");
         }
 
         // 启动会话
-        status = NiXnetLinApi.nxStart(_rxSession, NiXnetLinApi.nxScope_Normal);
-        NiXnetLinApi.CheckStatus(status, "启动接收会话");
+        beforeSubmit();
+        status = _io.Start(_rxSession, NiXnetLinApi.nxScope_Normal);
+        _io.Check(status, "启动接收会话");
 
-        status = NiXnetLinApi.nxStart(_txSession, NiXnetLinApi.nxScope_Normal);
-        NiXnetLinApi.CheckStatus(status, "启动发送会话");
+        beforeSubmit();
+        status = _io.Start(_txSession, NiXnetLinApi.nxScope_Normal);
+        _io.Check(status, "启动发送会话");
 
+        beforeSubmit();
         _isConnected = true;
     }
 
@@ -95,23 +112,25 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     {
         lock (_lock)
         {
-            if (!_isConnected) return;
-            try
+            _isConnected = false;
+            var errors = new List<Exception>();
+            Release(ref _txSession); Release(ref _rxSession);
+            if (HandlesReleased) _pendingFrames.Clear();
+            if (errors.Count != 0) throw new AggregateException("LIN 驱动停止或释放失败；未释放的句柄已保留，可重试关闭", errors);
+            void Release(ref uint session)
             {
-                if (_rxSession != 0) { NiXnetLinApi.nxStop(_rxSession, NiXnetLinApi.nxScope_Normal); NiXnetLinApi.nxClear(_rxSession); }
-                if (_txSession != 0) { NiXnetLinApi.nxStop(_txSession, NiXnetLinApi.nxScope_Normal); NiXnetLinApi.nxClear(_txSession); }
-            }
-            finally
-            {
-                _rxSession = 0;
-                _txSession = 0;
-                _pendingFrames.Clear();
-                _isConnected = false;
+                if (session == 0) return;
+                try { _io.Check(_io.Stop(session, NiXnetLinApi.nxScope_Normal), "停止会话"); }
+                catch (Exception ex) { errors.Add(ex); }
+                try { _io.Check(_io.Clear(session), "释放会话"); session = 0; }
+                catch (Exception ex) { errors.Add(ex); }
             }
         }
     }
 
-    public void Wakeup(bool remote = true)
+    public void Wakeup(bool remote = true) => Wakeup(remote, static () => { });
+    void ILinOperationBoundary.Wakeup(bool remote, Action beforeSubmit) => Wakeup(remote, beforeSubmit);
+    private void Wakeup(bool remote, Action beforeSubmit)
     {
         if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");
 
@@ -122,21 +141,24 @@ public sealed class NiXnetLinAdapter : ILinAdapter
         if (remote)
         {
             uint localSleep = NiXnetLinApi.nxLINSleep_LocalSleep;
-            var st = NiXnetLinApi.nxSetProperty(_txSession,
+            beforeSubmit();
+            var st = _io.Set(_txSession,
                 NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref localSleep);
-            NiXnetLinApi.CheckStatus(st, "LIN 唤醒(预置本地睡眠)");
+            _io.Check(st, "LIN 唤醒(预置本地睡眠)");
 
             uint remoteWake = NiXnetLinApi.nxLINSleep_RemoteWake;
-            st = NiXnetLinApi.nxSetProperty(_txSession,
+            beforeSubmit();
+            st = _io.Set(_txSession,
                 NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref remoteWake);
-            NiXnetLinApi.CheckStatus(st, "LIN 唤醒(发送总线唤醒模式)");
+            _io.Check(st, "LIN 唤醒(发送总线唤醒模式)");
         }
         else
         {
             uint localWake = NiXnetLinApi.nxLINSleep_LocalWake;
-            var st = NiXnetLinApi.nxSetProperty(_txSession,
+            beforeSubmit();
+            var st = _io.Set(_txSession,
                 NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref localWake);
-            NiXnetLinApi.CheckStatus(st, "LIN 唤醒(本地接口唤醒)");
+            _io.Check(st, "LIN 唤醒(本地接口唤醒)");
         }
     }
 
@@ -148,9 +170,9 @@ public sealed class NiXnetLinAdapter : ILinAdapter
         // 随后本地接口也进入睡眠态；LocalSleep：仅本地接口睡眠，无总线信号。
         // nxStart 后接口默认为唤醒态，“唤醒→睡眠”转换直接有效。
         uint sleepState = remote ? NiXnetLinApi.nxLINSleep_RemoteSleep : NiXnetLinApi.nxLINSleep_LocalSleep;
-        var status = NiXnetLinApi.nxSetProperty(_txSession,
+        var status = _io.Set(_txSession,
             NiXnetLinApi.nxPropSession_IntfLINSleep, 4, ref sleepState);
-        NiXnetLinApi.CheckStatus(status, remote ? "LIN 睡眠(发送 Go-to-Sleep)" : "LIN 睡眠(本地接口)");
+        _io.Check(status, remote ? "LIN 睡眠(发送 Go-to-Sleep)" : "LIN 睡眠(本地接口)");
     }
 
     public void Write(LinFrame frame)
@@ -158,8 +180,8 @@ public sealed class NiXnetLinAdapter : ILinAdapter
         if (!_isConnected) throw new InvalidOperationException("LIN 通道未打开");
 
         var buf = BuildFrameBytes(frame);
-        var status = NiXnetLinApi.nxWriteFrame(_txSession, buf, (uint)buf.Length, 1.0);
-        NiXnetLinApi.CheckStatus(status);
+        var status = _io.Write(_txSession, buf, (uint)buf.Length, 1.0);
+        _io.Check(status);
     }
 
     public LinFrame? Read(int timeoutMs, CancellationToken ct = default)
@@ -196,10 +218,10 @@ public sealed class NiXnetLinAdapter : ILinAdapter
             // 未填满时返回 nxErrEventTimeout，但已收到的帧仍通过 bytesRead 返回。
             // 因此这里使用 timeout=0（立即返回当前已有帧）+ 轮询模式，
             // 且无论状态如何，只要 bytesRead > 0 都必须解析，否则会丢帧。
-            var status = NiXnetLinApi.nxReadFrame(_rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
+            var status = _io.Read(_rxSession, buffer, (uint)buffer.Length, 0.0, out uint bytesRead);
 
             if (status != NiXnetLinApi.nxErrEventTimeout)
-                NiXnetLinApi.CheckStatus(status);
+                _io.Check(status);
 
             if (bytesRead == 0)
             {
@@ -227,6 +249,9 @@ public sealed class NiXnetLinAdapter : ILinAdapter
     /// <summary>构建 NI-XNET 原始帧字节（nxFrameVar_t 格式）</summary>
     private static byte[] BuildFrameBytes(LinFrame frame)
     {
+        if (frame.FrameId > 63 || frame.Data.Length > 8) throw new ArgumentException("LIN ID 必须在 0~63，载荷最多 8 字节");
+        if (frame.Data.Length != 0 && (frame.ChecksumType != LinChecksumType.Enhanced || frame.FrameId is 0x3C or 0x3D))
+            throw new NotSupportedException("当前无 LDF 流发送仅支持普通帧 Enhanced；Classic 和诊断帧需数据库校验定义，不能静默使用另一校验类型。空载荷仅发送帧头，不生成校验。");
         // NI-XNET Raw LIN Frame (nxFrameVar_t):
         // Bytes 0-7:   Timestamp (TX 时为 0)
         // Bytes 8-11:  Identifier (little-endian，LIN 原始 ID 0-63，奇偶校验位由驱动计算)

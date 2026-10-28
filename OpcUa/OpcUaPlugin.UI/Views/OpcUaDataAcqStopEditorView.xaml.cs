@@ -24,6 +24,7 @@ public partial class OpcUaDataAcqStopEditorView : UserControl, IRefreshableEdito
         InitializeComponent();
         ViewModel = new OpcUaDataAcqStopViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

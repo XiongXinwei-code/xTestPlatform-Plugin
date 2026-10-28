@@ -8,15 +8,13 @@ namespace NiDaq.UI.ViewModels;
 
 public class NiDaqEncoderReadViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     private NiDaqEncoderSetting? _setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
     private void Load()
     {
@@ -32,12 +30,16 @@ public class NiDaqEncoderReadViewModel : INotifyPropertyChanged
         finally { _suppressSave = false; }
     }
 
+    private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+    private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public void FlushPendingSave() => _saves.Flush();
+    public Exception? LastSaveError => _saves.LastError;
     private void QueueSave()
     {
+        if (!_dispatcher.CheckAccess()) { _dispatcher.Invoke(QueueSave); return; }
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+        // 防抖保存留在 Dispatcher；刷新、卸载前 Flush 固定的原绑定。
+        _saves.Schedule(_step, _serializer, _setting);
     }
 
     public string TaskName { get => _setting?.TaskName ?? ""; set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); } }

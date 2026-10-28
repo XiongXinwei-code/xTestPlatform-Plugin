@@ -1,3 +1,4 @@
+using PluginCommon;
 using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
@@ -19,17 +20,21 @@ public sealed class ModbusReadExecutor : IStepExecutor
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
-		var step = context.CurrentStep!.Step;
-		var serializer = new ModbusReadPlugin().CreateSerializer();
-		var setting = (ModbusReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        try
+        {
+			cancellationToken.ThrowIfCancellationRequested();
+			var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+			var step = context.CurrentStep!.Step;
+			var serializer = new ModbusReadPlugin().CreateSerializer();
+			var setting = (ModbusReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-		try
-		{
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+			epoch.ThrowIfExpired();
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			if (!context.Resources.TryGet<IModbusMaster>(key, out var master))
+			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -41,49 +46,57 @@ public sealed class ModbusReadExecutor : IStepExecutor
 			}
 
 			var startAddr = ushort.Parse(await Evaluator.EvalStringAsync(setting.StartAddress, context));
+			epoch.ThrowIfExpired();
 			var quantity = ushort.Parse(await Evaluator.EvalStringAsync(setting.Quantity, context));
+			epoch.ThrowIfExpired();
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
+			ModbusRequestPreflight.ValidateRead(setting.RegisterType, setting.DataFormat, startAddr, quantity);
+			ModbusRequestPreflight.ValidateDestination(context, setting.ResultVariable, setting.RegisterType, setting.DataFormat, quantity, optional: false, epoch.ThrowIfExpired);
+			epoch.ThrowIfExpired();
 
 			object result;
 			switch (setting.RegisterType)
 			{
 				case ModbusRegisterType.Coil:
-					var coils = await ModbusHelper.WithTimeoutAsync(
-						master.ReadCoilsAsync(setting.SlaveAddress, startAddr, quantity),
+					var coils = await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.ReadCoilsAsync(setting.SlaveAddress, startAddr, quantity); },
 						timeoutMs, "Modbus 读取线圈", cancellationToken);
 					result = coils.Length == 1 ? coils[0] : coils;
 					break;
 				case ModbusRegisterType.DiscreteInput:
-					var inputs = await ModbusHelper.WithTimeoutAsync(
-						master.ReadInputsAsync(setting.SlaveAddress, startAddr, quantity),
+					var inputs = await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.ReadInputsAsync(setting.SlaveAddress, startAddr, quantity); },
 						timeoutMs, "Modbus 读取离散输入", cancellationToken);
 					result = inputs.Length == 1 ? inputs[0] : inputs;
 					break;
 				case ModbusRegisterType.HoldingRegister:
-					var holdRegs = await ModbusHelper.WithTimeoutAsync(
-						master.ReadHoldingRegistersAsync(setting.SlaveAddress, startAddr, quantity),
+					var holdRegs = await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.ReadHoldingRegistersAsync(setting.SlaveAddress, startAddr, quantity); },
 						timeoutMs, "Modbus 读取保持寄存器", cancellationToken);
 					result = ModbusDataConverter.ConvertRegisters(holdRegs, setting.DataFormat);
 					break;
 				case ModbusRegisterType.InputRegister:
-					var inRegs = await ModbusHelper.WithTimeoutAsync(
-						master.ReadInputRegistersAsync(setting.SlaveAddress, startAddr, quantity),
+					var inRegs = await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.ReadInputRegistersAsync(setting.SlaveAddress, startAddr, quantity); },
 						timeoutMs, "Modbus 读取输入寄存器", cancellationToken);
 					result = ModbusDataConverter.ConvertRegisters(inRegs, setting.DataFormat);
 					break;
 				default:
-					result = "Unknown register type";
-					break;
+					throw new ArgumentOutOfRangeException(nameof(setting.RegisterType));
 			}
 
 			var varName = setting.ResultVariable;
+			epoch.ThrowIfExpired();
+			ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 			context.SetVariable(varName, result);
 
 			context.Log($"Modbus Read: Addr={startAddr}, Qty={quantity}, Result={result}");
+			epoch.ThrowIfExpired();
+			ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 
 			return new ExecutionResult
 			{
-				StepResult = new StepResult { Status = TestStatus.Completed, Value = result?.ToString() }
+				StepResult = new StepResult { Status = TestStatus.Completed, Value = result.ToString() ?? string.Empty }
 			};
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -97,7 +110,7 @@ public sealed class ModbusReadExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = ErrorInfo.FromException(ex)
+					Error = ErrorInfo.FromException(ex, $"Modbus 读取超时: {ex.Message}")
 				}
 			};
 		}

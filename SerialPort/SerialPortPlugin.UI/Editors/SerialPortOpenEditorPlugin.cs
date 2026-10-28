@@ -41,18 +41,19 @@ public sealed class SerialPortOpenEditorPlugin : IStepEditorPlugin
         if (s.DataBits < 5 || s.DataBits > 8)
             errors.Add(StepSettingError.Error("SP_003", "DataBits 必须在 5~8 之间"));
 
-        if (s.StopBits < 0 || s.StopBits > 3)
-            errors.Add(StepSettingError.Error("SP_004", "StopBits 值无效"));
+        if (s.StopBits < 1 || s.StopBits > 3)
+            errors.Add(StepSettingError.Error("SP_004", "StopBits 必须为 1、2 或 3（1.5 位），串口不支持 None"));
 
         if (s.Parity < 0 || s.Parity > 4)
             errors.Add(StepSettingError.Error("SP_005", "Parity 值无效"));
 
-        if (s.ReadTimeoutMs < 0)
-            errors.Add(StepSettingError.Warning("SP_006", "ReadTimeout 不应为负数"));
+        if (s.ReadTimeoutMs == 0 || s.ReadTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("SP_006", "ReadTimeout 必须大于 0，或为 -1 表示无限等待"));
 
-        if (s.WriteTimeoutMs < 0)
-            errors.Add(StepSettingError.Warning("SP_007", "WriteTimeout 不应为负数"));
+        if (s.WriteTimeoutMs == 0 || s.WriteTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("SP_007", "WriteTimeout 必须大于 0，或为 -1 表示无限等待"));
 
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("SP_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

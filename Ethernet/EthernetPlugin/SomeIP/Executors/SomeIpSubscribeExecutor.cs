@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using Ethernet.SomeIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -11,15 +12,28 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new SomeIpSubscribePlugin().CreateSerializer();
-        var setting = (SomeIpSubscribeSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new SomeIpSubscribePlugin().CreateSerializer();
+            var setting = (SomeIpSubscribeSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
             var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.LocalPort, context);
+            CheckExecution();
             var serviceStr = await EthernetExecutorHelper.EvalStringAsync(setting.ServiceId, context);
+            CheckExecution();
             var eventStr = await EthernetExecutorHelper.EvalStringAsync(setting.EventId, context);
+            CheckExecution();
 
             var localPort = SomeIpHelper.ParsePort(portStr, "LocalPort");
             var serviceId = SomeIpHelper.ParseId(serviceStr, "ServiceId");
@@ -28,31 +42,40 @@ public sealed class SomeIpSubscribeExecutor : IStepExecutor
             context.Log(
                 $"SOME/IP 订阅监听: 端口 {localPort} Service=0x{serviceId:X4} Event=0x{eventId:X4}，超时 {setting.TimeoutMs}ms");
 
-            using var udp = new UdpClient(new IPEndPoint(IPAddress.Any, localPort));
+            CheckExecution();
+            using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources,
+                () => new UdpClient(new IPEndPoint(IPAddress.Any, localPort)), localPort,
+                setting.TimeoutMs, cancellationToken, CheckExecution);
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCts.CancelAfter(setting.TimeoutMs);
 
-            SomeIpMessage? notification = null;
-            while (notification == null)
+            SomeIpMessage notification;
+            try
             {
-                UdpReceiveResult recv;
-                try
+                notification = await udp.RunAsync(async (socket, token) =>
                 {
-                    recv = await udp.ReceiveAsync(timeoutCts.Token);
-                }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                {
-                    throw new TimeoutException($"等待 SOME/IP 事件通知超时({setting.TimeoutMs}ms)");
-                }
-                var msg = SomeIpMessage.TryDecode(recv.Buffer);
-                if (msg != null && msg.ServiceId == serviceId && msg.MethodId == eventId
-                    && msg.MessageType == SomeIpMessageType.Notification)
-                    notification = msg;
+                    while (true)
+                    {
+                        CheckExecution();
+                        var recv = await socket.ReceiveAsync(token);
+                        var msg = SomeIpMessage.TryDecode(recv.Buffer);
+                        if (msg != null && msg.ServiceId == serviceId && msg.MethodId == eventId
+                            && msg.MessageType == SomeIpMessageType.Notification) return msg;
+                    }
+                }, timeoutCts.Token, CheckExecution);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                CheckExecution();
+                throw new TimeoutException($"等待 SOME/IP 事件通知超时({setting.TimeoutMs}ms)");
             }
 
             var payloadHex = SomeIpHelper.ToHex(notification.Payload);
             context.Log($"SOME/IP 收到事件通知: [{payloadHex}]");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, payloadHex);
 

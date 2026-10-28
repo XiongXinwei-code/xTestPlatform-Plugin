@@ -24,15 +24,19 @@
 					<Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 					<TextBlock Grid.Row="0" Grid.Column="0" Text="客户端名称:" VerticalAlignment="Center" Margin="0,6" />
 					<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,6"
-						ScriptText="{Binding ClientName, Mode=TwoWay}"
+                        ScriptText="{Binding ClientName, Mode=TwoWay}" ExpectedResultType="String"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="1" Grid.Column="0" Text="不存在时忽略:" VerticalAlignment="Center" Margin="0,6" />
 					<CheckBox Grid.Row="1" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
 							  IsChecked="{Binding IgnoreIfNotFound}" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="关闭总超时 (ms):" VerticalAlignment="Center" Margin="0,6"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,6"
+                             Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
                 </Grid>
 			</ScrollViewer>
 		</syncfusion:TabItemExt>

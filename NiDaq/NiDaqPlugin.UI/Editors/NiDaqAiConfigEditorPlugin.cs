@@ -30,7 +30,10 @@ public sealed class NiDaqAiConfigEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.TaskName, context.ExecutionContext, out var taskNameErr))
             errors.Add(StepSettingError.Error("DAQ_001E", $"TaskName 表达式无效: {taskNameErr}"));
         if (s.Channels.Count == 0) errors.Add(StepSettingError.Error("DAQ_002", "AI 通道列表为空"));
-        if (s.SampleRate <= 0) errors.Add(StepSettingError.Error("DAQ_003", "采样率必须大于 0"));
+        if (!double.IsFinite(s.SampleRate) || s.SampleRate <= 0) errors.Add(StepSettingError.Error("DAQ_003", "采样率必须为有限正数"));
+        if (!Enum.IsDefined(s.SampleMode)) errors.Add(StepSettingError.Error("DAQ_SAMPLE_MODE", "SampleMode 无效"));
+        if (s.UseTrigger && string.IsNullOrWhiteSpace(s.TriggerSource)) errors.Add(StepSettingError.Error("DAQ_TRIGGER_SOURCE", "启用触发时 TriggerSource 不能为空"));
+        if (s.UseTrigger && !Enum.IsDefined(s.TriggerEdge)) errors.Add(StepSettingError.Error("DAQ_TRIGGER_EDGE", "TriggerEdge 无效"));
         if (s.SamplesPerChannel <= 0) errors.Add(StepSettingError.Error("DAQ_004", "每通道采样数必须大于 0"));
         for (int i = 0; i < s.Channels.Count; i++)
         {
@@ -39,9 +42,11 @@ public sealed class NiDaqAiConfigEditorPlugin : IStepEditorPlugin
                 errors.Add(StepSettingError.Error("DAQ_005", $"第 {i + 1} 行：物理通道不能为空"));
             if (string.IsNullOrWhiteSpace(ch.ColumnName))
                 errors.Add(StepSettingError.Error("DAQ_006", $"第 {i + 1} 行：列名不能为空"));
-            if (ch.MinValue >= ch.MaxValue)
+            if (!double.IsFinite(ch.MinValue) || !double.IsFinite(ch.MaxValue) || ch.MinValue >= ch.MaxValue)
                 errors.Add(StepSettingError.Error("DAQ_007", $"第 {i + 1} 行：量程下限 ({ch.MinValue}) 必须小于上限 ({ch.MaxValue})"));
+            if (!Enum.IsDefined(ch.Terminal)) errors.Add(StepSettingError.Error("DAQ_TERMINAL", $"第 {i + 1} 行：Terminal 无效"));
         }
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("DAQ_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

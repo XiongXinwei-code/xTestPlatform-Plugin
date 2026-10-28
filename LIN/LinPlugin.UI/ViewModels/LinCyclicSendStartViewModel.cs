@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Collections.Specialized;
 using System.Runtime.CompilerServices;
 using LIN.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -9,15 +10,18 @@ namespace LIN.UI.ViewModels;
 
 public class LinCyclicSendStartViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
     private bool _suppressSave;
+    public int ReplaceTimeoutMs { get => _setting?.ReplaceTimeoutMs ?? 3000; set { if (_setting == null || _setting.ReplaceTimeoutMs == value) return; _setting.ReplaceTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+    private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     private LinCyclicSendStartSetting? _setting;
+    private readonly HashSet<LinCyclicFrameItem> _observed = [];
+    private ObservableCollection<LinCyclicFrameItem>? _observedCollection;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { Flush(); _step = step; Load(); }
 
     private void Load()
     {
@@ -25,11 +29,11 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
         _suppressSave = true;
         try
         {
+            DetachRows();
             _setting = _step.StepSetting.Setting is { Length: > 0 } d
                 ? (LinCyclicSendStartSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (LinCyclicSendStartSetting)_serializer.CreateDefault();
-            foreach (var item in _setting.Frames)
-                item.PropertyChanged += OnItemChanged;
+            ObserveRows();
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -38,13 +42,7 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () =>
-        {
-            try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); }
-            catch (TaskCanceledException) { }
-        });
+        _save.Schedule(_step, _serializer, _setting);
     }
 
     public string ConnectionName
@@ -63,7 +61,6 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
     {
         if (_setting == null) return;
         var item = new LinCyclicFrameItem();
-        item.PropertyChanged += OnItemChanged;
         _setting.Frames.Add(item);
         QueueSave();
     }
@@ -71,7 +68,6 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
     public void RemoveFrame(LinCyclicFrameItem item)
     {
         if (_setting == null) return;
-        item.PropertyChanged -= OnItemChanged;
         _setting.Frames.Remove(item);
         QueueSave();
     }
@@ -79,6 +75,23 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
     private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => QueueSave();
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    private void DetachRows()
+    {
+        if (_observedCollection != null) _observedCollection.CollectionChanged -= RowsChanged;
+        foreach (var row in _observed) row.PropertyChanged -= OnItemChanged;
+        _observed.Clear(); _observedCollection = null;
+    }
+    private void ObserveRows()
+    {
+        if (_setting == null) return;
+        _observedCollection = _setting.Frames;
+        _observedCollection.CollectionChanged += RowsChanged;
+        foreach (var row in _observedCollection) if (_observed.Add(row)) row.PropertyChanged += OnItemChanged;
+    }
+    private void RowsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        DetachRows(); ObserveRows(); QueueSave();
+    }
     protected void OnPropertyChanged([CallerMemberName] string? n = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }

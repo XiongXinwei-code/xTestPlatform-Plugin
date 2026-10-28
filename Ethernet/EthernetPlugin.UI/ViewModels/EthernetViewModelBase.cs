@@ -5,11 +5,11 @@ using xTestPlatform.Core.SequenceModels;
 
 namespace Ethernet.UI.ViewModels;
 
-/// <summary>Ethernet 编辑器 ViewModel 通用基类，提供防抖保存与 Load 能力。</summary>
+/// <summary>Ethernet 编辑器 ViewModel 通用基类，提供 UI 线程即时保存与 Load 能力。</summary>
 public abstract class EthernetViewModelBase<TSetting> : INotifyPropertyChanged where TSetting : class, new()
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
@@ -20,6 +20,7 @@ public abstract class EthernetViewModelBase<TSetting> : INotifyPropertyChanged w
 
     private void Load()
     {
+        _saver.Flush();
         if (_serializer == null || _step == null) return;
         _suppressSave = true;
         try
@@ -35,13 +36,7 @@ public abstract class EthernetViewModelBase<TSetting> : INotifyPropertyChanged w
     protected void QueueSave()
     {
         if (_suppressSave || _step == null || Setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () =>
-        {
-            try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(Setting); }
-            catch (TaskCanceledException) { }
-        });
+        _saver.Schedule(_step, _serializer, Setting);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

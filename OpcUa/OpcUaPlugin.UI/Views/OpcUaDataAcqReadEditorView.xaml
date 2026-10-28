@@ -12,12 +12,17 @@
         <syncfusion:TabItemExt Header="OpcUa DataAcq Read"
                                Image="pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_read.png"
                                ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="150"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -35,7 +40,7 @@
                 <TextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding SamplesToRead, UpdateSourceTrigger=PropertyChanged}"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="序号波形变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
@@ -49,7 +54,20 @@
                     ScriptText="{Binding CsvFilePath, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBlock Grid.Row="5" Text="逐点记录 JSON 变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox x:Name="RecordsJsonVariableBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                         Text="{Binding RecordsJsonVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Grid.Row="6" Text="健康 JSON 变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox x:Name="HealthVariableBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+                         Text="{Binding HealthVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock x:Name="SamplingTimeHint" Grid.Row="7" Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="0,4,0,0"
+                           Text="OPC UA 轮询不是等间隔硬件采样。兼容波形横轴仅为记录序号（sample）；真实源/服务器时间、主机接收 UTC、单调时间及质量请使用逐点记录 JSON 或 CSV。非 Good 数据会标记为 NaN 并报告错误，不作为有效测量值。"/>
+                <TextBlock Grid.Row="8" Text="消费/导出总期限(ms):" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="ConsumptionTimeoutBox" Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,8,0,0"
+                         Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="排队、转换及 CSV 导出共用此期限；超时后实际导出仍保有消费门，不能视为导出已取消。"/>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

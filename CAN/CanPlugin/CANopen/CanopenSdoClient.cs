@@ -106,7 +106,8 @@ internal sealed class CanopenSdoClient
     /// <param name="block">true 使用块上传；false 由服务器决定快速或分段上传</param>
     public async Task<byte[]> UploadAsync(ushort index, byte subIndex, bool block, CancellationToken ct)
     {
-        using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct).ConfigureAwait(false);
+        using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct, readOnly: true).ConfigureAwait(false);
+        using var scope = transaction.Activate();
         try { return await UploadCoreAsync(index, subIndex, block, ct).ConfigureAwait(false); }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or InvalidOperationException)
         {
@@ -241,6 +242,7 @@ internal sealed class CanopenSdoClient
     public async Task DownloadAsync(ushort index, byte subIndex, byte[] data, bool block, CancellationToken ct)
     {
         using var transaction = await _bus.Access.EnterSdoAsync(_nodeId, _bus.Owner, _timeoutMs, ct).ConfigureAwait(false);
+        using var scope = transaction.Activate();
         try { await DownloadCoreAsync(index, subIndex, data, block, ct).ConfigureAwait(false); }
         catch (Exception ex) when (ex is TimeoutException or OperationCanceledException or InvalidOperationException)
         {
@@ -340,9 +342,12 @@ internal sealed class CanopenSdoClient
 
             // 服务器确认的序号小于已发序号时，从未确认的段开始重传
             int ackSeq = ack[1];
-            offset = ackSeq >= seq ? pos : blockStart + ackSeq * 7;
-            if (ack[2] is >= 1 and <= MaxBlockSize)
-                blockSize = ack[2];
+            if (ackSeq > seq)
+                throw new InvalidOperationException($"SDO 块下载确认序号 {ackSeq} 超过本块实际发送序号 {seq}");
+            if (ack[2] is < 1 or > MaxBlockSize)
+                throw new InvalidOperationException($"SDO 块下载下一块大小无效: {ack[2]}");
+            offset = ackSeq == seq ? pos : blockStart + ackSeq * 7;
+            blockSize = ack[2];
         }
 
         // 0xC1 | n<<2：块下载结束，n = 最后一段无效字节数，byte1..2 = CRC

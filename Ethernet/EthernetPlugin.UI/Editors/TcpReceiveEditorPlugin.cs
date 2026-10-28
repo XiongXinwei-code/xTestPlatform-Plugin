@@ -37,6 +37,8 @@ public sealed class TcpReceiveEditorPlugin : IStepEditorPlugin
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("ETH_304", "接收超时时间必须大于 0"));
 
+        Validation.EthernetOutputValidator.Check(context, s.ResultVariable, errors);
+        Validation.EthernetLifecycleValidator.CheckPrecedingOpen(context, s.ConnectionName, false, errors);
         return errors;
     }
 }

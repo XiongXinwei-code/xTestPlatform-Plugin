@@ -1,6 +1,7 @@
 using CAN.Adapters;
 using CAN.Models;
 using CAN.UDS.IsoTp;
+using System.Runtime.CompilerServices;
 
 namespace CAN.UDS;
 
@@ -90,6 +91,7 @@ public class UdsResponse
 /// </summary>
 public sealed class UdsClient
 {
+    private readonly int _transactionTimeoutMs;
     private readonly ICanAdapter _adapter;
     private readonly IsoTpTransport _transport;
     private readonly int _responseTimeoutMs;
@@ -99,27 +101,48 @@ public sealed class UdsClient
 
     public UdsClient(ICanAdapter adapter, uint txId, uint rxId,
         int responseTimeoutMs = 5000, int p2StarTimeoutMs = 10000,
-        CanFrameType frameType = CanFrameType.Standard, bool useFd = false)
+        CanFrameType frameType = CanFrameType.Standard, bool useFd = false,
+        int maxResponseBytes = IsoTpTransport.DefaultMaxReceivePayloadBytes, int transactionTimeoutMs = 60000)
     {
         _adapter = adapter;
-        _transport = new IsoTpTransport(adapter, txId, rxId, frameType, useFd);
-        _responseTimeoutMs = responseTimeoutMs;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(transactionTimeoutMs);
+        _transactionTimeoutMs = transactionTimeoutMs;
+        if (responseTimeoutMs == 0 || responseTimeoutMs < -1) throw new ArgumentOutOfRangeException(nameof(responseTimeoutMs));
+        _transport = new IsoTpTransport(adapter, txId, rxId, frameType, useFd, maxResponseBytes,
+            responseTimeoutMs == -1 ? transactionTimeoutMs : responseTimeoutMs);
+        _responseTimeoutMs = responseTimeoutMs == -1 ? int.MaxValue : responseTimeoutMs;
         _p2StarTimeoutMs = p2StarTimeoutMs;
         _txId = txId;
         _rxId = rxId;
     }
 
     /// <summary>发送 UDS 请求并等待响应</summary>
-    public async Task<UdsResponse> RequestAsync(byte[] requestData, CancellationToken ct = default)
+    public Task<UdsResponse> RequestAsync(byte[] requestData, CancellationToken ct = default)
     {
-        await _transport.SendAsync(requestData, ct);
-        return await WaitForResponseAsync(requestData, ct);
+        ArgumentNullException.ThrowIfNull(requestData);
+        if (requestData.Length == 0) throw new ArgumentException("UDS 请求不能为空", nameof(requestData));
+        var request = requestData.ToArray();
+        return CAN.Runtime.CanProtocolTransaction.RunAsync(_adapter, _transactionTimeoutMs, async token =>
+        {
+            await _transport.SendAsync(request, token).ConfigureAwait(false);
+            var response = await WaitForResponseAsync(request, token).ConfigureAwait(false);
+            if (response.IsTimeout || response.ProtocolError != null)
+                CAN.Runtime.CanProtocolTransaction.Invalidate(_adapter, response.GetNrcDescription());
+            return response;
+        }, ct);
     }
 
     /// <summary>发送 UDS 请求（不等待响应，用于功能寻址广播等）</summary>
     public async Task SendOnlyAsync(byte[] requestData, CancellationToken ct = default)
     {
-        await _transport.SendAsync(requestData, ct);
+        ArgumentNullException.ThrowIfNull(requestData);
+        if (requestData.Length == 0) throw new ArgumentException("UDS 请求不能为空", nameof(requestData));
+        var request = requestData.ToArray();
+        await CAN.Runtime.CanProtocolTransaction.RunAsync(_adapter, _transactionTimeoutMs, async token =>
+        {
+            await _transport.SendAsync(request, token).ConfigureAwait(false);
+            return true;
+        }, ct).ConfigureAwait(false);
     }
 
     private async Task<UdsResponse> WaitForResponseAsync(byte[] request, CancellationToken ct)
@@ -129,7 +152,14 @@ public sealed class UdsClient
 
         while (!ct.IsCancellationRequested)
         {
-            var raw = await _transport.ReceiveAsync(timeout, ct);
+            byte[]? raw;
+            try { raw = await _transport.ReceiveAsync(timeout, ct).ConfigureAwait(false); }
+            catch (CAN.Runtime.CanReceiveTimeoutException ex)
+            {
+                ct.ThrowIfCancellationRequested();
+                CAN.Runtime.CanProtocolTransaction.Remaining(int.MaxValue);
+                return CreateTimeoutResponse(requestSid, timeout, ex);
+            }
             if (raw == null || raw.Length == 0)
             {
                 ct.ThrowIfCancellationRequested();
@@ -189,16 +219,35 @@ public sealed class UdsClient
                     : $"正响应子功能不匹配: 期望 0x{expectedSub:X2}，实际 0x{raw[1] & 0x7F:X2}";
             }
         }
+        if (response.ProtocolError != null) return;
+        int echoOffset = requestSid == 0x31 ? 2 : 1;
+        int echoLength = requestSid switch { 0x22 or 0x2E or 0x2F or 0x31 => 2, 0x36 => 1, _ => 0 };
+        if (echoLength > 0 && (request.Length < echoOffset + echoLength || raw.Length < echoOffset + echoLength ||
+            !request.AsSpan(echoOffset, echoLength).SequenceEqual(raw.AsSpan(echoOffset, echoLength))))
+        {
+            response.ProtocolError = $"SID 0x{requestSid:X2} 正响应标识/序号回显缺失或不匹配";
+            return;
+        }
+        // 0x22 至少需要一个数据字节；0x10 必须携带 P2/P2*；下载协商长度不可截断。
+        int minimum = requestSid switch { 0x22 => 4, 0x10 => 6, _ => 1 };
+        if (raw.Length < minimum) response.ProtocolError = $"SID 0x{requestSid:X2} 正响应长度不足（至少 {minimum} 字节）";
+        if (requestSid is 0x34 or 0x35)
+        {
+            int width = raw.Length > 1 ? raw[1] >> 4 : 0;
+            if (width is < 1 or > 4 || (raw[1] & 0x0F) != 0 || raw.Length != width + 2)
+                response.ProtocolError = "下载/上传正响应的块长度格式或数据长度非法";
+        }
     }
 
     private string DescribeRequest(byte requestSid, int timeout)
         => $"SID=0x{requestSid:X2}，TX=0x{_txId:X}，RX=0x{_rxId:X}，本轮等待={timeout} ms";
 
-    private UdsResponse CreateTimeoutResponse(byte requestSid, int timeout)
+    private UdsResponse CreateTimeoutResponse(byte requestSid, int timeout, Exception? receiveError = null)
     {
         string diagnostics = _adapter is ICanAdapterDiagnostics provider
             ? provider.GetReceiveDiagnostics()
             : "适配器未提供接收诊断";
+        if (receiveError != null) diagnostics += $"；接收等待异常：{receiveError}";
 
         return new UdsResponse
         {

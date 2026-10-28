@@ -1,3 +1,4 @@
+using PluginCommon;
 using Modbus.Helpers;
 using Modbus.Models;
 using NModbus;
@@ -14,22 +15,29 @@ namespace Modbus.Executors;
 public sealed class ModbusWriteExecutor : IStepExecutor
 {
 	private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+	private readonly Func<string, IExecutionContext, Task<string>> _evaluate;
+	public ModbusWriteExecutor() : this((expression, context) => Evaluator.EvalStringAsync(expression, context)) { }
+	internal ModbusWriteExecutor(Func<string, IExecutionContext, Task<string>> evaluate) => _evaluate = evaluate;
 
 	/// <summary>执行 Modbus 写入操作</summary>
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
-		var step = context.CurrentStep!.Step;
-		var serializer = new ModbusWritePlugin().CreateSerializer();
-		var setting = (ModbusWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        try
+        {
+			cancellationToken.ThrowIfCancellationRequested();
+			var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+			var step = context.CurrentStep!.Step;
+			var serializer = new ModbusWritePlugin().CreateSerializer();
+			var setting = (ModbusWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-		try
-		{
-			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+			var connName = await _evaluate(setting.ConnectionName, context);
+			epoch.ThrowIfExpired();
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			if (!context.Resources.TryGet<IModbusMaster>(key, out var master))
+			if (!context.Resources.TryGet<ModbusConnectionResource>(key, out var master))
 			{
+				epoch.ThrowIfExpired();
 				return new ExecutionResult
 				{
 					StepResult = new StepResult
@@ -40,11 +48,13 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 				};
 			}
 
-			var startAddr = ushort.Parse(await Evaluator.EvalStringAsync(setting.StartAddress, context));
-			var valuesStr = await Evaluator.EvalStringAsync(setting.Values, context);
+			var startAddr = ushort.Parse(await _evaluate(setting.StartAddress, context));
+			epoch.ThrowIfExpired();
+			var valuesStr = await _evaluate(setting.Values, context);
+			epoch.ThrowIfExpired();
 			var timeoutMs = ModbusHelper.ResolveTimeoutMs(context, connName);
 
-			if (setting.RegisterType is ModbusRegisterType.DiscreteInput or ModbusRegisterType.InputRegister)
+			if (setting.RegisterType is not (ModbusRegisterType.Coil or ModbusRegisterType.HoldingRegister))
 			{
 				return new ExecutionResult
 				{
@@ -58,31 +68,34 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 
 			if (setting.RegisterType == ModbusRegisterType.Coil)
 			{
-				var bools = valuesStr.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-					.Select(v => v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase)).ToArray();
+				var bools = ModbusDataConverter.ParseCoils(valuesStr);
+				ModbusRequestPreflight.ValidateWrite(setting.RegisterType, startAddr, bools.Length);
 				if (bools.Length == 1)
-					await ModbusHelper.WithTimeoutAsync(
-						master.WriteSingleCoilAsync(setting.SlaveAddress, startAddr, bools[0]),
+					await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.WriteSingleCoilAsync(setting.SlaveAddress, startAddr, bools[0]); },
 						timeoutMs, "Modbus 写入单个线圈", cancellationToken);
 				else
-					await ModbusHelper.WithTimeoutAsync(
-						master.WriteMultipleCoilsAsync(setting.SlaveAddress, startAddr, bools),
+					await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.WriteMultipleCoilsAsync(setting.SlaveAddress, startAddr, bools); },
 						timeoutMs, "Modbus 写入多个线圈", cancellationToken);
 			}
 			else
 			{
 				var registers = ModbusDataConverter.ConvertToRegisters(valuesStr, setting.DataFormat);
+				ModbusRequestPreflight.ValidateWrite(setting.RegisterType, startAddr, registers.Length);
 				if (registers.Length == 1)
-					await ModbusHelper.WithTimeoutAsync(
-						master.WriteSingleRegisterAsync(setting.SlaveAddress, startAddr, registers[0]),
+					await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.WriteSingleRegisterAsync(setting.SlaveAddress, startAddr, registers[0]); },
 						timeoutMs, "Modbus 写入单个寄存器", cancellationToken);
 				else
-					await ModbusHelper.WithTimeoutAsync(
-						master.WriteMultipleRegistersAsync(setting.SlaveAddress, startAddr, registers),
+					await master.WithTimeoutAsync(
+						() => { epoch.ThrowIfExpired(); return master.Master.WriteMultipleRegistersAsync(setting.SlaveAddress, startAddr, registers); },
 						timeoutMs, "Modbus 写入多个寄存器", cancellationToken);
 			}
 
 			context.Log($"Modbus Write: Addr={startAddr}, Values={valuesStr}");
+			epoch.ThrowIfExpired();
+			ModbusResultPublisher.EnsureActive(context, key, master, cancellationToken);
 
 			return new ExecutionResult
 			{
@@ -100,7 +113,7 @@ public sealed class ModbusWriteExecutor : IStepExecutor
 				StepResult = new StepResult
 				{
 					Status = TestStatus.Error,
-					Error = ErrorInfo.FromException(ex)
+					Error = ErrorInfo.FromException(ex, $"Modbus 写入超时: {ex.Message}")
 				}
 			};
 		}

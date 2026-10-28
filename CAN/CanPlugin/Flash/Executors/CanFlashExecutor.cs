@@ -12,15 +12,18 @@ namespace CAN.Flash.Executors;
 public sealed class CanFlashExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<string, bool> _fileExists;
+    public CanFlashExecutor() : this(File.Exists) { }
+    internal CanFlashExecutor(Func<string, bool> fileExists) => _fileExists = fileExists;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new CanFlashPlugin().CreateSerializer();
-        var setting = (CanFlashSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new CanFlashPlugin().CreateSerializer();
+            var setting = (CanFlashSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             // ── 执行器内部校验 ───────────────────────────────────────────
             if (string.IsNullOrWhiteSpace(setting.FilePath))
                 return Error("固件文件路径未配置");
@@ -30,61 +33,98 @@ public sealed class CanFlashExecutor : IStepExecutor
                 return Error("重试次数不能为负数");
             if (setting.PreDownloadDelayMs < 0)
                 return Error("下载前延时不能为负数");
+            if (setting.InterBlockDelayMs < 0 || setting.EraseTimeoutMs <= 0)
+                return Error("块间延时不能为负数，擦除超时必须大于 0");
+            if (!Enum.IsDefined(setting.CheckMode)) return Error("未知的校验方式，未发送擦除或下载请求");
 
             var filePath = await Evaluator.EvalStringAsync(setting.FilePath, context);
-            if (!File.Exists(filePath))
+            // Exists and opening ReadAllBytesAsync can both block before their first
+            // yield (for example on a mapped drive). Keep the whole readonly file
+            // operation on one worker; cancelling this wait does not retire that worker.
+            var fileRead = Task.Run<byte[]?>(async () =>
+            {
+                guard.Check();
+                if (!_fileExists(filePath)) return null;
+                guard.Check();
+                return await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
+            }, CancellationToken.None);
+            _ = fileRead.ContinueWith(static task => { _ = task.Exception; }, CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            var content = await fileRead.WaitAsync(cancellationToken).ConfigureAwait(false);
+            guard.Check();
+            if (content == null)
                 return Error($"固件文件不存在: {filePath}");
 
             // ── 解析固件 ─────────────────────────────────────────────────
             uint baseAddress = UdsExecutorHelper.ParseId(
                 await Evaluator.EvalStringAsync(setting.BaseAddress, context));
 
-            var content = await File.ReadAllBytesAsync(filePath, cancellationToken);
             var parser = FirmwareParserFactory.Create(setting.Format, filePath);
-            var parsedSegments = parser.Parse(content, baseAddress);
+            var parsedSegments = await Task.Run(() =>
+            {
+                guard.Check();
+                return parser.Parse(content, baseAddress);
+            }, cancellationToken).ConfigureAwait(false);
+            guard.Check();
             var segments = await ApplyMappedRangeAsync(parsedSegments, setting, context);
 
             int totalBytes = segments.Sum(s => s.Length);
             if (totalBytes == 0)
                 return Error("固件文件解析结果为空，没有可烧录的数据");
 
-            context.Log($"UDS Flash: 固件 {filePath}");
-            context.Log($"UDS Flash: 共 {segments.Count} 个数据段，合计 {totalBytes} 字节");
-            context.Log(setting.UseFdFrame
+            guard.Log($"UDS Flash: 固件 {filePath}");
+            guard.Log($"UDS Flash: 共 {segments.Count} 个数据段，合计 {totalBytes} 字节");
+            guard.Log(setting.UseFdFrame
                 ? "UDS Flash: ISO-TP 使用 CAN FD/BRS，分段帧最大 64 字节"
                 : "UDS Flash: ISO-TP 使用 Classic CAN，分段帧最大 8 字节");
             foreach (var seg in segments)
-                context.Log($"UDS Flash: 数据段 {seg}");
+                guard.Log($"UDS Flash: 数据段 {seg}");
 
             if (setting.PreDownloadDelayMs > 0)
             {
-                context.Log($"UDS Flash: 下载前等待 {setting.PreDownloadDelayMs} ms");
+                guard.Log($"UDS Flash: 下载前等待 {setting.PreDownloadDelayMs} ms");
                 await Task.Delay(setting.PreDownloadDelayMs, cancellationToken);
             }
 
             // ── 创建 UDS 客户端 ──────────────────────────────────────────
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return Error(error!);
 
             // 擦除耗时远长于普通请求，使用独立的长超时客户端
             int normalTimeout = setting.ResponseTimeoutMs;
             setting.ResponseTimeoutMs = setting.EraseTimeoutMs > 0 ? setting.EraseTimeoutMs : normalTimeout;
-            var (eraseClient, eraseError) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var (eraseClient, eraseError) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             setting.ResponseTimeoutMs = normalTimeout;
             if (eraseClient == null)
                 return Error(eraseError!);
 
             // ── 解析格式标识 ─────────────────────────────────────────────
-            byte alfid = (byte)UdsExecutorHelper.ParseId(
-                await Evaluator.EvalStringAsync(setting.AddressAndLengthFormatId, context));
-            byte dataFormatId = (byte)UdsExecutorHelper.ParseId(
-                await Evaluator.EvalStringAsync(setting.DataFormatId, context));
+            byte alfid = checked((byte)UdsExecutorHelper.ParseId(
+                await Evaluator.EvalStringAsync(setting.AddressAndLengthFormatId, context)));
+            byte dataFormatId = (byte)UdsExecutorHelper.ParseBoundedId(
+                await Evaluator.EvalStringAsync(setting.DataFormatId, context), byte.MaxValue, "DataFormatId");
+            // 包括最后校验使用的标识，也必须在任何擦除或下载之前完成求值与位宽验证。
+            uint eraseRoutineId = setting.EraseBeforeDownload ? UdsExecutorHelper.ParseBoundedId(
+                await Evaluator.EvalStringAsync(setting.EraseRoutineId, context), ushort.MaxValue, "EraseRoutineId") : 0;
+            uint checkRoutineId = setting.CheckMode != FlashCheckMode.None ? UdsExecutorHelper.ParseBoundedId(
+                await Evaluator.EvalStringAsync(setting.CheckRoutineId, context), ushort.MaxValue, "CheckRoutineId") : 0;
 
             int addressBytes = alfid & 0x0F;
             int lengthBytes = (alfid >> 4) & 0x0F;
             if (addressBytes is < 1 or > 4 || lengthBytes is < 1 or > 4)
                 return Error($"地址与长度格式标识 0x{alfid:X2} 非法，地址与长度字节数均须在 1~4 之间");
+
+            // 必须一次验证所有段，防止擦除第一段后才发现后续段地址不能编码。
+            foreach (var segment in segments)
+            {
+                EncodeValue(segment.StartAddress, addressBytes);
+                EncodeValue(checked((uint)segment.Length), lengthBytes);
+                ulong end = (ulong)segment.StartAddress + (ulong)segment.Length - 1;
+                ulong maximum = (1UL << (addressBytes * 8)) - 1;
+                if (segment.Length <= 0 || end > maximum)
+                    return Error($"数据段 0x{segment.StartAddress:X8} 长度 {segment.Length} 超出 {addressBytes} 字节地址空间");
+            }
 
             int writtenBytes = 0;
             int lastLoggedProgress = -1;
@@ -97,9 +137,6 @@ public sealed class CanFlashExecutor : IStepExecutor
                 // 擦除
                 if (setting.EraseBeforeDownload)
                 {
-                    uint eraseRoutineId = UdsExecutorHelper.ParseId(
-                        await Evaluator.EvalStringAsync(setting.EraseRoutineId, context));
-
                     var eraseRequest = new List<byte>
                     {
                         0x31, 0x01,
@@ -116,12 +153,12 @@ public sealed class CanFlashExecutor : IStepExecutor
                         eraseRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
                     }
 
-                    context.Log(
+                    guard.Log(
                         $"UDS Flash: 擦除 0x{segment.StartAddress:X8}，长度 {segment.Length} 字节，" +
                         $"TX=[{UdsExecutorHelper.ToHex(eraseRequest.ToArray())}]");
 
-                    var eraseResponse = await eraseClient.RequestAsync(eraseRequest.ToArray(), cancellationToken);
-                    context.Log(LogLevel.Trace, $"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
+                    var eraseResponse = await guard.RunAsync(() => eraseClient.RequestAsync(eraseRequest.ToArray(), cancellationToken));
+                    guard.Log(LogLevel.Trace, $"UDS Flash: 擦除 RX=[{UdsExecutorHelper.ToHex(eraseResponse.Data)}]");
                     if (!eraseResponse.IsPositive)
                         return Error($"擦除失败: {eraseResponse.GetNrcDescription()}",
                             $"{eraseResponse.GetFailureValue()}; " +
@@ -134,10 +171,10 @@ public sealed class CanFlashExecutor : IStepExecutor
                 downloadRequest.AddRange(EncodeValue(segment.StartAddress, addressBytes));
                 downloadRequest.AddRange(EncodeValue((uint)segment.Length, lengthBytes));
 
-                context.Log(LogLevel.Trace, $"UDS Flash: 请求下载 TX=[{UdsExecutorHelper.ToHex(downloadRequest.ToArray())}]");
+                guard.Log(LogLevel.Trace, $"UDS Flash: 请求下载 TX=[{UdsExecutorHelper.ToHex(downloadRequest.ToArray())}]");
 
-                var downloadResponse = await client.RequestAsync(downloadRequest.ToArray(), cancellationToken);
-                context.Log(LogLevel.Trace, $"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
+                var downloadResponse = await guard.RunAsync(() => client.RequestAsync(downloadRequest.ToArray(), cancellationToken));
+                guard.Log(LogLevel.Trace, $"UDS Flash: 请求下载 RX=[{UdsExecutorHelper.ToHex(downloadResponse.Data)}]");
                 if (!downloadResponse.IsPositive)
                     return Error($"请求下载失败: {downloadResponse.GetNrcDescription()}",
                         downloadResponse.GetFailureValue());
@@ -146,8 +183,8 @@ public sealed class CanFlashExecutor : IStepExecutor
                 if (blockSize <= 0)
                     return Error("ECU 返回的最大块长度无效，无法确定分块大小");
 
-                context.Log($"UDS Flash: 开始传输 0x{segment.StartAddress:X8}，分块大小 {blockSize} 字节");
-                ReportProgress(context, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
+                guard.Log($"UDS Flash: 开始传输 0x{segment.StartAddress:X8}，分块大小 {blockSize} 字节");
+                ReportProgress(guard, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
 
                 // 分块传输 (0x36)
                 byte blockCounter = 1;
@@ -165,12 +202,12 @@ public sealed class CanFlashExecutor : IStepExecutor
                     UdsResponse? transferResponse = null;
                     for (int attempt = 0; attempt <= setting.BlockRetryCount; attempt++)
                     {
-                        transferResponse = await client.RequestAsync(transferRequest, cancellationToken);
+                        transferResponse = await guard.RunAsync(() => client.RequestAsync(transferRequest, cancellationToken));
                         if (transferResponse.IsPositive)
                             break;
 
                         if (attempt < setting.BlockRetryCount)
-                            context.Log(LogLevel.Warn,
+                            guard.Log(LogLevel.Warn,
                                 $"UDS Flash: 块 {blockCounter} 传输失败({transferResponse.GetNrcDescription()})，第 {attempt + 1} 次重试");
                     }
 
@@ -183,27 +220,24 @@ public sealed class CanFlashExecutor : IStepExecutor
                     writtenBytes += chunkLength;
                     blockCounter = (byte)(blockCounter + 1); // 到 0xFF 后自动回绕到 0x00
 
-                    ReportProgress(context, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
+                    ReportProgress(guard, setting, writtenBytes, totalBytes, ref lastLoggedProgress);
 
                     if (setting.InterBlockDelayMs > 0)
                         await Task.Delay(setting.InterBlockDelayMs, cancellationToken);
                 }
 
                 // 结束传输 (0x37)
-                var exitResponse = await client.RequestAsync([0x37], cancellationToken);
+                var exitResponse = await guard.RunAsync(() => client.RequestAsync([0x37], cancellationToken));
                 if (!exitResponse.IsPositive)
                     return Error($"结束传输失败: {exitResponse.GetNrcDescription()}",
                         exitResponse.GetFailureValue());
 
-                context.Log($"UDS Flash: 数据段 0x{segment.StartAddress:X8} 传输完成");
+                guard.Log($"UDS Flash: 数据段 0x{segment.StartAddress:X8} 传输完成");
             }
 
             // ── 校验 (0x31) ──────────────────────────────────────────────
             if (setting.CheckMode != FlashCheckMode.None)
             {
-                uint checkRoutineId = UdsExecutorHelper.ParseId(
-                    await Evaluator.EvalStringAsync(setting.CheckRoutineId, context));
-
                 var payloads = segments.Select(s => s.Data);
                 uint checkValue = setting.CheckMode == FlashCheckMode.Crc32
                     ? FlashCrc.Crc32(payloads)
@@ -216,10 +250,10 @@ public sealed class CanFlashExecutor : IStepExecutor
                 };
                 checkRequest.AddRange(EncodeValue(checkValue, 4));
 
-                context.Log($"UDS Flash: 校验 {setting.CheckMode}=0x{checkValue:X8}");
+                guard.Log($"UDS Flash: 校验 {setting.CheckMode}=0x{checkValue:X8}");
 
-                var checkResponse = await eraseClient.RequestAsync(checkRequest.ToArray(), cancellationToken);
-                context.Log(LogLevel.Trace, $"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
+                var checkResponse = await guard.RunAsync(() => eraseClient.RequestAsync(checkRequest.ToArray(), cancellationToken));
+                guard.Log(LogLevel.Trace, $"UDS Flash: 校验 RX=[{UdsExecutorHelper.ToHex(checkResponse.Data)}]");
                 if (!checkResponse.IsPositive)
                     return Error($"固件校验失败: {checkResponse.GetNrcDescription()}",
                         checkResponse.GetFailureValue());
@@ -237,14 +271,14 @@ public sealed class CanFlashExecutor : IStepExecutor
                         $"RX=[{UdsExecutorHelper.ToHex(checkResponse.RawBytes)}]");
                 }
 
-                context.Log(
+                guard.Log(
                     $"UDS Flash: {setting.CheckMode} 校验通过，校验值=0x{checkValue:X8}");
             }
 
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                context.SetVariable(setting.ResultVariable, writtenBytes);
+                guard.SetVariable(setting.ResultVariable, writtenBytes);
 
-            context.Log($"UDS Flash: 烧录完成，共写入 {writtenBytes} 字节");
+            guard.Log($"UDS Flash: 烧录完成，共写入 {writtenBytes} 字节");
 
             return new ExecutionResult
             {
@@ -264,6 +298,8 @@ public sealed class CanFlashExecutor : IStepExecutor
     /// <summary>按大端序将数值编码为指定字节数</summary>
     private static byte[] EncodeValue(uint value, int byteCount)
     {
+        if (byteCount is < 1 or > 4 || (ulong)value >= (1UL << (byteCount * 8)))
+            throw new ArgumentOutOfRangeException(nameof(value), $"数值 0x{value:X} 无法精确编码为 {byteCount} 字节");
         var result = new byte[byteCount];
         for (int i = 0; i < byteCount; i++)
             result[byteCount - 1 - i] = (byte)(value >> (i * 8));
@@ -290,7 +326,7 @@ public sealed class CanFlashExecutor : IStepExecutor
 
         long usable = maxBlockLength - 2; // 扣除 SID 与块序号
         if (usable <= 0)
-            return configuredMax;
+            return 0; // ECU 未允许任何数据字节，不能回退到用户上限继续下载。
 
         int ecuMax = (int)Math.Min(usable, int.MaxValue);
         return configuredMax == 0 ? ecuMax : Math.Min(ecuMax, configuredMax);
@@ -356,7 +392,7 @@ public sealed class CanFlashExecutor : IStepExecutor
     }
 
     private static void ReportProgress(
-        IExecutionContext context,
+        CAN.Runtime.CanExecutionGuard guard,
         CanFlashSetting setting,
         int written,
         int total,
@@ -367,13 +403,13 @@ public sealed class CanFlashExecutor : IStepExecutor
 
         int percent = (int)((long)written * 100 / total);
         if (!string.IsNullOrWhiteSpace(setting.ProgressVariable))
-            context.SetVariable(setting.ProgressVariable, percent);
+            guard.SetVariable(setting.ProgressVariable, percent);
 
         // 大文件可能包含数千个 0x36 块；只在整数百分比变化时记录，既能看到
         // 实时进度，也避免每个数据块都写日志造成明显额外开销。
         if (percent != lastLoggedPercent)
         {
-            context.Log(
+            guard.Log(
                 $"UDS Flash: 下载进度 {percent}% ({written:N0}/{total:N0} 字节)");
             lastLoggedPercent = percent;
         }

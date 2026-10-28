@@ -38,6 +38,8 @@ public sealed class OpcUaConnectEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_003", "用户名密码模式下用户名不能为空"));
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("OPCUA_004", "超时必须大于 0"));
+        if (!Enum.IsDefined(s.SecurityPolicy)) errors.Add(StepSettingError.Error("OPCUA_SECURITY_POLICY", "SecurityPolicy 无效，不能自动降级"));
+        if (!Enum.IsDefined(s.AuthMode)) errors.Add(StepSettingError.Error("OPCUA_AUTH_MODE", "AuthMode 无效，不能回退匿名认证"));
         return errors;
     }
 }

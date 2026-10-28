@@ -25,6 +25,7 @@ public partial class OpcUaDataAcqStartEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new OpcUaDataAcqStartViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)
@@ -36,7 +37,7 @@ public partial class OpcUaDataAcqStartEditorView : UserControl, IRefreshableEdit
     private void OnAddClick(object sender, RoutedEventArgs e) => ViewModel.AddItem();
     private void OnRemoveClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: OpcUaDataAcqItem item })
+        if (ItemsGrid.SelectedItem is OpcUaDataAcqItem item)
             ViewModel.RemoveItem(item);
     }
 }

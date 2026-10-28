@@ -23,6 +23,8 @@ $Knob   = C 150 155 165
 $Ops = [ordered]@{
 	nidaq_ai_config      = @{ Wave = 'sine';   Badge = 'config' }
 	nidaq_ai_read        = @{ Wave = 'sine';   Badge = 'read' }
+	nidaq_ao_config      = @{ Wave = 'level';  Badge = 'config' }
+	nidaq_ao_write_single= @{ Wave = 'level';  Badge = 'write' }
 	nidaq_di_read        = @{ Wave = 'square'; Badge = 'read' }
 	nidaq_do_write       = @{ Wave = 'square'; Badge = 'write' }
 	nidaq_encoder_config = @{ Wave = 'pulse';  Badge = 'config' }
@@ -56,6 +58,9 @@ function Draw-Lines($G, [single[]]$pts, $Color, [single]$PenW) {
 function Draw-Wave($G, [string]$Wave, [single]$x, [single]$y, [single]$w, [single]$h, $Color, $Color2, [single]$PenW) {
 	$mid = $y + $h / 2; $amp = $h * 0.32
 	switch ($Wave) {
+		'level' {
+			Draw-Lines $G @($x, ($mid + $amp), ($x + $w * 0.4), ($mid + $amp), ($x + $w * 0.4), ($mid - $amp), ($x + $w), ($mid - $amp)) $Color $PenW
+		}
 		'sine' {
 			$pts = @(); for ($i = 0; $i -le 24; $i++) { $t = $i / 24; $pts += ($x + $t * $w); $pts += ($mid - [Math]::Sin($t * 2 * [Math]::PI * 1.25) * $amp) }
 			Draw-Lines $G $pts $Color $PenW

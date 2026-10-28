@@ -27,6 +27,7 @@ public sealed class HttpClientCloseEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (HttpClientCloseSetting)new HttpClientClosePlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("HTTP_101", "关闭排队总超时必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.ClientName))
             errors.Add(StepSettingError.Error("HTTP_100", "客户端标识名不能为空"));

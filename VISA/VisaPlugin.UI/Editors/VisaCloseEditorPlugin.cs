@@ -32,6 +32,7 @@ public sealed class VisaCloseEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
             errors.Add(StepSettingError.Error("VISA_010E", $"ConnectionName 表达式无效: {connErr}"));
         VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("VISA_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

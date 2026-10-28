@@ -17,8 +17,20 @@ public class CanMessage
 
     /// <summary>接收时间戳（纳秒）</summary>
     public long TimestampNs { get; set; }
+    /// <summary>NI 原始 FILETIME 时间戳（100 ns）；不以出队时刻替代。</summary>
+    public ulong? RawTimestamp100ns { get; set; }
+    /// <summary>ZLG 原始设备时间戳（微秒）。不转换成 NI FILETIME。</summary>
+    public ulong? RawTimestampUs { get; set; }
 
-    /// <summary>是否为 NI-XNET 在发送成功后生成的发送回显。</summary>
+    /// <summary>时间域未经厂商契约核实时保持 Unknown。</summary>
+    public string TimestampDomain { get; set; } = "Unknown";
+    public string ClockId { get; set; } = "Unknown";
+    /// <summary>最早托管观察时刻；不等价于总线采集时刻。</summary>
+    public long? IngressMonotonicTicks { get; set; }
+    /// <summary>仅可信硬件时钟映射可填入的采集时刻下界，用于保守帧龄。</summary>
+    public long? CaptureMonotonicLowerBoundTicks { get; set; }
+
+    /// <summary>是否为厂商发送回显，不进入普通 CANopen 反馈路由。</summary>
     public bool IsTransmitEcho { get; set; }
 
     /// <summary>数据长度码 DLC</summary>

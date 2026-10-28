@@ -12,8 +12,9 @@ namespace Http.UI.ViewModels;
 /// </summary>
 public class HttpClientCreateViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    private readonly HashSet<HttpHeaderItem> _observedItems = new();
+    public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
@@ -24,7 +25,14 @@ public class HttpClientCreateViewModel : INotifyPropertyChanged
 
     private void Load()
     {
+        _saver.Flush();
         if (_serializer == null || _step == null) return;
+        if (_setting != null)
+        {
+            _setting.DefaultHeaders.CollectionChanged -= OnHeadersChanged;
+            foreach (var item in _observedItems) item.PropertyChanged -= OnHeaderItemChanged;
+            _observedItems.Clear();
+        }
         _suppressSave = true;
         try
         {
@@ -42,20 +50,17 @@ public class HttpClientCreateViewModel : INotifyPropertyChanged
         if (_setting == null) return;
         _setting.DefaultHeaders.CollectionChanged -= OnHeadersChanged;
         _setting.DefaultHeaders.CollectionChanged += OnHeadersChanged;
+        foreach (var item in _observedItems) item.PropertyChanged -= OnHeaderItemChanged;
+        _observedItems.Clear();
         foreach (var item in _setting.DefaultHeaders)
         {
-            item.PropertyChanged -= OnHeaderItemChanged;
-            item.PropertyChanged += OnHeaderItemChanged;
+            if (_observedItems.Add(item)) item.PropertyChanged += OnHeaderItemChanged;
         }
     }
 
     private void OnHeadersChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        foreach (var item in e.NewItems?.OfType<HttpHeaderItem>() ?? [])
-        {
-            item.PropertyChanged -= OnHeaderItemChanged;
-            item.PropertyChanged += OnHeaderItemChanged;
-        }
+        HookHeaders(); // Reset/Clear has no OldItems; reconcile actual current membership.
         QueueSave();
     }
 
@@ -64,9 +69,7 @@ public class HttpClientCreateViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+        _saver.Schedule(_step, _serializer, _setting);
     }
 
     public string ClientName { get => _setting?.ClientName ?? ""; set { if (_setting == null || _setting.ClientName == value) return; _setting.ClientName = value; OnPropertyChanged(); QueueSave(); } }
@@ -80,6 +83,7 @@ public class HttpClientCreateViewModel : INotifyPropertyChanged
     public string ClientCertPassword { get => _setting?.ClientCertPassword ?? ""; set { if (_setting == null || _setting.ClientCertPassword == value) return; _setting.ClientCertPassword = value; OnPropertyChanged(); QueueSave(); } }
     public bool IgnoreServerCertificateErrors { get => _setting?.IgnoreServerCertificateErrors ?? false; set { if (_setting == null || _setting.IgnoreServerCertificateErrors == value) return; _setting.IgnoreServerCertificateErrors = value; OnPropertyChanged(); QueueSave(); } }
     public bool ReplaceIfExists { get => _setting?.ReplaceIfExists ?? true; set { if (_setting == null || _setting.ReplaceIfExists == value) return; _setting.ReplaceIfExists = value; OnPropertyChanged(); QueueSave(); } }
+    public bool ForceConnectionClose { get => _setting?.ForceConnectionClose ?? true; set { if (_setting == null || _setting.ForceConnectionClose == value) return; _setting.ForceConnectionClose = value; OnPropertyChanged(); QueueSave(); } }
     public ObservableCollection<HttpHeaderItem> DefaultHeaders => _setting?.DefaultHeaders ?? [];
 
     public IEnumerable<AuthMode> AuthModes => Enum.GetValues<AuthMode>();

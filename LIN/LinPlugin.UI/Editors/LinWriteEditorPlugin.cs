@@ -27,6 +27,13 @@ public sealed class LinWriteEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinWriteSetting)new LinWritePlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!string.IsNullOrWhiteSpace(s.ConnectionName) && !context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var ConnectionNameError))
+            errors.Add(StepSettingError.Error("LIN_EXPR_ConnectionName", $"ConnectionName 表达式无效：{ConnectionNameError}"));
+        if (!string.IsNullOrWhiteSpace(s.FrameId) && !context.Evaluator.ValidateExpression(s.FrameId, context.ExecutionContext, out var FrameIdError))
+            errors.Add(StepSettingError.Error("LIN_EXPR_FrameId", $"FrameId 表达式无效：{FrameIdError}"));
+        if (!string.IsNullOrWhiteSpace(s.Data) && !context.Evaluator.ValidateExpression(s.Data, context.ExecutionContext, out var DataError))
+            errors.Add(StepSettingError.Error("LIN_EXPR_Data", $"Data 表达式无效：{DataError}"));
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("LIN_TIMEOUT", "驱动调用超时必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("LIN_W01", "连接标识名不能为空"));

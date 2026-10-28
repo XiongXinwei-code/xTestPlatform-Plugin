@@ -23,7 +23,7 @@ public class HttpExtractItem : INotifyPropertyChanged
         set => SetProperty(ref _path, value);
     }
 
-    /// <summary>提取结果写入的变量名</summary>
+    /// <summary>必填：已声明的完整 string 变量路径；全部目标在首次写入前预检</summary>
     [VariablePathField]
     public string TargetVariable
     {
@@ -61,6 +61,6 @@ public class HttpJsonExtractSetting
     /// <summary>提取映射列表</summary>
     public ObservableCollection<HttpExtractItem> Items { get; set; } = [];
 
-    /// <summary>任一路径未命中时是否判定步骤失败</summary>
+    /// <summary>任一路径未命中时是否返回执行 Error；不作测试判定</summary>
     public bool FailOnMissingPath { get; set; } = true;
 }

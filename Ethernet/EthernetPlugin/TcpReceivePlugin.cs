@@ -8,7 +8,7 @@ namespace Ethernet;
 public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
 {
     public override string StepTypeId  => "Ethernet.TcpReceive";
-    public override string DisplayName => "Ethernet_TcpReceive";
+    public override string DisplayName => "Ethernet_TCP_Receive";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_receive.png";
 
@@ -29,6 +29,8 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
 
         ## 行为
 
+        - ResultVariable 为空时跳过写入；非空须配置已声明的完整作用域 string 变量路径，当前值允许 null；建立/发送/消费响应前预检，不自动创建变量
+
         - 超时未收到数据时步骤报错
         - `ResultVariable` 为覆盖写入：每次执行都用本次接收结果替换该变量的原有值
 
@@ -44,7 +46,7 @@ public sealed class TcpReceivePlugin : StepPluginBase<TcpReceiveSetting>
         - `Ethernet_TcpSend`：发送数据
         """;
 
-    public override IStepExecutor CreateExecutor() => new TcpReceiveExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new TcpReceiveExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

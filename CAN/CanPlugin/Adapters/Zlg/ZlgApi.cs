@@ -10,13 +10,14 @@ internal static class ZlgApi
 
     // ── 原生库加载 ────────────────────────────────────────────────────────────────
     // 插件由宿主动态加载，DllImport 默认搜索的是宿主进程目录而非插件目录，
-    // 因此这里把随插件一起发布的 Native\Zlg 目录显式加入搜索路径。
-    // zlgcan.dll 还会从自身所在目录的 kerneldlls 下加载各板卡内核驱动，
-    // SetDllDirectory 可保证这些依赖同样能被找到。
+    // 因此通过程序集统一解析器按绝对路径加载 Native\Zlg 中的库。
+    // 静态依赖使用本次加载的 DLL 目录和安全默认目录，不修改进程级搜索路径。
+    // zlgcan.dll 内部按自身目录加载的 kerneldlls 仍必须随包完整部署。
     // 注意：宿主若以字节流方式加载插件程序集，Assembly.Location 会为空，
     // 故这里按多个候选位置依次探测，而不是只依赖 Location。
     static ZlgApi()
     {
+        CanNativeLibraryResolver.EnsureRegistered();
         var tried = new List<string>();
         try
         {
@@ -30,8 +31,6 @@ internal static class ZlgApi
                     continue;
 
                 NativeDir = dir;
-                SetDllDirectory(dir);
-                NativeLibrary.SetDllImportResolver(typeof(ZlgApi).Assembly, ResolveNativeLibrary);
                 break;
             }
         }
@@ -133,7 +132,7 @@ internal static class ZlgApi
         return $"已定位原生库目录：{NativeDir}（kerneldlls 存在={Directory.Exists(kernelDir)}）；{detail}；{crtHint}已探测：{dirs}";
     }
 
-    private static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
+    internal static IntPtr ResolveNativeLibrary(string libraryName, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
     {
         if (NativeDir is null || !string.Equals(libraryName, DllName, StringComparison.OrdinalIgnoreCase))
             return IntPtr.Zero;
@@ -141,7 +140,7 @@ internal static class ZlgApi
         var path = Path.Combine(NativeDir, DllName);
         try
         {
-            return NativeLibrary.Load(path);
+            return CanNativeLibraryResolver.LoadBundled(path, assembly);
         }
         catch (Exception ex)
         {
@@ -149,10 +148,6 @@ internal static class ZlgApi
             return IntPtr.Zero;
         }
     }
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetDllDirectory(string lpPathName);
 
     // ── 返回值 ────────────────────────────────────────────
     public const uint STATUS_OK = 1;
@@ -283,6 +278,11 @@ internal static class ZlgApi
     }
 
     public const uint CAN_EFF_FLAG = 0x80000000;
+    public const uint CAN_RTR_FLAG = 0x40000000;
+    public const uint CAN_ERR_FLAG = 0x20000000;
+    public const uint CAN_ID_MASK = 0x1FFFFFFF;
+    // SDK canframe.h: __pad (Classic) / flags (FD), 回显在发送至总线后产生。
+    public const byte TX_ECHO_FLAG = 0x20;
     public const byte CANFD_BRS = 0x01;
 
     // ── API 函数 ──────────────────────────────────────────
@@ -301,6 +301,9 @@ internal static class ZlgApi
     [DllImport(DllName, EntryPoint = "ZCAN_ResetCAN")]
     public static extern uint ResetCAN(IntPtr channelHandle);
 
+    [DllImport(DllName, EntryPoint = "ZCAN_ClearBuffer")]
+    public static extern uint ClearBuffer(IntPtr channelHandle);
+
     [DllImport(DllName, EntryPoint = "ZCAN_Transmit")]
     public static extern uint Transmit(IntPtr channelHandle, ref ZCAN_Transmit_Data data, uint len);
 
@@ -312,6 +315,14 @@ internal static class ZlgApi
 
     [DllImport(DllName, EntryPoint = "ZCAN_ReceiveFD")]
     public static extern uint ReceiveFD(IntPtr channelHandle, ref ZCAN_ReceiveFD_Data data, uint len, int waitTimeMs);
+
+    [DllImport(DllName, EntryPoint = "ZCAN_Receive")]
+    public static extern uint ReceiveBatch(IntPtr channelHandle,
+        [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] ZCAN_Receive_Data[] data, uint len, int waitTimeMs);
+
+    [DllImport(DllName, EntryPoint = "ZCAN_ReceiveFD")]
+    public static extern uint ReceiveFdBatch(IntPtr channelHandle,
+        [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 2)] ZCAN_ReceiveFD_Data[] data, uint len, int waitTimeMs);
 
     [DllImport(DllName, EntryPoint = "ZCAN_GetReceiveNum")]
     public static extern uint GetReceiveNum(IntPtr channelHandle, byte type);

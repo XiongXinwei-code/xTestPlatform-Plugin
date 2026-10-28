@@ -45,10 +45,18 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,8">
+                    <TextBox Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Text="单个事务总超时 (ms):" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding TransactionTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="包含排队、发送、响应和 NRC 0x78；不是整个 Flash 步骤期限。必须大于 0。"/>
+                    <TextBlock Text="最大响应字节数（ISO-TP）:" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding MaxResponseBytes, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Width="200" HorizontalAlignment="Left"
+                             ToolTip="必须大于 0；默认 4194304（4 MiB）。超限响应在分配重组缓冲区之前拒绝。"/>
+                    <TextBlock Text="默认 4194304（4 MiB），按 ECU 最大响应设置；不是下载分块大小。" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Security Level:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SecurityLevel, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SecurityLevel, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="等级序号 1~63；Seed 子功能=2×等级−1，Key=2×等级。不是原始奇数子功能值。"/>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Seed Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding SeedVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>

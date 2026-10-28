@@ -15,14 +15,17 @@ public sealed class ReadModeViewModel : INotifyPropertyChanged
 	private Step? _step;
 	private ReadModeSetting? _setting;
 	private bool _dirty;
+	private bool _saveFailed;
+	private readonly PluginCommon.EditorSaveScheduler _pendingSave = new();
 	public string Error { get; private set; } = "";
 	public Action<string, Action>? ExecuteCommand { get; set; }
 
 	public ReadModeViewModel() => _saveTimer.Tick += (_, _) => Flush();
-	public void AttachSerializer(IStepSettingSerializer serializer) { Flush(); _serializer = serializer; }
+	public void AttachSerializer(IStepSettingSerializer serializer) { Flush(); EnsureSaved(); _serializer = serializer; }
 	public void AttachStep(Step step)
 	{
 		Flush();
+		EnsureSaved();
 		_step = step;
 		_dirty = false;
 		try
@@ -48,17 +51,32 @@ public sealed class ReadModeViewModel : INotifyPropertyChanged
 	public void Flush()
 	{
 		_saveTimer.Stop();
-		if (!_dirty || _step == null || _serializer == null || _setting == null) return;
+		_saveFailed = false;
 		try
 		{
-			var bytes = _serializer.Serialize(_setting);
-			_dirty = false;
-			if (bytes.SequenceEqual(_step.StepSetting.Setting ?? [])) return;
-			var step = _step;
-			void Save() { step.StepSetting.Setting = bytes; step.StepSetting.SettingVersion = 1; }
-			if (ExecuteCommand != null) ExecuteCommand("修改 CiA402 参数", Save); else Save();
+			if (_dirty && _step != null && _serializer != null && _setting != null)
+			{
+				var bytes = _serializer.Serialize(_setting);
+				var step = _step;
+				var version = _serializer.SettingVersion;
+				_dirty = false;
+				_pendingSave.Queue(() =>
+				{
+					if (bytes.SequenceEqual(step.StepSetting.Setting ?? [])) return;
+					void Save() { step.StepSetting.Setting = bytes; step.StepSetting.SettingVersion = version; }
+					if (ExecuteCommand != null) ExecuteCommand("修改 CiA402 参数", Save); else Save();
+				});
+			}
+			_pendingSave.Flush();
+			Error = _setting == null ? "设置不存在" : string.Join("；", SettingValidation.Validate(_setting));
+			OnPropertyChanged(nameof(Error));
 		}
-		catch (Exception ex) { Error = $"保存设置失败：{ex.Message}"; OnPropertyChanged(nameof(Error)); }
+		catch (Exception ex) { _saveFailed = true; Error = $"保存设置失败：{ex.Message}"; OnPropertyChanged(nameof(Error)); }
+	}
+
+	private void EnsureSaved()
+	{
+		if (_saveFailed) throw new InvalidOperationException("上一步配置保存失败，已保留待重试内容；请先重试保存再切换步骤", _pendingSave.LastError);
 	}
 
     public string ModeVariable

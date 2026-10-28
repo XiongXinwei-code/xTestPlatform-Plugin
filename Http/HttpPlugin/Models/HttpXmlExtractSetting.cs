@@ -20,6 +20,6 @@ public class HttpXmlExtractSetting
     /// <summary>是否忽略元素命名空间，忽略后 XPath 可直接写元素名</summary>
     public bool IgnoreNamespaces { get; set; } = true;
 
-    /// <summary>任一 XPath 未命中时是否判定步骤失败</summary>
+    /// <summary>任一 XPath 未命中时是否返回执行 Error；不作测试判定</summary>
     public bool FailOnMissingPath { get; set; } = true;
 }

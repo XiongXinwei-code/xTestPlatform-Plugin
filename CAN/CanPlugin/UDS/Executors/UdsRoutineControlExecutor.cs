@@ -1,4 +1,5 @@
 using CAN.UDS.Models;
+using CAN.Helpers;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -12,20 +13,20 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new UdsRoutineControlPlugin().CreateSerializer();
-        var setting = (UdsRoutineControlSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new UdsRoutineControlPlugin().CreateSerializer();
+            var setting = (UdsRoutineControlSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await UdsExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
-            var ridStr = await Evaluator.EvaluateAsync<string>(setting.RoutineId, context) ?? setting.RoutineId;
-            ushort rid = (ushort)UdsExecutorHelper.ParseId(ridStr);
+            var ridStr = await Evaluator.EvalStringAsync(setting.RoutineId, context);
+            ushort rid = (ushort)UdsExecutorHelper.ParseBoundedId(ridStr, ushort.MaxValue, "RoutineId");
 
-            var optStr = await Evaluator.EvaluateAsync<string>(setting.OptionRecord, context) ?? setting.OptionRecord;
+            var optStr = await Evaluator.EvalStringAsync(setting.OptionRecord, context);
             byte[] optData = ParseHex(optStr);
 
             var request = new byte[4 + optData.Length];
@@ -36,15 +37,15 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
             if (optData.Length > 0)
                 Buffer.BlockCopy(optData, 0, request, 4, optData.Length);
 
-            var response = await client.RequestAsync(request, cancellationToken);
+            var response = await guard.RunAsync(() => client.RequestAsync(request, cancellationToken));
 
             if (response.IsPositive)
             {
                 byte[] resultData = response.Data.Length > 3 ? response.Data[3..] : [];
                 var hex = UdsExecutorHelper.ToHex(resultData);
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
-                    context.SetVariable(setting.ResultVariable, hex);
-                context.Log($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
+                    guard.SetVariable(setting.ResultVariable, hex);
+                guard.Log($"UDS RoutineControl: {setting.ControlType} RID=0x{rid:X4} Result=[{hex}]");
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
             }
             else
@@ -61,6 +62,7 @@ public sealed class UdsRoutineControlExecutor : IStepExecutor
     {
         if (string.IsNullOrWhiteSpace(hex)) return [];
         hex = hex.Replace(" ", "").Replace("-", "").Replace(",", "");
+        if (hex.Length % 2 != 0) throw new FormatException("UDS 十六进制字符数必须为偶数，未发送请求");
         var bytes = new byte[hex.Length / 2];
         for (int i = 0; i < bytes.Length; i++)
             bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);

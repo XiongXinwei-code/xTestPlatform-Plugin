@@ -13,19 +13,26 @@ namespace OpcUa.Executors;
 public sealed class OpcUaBatchReadExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<ReadValueIdCollection, CancellationToken, Task<ReadResponse>>? _read;
+    public OpcUaBatchReadExecutor() { }
+    internal OpcUaBatchReadExecutor(Func<ReadValueIdCollection, CancellationToken, Task<ReadResponse>> read) => _read = read;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new OpcUaBatchReadPlugin().CreateSerializer();
-        var setting = (OpcUaBatchReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new OpcUaExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new OpcUaBatchReadPlugin().CreateSerializer();
+            var setting = (OpcUaBatchReadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            guard.Check();
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<Session>(key, out var session))
+            if (!guard.TryGetResource<OpcUaConnectionResource>(key, out var connection))
             {
                 return new ExecutionResult
                 {
@@ -39,6 +46,7 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
 
             if (setting.Items.Count == 0)
             {
+                guard.EnsureCurrent(key, connection);
                 return new ExecutionResult
                 {
                     StepResult = new StepResult { Status = TestStatus.Completed, Value = "无节点需要读取" }
@@ -56,7 +64,10 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
                 });
             }
 
-            var response = await session.ReadAsync(null, 0, TimestampsToReturn.Both, nodesToRead, cancellationToken);
+            guard.EnsureCurrent(key, connection);
+            var response = await connection.RunAsync(token => { guard.EnsureCurrent(key, connection); return _read?.Invoke(nodesToRead, token) ?? connection.Session.ReadAsync(null, 0, TimestampsToReturn.Both, nodesToRead, token); },
+                setting.TimeoutMs, "OPC UA 批量读取", cancellationToken);
+            guard.EnsureCurrent(key, connection);
 
             if (response.Results == null || response.Results.Count < setting.Items.Count)
             {
@@ -102,18 +113,20 @@ public sealed class OpcUaBatchReadExecutor : IStepExecutor
 
                 if (!string.IsNullOrWhiteSpace(setting.Items[i].ResultVariable))
                 {
+                    guard.EnsureCurrent(key, connection);
                     context.SetVariable(setting.Items[i].ResultVariable, dataValue.Value);
                 }
             }
 
             context.Log($"OPC UA 批量读取: {setting.Items.Count} 个节点完成");
+            guard.EnsureCurrent(key, connection);
 
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = string.Join(", ", results) }
             };
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }

@@ -27,6 +27,16 @@ public sealed class LinReadEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinReadSetting)new LinReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        foreach (var path in new[] { s.ResultVariable, s.IdVariable })
+        {
+            ct.ThrowIfCancellationRequested();
+            try { LIN.Helpers.LinHelper.ValidateStringOutput(context.ExecutionContext, path); }
+            catch (ArgumentException ex) { errors.Add(StepSettingError.Error("LIN_OUTPUT", ex.Message)); }
+        }
+        if (!string.IsNullOrWhiteSpace(s.ConnectionName) && !context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var ConnectionNameError))
+            errors.Add(StepSettingError.Error("LIN_EXPR_ConnectionName", $"ConnectionName 表达式无效：{ConnectionNameError}"));
+        if (!string.IsNullOrWhiteSpace(s.FilterFrameId) && !context.Evaluator.ValidateExpression(s.FilterFrameId, context.ExecutionContext, out var FilterFrameIdError))
+            errors.Add(StepSettingError.Error("LIN_EXPR_FilterFrameId", $"FilterFrameId 表达式无效：{FilterFrameIdError}"));
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("LIN_R01", "连接标识名不能为空"));

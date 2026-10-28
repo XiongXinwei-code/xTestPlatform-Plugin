@@ -5,10 +5,10 @@ namespace Http.Helpers;
 
 internal static class ExpressionHelper
 {
-    /// <summary>对表达式字段求值并返回字符串，求值失败时回退到原始表达式字符串</summary>
+    /// <summary>表达式的 null 结果按空字符串处理，绝不把脚本文本当作标识名或报文。</summary>
     public static async Task<string> EvalStringAsync(
         this IExpressionEvaluator evaluator, string expression, IExecutionContext context)
-        => await evaluator.EvaluateAsync<string>(expression, context) ?? expression;
+        => await evaluator.EvaluateAsync<string>(expression, context) ?? string.Empty;
 
     /// <summary>对表达式字段求值并返回整数，求值失败或结果非法时返回默认值</summary>
     public static async Task<int> EvalIntAsync(

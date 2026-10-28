@@ -6,7 +6,7 @@ namespace CAN.UDS.Models;
 [MessagePackObject(true)]
 public class UdsSecurityAccessSetting : UdsCommonSetting
 {
-    /// <summary>安全等级 (奇数: 1, 3, 5...)</summary>
+    /// <summary>安全等级序号 1~63；Seed 子功能=2*等级-1，Key=2*等级，保留原有线协议映射。</summary>
     public int SecurityLevel { get; set; } = 1;
 
     /// <summary>存储 ECU 返回 Seed 的变量名（供 KeyExpression 引用）</summary>

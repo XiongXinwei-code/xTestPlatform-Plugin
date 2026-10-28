@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
 {
     public override string StepTypeId => "Motion.CiA402SetMode";
-    public override string DisplayName => "CiA402_SetMode";
+    public override string DisplayName => "CiA402_State_SetMode";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_setmode.png";
 
@@ -34,12 +34,14 @@ public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
         - 先停止序列周期目标更新并完成上一周期 PDO/SYNC；位置模式准备当前位置目标，速度/转矩模式准备零目标，HM 不启动回零。相同实际模式只检查静止及使能状态，不重新初始化。
         - 全程确认未退出 OperationEnabled；不自动停轴以满足前置条件，不自动释放后重新使能，不隐式发送 SYNC。周期目标首次发送仍由通信映射决定何时应用。
         - 不支持对象、状态不符或切换超时返回错误；失败仍按控制步骤的一般规则尝试停止运动并释放使能。
+        - 非使能态切换即使模式显示已匹配，也必须检查驱动状态；故障、未知状态或意外进入运行使能不作为成功。
+        - 非使能态按当前状态写入不带 Enable Operation 的控制字，不继承绑定时缓存的运行使能位，避免模式切换意外恢复旧运动。
         
         - 正常执行返回 Completed；参数、通信、设备状态问题及超时返回 Error；用户取消返回 Aborted。
         - 仅写入用户已声明并明确配置的完整变量路径，空输出路径不写入。
         - 周期目标由测试序列循环编排，属于非实时周期控制，不保证确定性周期；不启动后台周期任务或隐式发送 SYNC。
         - 后端声明支持时，运动等待期间可由并行序列调用 CiA402 读取步骤独立请求硬件反馈；同轴仅一个控制流程，底层传输逐次协调。排队和通信受超时约束，不以缓存值替代失败读取。
-        - CANopen 轴占用期间不要混用同节点原始 SDO/PDO、CAN 接收或后台周期写入。关闭 CAN 前先解除轴绑定。
+        - 允许同一连接混用CAN/CANopen补充操作；SDO事务串行，CAN观察/协议/轴反馈使用独立副本。外部模式或映射修改须由序列协调，映射变化后重新绑定。解绑只释放本轴资源；CAN_Close负责最终关断。
         
         ## 相关插件
         
@@ -48,7 +50,7 @@ public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new SetModeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new SetModeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

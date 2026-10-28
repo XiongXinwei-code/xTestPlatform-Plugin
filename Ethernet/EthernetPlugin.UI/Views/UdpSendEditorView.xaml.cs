@@ -34,6 +34,7 @@ public partial class UdpSendEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new UdpSendViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

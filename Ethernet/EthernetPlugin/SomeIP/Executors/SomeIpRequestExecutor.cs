@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using Ethernet.SomeIP.Models;
+using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -10,22 +11,44 @@ namespace Ethernet.SomeIP.Executors;
 public sealed class SomeIpRequestExecutor : IStepExecutor
 {
     private static int _sessionCounter;
+    private readonly IEthernetNetworkIo _network;
+    public SomeIpRequestExecutor() : this(EthernetNetworkIo.Instance) { }
+    internal SomeIpRequestExecutor(IEthernetNetworkIo network) => _network = network;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new SomeIpRequestPlugin().CreateSerializer();
-        var setting = (SomeIpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
+        EthernetOperationBudget? budget = null;
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Ethernet");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new SomeIpRequestPlugin().CreateSerializer();
+            var setting = (SomeIpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
+            if (!Enum.IsDefined(setting.Transport)) throw new ArgumentOutOfRangeException(nameof(setting.Transport), "SOME/IP Transport 无效，禁止回退到 UDP");
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
+            if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "SOME/IP 请求总超时必须大于 0");
             var host = await EthernetExecutorHelper.EvalStringAsync(setting.RemoteHost, context);
+            CheckExecution();
             var portStr = await EthernetExecutorHelper.EvalStringAsync(setting.RemotePort, context);
+            CheckExecution();
             var serviceStr = await EthernetExecutorHelper.EvalStringAsync(setting.ServiceId, context);
+            CheckExecution();
             var methodStr = await EthernetExecutorHelper.EvalStringAsync(setting.MethodId, context);
+            CheckExecution();
             var clientStr = await EthernetExecutorHelper.EvalStringAsync(setting.ClientId, context);
+            CheckExecution();
             var ifVerStr = await EthernetExecutorHelper.EvalStringAsync(setting.InterfaceVersion, context);
+            CheckExecution();
             var payloadStr = await EthernetExecutorHelper.EvalStringAsync(setting.Payload, context);
+            CheckExecution();
 
             var port = SomeIpHelper.ParsePort(portStr, "RemotePort");
             var message = new SomeIpMessage
@@ -42,16 +65,20 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
             context.Log(
                 $"SOME/IP 请求({setting.Transport}): {host}:{port} Service=0x{message.ServiceId:X4} Method=0x{message.MethodId:X4} [{SomeIpHelper.ToHex(message.Payload)}]");
 
+            using var operation = budget = new EthernetOperationBudget(setting.TimeoutMs, "SOME/IP 请求", cancellationToken, CheckExecution);
             SomeIpMessage response;
             if (setting.Transport == SomeIpTransport.Tcp)
-                response = await RequestOverTcpAsync(host, port, message, setting.TimeoutMs, cancellationToken);
+                response = await RequestOverTcpAsync(host, port, message, operation, context.Resources);
             else
-                response = await RequestOverUdpAsync(host, port, message, setting.TimeoutMs, cancellationToken);
+                response = await RequestOverUdpAsync(host, port, message, operation, context.Resources);
 
             var responseHex = SomeIpHelper.ToHex(response.Payload);
             context.Log(
                 $"SOME/IP 响应: ReturnCode=0x{response.ReturnCode:X2} [{responseHex}]");
+            cancellationToken.ThrowIfCancellationRequested(); // 日志不占通信预算，但取消后不能继续发布结果。
+            CheckExecution();
 
+            CheckExecution();
             if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                 context.SetVariable(setting.ResultVariable, responseHex);
 
@@ -73,7 +100,13 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted,
+                Value = budget?.SubmissionStarted == true ? "已尝试发送，远端执行结果未知；未自动重发" : "本次尚未提交发送" } };
+        }
+        catch (OperationCanceledException ex) when (budget?.IsExpired == true)
+        {
+            var timeout = budget.CreateTimeout(ex);
+            return ExecutionResults.FromException(timeout, timeout.Message);
         }
         catch (Exception ex)
         {
@@ -90,58 +123,57 @@ public sealed class SomeIpRequestExecutor : IStepExecutor
 
     private static bool IsMatch(SomeIpMessage? msg, SomeIpMessage request)
         => msg != null && msg.ServiceId == request.ServiceId && msg.MethodId == request.MethodId
-           && msg.SessionId == request.SessionId
+           && msg.ClientId == request.ClientId && msg.SessionId == request.SessionId
            && msg.MessageType is SomeIpMessageType.Response or SomeIpMessageType.Error;
 
-    private static async Task<SomeIpMessage> RequestOverUdpAsync(
-        string host, int port, SomeIpMessage message, int timeoutMs, CancellationToken cancellationToken)
+    private async Task<SomeIpMessage> RequestOverUdpAsync(
+        string host, int port, SomeIpMessage message, EthernetOperationBudget budget, IResourceRegistry resources)
     {
-        using var udp = new UdpClient();
-        udp.Connect(host, port);
-        await udp.SendAsync(message.Encode(), cancellationToken);
-
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(timeoutMs);
-
-        while (true)
+        using var owner = await TransientNetworkOperation<UdpClient>.OpenAsync(resources,
+            () => new UdpClient(), 0, budget.RemainingMs, budget.Token, budget.Check);
+        return await owner.RunAsync(async (udp, token) =>
         {
-            UdpReceiveResult recv;
-            try
-            {
-                recv = await udp.ReceiveAsync(timeoutCts.Token);
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                throw new TimeoutException($"等待 SOME/IP 响应超时({timeoutMs}ms)");
-            }
-            var msg = SomeIpMessage.TryDecode(recv.Buffer);
-            if (IsMatch(msg, message)) return msg!;
-        }
-    }
-
-    private static async Task<SomeIpMessage> RequestOverTcpAsync(
-        string host, int port, SomeIpMessage message, int timeoutMs, CancellationToken cancellationToken)
-    {
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeoutCts.CancelAfter(timeoutMs);
-
-        using var tcp = new TcpClient();
-        try
-        {
-            await tcp.ConnectAsync(host, port, timeoutCts.Token);
-            var stream = tcp.GetStream();
-            await stream.WriteAsync(message.Encode(), timeoutCts.Token);
-
+            var endpoint = await EthernetNetworkIo.ResolveEndpointAsync(_network, host, port, udp.Client.AddressFamily, budget, token);
+            budget.Check();
+            udp.Connect(endpoint); // IP endpoint overload never performs synchronous DNS.
+            var encoded = message.Encode();
+            budget.BeforeSubmission();
+            await _network.SendUdpAsync(udp, endpoint, encoded, token);
+            budget.Phase = "等待完整响应";
+            budget.Check();
             while (true)
             {
-                var msg = await ReceiveTcpMessageAsync(stream, timeoutCts.Token);
-                if (IsMatch(msg, message)) return msg;
+                budget.Check();
+                var recv = await udp.ReceiveAsync(token);
+                var msg = SomeIpMessage.TryDecode(recv.Buffer);
+                if (IsMatch(msg, message)) { budget.Check(); return msg!; }
             }
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        }, budget.Token, budget.Check);
+    }
+
+    private async Task<SomeIpMessage> RequestOverTcpAsync(
+        string host, int port, SomeIpMessage message, EthernetOperationBudget budget, IResourceRegistry resources)
+    {
+        using var owner = await TransientNetworkOperation<TcpClient>.OpenAsync(resources,
+            () => new TcpClient(), 0, budget.RemainingMs, budget.Token, budget.Check);
+        return await owner.RunAsync(async (tcp, token) =>
         {
-            throw new TimeoutException($"TCP 连接或等待 SOME/IP 响应超时({timeoutMs}ms)");
-        }
+            budget.Phase = "TCP 连接及地址解析";
+            budget.Check();
+            await _network.ConnectTcpAsync(tcp, host, port, token);
+            var stream = tcp.GetStream();
+            var encoded = message.Encode();
+            budget.BeforeSubmission();
+            await _network.WriteTcpAsync(stream, encoded, token);
+            budget.Phase = "等待完整响应";
+            budget.Check();
+            while (true)
+            {
+                budget.Check();
+                var msg = await ReceiveTcpMessageAsync(stream, token);
+                if (IsMatch(msg, message)) { budget.Check(); return msg; }
+            }
+        }, budget.Token, budget.Check);
     }
 
     /// <summary>从 TCP 流按 SOME/IP 报文头 Length 字段拆包读取一条完整报文。</summary>

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using VISA.UI.ViewModels;
+using VISA.Models;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.SequenceModels;
 
@@ -27,6 +28,7 @@ public partial class VisaBatchWriteEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new VisaBatchWriteViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)
@@ -42,7 +44,7 @@ public partial class VisaBatchWriteEditorView : UserControl, IRefreshableEditor
 
     private void OnRemoveClick(object sender, RoutedEventArgs e)
     {
-        if (CommandGrid.SelectedItem is VisaBatchWriteItemViewModel item)
+        if (CommandGrid.SelectedItem is VisaBatchWriteItem item)
         {
             ViewModel.RemoveItem(item);
         }

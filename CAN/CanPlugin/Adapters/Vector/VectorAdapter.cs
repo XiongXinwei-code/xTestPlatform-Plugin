@@ -1,10 +1,11 @@
 using CAN.Helpers;
 using CAN.Models;
+using CAN.Runtime;
 
 namespace CAN.Adapters.Vector;
 
 /// <summary>Vector CAN 适配器实现（XL Driver Library）</summary>
-public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
+public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics, ICanCloseState
 {
     private const string AppName = "xTestPlatform";
 
@@ -14,8 +15,15 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
     private bool _isFd;
     private bool _driverOpened;
     private readonly CanReceiveDiagnostics _diagnostics = new("Vector");
+    private readonly Func<int, ulong, short> _deactivate;
+    private readonly Func<int, short> _closePort;
+    private readonly Func<short> _closeDriver;
+    public VectorAdapter() : this(VectorXlApi.DeactivateChannel, VectorXlApi.ClosePort, VectorXlApi.CloseDriver) { }
+    internal VectorAdapter(Func<int, ulong, short> deactivate, Func<int, short> closePort, Func<short> closeDriver)
+        => (_deactivate, _closePort, _closeDriver) = (deactivate, closePort, closeDriver);
 
     public bool IsConnected => _isConnected;
+    public bool HandlesReleased => _portHandle < 0 && !_driverOpened;
 
     public void Open(CanAdapterConfig config)
     {
@@ -123,18 +131,42 @@ public sealed class VectorAdapter : ICanAdapter, ICanAdapterDiagnostics
 
     public void Close()
     {
+        var errors = new List<Exception>();
         if (_isConnected)
         {
-            VectorXlApi.DeactivateChannel(_portHandle, _accessMask);
-            VectorXlApi.ClosePort(_portHandle);
-            _portHandle = -1;
-            _isConnected = false;
+            try
+            {
+                CheckCloseStatus(_deactivate(_portHandle, _accessMask), "DeactivateChannel");
+                _isConnected = false;
+            }
+            catch (Exception ex) { errors.Add(ex); }
         }
-        if (_driverOpened)
+        if (_portHandle >= 0)
         {
-            VectorXlApi.CloseDriver();
-            _driverOpened = false;
+            // XL Driver Library Manual 25.20, 3.3.13: ClosePort also deactivates
+            // its channels. A failed separate Deactivate must not skip this final
+            // release. A failed ClosePort still retains both port and driver lease.
+            try
+            {
+                CheckCloseStatus(_closePort(_portHandle), "ClosePort");
+                _portHandle = -1;
+                _isConnected = false;
+            }
+            catch (Exception ex) { errors.Add(ex); }
         }
+        if (_driverOpened && _portHandle < 0)
+        {
+            try { CheckCloseStatus(_closeDriver(), "CloseDriver"); _driverOpened = false; }
+            catch (Exception ex) { errors.Add(ex); }
+        }
+        if (errors.Count == 1) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(errors[0]).Throw();
+        if (errors.Count > 1) throw new AggregateException("Vector 关闭存在失败；仅保留未确认释放的句柄，可重试关闭", errors);
+    }
+
+    private static void CheckCloseStatus(short status, string operation)
+    {
+        if (status != VectorXlApi.XL_SUCCESS)
+            throw new InvalidOperationException($"Vector {operation} 失败 ({status})；保留未释放资源，可重试关闭");
     }
 
     public void Write(CanMessage message)

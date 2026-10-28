@@ -27,6 +27,7 @@ public partial class CanopenPdoSendEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new CanopenPdoSendViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     /// <summary>步骤切换或撤销/重做后重新加载设置</summary>

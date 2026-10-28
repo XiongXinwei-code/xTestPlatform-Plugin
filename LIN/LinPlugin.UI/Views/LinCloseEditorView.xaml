@@ -19,6 +19,7 @@
 				</Grid.ColumnDefinitions>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
@@ -26,6 +27,11 @@
 					ExpectedResultType="String"
 					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+				<TextBlock Grid.Row="1" Grid.Column="0" Text="关闭总超时 (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<StackPanel Grid.Row="1" Grid.Column="1">
+					<TextBox Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
+					<TextBlock Text="必须大于 0；包含登记排队与实际退出等待。超时保留旧所有者，不表示已经关闭。默认 3000 ms。" TextWrapping="Wrap" Foreground="Gray" Margin="0,4,0,8"/>
+				</StackPanel>
 			</Grid>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>

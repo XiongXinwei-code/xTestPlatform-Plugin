@@ -14,6 +14,7 @@
                                    Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_close.png"
                                    ImageHeight="20" ImageWidth="20">
             <Grid Margin="16" VerticalAlignment="Top">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
                     <ColumnDefinition Width="*"/>
@@ -24,6 +25,11 @@
                     ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="关闭总超时 (ms):" VerticalAlignment="Center" Margin="0,8,8,8"/>
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,8,0,8">
+                    <TextBox Width="200" HorizontalAlignment="Left" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+                    <TextBlock Margin="0,4,0,0" Foreground="Gray" TextWrapping="Wrap" Text="包含排队与确认实际收尾。超时返回错误并保留旧句柄；不表示后台任务或电机已经停止。"/>
+                </StackPanel>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

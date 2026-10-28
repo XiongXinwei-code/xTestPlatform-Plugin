@@ -25,7 +25,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="LocalPort:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="LocalPort (0=自动):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <syncfusion:IntegerTextBox Grid.Row="0" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                     Value="{Binding LocalPort, Mode=TwoWay}" MinValue="0" MaxValue="65535"/>
 
@@ -54,7 +54,7 @@
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
-                         Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}"/>
+                         ToolTip="可选。非空须填写已声明的完整作用域 string 变量路径；当前值可为 null，通信前预检。" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

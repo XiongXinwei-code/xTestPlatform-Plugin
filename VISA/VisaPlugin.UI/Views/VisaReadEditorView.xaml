@@ -24,7 +24,7 @@
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="连接名称:" VerticalAlignment="Center" Margin="0,6"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,6"
-                    ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+                    ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="结果变量:" VerticalAlignment="Center" Margin="0,6"/>

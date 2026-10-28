@@ -69,3 +69,6 @@ dotnet package search xTestPlatform.StepEditor.SDK --source "xTestPlatform-SDK"
 
 或直接浏览文件夹 `D:\xTestPlatform-PluginDev\LocalPackages` 查看 `.nupkg` 文件。
 ```
+
+
+插件功能修改、交付目录及验证边界见 [插件修改说明](docs/PLUGIN_CHANGES.md)。

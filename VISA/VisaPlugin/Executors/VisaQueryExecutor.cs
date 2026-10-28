@@ -1,3 +1,4 @@
+using PluginCommon;
 using Ivi.Visa;
 using VISA.Helpers;
 using VISA.Models;
@@ -18,19 +19,25 @@ public sealed class VisaQueryExecutor : IStepExecutor
     /// <summary>执行 VISA 查询操作</summary>
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new VisaQueryPlugin().CreateSerializer();
-        var setting = (VisaQuerySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new VisaQueryPlugin().CreateSerializer();
+            var setting = (VisaQuerySetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            epoch.ThrowIfExpired();
             var command = await Evaluator.EvalStringAsync(setting.Command, context);
+            epoch.ThrowIfExpired();
+            if (string.IsNullOrWhiteSpace(command)) throw new ArgumentException("SCPI 查询命令求值结果不能为空");
             var varName = setting.ResultVariable;
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<IMessageBasedSession>(key, out var session))
+            if (!context.Resources.TryGet<VisaSessionResource>(key, out var resource))
             {
+                epoch.ThrowIfExpired();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -41,24 +48,17 @@ public sealed class VisaQueryExecutor : IStepExecutor
                 };
             }
 
-            string response;
-            var gate = VisaHelper.GetLock(session);
-            await gate.WaitAsync(cancellationToken);
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var timeoutMs = VisaHelper.GetIoTimeoutMs(session);
-                var terminator = GetTerminator(context, connName);
-                response = await VisaHelper.RunWithTimeoutAsync(
-                    () => VisaHelper.Query(session, command, setting.TrimResponse, terminator), timeoutMs, "查询", cancellationToken);
-            }
-            finally
-            {
-                gate.Release();
-            }
+            epoch.ThrowIfExpired();
+            var response = await resource.RunBlockingAsync(
+                session => VisaHelper.Query(session, command, setting.TrimResponse, resource.Terminator, () => { epoch.ThrowIfExpired(); resource.ThrowIfSubmissionStopped(); }),
+                resource.IoTimeoutMs, "VISA 查询", cancellationToken);
+            epoch.ThrowIfExpired();
+            VisaResultPublisher.EnsureActive(context, key, resource, cancellationToken);
             context.SetVariable(varName, response);
 
             context.Log($"VISA Query: {command} => {response}");
+            epoch.ThrowIfExpired();
+            VisaResultPublisher.EnsureActive(context, key, resource, cancellationToken);
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed, Value = response }
@@ -75,7 +75,7 @@ public sealed class VisaQueryExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex)
+                    Error = ErrorInfo.FromException(ex, $"VISA 查询超时: {ex.Message}")
                 }
             };
         }

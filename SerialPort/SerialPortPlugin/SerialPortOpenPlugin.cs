@@ -24,18 +24,22 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
         | PortName | string([ExpressionField]) | 是 | — | 端口名，如 COM1，求值结果为 string |
         | BaudRate | int | 否 | 9600 | 波特率 |
         | DataBits | int | 否 | 8 | 数据位，取值 5-8 |
-        | StopBits | int | 否 | 1 | 停止位：0=None, 1=One, 2=Two |
-        | Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even |
-        | ReadTimeoutMs | int | 否 | 3000 | 读超时毫秒数 |
-        | WriteTimeoutMs | int | 否 | 3000 | 写超时毫秒数 |
+        | StopBits | int | 否 | 1 | 停止位：1=One, 2=Two, 3=OnePointFive；不支持 0=None |
+        | Parity | int | 否 | 0 | 校验位：0=None, 1=Odd, 2=Even, 3=Mark, 4=Space |
+        | ReadTimeoutMs | int | 否 | 3000 | 读超时毫秒数，-1 为无限等待 |
+        | WriteTimeoutMs | int | 否 | 3000 | 写超时毫秒数，-1 为无限等待 |
+        | TimeoutMs | int | 否 | 5000 | 整个步骤等待的总期限（毫秒），包含设置求值、资源构造/登记、旧资源收尾、本次 SDK 操作及最终发布 |
 
         ## 行为
 
+
+        - 建立前先登记当前 owner，关闭请求可以冻结建立期资源；同名活动资源明确拒绝覆盖。同一插件上次执行的同物理资源正在收尾时，在本步骤期限内等待，真实退出前不再次占用设备。
+
         - 端口不存在或已被占用时步骤报错
         - 打开的端口会以 `PortName` 为标识名注册到运行期资源表，供后续 SerialPort_Write / SerialPort_Read / SerialPort_Query / SerialPort_Close 步骤取用
-        - 用同一个 PortName 重复打开时：**静默替换**——旧端口对象会被自动关闭并释放，再注册新对象，不会报错
+        - 同名活动端口明确拒绝覆盖；已请求收尾或已确认释放的旧代次可在 TimeoutMs 同一预算内接续关闭后重开，不销毁其他活动端口
 
-        ## 检索关键词
+        ### 检索关键词
 
         串口、串行口、COM 口、COM1、UART、
         RS-232、RS232、RS-485、RS485、RS-422、RS422、TTL 串口、
@@ -49,7 +53,7 @@ public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
         - `SerialPort_Close`：关闭本插件打开的端口
         """;
 
-    public override IStepExecutor CreateExecutor() => new SerialPortOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("SerialPort", () => new SerialPortOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

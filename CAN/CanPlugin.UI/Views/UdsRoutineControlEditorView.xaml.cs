@@ -24,6 +24,7 @@ public partial class UdsRoutineControlEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new UdsRoutineControlViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

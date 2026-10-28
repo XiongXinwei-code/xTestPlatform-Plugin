@@ -15,4 +15,6 @@ public class HttpClientCloseSetting
 
     /// <summary>客户端不存在时是否忽略而不报错</summary>
     public bool IgnoreIfNotFound { get; set; } = true;
+    /// <summary>登记排队、请求实际退出和客户端释放共用的关闭总超时（ms），必须大于0。</summary>
+    public int TimeoutMs { get; set; } = 5000;
 }

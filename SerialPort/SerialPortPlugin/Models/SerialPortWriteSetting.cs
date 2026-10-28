@@ -1,4 +1,4 @@
-﻿using MessagePack;
+using MessagePack;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace SerialPort.Models;

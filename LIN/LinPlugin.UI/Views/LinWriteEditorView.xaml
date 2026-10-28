@@ -16,7 +16,7 @@
 		<syncfusion:TabItemExt Header="LIN Write"
 							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_write.png"
 							   ImageHeight="20" ImageWidth="20">
-			<Grid Margin="16">
+			<Grid Margin="16" ToolTip="NI-XNET 无 LDF 模式：仅 LIN 2.x 主节点、普通帧 Enhanced 校验；Classic、诊断数据帧及从节点尚不支持。">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="150"/>
 					<ColumnDefinition Width="*"/>
@@ -26,7 +26,10 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
+				    <RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
+				<TextBlock Grid.Row="4" Grid.Column="0" Text="驱动调用超时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认3000，必须大于0；不包含独立动作后延时。超时不会提前释放未退出的原生调用。"/>
 
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
@@ -49,7 +52,7 @@
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="ChecksumType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						  SelectedIndex="{Binding ChecksumType, Converter={StaticResource EnumToIntConverter}}">
-					<ComboBoxItem Content="Classic"/>
+					<ComboBoxItem Content="Classic（需 LDF，暂不支持）" IsEnabled="False"/>
 					<ComboBoxItem Content="Enhanced"/>
 				</ComboBox>
 			</Grid>

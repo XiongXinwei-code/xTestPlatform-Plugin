@@ -29,7 +29,11 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
 
         ## 行为
 
+        - ResultVariable 为空时跳过写入；非空须配置已声明的完整作用域 string 变量路径，当前值允许 null；建立/发送/消费响应前预检，不自动创建变量
+
         - 超时未收到匹配通知时步骤判定为 Error
+        - 临时监听端口登记为执行资源；中断或退出调试时取消等待，确认原始 I/O 与取消回调退出后后台释放；首轮重跑在 TimeoutMs 内等待旧端口收尾，绑定后通知窗口仍单独使用 TimeoutMs
+        - 旧执行不得消费并发布新执行的结果；收尾未知时返回 Error 并保留旧资源，不强行复用端口
 
         ## 相关插件
 
@@ -37,7 +41,7 @@ public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSettin
         - `SomeIp_Request`：RPC 请求
         """;
 
-    public override IStepExecutor CreateExecutor() => new SomeIpSubscribeExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new SomeIpSubscribeExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

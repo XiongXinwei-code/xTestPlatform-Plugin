@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Http.Helpers;
 using Http.Models;
 using xTestPlatform.Core.Engine;
@@ -16,26 +17,41 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new HttpJsonExtractPlugin().CreateSerializer();
-        var setting = (HttpJsonExtractSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var execution = PluginCommon.ExecutionEpoch.Capture(context.Resources, "Http");
+            void CheckExecution()
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                execution.ThrowIfExpired();
+            }
+            var step = context.CurrentStep!.Step;
+            var serializer = new HttpJsonExtractPlugin().CreateSerializer();
+            var setting = (HttpJsonExtractSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             if (setting.Items.Count == 0)
                 return Error("提取映射列表为空");
 
+            foreach (var item in setting.Items)
+                HttpOutputPreflight.Validate(context, item.TargetVariable, typeof(string), CheckExecution, optional: false);
+
             var json = await Evaluator.EvalStringAsync(setting.SourceJson, context);
+            CheckExecution();
             if (string.IsNullOrWhiteSpace(json))
                 return Error("待解析的 JSON 文本为空");
 
             var missing = new List<string>();
+            var root = JsonNode.Parse(json);
+            var resolved = new List<(string Target, string Path, string Value)>();
 
             foreach (var item in setting.Items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                CheckExecution();
 
                 if (string.IsNullOrWhiteSpace(item.TargetVariable))
                     return Error("提取映射中存在未配置目标变量的行");
@@ -43,7 +59,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                 string? value;
                 try
                 {
-                    value = JsonPathHelper.Evaluate(json, item.Path);
+                    value = JsonPathHelper.EvaluateNode(root, item.Path);
                 }
                 catch (Exception ex)
                 {
@@ -56,8 +72,7 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                     value = item.DefaultValue;
                 }
 
-                context.SetVariable(item.TargetVariable, value);
-                context.Log($"JSON 提取: {item.Path} => {item.TargetVariable} = {value}");
+                resolved.Add((item.TargetVariable, item.Path, value));
             }
 
             if (missing.Count > 0 && setting.FailOnMissingPath)
@@ -72,6 +87,16 @@ public sealed class HttpJsonExtractExecutor : IStepExecutor
                     }
                 };
             }
+
+            foreach (var value in resolved)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                CheckExecution();
+                context.SetVariable(value.Target, value.Value);
+                context.Log($"JSON 提取: 已写入 {value.Target}，值长度={value.Value?.Length ?? 0} 字符；原值不记录");
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            CheckExecution();
 
             return new ExecutionResult
             {

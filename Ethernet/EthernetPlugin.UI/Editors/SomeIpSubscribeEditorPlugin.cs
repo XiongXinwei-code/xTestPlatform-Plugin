@@ -45,6 +45,7 @@ public sealed class SomeIpSubscribeEditorPlugin : IStepEditorPlugin
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("SOMEIP_307", "TimeoutMs 必须大于 0"));
 
+        Validation.EthernetOutputValidator.Check(context, s.ResultVariable, errors);
         return errors;
     }
 }

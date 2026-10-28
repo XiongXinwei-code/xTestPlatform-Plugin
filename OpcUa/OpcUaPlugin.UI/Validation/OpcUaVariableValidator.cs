@@ -7,6 +7,25 @@ namespace OpcUa.UI.Validation;
 
 internal static class OpcUaVariableValidator
 {
+    public static void CheckOptionalStringVariable(
+        IExecutionContext context, string variablePath, string errorCode, List<StepSettingError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(variablePath)) return;
+        if (!context.HasVariable(variablePath))
+        {
+            errors.Add(StepSettingError.Error(errorCode, $"变量 {variablePath} 不存在，请先创建字符串变量"));
+            return;
+        }
+        var definition = GetVariableDefinition(context, variablePath);
+        if (definition != null)
+        {
+            if (definition.DataType != VariableDataType.String)
+                errors.Add(StepSettingError.Error(errorCode, $"变量 {variablePath} 类型不匹配，期望 String，实际类型 {definition.DataType}"));
+        }
+        else if (context.GetVariable(variablePath) is { } value && value is not string)
+            errors.Add(StepSettingError.Error(errorCode, $"变量 {variablePath} 类型不匹配，期望 String，实际类型 {value.GetType().Name}"));
+    }
+
     /// <summary>
     /// 校验结果变量的声明类型是否为波形类型（Waveform）。
     /// 优先通过变量定义检查声明类型；若无法获取定义，则回退检查运行时值类型。

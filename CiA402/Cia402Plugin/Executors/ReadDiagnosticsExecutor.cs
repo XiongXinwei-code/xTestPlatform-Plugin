@@ -16,11 +16,11 @@ public sealed class ReadDiagnosticsExecutor : AxisActionExecutor<ReadDiagnostics
 		if (!string.IsNullOrWhiteSpace(setting.ErrorCodeVariable)) error = await session.Controller.ReadAsync(0x603F, 2, false, ct).ConfigureAwait(false);
 		if (!string.IsNullOrWhiteSpace(setting.HardwareValueVariable) || !string.IsNullOrWhiteSpace(setting.HardwareActiveVariable)) hardware = await session.Controller.ReadHardwareAsync(ct).ConfigureAwait(false);
 		if (!error.HasValue && !hardware.HasValue) throw new ArgumentException("至少配置一项诊断输出变量");
-		if (error.HasValue) SettingValidation.Output(context, setting.ErrorCodeVariable, error.Value);
+		if (error.HasValue) Output(context, values, session, ct, setting.ErrorCodeVariable, error.Value);
 		if (hardware.HasValue)
 		{
-			SettingValidation.Output(context, setting.HardwareValueVariable, (double)hardware.Value);
-			SettingValidation.Output(context, setting.HardwareActiveVariable, session.Controller.HardwareActive(hardware.Value));
+			Output(context, values, session, ct, setting.HardwareValueVariable, (double)hardware.Value);
+			Output(context, values, session, ct, setting.HardwareActiveVariable, session.Controller.HardwareActive(hardware.Value));
 		}
     }
 }

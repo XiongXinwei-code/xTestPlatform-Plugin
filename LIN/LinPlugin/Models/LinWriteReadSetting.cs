@@ -6,6 +6,8 @@ namespace LIN.Models;
 [MessagePackObject(true)]
 public class LinWriteReadSetting
 {
+    /// <summary>请求帧发送等待上限，默认3000ms；ResponseTimeoutMs仍只控制发送完成后的应答等待</summary>
+    public int SendTimeoutMs { get; set; } = 3000;
     /// <summary>连接标识名</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"LIN1\"";
@@ -24,7 +26,7 @@ public class LinWriteReadSetting
     /// <summary>等待从机响应的超时时间（毫秒）</summary>
     public int ResponseTimeoutMs { get; set; } = 500;
 
-    /// <summary>结果存储变量路径（存储从机响应数据，十六进制字符串）</summary>
+    /// <summary>已声明的 string 变量路径（响应十六进制字符串），留空不写入；发送前校验</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

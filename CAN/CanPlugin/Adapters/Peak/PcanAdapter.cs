@@ -1,17 +1,22 @@
 using CAN.Helpers;
 using CAN.Models;
+using CAN.Runtime;
 
 namespace CAN.Adapters.Peak;
 
 /// <summary>PEAK PCAN 适配器实现（PCAN-Basic API）</summary>
-public sealed class PcanAdapter : ICanAdapter, ICanAdapterDiagnostics
+public sealed class PcanAdapter : ICanAdapter, ICanAdapterDiagnostics, ICanCloseState
 {
     private ushort _channel;
     private bool _isConnected;
     private bool _isFd;
     private readonly CanReceiveDiagnostics _diagnostics = new("PEAK");
+    private readonly Func<ushort, uint> _uninitialize;
+    public PcanAdapter() : this(PcanApi.Uninitialize) { }
+    internal PcanAdapter(Func<ushort, uint> uninitialize) => _uninitialize = uninitialize;
 
     public bool IsConnected => _isConnected;
+    public bool HandlesReleased => !_isConnected;
 
     public void Open(CanAdapterConfig config)
     {
@@ -75,7 +80,9 @@ public sealed class PcanAdapter : ICanAdapter, ICanAdapterDiagnostics
     public void Close()
     {
         if (!_isConnected) return;
-        PcanApi.Uninitialize(_channel);
+        uint status = _uninitialize(_channel);
+        if (status != PcanApi.PCAN_ERROR_OK)
+            throw new InvalidOperationException($"PCAN 关闭通道失败 (0x{status:X})；保留通道所有权，可重试关闭");
         _isConnected = false;
     }
 

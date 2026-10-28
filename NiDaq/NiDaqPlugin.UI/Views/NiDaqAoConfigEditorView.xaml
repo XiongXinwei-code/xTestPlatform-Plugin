@@ -1,0 +1,56 @@
+<UserControl x:Class="NiDaq.UI.Views.NiDaqAoConfigEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:skin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             skin:SfSkinManager.Theme="{skin:SkinManagerExtension ThemeName=Windows11Light}">
+    <syncfusion:TabControlExt x:Name="BusinessTabs" CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="通道与初值" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ao_config.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="16" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="任务名称" VerticalAlignment="Center"/>
+                    <expr:ExpressionTextBox x:Name="TaskNameBox" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="1" Text="初始电压/集合(V)" VerticalAlignment="Center"/>
+                    <expr:ExpressionTextBox x:Name="InitialValuesBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" ScriptText="{Binding InitialValues, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Object"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="2" Text="配置总期限(ms)" Margin="0,8,8,0" VerticalAlignment="Center"/>
+                    <TextBox x:Name="LifecycleTimeoutBox" Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,8,0,0" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,6">
+                        <Button x:Name="AddChannelButton" Content="添加通道" Click="AddChannel_Click" Padding="12,3"/>
+                        <Button Content="移除选中通道" Click="RemoveChannel_Click" Padding="12,3" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <DataGrid x:Name="ChannelsGrid" Grid.Row="4" Grid.ColumnSpan="2" ItemsSource="{Binding Channels}" Height="220" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column" SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="物理通道" Width="2*" Binding="{Binding PhysicalChannel, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTextColumn Header="通道名称(可选)" Width="2*" Binding="{Binding ColumnName, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTextColumn Header="量程下限(V)" Width="*" Binding="{Binding MinValue, UpdateSourceTrigger=PropertyChanged}"/>
+                            <DataGridTextColumn Header="量程上限(V)" Width="*" Binding="{Binding MaxValue, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Margin="0,10,0,0" Foreground="Gray" TextWrapping="Wrap" Text="每行一个通道，如 Dev1/ao0；同一设备/模块，按行序对应电压。配置不调用写电压，Task_Start 才启动并写入初值。数值/集合示例：new double[] { 1.0, 2.0 }。首版仅按需单点，不支持波形。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="退出与安全" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_task_stop.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="16" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="停止输出策略" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="StopPolicyBox" Grid.Column="1" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding StopPolicies}" SelectedItem="{Binding StopPolicy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="1" Text="指定终值/集合(V)" VerticalAlignment="Center"/>
+                    <expr:ExpressionTextBox x:Name="FinalValuesBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" ScriptText="{Binding FinalValues, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="Object"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="2" Text="输出收尾总期限(ms)" Margin="0,8,8,0" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                    <TextBox x:Name="CleanupTimeoutBox" Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,8,0,0" Text="{Binding CleanupTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="DarkOrange"
+                        Text="必须明确选择策略。Unspecified：禁止执行；DeviceDefined：接受设备停止/释放后的行为，不承诺保持末值、高阻或安全电压；WriteFinalValues：停止前写入指定终值，终值必填。0 V 不一定安全。中断后等待真实 writer 退出，超时保留隔离；SDK 返回不等于输出已达安全状态。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

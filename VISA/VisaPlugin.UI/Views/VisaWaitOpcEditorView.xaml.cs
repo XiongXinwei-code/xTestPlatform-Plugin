@@ -27,6 +27,7 @@ public partial class VisaWaitOpcEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new VisaWaitOpcViewModel();
 		DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 
 	public void RefreshFromStep(Step step)

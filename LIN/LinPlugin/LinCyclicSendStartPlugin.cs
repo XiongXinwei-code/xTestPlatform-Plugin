@@ -21,6 +21,7 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
+        | ReplaceTimeoutMs | int | 否 | 3000 | 登记门与旧周期任务退出共用总预算，默认3000ms；未确认退出不得启动替代任务，必须大于0 |
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 已打开的连接标识名，求值结果为 string |
         | TaskName | string([ExpressionField]) | 是 | "LinCyclicTask1" | 任务标识名，Stop 步骤用此名称停止，求值结果为 string |
         | Frames | 集合 | 是 | — | 周期发送帧列表，元素字段见下方 |
@@ -37,10 +38,10 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
 
         - 步骤启动任务后立即返回，每条启用的帧在后台独立按各自 CycleTimeMs 发送，每次发送前重新求值 FrameId 和 Data
         - 没有启用的帧时步骤直接通过，不启动发送
-        - 后台发送异常（如帧 ID 超出 0-63）仅记录警告日志，该帧的发送循环随即结束，不影响步骤结果
+        - 后台发送异常会记录并锁存到任务；启动步骤已经返回的结果不追溯修改，但后续停止/关闭会报告该故障，不伪报正常停止
         - 连接名未找到时步骤报错
-        - 任务会以
-        - 用同一个 TaskName 重复启动时：**静默替换**——旧任务会先被停止并从表中移除，再注册新任务，不会报错
+        - 任务以 TaskName 登记为执行期资源，由停止步骤或连接关闭回收
+        - 用同一个 TaskName 重复启动时，必须先在配置的退出期限内确认旧任务真实退出；超时或旧任务故障会报错，不启动重叠的新任务
 
         ## 相关插件
 
@@ -48,7 +49,7 @@ public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStart
         - `LIN_Open`：打开 LIN 通道
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinCyclicSendStartExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinCyclicSendStartExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

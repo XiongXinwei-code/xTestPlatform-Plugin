@@ -10,15 +10,15 @@ namespace CAN.UI.ViewModels;
 /// <summary>XCP 编辑器 ViewModel 基类，包含公共 XCP 连接字段和防抖保存</summary>
 public abstract class XcpViewModelBase<TSetting> : INotifyPropertyChanged where TSetting : XcpCommonSetting, new()
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
     private bool _suppressSave;
+    private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     protected TSetting? Setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { Flush(); _step = step; Load(); }
 
     private void Load()
     {
@@ -37,13 +37,7 @@ public abstract class XcpViewModelBase<TSetting> : INotifyPropertyChanged where 
     protected void QueueSave()
     {
         if (_suppressSave || _step == null || Setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () =>
-        {
-            try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(Setting); }
-            catch (TaskCanceledException) { }
-        });
+        _save.Schedule(_step, _serializer, Setting);
     }
 
     // ── 公共 XCP 字段 ────────────────────────────────────────────────

@@ -16,12 +16,14 @@
 		<syncfusion:TabItemExt Header="LIN Open"
 							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_open.png"
 							   ImageHeight="20" ImageWidth="20">
-			<Grid Margin="16">
+			<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+			<Grid Margin="16" ToolTip="NI-XNET 无 LDF 模式：仅 LIN 2.x 主节点、普通帧 Enhanced 校验；Classic、诊断数据帧及从节点尚不支持。">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="150"/>
 					<ColumnDefinition Width="*"/>
 				</Grid.ColumnDefinitions>
 				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
@@ -53,11 +55,11 @@
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="LinVersion:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						  SelectedIndex="{Binding LinVersion, Converter={StaticResource EnumToIntConverter}}">
-					<ComboBoxItem Content="LIN 1.x"/>
+					<ComboBoxItem Content="LIN 1.x（当前无 LDF 模式不支持）" IsEnabled="False"/>
 					<ComboBoxItem Content="LIN 2.x"/>
 				</ComboBox>
 
-				<TextBlock Grid.Row="4" Grid.Column="0" Text="IsMaster:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<TextBlock Grid.Row="4" Grid.Column="0" Text="IsMaster（必须勾选）:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding IsMaster}" Margin="0,0,0,8"/>
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="接收缓冲区(帧数):" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -69,7 +71,13 @@
 					ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
 					SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 					EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+				<TextBlock Grid.Row="7" Grid.Column="0" Text="打开总超时 (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<StackPanel Grid.Row="7" Grid.Column="1">
+					<TextBox Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
+					<TextBlock Text="必须大于 0；包含登记排队、旧执行收尾及驱动打开。默认 5000 ms。" TextWrapping="Wrap" Foreground="Gray" Margin="0,4,0,8"/>
+				</StackPanel>
 			</Grid>
+			</ScrollViewer>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>
 </UserControl>

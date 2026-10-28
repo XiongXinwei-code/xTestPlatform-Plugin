@@ -27,6 +27,8 @@ public sealed class LinCloseEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinCloseSetting)new LinClosePlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("LIN_TIMEOUT", "关闭总超时必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("LIN_C01", "连接标识名不能为空"));

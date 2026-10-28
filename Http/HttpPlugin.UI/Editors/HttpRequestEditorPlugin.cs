@@ -27,6 +27,8 @@ public sealed class HttpRequestEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (HttpRequestSetting)new HttpRequestPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!Enum.IsDefined(s.Method) || !Enum.IsDefined(s.ContentType))
+            errors.Add(StepSettingError.Error("HTTP_019", "HTTP 方法或请求体类型无效"));
 
         if (string.IsNullOrWhiteSpace(s.ClientName))
             errors.Add(StepSettingError.Error("HTTP_020", "客户端标识名不能为空"));

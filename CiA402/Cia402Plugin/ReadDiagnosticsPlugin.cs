@@ -8,7 +8,7 @@ namespace CiA402;
 public sealed class ReadDiagnosticsPlugin : StepPluginBase<ReadDiagnosticsSetting>
 {
     public override string StepTypeId => "Motion.CiA402ReadDiagnostics";
-    public override string DisplayName => "CiA402_ReadDiagnostics";
+    public override string DisplayName => "CiA402_Feedback_ReadDiagnostics";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_readdiagnostics.png";
 
@@ -37,7 +37,7 @@ public sealed class ReadDiagnosticsPlugin : StepPluginBase<ReadDiagnosticsSettin
         - 仅写入用户已声明并明确配置的完整变量路径，空输出路径不写入。
         - 周期目标由测试序列循环编排，属于非实时周期控制，不保证确定性周期；不启动后台周期任务或隐式发送 SYNC。
         - 后端声明支持时，运动等待期间可由并行序列调用 CiA402 读取步骤独立请求硬件反馈；同轴仅一个控制流程，底层传输逐次协调。排队和通信受超时约束，不以缓存值替代失败读取。
-        - CANopen 轴占用期间不要混用同节点原始 SDO/PDO、CAN 接收或后台周期写入。关闭 CAN 前先解除轴绑定。
+        - 允许同一连接混用CAN/CANopen补充操作；SDO事务串行，CAN观察/协议/轴反馈使用独立副本。外部模式或映射修改须由序列协调，映射变化后重新绑定。解绑只释放本轴资源；CAN_Close负责最终关断。
         
         ## 相关插件
         
@@ -46,7 +46,7 @@ public sealed class ReadDiagnosticsPlugin : StepPluginBase<ReadDiagnosticsSettin
         - CAN_Open、CANopen_SyncSend
         """;
 
-    public override IStepExecutor CreateExecutor() => new ReadDiagnosticsExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CiA402", () => new ReadDiagnosticsExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

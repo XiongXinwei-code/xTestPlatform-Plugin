@@ -29,6 +29,7 @@ public partial class HttpClientCloseEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new HttpClientCloseViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

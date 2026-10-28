@@ -54,7 +54,7 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridComboBoxColumn Header="Data Type" SelectedValueBinding="{Binding DataType}" Width="120"/>
+                        <DataGridComboBoxColumn x:Name="DataTypeColumn" Header="Data Type" SelectedItemBinding="{Binding DataType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
                     </DataGrid.Columns>
                 </DataGrid>
 

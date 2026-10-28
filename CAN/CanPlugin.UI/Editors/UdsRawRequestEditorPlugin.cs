@@ -27,6 +27,10 @@ public sealed class UdsRawRequestEditorPlugin : IStepEditorPlugin
 	{
 		var errors = new List<StepSettingError>();
 		var s = (UdsRawRequestSetting)new UdsRawRequestPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (s.TransactionTimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("UDS_TRANSACTION_TIMEOUT", "TransactionTimeoutMs 事务总超时必须大于 0"));
+        if (s.MaxResponseBytes <= 0)
+            errors.Add(StepSettingError.Error("UDS_RESPONSE_LIMIT", "MaxResponseBytes 最大响应字节数必须大于 0"));
 
 		if (string.IsNullOrWhiteSpace(s.ConnectionName))
 			errors.Add(StepSettingError.Error("UDS_001", "ConnectionName 不能为空"));

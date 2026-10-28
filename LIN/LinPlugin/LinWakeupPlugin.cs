@@ -21,6 +21,7 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
+        | TimeoutMs | int | 否 | 3000 | 单次驱动调用等待上限，必须大于 0；不包含独立配置的动作后延时。超时返回 Error，未退出原生调用保留隔离并由关闭流程等待 |
         | ConnectionName | string([ExpressionField]) | 是 | "LIN1" | 要唤醒的连接标识名，求值结果为 string |
         | WakeupMode | LinWakeupMode | 是 | Remote | 唤醒模式：Remote（总线唤醒）/ Local（仅本地接口） |
         | PostWakeupDelayMs | int | 是 | 100 | 唤醒后延时（毫秒），等待从节点就绪；0 表示不延时 |
@@ -38,7 +39,7 @@ public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
         - `LIN_Write`：发送 LIN 帧
         """;
 
-    public override IStepExecutor CreateExecutor() => new LinWakeupExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("LIN", () => new LinWakeupExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

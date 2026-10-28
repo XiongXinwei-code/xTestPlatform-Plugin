@@ -33,6 +33,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -164,6 +165,11 @@
                         </Border>
                     </Grid>
                 </GroupBox>
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="打开总超时 (ms):" VerticalAlignment="Center" Margin="0,12,8,8"/>
+                <StackPanel Grid.Row="8" Grid.Column="1" Margin="0,12,0,8">
+                    <TextBox Width="200" HorizontalAlignment="Left" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+                    <TextBlock Margin="0,4,0,0" Foreground="Gray" TextWrapping="Wrap" Text="包含等待旧连接收尾、登记排队与本次打开；超时不会强制释放仍在执行的原生调用。"/>
+                </StackPanel>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

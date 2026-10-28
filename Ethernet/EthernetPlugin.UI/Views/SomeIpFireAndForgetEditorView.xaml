@@ -26,6 +26,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="RemoteHost:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -76,6 +77,9 @@
                     ScriptText="{Binding Payload, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="8" Grid.Column="0" Text="发送总超时 (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox x:Name="SendTimeoutBox" Grid.Row="8" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         Text="{Binding SendTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

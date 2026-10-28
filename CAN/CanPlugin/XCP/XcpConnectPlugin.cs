@@ -24,15 +24,15 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
         | ConnectionName | string([ExpressionField]) | 是 | "CAN1" | 已打开的 CAN 连接名，求值结果为 string |
         | TxId | string([ExpressionField]) | 是 | "0x7E1" | XCP 请求 CAN ID，求值结果为 string |
         | RxId | string([ExpressionField]) | 是 | "0x7E9" | XCP 响应 CAN ID，求值结果为 string |
-        | TimeoutMs | int | 否 | 1000 | 响应超时毫秒数 |
+        | TimeoutMs | int | 否 | 1000 | 完整事务总期限（排队、发送及响应），必须大于 0；超时保留未退出的原生调用 |
         | ConnectMode | 枚举 | 否 | Normal | 可选值：Normal, UserDefined |
-        | ResourceVariable | string | 否 | 空 | 存储资源掩码的变量路径 |
+        | ResourceVariable | string([VariablePathField]) | 否 | 空 | 存储 byte 类型资源掩码的已声明变量路径 |
 
         ## 行为
 
         - 连接成功后可执行 ShortUpload/ShortDownload 等 XCP 操作
         - 从站无响应或返回错误时步骤报错
-        - 填写 `ResourceVariable` 时，从站返回的资源掩码会以该名称注册到运行期资源表；用同一个名称重复注册时**静默替换**，不会报错
+        - 填写 `ResourceVariable` 时，将从站返回的 byte 资源掩码写入该已声明变量，不在运行期资源表中注册连接
 
         ## 相关插件
 
@@ -40,7 +40,7 @@ public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
         - `XCP_Disconnect`：断开 XCP 连接
         """;
 
-    public override IStepExecutor CreateExecutor() => new XcpConnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new XcpConnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

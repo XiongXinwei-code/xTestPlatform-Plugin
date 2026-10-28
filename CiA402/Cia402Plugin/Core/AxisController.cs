@@ -11,6 +11,8 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
     private OperationMode? _mode;
     public ICia402AxisTransport Transport => _transport;
     public int PollIntervalMs { get; set; } = 20;
+    public ushort BindingControlWord { get; private set; }
+    public ushort BindingStatusWord { get; private set; }
     private ushort Index(int index) => checked((ushort)(index + configuration.ObjectIndexOffset));
 
     public static DriveState DecodeState(ushort status)
@@ -37,10 +39,9 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
 
     public async Task InitializeAsync(CancellationToken ct)
     {
-        _control = (ushort)await ReadAsync(0x6040, 2, false, ct).ConfigureAwait(false);
-        var state = DecodeState(await ReadStatusAsync(ct).ConfigureAwait(false));
-        if (state is DriveState.OperationEnabled or DriveState.QuickStopActive)
-            throw new InvalidOperationException("绑定轴前必须先释放使能，不能接管正在运行的轴");
+        // 建立会话只读取当前状态，不将“已使能”误当作不能关联，也不隐式停轴或恢复目标。
+        _control = BindingControlWord = (ushort)await ReadAsync(0x6040, 2, false, ct).ConfigureAwait(false);
+        BindingStatusWord = await ReadStatusAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<ushort> ReadStatusAsync(CancellationToken ct) => (ushort)await ReadAsync(0x6041, 2, false, ct).ConfigureAwait(false);
@@ -111,6 +112,10 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
             var expected = _mode == OperationMode.CSP ? await ReadAsync(0x6064, 4, true, ct).ConfigureAwait(false) : 0;
             if (initialTarget != expected) throw new InvalidOperationException("使能前周期目标与当前位置或零目标不一致，请重新准备初始目标");
         }
+        // Enable 只切换状态，不恢复上一轮的运动启动位或非零连续目标。
+        _control = (ushort)((ushort)await ReadAsync(0x6040, 2, false, ct).ConfigureAwait(false) & ~0x01F0);
+        if (_mode == OperationMode.PV) await WriteAsync(0x60FF, 0, 4, true, ct).ConfigureAwait(false);
+        if (_mode == OperationMode.PT) await WriteAsync(0x6071, 0, 2, true, ct).ConfigureAwait(false);
         while (true)
         {
             ct.ThrowIfCancellationRequested();
@@ -169,11 +174,18 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
         if (state is not (DriveState.SwitchOnDisabled or DriveState.ReadyToSwitchOn or DriveState.SwitchedOn))
             throw new InvalidOperationException("切换模式前必须释放运行使能，并确认驱动无故障");
         if (mode is OperationMode.CSP or OperationMode.CSV or OperationMode.CST) _transport.RequireCyclicMode(mode);
-        await ControlAsync(0x01F0, 0, ct).ConfigureAwait(false);
+        // 实际状态可能已与绑定时的旧控制字不同；绝不能把缓存中的 Enable Operation 位重新写回。
+        var idleControl = state switch { DriveState.ReadyToSwitchOn => 0x0006, DriveState.SwitchedOn => 0x0007, _ => 0x0000 };
+        await ControlAsync(0x01FF, (ushort)idleControl, ct).ConfigureAwait(false);
         await WriteAsync(0x6060, (sbyte)mode, 1, true, ct).ConfigureAwait(false);
-        while (await ReadModeAsync(ct).ConfigureAwait(false) != (sbyte)mode)
+        while (true)
         {
-            CheckFault(await ReadStatusAsync(ct).ConfigureAwait(false));
+            var displayed = await ReadModeAsync(ct).ConfigureAwait(false);
+            var status = await ReadStatusAsync(ct).ConfigureAwait(false);
+            CheckFault(status);
+            if (DecodeState(status) is not (DriveState.SwitchOnDisabled or DriveState.ReadyToSwitchOn or DriveState.SwitchedOn))
+                throw new InvalidOperationException("非使能态模式切换期间驱动状态发生变化，不能确认切换成功");
+            if (displayed == (sbyte)mode) break;
             await Task.Delay(PollIntervalMs, ct).ConfigureAwait(false);
         }
         _mode = mode;
@@ -354,13 +366,21 @@ public sealed class AxisController(ICia402AxisTransport transport, BindAxisSetti
         }
     }
 
-    public async Task CleanupAsync(Action<string, Exception?> log)
+    public Task CleanupAsync(Action<string, Exception?> log) => CleanupAsync(log, CancellationToken.None);
+
+    public async Task CleanupAsync(Action<string, Exception?> log, CancellationToken ct)
     {
-        using var timeout = new CancellationTokenSource(configuration.CommunicationTimeoutMs);
+        var failures = new List<Exception>();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(configuration.CommunicationTimeoutMs);
         try { await ControlAsync(0x008F, 0x0002, timeout.Token).ConfigureAwait(false); }
-        catch (Exception ex) { log("尝试停止运动失败", ex); }
-        using var releaseTimeout = new CancellationTokenSource(configuration.CommunicationTimeoutMs);
+        catch (Exception ex) { failures.Add(ex); log("尝试停止运动失败", ex); }
+        ct.ThrowIfCancellationRequested();
+        using var releaseTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        releaseTimeout.CancelAfter(configuration.CommunicationTimeoutMs);
         try { await ControlAsync(0x008F, 0, releaseTimeout.Token).ConfigureAwait(false); }
-        catch (Exception ex) { log("尝试释放使能失败", ex); }
+        catch (Exception ex) { failures.Add(ex); log("尝试释放使能失败", ex); }
+        ct.ThrowIfCancellationRequested();
+        if (failures.Count != 0) throw new AggregateException("轴清理未全部成功，未确认驱动已停止或释放使能", failures);
     }
 }

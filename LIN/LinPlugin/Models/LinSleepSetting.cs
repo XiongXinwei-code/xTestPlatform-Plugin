@@ -6,6 +6,8 @@ namespace LIN.Models;
 [MessagePackObject(true)]
 public class LinSleepSetting
 {
+    /// <summary>单次驱动调用等待上限；超时后未退出的原生调用仍保持隔离。</summary>
+    public int TimeoutMs { get; set; } = 3000;
     /// <summary>连接标识名</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"LIN1\"";

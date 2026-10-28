@@ -24,6 +24,7 @@ public partial class UdsClearDtcEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new UdsClearDtcViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)

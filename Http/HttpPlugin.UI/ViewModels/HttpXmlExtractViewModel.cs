@@ -12,8 +12,9 @@ namespace Http.UI.ViewModels;
 /// </summary>
 public class HttpXmlExtractViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    private readonly HashSet<HttpExtractItem> _observedItems = new();
+    public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
@@ -24,7 +25,14 @@ public class HttpXmlExtractViewModel : INotifyPropertyChanged
 
     private void Load()
     {
+        _saver.Flush();
         if (_serializer == null || _step == null) return;
+        if (_setting != null)
+        {
+            _setting.Items.CollectionChanged -= OnItemsChanged;
+            foreach (var item in _observedItems) item.PropertyChanged -= OnItemChanged;
+            _observedItems.Clear();
+        }
         _suppressSave = true;
         try
         {
@@ -42,20 +50,17 @@ public class HttpXmlExtractViewModel : INotifyPropertyChanged
         if (_setting == null) return;
         _setting.Items.CollectionChanged -= OnItemsChanged;
         _setting.Items.CollectionChanged += OnItemsChanged;
+        foreach (var item in _observedItems) item.PropertyChanged -= OnItemChanged;
+        _observedItems.Clear();
         foreach (var item in _setting.Items)
         {
-            item.PropertyChanged -= OnItemChanged;
-            item.PropertyChanged += OnItemChanged;
+            if (_observedItems.Add(item)) item.PropertyChanged += OnItemChanged;
         }
     }
 
     private void OnItemsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        foreach (var item in e.NewItems?.OfType<HttpExtractItem>() ?? [])
-        {
-            item.PropertyChanged -= OnItemChanged;
-            item.PropertyChanged += OnItemChanged;
-        }
+        HookItems(); // Reset/Clear has no OldItems; reconcile actual current membership.
         QueueSave();
     }
 
@@ -64,9 +69,7 @@ public class HttpXmlExtractViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+        _saver.Schedule(_step, _serializer, _setting);
     }
 
     public string SourceXml { get => _setting?.SourceXml ?? ""; set { if (_setting == null || _setting.SourceXml == value) return; _setting.SourceXml = value; OnPropertyChanged(); QueueSave(); } }

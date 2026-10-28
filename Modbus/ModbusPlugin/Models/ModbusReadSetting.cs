@@ -23,14 +23,14 @@ public class ModbusReadSetting
 	[ExpressionField]
 	public string StartAddress { get; set; } = "0";
 
-	/// <summary>读取数量（支持表达式）</summary>
+	/// <summary>读取数量：位 1～2000，寄存器 1～125；32 位格式须为偶数（支持表达式）</summary>
 	[ExpressionField]
 	public string Quantity { get; set; } = "1";
 
 	/// <summary>数据解析格式</summary>
 	public ModbusDataFormat DataFormat { get; set; } = ModbusDataFormat.UInt16;
 
-	/// <summary>存储读取结果的变量名</summary>
+	/// <summary>必填：已声明的完整变量路径；已知值类型和标量/数组形状须匹配</summary>
 	[VariablePathField]
 	public string ResultVariable { get; set; } = "";
 }

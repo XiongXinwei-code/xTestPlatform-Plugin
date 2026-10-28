@@ -10,10 +10,10 @@ public sealed class ReadFeedbackExecutor : AxisActionExecutor<ReadFeedbackSettin
     protected override async Task OperateAsync(ReadFeedbackSetting setting, EvaluatedSettings values, AxisSession session, IExecutionContext context, CancellationToken ct)
     {
         var feedback = await session.Controller.Transport.ReadFeedbackAsync(!string.IsNullOrWhiteSpace(setting.PositionVariable), !string.IsNullOrWhiteSpace(setting.VelocityVariable), !string.IsNullOrWhiteSpace(setting.TorqueVariable), ct).ConfigureAwait(false);
-		SettingValidation.Output(context, setting.StatusWordVariable, (double)feedback.StatusWord);
-		if (feedback.Position.HasValue) SettingValidation.Output(context, setting.PositionVariable, (double)feedback.Position.Value);
-		if (feedback.Velocity.HasValue) SettingValidation.Output(context, setting.VelocityVariable, (double)feedback.Velocity.Value);
-		if (feedback.Torque.HasValue) SettingValidation.Output(context, setting.TorqueVariable, (double)feedback.Torque.Value);
+		Output(context, values, session, ct, setting.StatusWordVariable, (double)feedback.StatusWord);
+		if (feedback.Position.HasValue) Output(context, values, session, ct, setting.PositionVariable, (double)feedback.Position.Value);
+		if (feedback.Velocity.HasValue) Output(context, values, session, ct, setting.VelocityVariable, (double)feedback.Velocity.Value);
+		if (feedback.Torque.HasValue) Output(context, values, session, ct, setting.TorqueVariable, (double)feedback.Torque.Value);
 		context.Log($"反馈状态字 0x{feedback.StatusWord:X4}");
     }
 }

@@ -25,6 +25,7 @@ public partial class NiDaqEncoderConfigEditorView : UserControl, IRefreshableEdi
     {
         InitializeComponent();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

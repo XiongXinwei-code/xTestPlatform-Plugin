@@ -35,6 +35,7 @@ public partial class DoipConnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new DoipConnectViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

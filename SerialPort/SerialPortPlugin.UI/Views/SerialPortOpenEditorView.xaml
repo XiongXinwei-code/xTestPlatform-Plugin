@@ -27,6 +27,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="PortName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -45,7 +46,7 @@
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="StopBits:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <ComboBox Grid.Row="3" Grid.Column="1" SelectedIndex="{Binding StopBits}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8">
-                    <ComboBoxItem Content="None"/>
+                    <ComboBoxItem Content="None（不支持）" IsEnabled="False"/>
                     <ComboBoxItem Content="1"/>
                     <ComboBoxItem Content="2"/>
                     <ComboBoxItem Content="1.5"/>
@@ -65,6 +66,8 @@
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="WriteTimeout(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding WriteTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="7" Grid.Column="0" Text="打开总期限(ms)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="整个步骤总期限，包含求值、构造/登记、旧资源收尾、SDK操作及最终发布；停止等待不等于原生调用已退出。" Grid.Row="7" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

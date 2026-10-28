@@ -40,7 +40,10 @@ public sealed class SomeIpRequestEditorPlugin : IStepEditorPlugin
 
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("SOMEIP_114", "TimeoutMs 必须大于 0"));
+        if (!Enum.IsDefined(s.Transport))
+            errors.Add(StepSettingError.Error("SOMEIP_115", "Transport 必须是受支持的 TCP 或 UDP"));
 
+        Validation.EthernetOutputValidator.Check(context, s.ResultVariable, errors);
         return errors;
     }
 

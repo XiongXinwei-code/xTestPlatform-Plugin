@@ -23,8 +23,9 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
         |------|------|------|--------|------|
         | Channel | string([ExpressionField]) | 是 | — | 物理通道，如 Dev1/port0/line0:7，求值结果为 string |
         | ResultVariable | string(VariablePathField) | 是 | — | 结果变量名，写入类型为 uint（端口状态值）；如 Locals.result |
+        | TimeoutMs | int | 否 | 10000 | 通道求值后的 I/O 阶段总期限（毫秒），包含旧物理资源收尾、配置、读取及释放；不包含表达式求值 |
 
-        ## 物理通道命名规则
+        ### 物理通道命名规则
 
         格式为 `<设备名>/port<端口号>/line<线号>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
 
@@ -41,7 +42,7 @@ public sealed class NiDaqDiReadPlugin : StepPluginBase<NiDaqDiReadSetting>
         - `NiDaq_DO_Write`：设置数字输出
         """;
 
-    public override IStepExecutor CreateExecutor() => new NiDaqDiReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("NiDaq", () => new NiDaqDiReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

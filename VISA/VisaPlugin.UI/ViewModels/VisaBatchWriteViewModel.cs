@@ -12,20 +12,22 @@ namespace VISA.UI.ViewModels;
 /// </summary>
 public class VisaBatchWriteViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly EditorSaveCoordinator _save = new();
+    public Exception? LastSaveError => _save.LastError;
+    public void FlushPendingSave() => _save.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     private VisaBatchWriteSetting? _setting;
 
-    public ObservableCollection<VisaBatchWriteItemViewModel> Items { get; } = new();
+    public ObservableCollection<VisaBatchWriteItem> Items { get; private set; } = new();
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
     private void Load()
     {
+        _save.Detach();
         if (_serializer == null || _step == null) return;
         _suppressSave = true;
         try
@@ -34,13 +36,8 @@ public class VisaBatchWriteViewModel : INotifyPropertyChanged
                 ? (VisaBatchWriteSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (VisaBatchWriteSetting)_serializer.CreateDefault();
 
-            Items.Clear();
-            foreach (var item in _setting.Items)
-            {
-                var vm = new VisaBatchWriteItemViewModel(item);
-                vm.PropertyChanged += (_, _) => QueueSave();
-                Items.Add(vm);
-            }
+            Items = _setting.Items;
+            _save.Observe(Items, QueueSave);
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -62,63 +59,25 @@ public class VisaBatchWriteViewModel : INotifyPropertyChanged
     {
         if (_setting == null) return;
         var item = new VisaBatchWriteItem();
-        _setting.Items.Add(item);
-        var vm = new VisaBatchWriteItemViewModel(item);
-        vm.PropertyChanged += (_, _) => QueueSave();
-        Items.Add(vm);
+        Items.Add(item);
         QueueSave();
     }
 
-    public void RemoveItem(VisaBatchWriteItemViewModel itemVm)
+    public void RemoveItem(VisaBatchWriteItem item)
     {
         if (_setting == null) return;
-        var idx = Items.IndexOf(itemVm);
-        if (idx < 0) return;
-        _setting.Items.RemoveAt(idx);
-        Items.RemoveAt(idx);
+        Items.Remove(item);
         QueueSave();
     }
 
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(SaveDebounceMs, cts.Token);
-                _step.StepSetting.Setting = _serializer.Serialize(_setting);
-            }
-            catch (TaskCanceledException) { }
-        });
+        var step = _step; var setting = _setting; var serializer = _serializer;
+        _save.Queue(() => step.StepSetting.Setting = serializer.Serialize(setting));
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
-}
-
-/// <summary>
-/// 批量写入单条命令项的 ViewModel
-/// </summary>
-public class VisaBatchWriteItemViewModel : INotifyPropertyChanged
-{
-    private readonly VisaBatchWriteItem _item;
-
-    public VisaBatchWriteItemViewModel(VisaBatchWriteItem item) => _item = item;
-
-    public string Command
-    {
-        get => _item.Command;
-        set { if (_item.Command == value) return; _item.Command = value; OnPropertyChanged(); }
-    }
-
-    public int DelayMs
-    {
-        get => _item.DelayMs;
-        set { if (_item.DelayMs == value) return; _item.DelayMs = value; OnPropertyChanged(); }
-    }
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 0; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

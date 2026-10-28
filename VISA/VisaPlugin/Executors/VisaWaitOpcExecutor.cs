@@ -1,3 +1,4 @@
+using PluginCommon;
 using Ivi.Visa;
 using VISA.Helpers;
 using VISA.Models;
@@ -18,17 +19,22 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
     /// <summary>执行 *OPC? 等待操作</summary>
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new VisaWaitOpcPlugin().CreateSerializer();
-        var setting = (VisaWaitOpcSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new VisaWaitOpcPlugin().CreateSerializer();
+            var setting = (VisaWaitOpcSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (setting.TimeoutMs < 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs), "等待期限不能为负数，0 表示继承连接 I/O 期限");
+
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            epoch.ThrowIfExpired();
             var key = VisaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<IMessageBasedSession>(key, out var session))
+            if (!context.Resources.TryGet<VisaSessionResource>(key, out var resource))
             {
+                epoch.ThrowIfExpired();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -39,35 +45,25 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
                 };
             }
 
-            var gate = VisaHelper.GetLock(session);
-            await gate.WaitAsync(cancellationToken);
-
-            // 如果指定了超时，临时修改会话超时
-            var originalTimeout = session.TimeoutMilliseconds;
-            if (setting.TimeoutMs > 0)
-                session.TimeoutMilliseconds = setting.TimeoutMs;
-
-            try
+            var timeoutMs = setting.TimeoutMs > 0 ? setting.TimeoutMs : resource.IoTimeoutMs;
+            epoch.ThrowIfExpired();
+            var response = await resource.RunBlockingAsync(session =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var timeoutMs = setting.TimeoutMs > 0 ? setting.TimeoutMs : VisaHelper.GetIoTimeoutMs(session);
-                var terminator = GetTerminator(context, connName);
-                var response = await VisaHelper.RunWithTimeoutAsync(
-                    () => VisaHelper.Query(session, "*OPC?", true, terminator), timeoutMs, "WaitOPC", cancellationToken);
-                context.Log($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
-
-                return new ExecutionResult
+                epoch.ThrowIfExpired();
+                return VisaHelper.WithTemporaryTimeout(session, setting.TimeoutMs, () =>
                 {
-                    StepResult = new StepResult { Status = TestStatus.Completed, Value = "操作完成" }
-                };
-            }
-            finally
+                    var value = VisaHelper.Query(session, "*OPC?", true, resource.Terminator, () => { epoch.ThrowIfExpired(); resource.ThrowIfSubmissionStopped(); });
+                    VisaHelper.ValidateOpcResponse(value);
+                    return value;
+                });
+            }, timeoutMs, "VISA WaitOPC", cancellationToken);
+            context.Log($"VISA WaitOPC: {connName} 操作完成 (响应: {response})");
+            epoch.ThrowIfExpired();
+            VisaResultPublisher.EnsureActive(context, key, resource, cancellationToken);
+            return new ExecutionResult
             {
-                // 恢复原始超时
-                if (setting.TimeoutMs > 0)
-                    session.TimeoutMilliseconds = originalTimeout;
-                gate.Release();
-            }
+                StepResult = new StepResult { Status = TestStatus.Completed, Value = "操作完成" }
+            };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -80,7 +76,7 @@ public sealed class VisaWaitOpcExecutor : IStepExecutor
                 StepResult = new StepResult
                 {
                     Status = TestStatus.Error,
-                    Error = ErrorInfo.FromException(ex)
+                    Error = ErrorInfo.FromException(ex, $"VISA 等待操作完成超时: {ex.Message}")
                 }
             };
         }

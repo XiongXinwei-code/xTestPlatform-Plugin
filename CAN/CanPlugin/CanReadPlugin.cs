@@ -23,7 +23,7 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
         | FilterId | string([ExpressionField]) | 否 | 空 | 过滤 CAN ID，如 0x7E8，为空则接收任意帧，求值结果为 string |
-        | ReadTimeoutMs | int | 否 | — | 读取超时毫秒数 |
+        | ReadTimeoutMs | int | 否 | 1000 | 读取总等待期限（ms）；大于 0，或 -1 不设定时期限但仍响应调用方取消；等待结束不代表原生读取已退出，未退出时保留隔离 |
         | ResultVariable | string(VariablePathField) | 是 | — | 结果变量名，写入类型为 string（十六进制报文数据）；如 Locals.result |
         | IdVariable | string(VariablePathField) | 否 | 空 | 接收帧 CAN ID 存入的变量名；如 Locals.id |
 
@@ -37,7 +37,7 @@ public sealed class CanReadPlugin : StepPluginBase<CanReadSetting>
         - `CAN_Write`：发送报文
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

@@ -16,7 +16,7 @@ internal static class CanopenPluginInfo
 public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
 {
     public override string StepTypeId => "CANopen.SdoRead";
-    public override string DisplayName => "CANopen_SdoRead";
+    public override string DisplayName => "CANopen_SDO_Read";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sdo_read.png";
 
@@ -52,7 +52,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
         - `CANopen_SdoWrite`：通过 SDO 写入对象
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenSdoReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenSdoReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -65,7 +65,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
 public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSetting>
 {
     public override string StepTypeId => "CANopen.SdoWrite";
-    public override string DisplayName => "CANopen_SdoWrite";
+    public override string DisplayName => "CANopen_SDO_Write";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sdo_write.png";
 
@@ -100,7 +100,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
         - `CANopen_SdoRead`：通过 SDO 读取对象
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenSdoWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenSdoWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -113,7 +113,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
 public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSetting>
 {
     public override string StepTypeId => "CANopen.NmtControl";
-    public override string DisplayName => "CANopen_NmtControl";
+    public override string DisplayName => "CANopen_Network_NmtControl";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_nmt_control.png";
 
@@ -130,6 +130,8 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
         | NodeId | string([ExpressionField]) | 是 | 1 | 节点 ID，0~127，0 表示所有节点，求值结果为 object |
         | Command | CanopenNmtCommand | 是 | Start | Start/Stop/EnterPreOperational/ResetNode/ResetCommunication |
 
+        | SendTimeoutMs | int | 否 | 1000 | 排队及发送提交总等待期限，必须大于 0；不代表报文已上总线或节点动作完成；超时且实际 I/O 未退出时保留隔离 |
+
         ## 行为
 
         - 以 COB-ID 0x000 发送两字节 NMT 报文，NMT 无应答，发送成功即通过
@@ -140,7 +142,7 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
         - `CANopen_WaitHeartbeat`：等待节点心跳状态
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenNmtControlExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenNmtControlExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -153,7 +155,7 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
 public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeartbeatSetting>
 {
     public override string StepTypeId => "CANopen.WaitHeartbeat";
-    public override string DisplayName => "CANopen_WaitHeartbeat";
+    public override string DisplayName => "CANopen_Network_WaitHeartbeat";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_wait_heartbeat.png";
 
@@ -182,7 +184,7 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
         - `CANopen_NmtControl`：发送 NMT 命令
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenWaitHeartbeatExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenWaitHeartbeatExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -195,7 +197,7 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
 public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
 {
     public override string StepTypeId => "CANopen.PdoSend";
-    public override string DisplayName => "CANopen_PdoSend";
+    public override string DisplayName => "CANopen_PDO_Send";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_send.png";
 
@@ -212,6 +214,8 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
         | CobId | string([ExpressionField]) | 是 | 0x201 | PDO 的 COB-ID，0x000~0x7FF，求值结果为 object |
         | Data | string([ExpressionField]) | 是 | "00 00 00 00 00 00 00 00" | 十六进制字符串或 byte[]，0~8 字节，求值结果为 object |
 
+        | SendTimeoutMs | int | 否 | 1000 | 排队及发送提交总等待期限，必须大于 0；不代表报文已上总线或节点动作完成；超时且实际 I/O 未退出时保留隔离 |
+
         ## 行为
 
         - 以标准帧发送，数据按 PDO 映射由用户自行组织（小端）
@@ -222,7 +226,7 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
         - `CANopen_PdoReceive`：接收 PDO
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenPdoSendExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenPdoSendExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -235,7 +239,7 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
 public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSetting>
 {
     public override string StepTypeId => "CANopen.PdoReceive";
-    public override string DisplayName => "CANopen_PdoReceive";
+    public override string DisplayName => "CANopen_PDO_Receive";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_pdo_receive.png";
 
@@ -262,7 +266,7 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
         - `CANopen_PdoSend`：发送 PDO
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenPdoReceiveExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenPdoReceiveExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -275,7 +279,7 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
 public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSetting>
 {
     public override string StepTypeId => "CANopen.SyncSend";
-    public override string DisplayName => "CANopen_SyncSend";
+    public override string DisplayName => "CANopen_Network_SyncSend";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_sync_send.png";
 
@@ -292,6 +296,8 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
         | CobId | string([ExpressionField]) | 是 | 0x80 | SYNC 的 COB-ID，0x000~0x7FF，求值结果为 object |
         | Counter | string([ExpressionField]) | 否 | 0 | SYNC 计数器，0 表示不带数据（0 字节），1~240 时发送 1 字节计数器，求值结果为 object |
 
+        | SendTimeoutMs | int | 否 | 1000 | 排队及发送提交总等待期限，必须大于 0；不代表报文已上总线或节点动作完成；超时且实际 I/O 未退出时保留隔离 |
+
         ## 行为
 
         - 每次执行只发送一帧，SYNC 无应答，发送成功即通过
@@ -304,7 +310,7 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
         - `CANopen_PdoSend`：发送 RPDO
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenSyncSendExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenSyncSendExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {
@@ -317,7 +323,7 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
 public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceiveSetting>
 {
     public override string StepTypeId => "CANopen.EmcyReceive";
-    public override string DisplayName => "CANopen_EmcyReceive";
+    public override string DisplayName => "CANopen_Network_EmcyReceive";
     public override string Category => CanopenPluginInfo.Category;
     public override string IconPath => CanopenPluginInfo.IconBase + "canopen_emcy_receive.png";
 
@@ -352,7 +358,7 @@ public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceive
         - `CANopen_WaitHeartbeat`：等待节点心跳/Boot-up
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanopenEmcyReceiveExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanopenEmcyReceiveExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

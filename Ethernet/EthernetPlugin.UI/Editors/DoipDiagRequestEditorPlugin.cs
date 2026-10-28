@@ -45,6 +45,8 @@ public sealed class DoipDiagRequestEditorPlugin : IStepEditorPlugin
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("DOIP_307", "TimeoutMs 必须大于 0"));
 
+        Validation.EthernetOutputValidator.Check(context, s.ResultVariable, errors);
+        Validation.EthernetLifecycleValidator.CheckPrecedingOpen(context, s.SessionName, true, errors);
         return errors;
     }
 }

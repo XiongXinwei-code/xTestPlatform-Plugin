@@ -19,6 +19,7 @@
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Task Name:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -26,6 +27,8 @@
                     ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="String"
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="停止总期限(ms)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

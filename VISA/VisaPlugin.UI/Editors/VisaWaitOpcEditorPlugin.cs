@@ -32,7 +32,7 @@ public sealed class VisaWaitOpcEditorPlugin : IStepEditorPlugin
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
             errors.Add(StepSettingError.Error("VISA_050E", $"ConnectionName 表达式无效: {connErr}"));
         if (s.TimeoutMs < 0)
-            errors.Add(StepSettingError.Error("VISA_051", "超时不能为负数（0 表示不限时）"));
+            errors.Add(StepSettingError.Error("VISA_051", "超时不能为负数（0 表示继承连接 I/O 期限）"));
         VisaLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
         return errors;
     }

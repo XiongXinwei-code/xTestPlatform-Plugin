@@ -27,15 +27,18 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
         | SourceXml | string([ExpressionField]) | 是 | SoapResponse | 待解析的 XML 文本，通常填写存放响应体的变量名，求值结果为 string |
         | Items | 集合 | 是 | 空 | 提取映射列表；Path 为 XPath（如 //ReportResultResult/code、//ReportResultResult/@version），TargetVariable 为提取结果写入的变量（string(VariablePathField)，如 Locals.MesCode），DefaultValue 为 XPath 未命中时写入的默认值（普通文本） |
         | IgnoreNamespaces | bool | 否 | true | 是否忽略元素命名空间，忽略后 XPath 可直接写元素名 |
-        | FailOnMissingPath | bool | 否 | true | 任一 XPath 未命中时是否判定步骤失败 |
+        | FailOnMissingPath | bool | 否 | true | 任一 XPath 未命中时是否返回执行 Error；关闭则按配置使用默认值，不作测试判定 |
 
         ## 行为
+
+        - 首次写变量前验证全部目标：必须是已声明的完整作用域路径，已知值须为 string；配置错误不写入部分结果，实际发布失败或取消不承诺回滚已写结果
 
         - IgnoreNamespaces 为 true 时会先剥离文档中的命名空间声明与前缀，XPath 无需写 soap: 之类的前缀
         - XPath 命中元素取其文本内容，命中属性取属性值
         - XPath 命中多个节点时取第一个节点
-        - 未命中时写入该项的 DefaultValue；若 FailOnMissingPath 为 true 则同时判定步骤失败
+        - 先解析并验证全部映射；FailOnMissingPath 为 true 且有未命中、XPath 无效或配置错误时不写入部分结果；为 false 时才采用 DefaultValue
         - SourceXml 不是合法 XML 或 XPath 语法错误时步骤报错
+        - 正常完成返回 Completed；提取日志仅含变量名与长度，不记录原始值
 
         ## 相关插件
 
@@ -43,7 +46,7 @@ public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
         - `Http_JsonExtract`：按点号路径从 JSON 中提取字段
         """;
 
-    public override IStepExecutor CreateExecutor() => new HttpXmlExtractExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Http", () => new HttpXmlExtractExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

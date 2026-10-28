@@ -107,7 +107,8 @@ internal static class PcanApi
         if (name.StartsWith("PCAN_USBBUS", StringComparison.OrdinalIgnoreCase))
             name = name["PCAN_USBBUS".Length..];
         if (int.TryParse(name, out int index) && index >= 1 && index <= 16)
-            return (ushort)(PCAN_USBBUS1 + index - 1);
+            // PCAN-Basic 官方句柄表：USB1~8 为 0x51~0x58，USB9~16 为 0x509~0x510。
+            return (ushort)(index <= 8 ? PCAN_USBBUS1 + index - 1 : 0x500 + index);
         throw new ArgumentException($"无效的 PEAK 通道名 '{channel}'，应为 PCAN_USBBUS1~PCAN_USBBUS16 或数字 1~16");
     }
 

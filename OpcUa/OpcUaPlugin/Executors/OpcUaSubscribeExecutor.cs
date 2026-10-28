@@ -1,5 +1,6 @@
 using Opc.Ua;
 using Opc.Ua.Client;
+using System.Runtime.ExceptionServices;
 using OpcUa.Helpers;
 using OpcUa.Models;
 using xTestPlatform.Core.Engine;
@@ -16,18 +17,23 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new OpcUaSubscribePlugin().CreateSerializer();
-        var setting = (OpcUaSubscribeSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new OpcUaExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new OpcUaSubscribePlugin().CreateSerializer();
+            var setting = (OpcUaSubscribeSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (!Enum.IsDefined(setting.CompareMode)) throw new ArgumentOutOfRangeException(nameof(setting.CompareMode), "未知 CompareMode，不能猜测比较条件");
+
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var nodeIdStr = setting.NodeId;
             var expectedValue = await Evaluator.EvalStringAsync(setting.ExpectedValue, context);
+            guard.Check();
             var key = OpcUaHelper.GetSessionKey(connName);
 
-            if (!context.Resources.TryGet<Session>(key, out var session))
+            if (!guard.TryGetResource<OpcUaConnectionResource>(key, out var connection))
             {
                 return new ExecutionResult
                 {
@@ -39,94 +45,16 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
                 };
             }
 
-            var nodeId = OpcUaHelper.ParseNodeId(nodeIdStr);
-
-            // 先读取当前值检查是否已满足条件
-            var currentValue = await session.ReadValueAsync(nodeId, cancellationToken);
-            var currentStr = currentValue.Value?.ToString() ?? "";
-            if (OpcUaHelper.CompareValue(currentStr, expectedValue, setting.CompareMode))
-            {
-                context.SetVariable(setting.ResultVariable, currentValue.Value);
-                context.Log($"OPC UA 订阅: {nodeIdStr} 当前值 {currentStr} 已满足条件");
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult { Status = TestStatus.Completed, Value = currentStr }
-                };
-            }
-
-            // 创建订阅
-            var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-            var subscription = new Subscription(session.DefaultSubscription)
-            {
-                PublishingInterval = setting.SamplingIntervalMs
-            };
-
-            var monitoredItem = new MonitoredItem(subscription.DefaultItem)
-            {
-                StartNodeId = nodeId,
-                AttributeId = Attributes.Value,
-                SamplingInterval = setting.SamplingIntervalMs
-            };
-
-            monitoredItem.Notification += (item, e) =>
-            {
-                if (e.NotificationValue is MonitoredItemNotification notification)
-                {
-                    var val = notification.Value.Value?.ToString() ?? "";
-                    if (OpcUaHelper.CompareValue(val, expectedValue, setting.CompareMode))
-                    {
-                        tcs.TrySetResult(val);
-                    }
-                }
-            };
-
-            subscription.AddItem(monitoredItem);
-            session.AddSubscription(subscription);
-            await subscription.CreateAsync(cancellationToken);
-
-            try
-            {
-                // 订阅建立后再读取一次，覆盖首次读取与订阅创建之间发生的值变化
-                var recheck = await session.ReadValueAsync(nodeId, cancellationToken);
-                var recheckStr = recheck.Value?.ToString() ?? "";
-                if (OpcUaHelper.CompareValue(recheckStr, expectedValue, setting.CompareMode))
-                    tcs.TrySetResult(recheckStr);
-
-                // 等待条件满足或超时
-                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                timeoutCts.CancelAfter(setting.TimeoutMs);
-
-                using var reg = timeoutCts.Token.Register(() => tcs.TrySetCanceled());
-                var resultValue = await tcs.Task;
-
-                context.SetVariable(setting.ResultVariable, resultValue);
-                context.Log($"OPC UA 订阅: {nodeIdStr} = {resultValue}，条件满足");
-
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult { Status = TestStatus.Completed, Value = resultValue }
-                };
-            }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-            {
-                // 超时
-                return new ExecutionResult
-                {
-                    StepResult = new StepResult
-                    {
-                        Status = TestStatus.Error,
-                        Error = new ErrorInfo { Message = $"OPC UA 订阅超时: {nodeIdStr} 在 {setting.TimeoutMs}ms 内未满足条件 {setting.CompareMode} {expectedValue}" }
-                    }
-                };
-            }
-            finally
-            {
-                // 清理订阅
-                await subscription.DeleteAsync(true, cancellationToken.IsCancellationRequested ? CancellationToken.None : cancellationToken);
-                session.RemoveSubscription(subscription);
-            }
+            guard.EnsureCurrent(key, connection);
+            var value = await WaitForValueAsync(connection, OpcUaHelper.ParseNodeId(nodeIdStr), expectedValue, setting, cancellationToken);
+            guard.EnsureCurrent(key, connection);
+            if (!string.IsNullOrWhiteSpace(setting.ResultVariable)) context.SetVariable(setting.ResultVariable, value.Value);
+            var text = value.Value?.ToString() ?? "";
+            context.Log($"OPC UA 订阅: {nodeIdStr} = {text}，Good 条件满足，SourceTimestamp={value.SourceTimestamp:O}");
+            guard.EnsureCurrent(key, connection);
+            return ExecutionResults.Completed(text);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
         {
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
         }
@@ -141,5 +69,85 @@ public sealed class OpcUaSubscribeExecutor : IStepExecutor
                 }
             };
         }
+    }
+
+    private static async Task<DataValue> WaitForValueAsync(OpcUaConnectionResource connection, NodeId nodeId,
+        string expected, OpcUaSubscribeSetting setting, CancellationToken caller)
+    {
+        if (setting.TimeoutMs <= 0 || setting.SamplingIntervalMs <= 0)
+            throw new ArgumentOutOfRangeException(nameof(setting), "订阅期限与采样间隔必须大于 0");
+        // 整个订阅（含真实 Create/Delete/取消回调）归连接的请求 owner，外层等候有界，后台收尾不脱离连接。
+        return await connection.RunAsync(async token =>
+        {
+        Session? session = null;
+        Subscription? subscription = null;
+        Task? creation = null;
+        Exception? failure = null;
+        DataValue? matched = null;
+        string lastQuality = "尚未读取";
+        try
+        {
+            session = connection.Session;
+            connection.ThrowIfSubmissionStopped();
+            var current = await session.ReadValueAsync(nodeId, token).ConfigureAwait(false);
+            connection.ThrowIfSubmissionStopped();
+            lastQuality = current.StatusCode.ToString();
+            if (OpcUaHelper.CompareValue(current, expected, setting.CompareMode)) matched = current;
+            else
+            {
+                var done = new TaskCompletionSource<DataValue>(TaskCreationOptions.RunContinuationsAsynchronously);
+                subscription = new Subscription(session.DefaultSubscription) { PublishingInterval = setting.SamplingIntervalMs };
+                var item = new MonitoredItem(subscription.DefaultItem)
+                { StartNodeId = nodeId, AttributeId = Attributes.Value, SamplingInterval = setting.SamplingIntervalMs };
+                item.Notification += (_, args) =>
+                {
+                    if (args.NotificationValue is not MonitoredItemNotification notification) return;
+                    Volatile.Write(ref lastQuality, notification.Value.StatusCode.ToString());
+                    if (OpcUaHelper.CompareValue(notification.Value, expected, setting.CompareMode)) done.TrySetResult(notification.Value);
+                };
+                subscription.AddItem(item);
+                session.AddSubscription(subscription);
+                var active = subscription;
+                connection.ThrowIfSubmissionStopped();
+                creation = active.CreateAsync(token);
+                await creation.ConfigureAwait(false);
+                connection.ThrowIfSubmissionStopped();
+                var recheck = await session.ReadValueAsync(nodeId, token).ConfigureAwait(false);
+                connection.ThrowIfSubmissionStopped();
+                Volatile.Write(ref lastQuality, recheck.StatusCode.ToString());
+                if (OpcUaHelper.CompareValue(recheck, expected, setting.CompareMode)) done.TrySetResult(recheck);
+                matched = await done.Task.WaitAsync(token).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) { failure = ex; }
+        finally
+        {
+            if (subscription != null)
+            {
+                var active = subscription;
+                var cleanup = OpcUaSubscriptionCleanup.Start(creation,
+                    t => active.Created ? active.DeleteAsync(true, t) : Task.CompletedTask,
+                    () =>
+                    {
+                        var errors = new List<Exception>();
+                        try { session!.RemoveSubscription(active); } catch (Exception ex) { errors.Add(ex); }
+                        try { active.Dispose(); } catch (Exception ex) { errors.Add(ex); }
+                        if (errors.Count > 0) throw new AggregateException("订阅本地移除/释放失败", errors);
+                    }, null, ex => connection.Isolate($"订阅创建/清理失败：{ex.GetType().Name}"), setting.TimeoutMs);
+                try
+                {
+                    // 原请求必须继续拥有真正的删除任务；不能由前台超时提前解除 Session 归属。
+                    await cleanup.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    connection.Isolate("订阅收尾未成功确认，不能复用连接");
+                    failure = failure == null ? ex : new AggregateException("OPC UA 订阅执行与清理均未成功", failure, ex);
+                }
+            }
+        }
+        if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
+        return matched ?? throw new InvalidOperationException("OPC UA 订阅没有可用结果");
+        }, setting.TimeoutMs, $"OPC UA 订阅 {nodeId} 等待 Good 条件及实际收尾", caller).ConfigureAwait(false);
     }
 }

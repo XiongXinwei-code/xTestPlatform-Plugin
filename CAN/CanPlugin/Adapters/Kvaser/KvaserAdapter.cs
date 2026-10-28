@@ -4,27 +4,33 @@ using CAN.Models;
 namespace CAN.Adapters.Kvaser;
 
 /// <summary>Kvaser CAN 适配器实现（CANlib）</summary>
-public sealed class KvaserAdapter : ICanAdapter, ICanAdapterDiagnostics
+public sealed class KvaserAdapter : ICanAdapter, ICanAdapterDiagnostics, CAN.Runtime.ICanCloseState
 {
     private int _handle = -1;
     private bool _isConnected;
     private bool _isFd;
+    private readonly KvaserIo _io;
+    public KvaserAdapter() : this(new KvaserIo()) { }
+    internal KvaserAdapter(KvaserIo io) => _io = io;
     private readonly CanReceiveDiagnostics _diagnostics = new("Kvaser");
 
     public bool IsConnected => _isConnected;
+    public bool HandlesReleased => _handle < 0;
 
     public void Open(CanAdapterConfig config)
     {
-        if (_isConnected) throw new InvalidOperationException("CAN 通道已打开");
+        if (_handle >= 0) throw new InvalidOperationException("CAN 通道已打开或上次释放未完成，请先关闭");
         try
         {
             OpenInternal(config);
         }
-        catch (DllNotFoundException)
+        catch (Exception ex)
         {
-            throw new InvalidOperationException(
-                "未找到 canlib32.dll，请安装 Kvaser 驱动（Kvaser Drivers for Windows）。" +
-                "下载地址: https://kvaser.com/download/");
+            try { Close(); }
+            catch (Exception cleanup) { throw new AggregateException("Kvaser 打开失败且清理未完成", ex, cleanup); }
+            if (ex is DllNotFoundException)
+                throw new InvalidOperationException("未找到 canlib32.dll，请安装 Kvaser Drivers for Windows。", ex);
+            throw;
         }
     }
 
@@ -42,22 +48,22 @@ public sealed class KvaserAdapter : ICanAdapter, ICanAdapterDiagnostics
 
         _isFd = config.Protocol == CanProtocolType.FD;
 
-        KvaserApi.InitializeLibrary();
+        _io.Initialize();
 
         int flags = KvaserApi.canOPEN_ACCEPT_VIRTUAL;
         if (_isFd) flags |= KvaserApi.canOPEN_CAN_FD;
 
-        _handle = KvaserApi.OpenChannel(channelIndex, flags);
+        _handle = _io.Open(channelIndex, flags);
         if (_handle < 0)
-            KvaserApi.CheckStatus(_handle); // 句柄为负即错误码
+            _io.Check(_handle); // 句柄为负即错误码
 
         // 正波特率配合显式段长度，让 CANlib 按目标采样点选择设备预分频。
         var arbitration = CanSamplePointCalculator.CalculateSegments(
             config.BaudRate, config.ArbitrationSamplePoint,
             maxTseg1: 16, maxTseg2: 8, maxSjw: 4, maxTotalTq: 25);
-        KvaserApi.CheckStatus(KvaserApi.SetBusParams(
+        _io.Check(_io.SetParameters(
             _handle, config.BaudRate,
-            (uint)arbitration.Tseg1, (uint)arbitration.Tseg2, (uint)arbitration.Sjw, 1, 0));
+            (uint)arbitration.Tseg1, (uint)arbitration.Tseg2, (uint)arbitration.Sjw));
         config.AppliedArbitrationBitRate = config.BaudRate;
         config.AppliedArbitrationSamplePoint = arbitration.SamplePoint;
 
@@ -67,24 +73,37 @@ public sealed class KvaserAdapter : ICanAdapter, ICanAdapterDiagnostics
             var data = CanSamplePointCalculator.CalculateSegments(
                 config.DataBitRate, config.DataSamplePoint,
                 maxTseg1: 32, maxTseg2: 16, maxSjw: 16, maxTotalTq: 20);
-            KvaserApi.CheckStatus(KvaserApi.SetBusParamsFd(
-                _handle, KvaserApi.ToFdDataBitrateConst(config.DataBitRate),
+            _io.Check(_io.SetFdParameters(
+                // CANlib predefined negative rates replace the explicit timing with
+                // their defaults. Positive bps preserves this configured sample point.
+                _handle, config.DataBitRate,
                 (uint)data.Tseg1, (uint)data.Tseg2, (uint)data.Sjw));
             config.AppliedDataBitRate = config.DataBitRate;
             config.AppliedDataSamplePoint = data.SamplePoint;
         }
 
-        KvaserApi.CheckStatus(KvaserApi.BusOn(_handle));
+        _io.Check(_io.BusOn(_handle));
         _isConnected = true;
     }
 
     public void Close()
     {
-        if (!_isConnected) return;
-        KvaserApi.BusOff(_handle);
-        KvaserApi.Close(_handle);
-        _handle = -1;
+        if (_handle < 0) return;
+        Exception? stopError = null;
+        bool wasConnected = _isConnected;
         _isConnected = false;
+        if (wasConnected)
+        {
+            try { _io.Check(_io.BusOff(_handle)); }
+            catch (Exception ex) { stopError = ex; }
+        }
+        try { _io.Check(_io.Close(_handle)); _handle = -1; }
+        catch (Exception closeError)
+        {
+            if (stopError != null) throw new AggregateException("Kvaser 停止与释放均失败，保留句柄", stopError, closeError);
+            throw;
+        }
+        if (stopError != null) throw new InvalidOperationException("Kvaser 停止失败，但句柄已经释放", stopError);
     }
 
     public void Write(CanMessage message)

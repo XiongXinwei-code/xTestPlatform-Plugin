@@ -15,37 +15,38 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new NiDaqEncoderReadPlugin().CreateSerializer();
-        var setting = (NiDaqEncoderSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            NiDriverCheck.EnsureDriver();
+            cancellationToken.ThrowIfCancellationRequested();
+            var guard = new DaqExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            guard.Check();
+            var serializer = new NiDaqEncoderReadPlugin().CreateSerializer();
+            var setting = (NiDaqEncoderSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            guard.Check();
             var resultVar = setting.ResultVariable;
 
             if (string.IsNullOrWhiteSpace(taskName))
                 return ErrorResult("任务名称不能为空");
 
-            var taskObj = NiDaqTaskRegistry.Get(taskName);
-            if (taskObj is not DaqTask task)
-                return ErrorResult($"未找到任务 '{taskName}'");
-
-            var reader = new CounterSingleChannelReader(task.Stream);
-            task.Stream.Timeout = setting.ReadTimeoutMs > 0 ? setting.ReadTimeoutMs : -1;
-            double value = await NiDaqTimeoutHelper.RunWithTimeoutAsync(
-                () => reader.ReadSingleSampleDouble(), setting.ReadTimeoutMs, "编码器读取", cancellationToken);
-
-            // 通道以 Ticks 创建，按编码器配置换算为目标单位（Pulses 保持原始计数）
-            if (NiDaqTaskRegistry.GetMetadata(taskName, "Unit") is EncoderUnit unit
-                && unit != EncoderUnit.Pulses
-                && NiDaqTaskRegistry.GetMetadata(taskName, "DistancePerPulse") is double distancePerPulse)
+            var resource = NiDaqTaskRegistry.Get(context, taskName, guard.Check);
+            guard.EnsureCurrent(taskName, resource);
+            double value = await resource.RunAsync(() =>
             {
-                value *= distancePerPulse;
-            }
+                resource.RequireStarted();
+                var task = resource.Primary;
+                if (task.CIChannels.Count != 1 || resource.IsSync) throw new InvalidOperationException("该任务不是单编码器任务");
+                task.Stream.Timeout = setting.ReadTimeoutMs;
+                resource.EnsureOperationActive();
+                return new CounterSingleChannelReader(task.Stream).ReadSingleSampleDouble();
+            }, setting.ReadTimeoutMs, "编码器读取", cancellationToken);
+            guard.EnsureCurrent(taskName, resource);
+            if (resource.Unit != EncoderUnit.Pulses) value *= resource.DistancePerPulse;
 
-            context.SetVariable(resultVar, value);
+            DaqResultPublisher.Publish(context, resultVar, value, cancellationToken, resource, taskName);
+            guard.EnsureCurrent(taskName, resource);
 
             return new ExecutionResult
             {
@@ -60,7 +61,11 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
         {
             return ErrorResult(ex.Message, ex);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested || context.IsAbortRequested)
+        {
+            return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } };
+        }
+        catch (Exception ex)
         {
             return ErrorResult($"编码器读取失败：{ex.Message}", ex);
         }

@@ -4,6 +4,7 @@
 			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
 			 xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
 			 xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+			 xmlns:vm="clr-namespace:Modbus.UI.ViewModels"
 			 syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
 			 d:DesignHeight="500" d:DesignWidth="800"
 			 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -36,11 +37,15 @@
 					<Button Content="Remove Selected" Padding="12,4" Margin="8,0,0,0" Click="RemoveItem_Click"/>
 				</StackPanel>
 				<DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
-						  CanUserAddRows="False" CanUserDeleteRows="False">
+						  CanUserAddRows="False" CanUserDeleteRows="False" ToolTip="全部值在首次发送前校验；每项最多 1968 位或 123 个寄存器，完整地址范围不超过 65535。实际通信失败不会回滚已写入的项。">
 					<DataGrid.Columns>
-						<DataGridTextColumn Header="Slave" Binding="{Binding SlaveAddress}" Width="60"/>
-						<DataGridTextColumn Header="StartAddr" Binding="{Binding StartAddress}" Width="80"/>
-						<DataGridTextColumn Header="Values" Binding="{Binding Values}" Width="*"/>
+						<DataGridTextColumn Header="Slave" Binding="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+						<DataGridComboBoxColumn Header="RegisterType" SelectedItemBinding="{Binding RegisterType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140"
+							ItemsSource="{x:Static vm:ModbusEditorChoices.WritableRegisterTypes}"/>
+						<DataGridTextColumn Header="StartAddr" Binding="{Binding StartAddress, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+						<DataGridComboBoxColumn Header="DataFormat" SelectedItemBinding="{Binding DataFormat, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"
+							ItemsSource="{x:Static vm:ModbusEditorChoices.DataFormats}"/>
+						<DataGridTextColumn Header="Values" Binding="{Binding Values, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
 					</DataGrid.Columns>
 				</DataGrid>
 			</DockPanel>

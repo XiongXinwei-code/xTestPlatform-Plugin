@@ -26,17 +26,18 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
         |------|------|------|--------|------|
         | ConnectionName | string([ExpressionField]) | 是 | "VISA1" |
         | Items | 集合 | 是 | — | 命令列表，按顺序逐条发送 |
+        | TimeoutMs | int | 否 | 0 | 0 按命令数、I/O 期限和延时计算，正数覆盖整个批次 |
 
         Items 元素字段：
 
         - Command：string([ExpressionField])，SCPI 命令（如 *RST），求值结果为 string
-        默认 0（0 表示不延时）
+        - DelayMs：int，发送后的延时毫秒数，默认 0（不延时）
 
-                ## 行为
+        ## 行为
 
-                - 按列表顺序逐条发送，每条发送后等待 DelayMs 毫秒
-                - Command 求值结果为空时跳过该条，不发送也不延时
-                - 发送超时由连接的 IO 超时控制
+        - 按列表顺序逐条发送，每条发送后等待 DelayMs 毫秒
+        - Command 求值结果为空时跳过该条，不发送也不延时
+        - I/O 使用连接配置；TimeoutMs 控制包含排队、每条写入及延时的整个批次。每次后续提交前检查单调总预算、关闭请求和调用方取消，首条迟到返回不能续发后面的命令
         - 任意一条发送失败则步骤报错并停止后续发送
 
         ## 相关插件
@@ -45,7 +46,7 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
         - `VISA_Write`：发送单条命令
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaBatchWriteExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaBatchWriteExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

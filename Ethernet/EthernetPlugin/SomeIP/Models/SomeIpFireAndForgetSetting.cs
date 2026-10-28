@@ -18,6 +18,9 @@ public class SomeIpFireAndForgetSetting
     /// <summary>传输方式（Udp/Tcp，默认 Udp）</summary>
     public SomeIpTransport Transport { get; set; } = SomeIpTransport.Udp;
 
+    /// <summary>地址解析、TCP 连接和提交发送共用的总超时（毫秒），旧序列缺省为 3000。</summary>
+    public int SendTimeoutMs { get; set; } = 3000;
+
     /// <summary>服务 ID（支持表达式，如 0x1234）</summary>
     [ExpressionField]
     public string ServiceId { get; set; } = "\"0x1234\"";

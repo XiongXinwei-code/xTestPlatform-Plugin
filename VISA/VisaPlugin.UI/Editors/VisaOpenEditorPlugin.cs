@@ -35,10 +35,12 @@ public sealed class VisaOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("VISA_002", "VISA 资源字符串不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ResourceString, context.ExecutionContext, out var resErr))
             errors.Add(StepSettingError.Error("VISA_002E", $"ResourceString 表达式无效: {resErr}"));
-        if (s.OpenTimeoutMs <= 0)
-            errors.Add(StepSettingError.Error("VISA_003", "打开超时必须大于 0"));
-        if (s.IoTimeoutMs <= 0)
-            errors.Add(StepSettingError.Error("VISA_004", "IO 超时必须大于 0"));
+        if (s.OpenTimeoutMs == 0 || s.OpenTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("VISA_003", "打开超时必须大于 0 或为 -1（无限等待）"));
+        if (s.IoTimeoutMs == 0 || s.IoTimeoutMs < -1)
+            errors.Add(StepSettingError.Error("VISA_004", "IO 超时必须大于 0 或为 -1（无限等待）"));
+        if (s.OpenTimeoutMs == -1 && s.IoTimeoutMs == -1)
+            errors.Add(StepSettingError.Error("VISA_006", "打开与 I/O 期限不能同时为无限等待，旧资源收尾需要有限期限"));
         var term = VisaHelper.NormalizeTerminator(s.Terminator);
         if (term[^1] > 0xFF)
             errors.Add(StepSettingError.Error("VISA_005", "终止符必须是单字节字符（如 \\n、\\r\\n），不支持中文等多字节字符"));

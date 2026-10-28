@@ -40,12 +40,12 @@ public class HttpSoapRequestSetting
     [VariablePathField]
     public string StatusCodeVariable { get; set; } = string.Empty;
 
-    /// <summary>响应中包含 SOAP Fault 时是否判定步骤失败</summary>
+    /// <summary>响应中包含 SOAP Fault 时是否返回执行 Error</summary>
     public bool TreatSoapFaultAsFailure { get; set; } = true;
 
-    /// <summary>非 2xx 状态码是否判定步骤失败</summary>
+    /// <summary>非 2xx 状态码是否返回执行 Error</summary>
     public bool TreatNonSuccessAsFailure { get; set; } = true;
 
-    /// <summary>是否将请求与响应内容写入运行日志</summary>
+    /// <summary>是否记录脱敏通信摘要；兼容字段名，不记录Action、路径参数、Envelope或完整响应</summary>
     public bool LogPayload { get; set; } = true;
 }

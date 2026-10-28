@@ -1,6 +1,8 @@
 using CAN.Adapters;
 using CAN.Helpers;
 using CAN.Models;
+using CAN.Runtime;
+using System.Diagnostics;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -11,19 +13,49 @@ namespace CAN.Executors;
 public sealed class CanOpenExecutor : IStepExecutor
 {
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
+    private readonly Func<CanAdapterType, ICanAdapter> _create;
+    public CanOpenExecutor() : this(CanAdapterFactory.Create) { }
+    internal CanOpenExecutor(Func<CanAdapterType, ICanAdapter> create) => _create = create;
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new CanOpenPlugin().CreateSerializer();
-        var setting = (CanOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            var epoch = PluginCommon.ExecutionEpoch.Capture(context.Resources, "CAN");
+            var step = context.CurrentStep!.Step;
+            var serializer = new CanOpenPlugin().CreateSerializer();
+            var setting = (CanOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
             var channel = await Evaluator.EvalStringAsync(setting.Channel, context);
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 
+            var budget = Stopwatch.StartNew();
+            int Remaining()
+            {
+                int remaining = setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
+                if (remaining <= 0) throw new TimeoutException($"CAN 打开总期限 {setting.TimeoutMs} ms 已到（含登记、旧连接收尾与本次驱动打开）");
+                return remaining;
+            }
             var key = CanHelper.GetAdapterKey(connName);
+            using var lifecycle = await CanRegistryGuard.EnterAsync(context.Resources, connName, cancellationToken, Remaining());
+            epoch.ThrowIfExpired();
+            if (context.Resources.TryGet<ICanAdapter>(key, out var previous))
+            {
+                if (previous is not CanConnectionResource retiring || (!retiring.IsClosing && !retiring.IsClosed))
+                    throw new InvalidOperationException($"CAN 连接 {connName} 已存在，请先成功关闭原连接");
+                try { if (!retiring.IsClosed) await retiring.ClosePhysicalAsync(Remaining(), cancellationToken); }
+                catch (Exception ex) when (retiring.IsClosed && !cancellationToken.IsCancellationRequested)
+                {
+                    context.Log(LogLevel.Error, "旧 CAN 连接已确认释放；保留历史收尾错误，本次继续打开", ex.ToString());
+                }
+                finally
+                {
+                    if (retiring.IsClosed && context.Resources.TryGet<ICanAdapter>(key, out var current) && ReferenceEquals(current, retiring))
+                        context.Resources.Remove(key);
+                }
+            }
 
             // 用户只配置厂商无关的 Nominal/Data 采样点百分比。NI-XNET 需要分别预先编码为 U64，
             // 其他适配器在各自 Open 实现内转换为对应的位时序表示。
@@ -34,7 +66,16 @@ public sealed class CanOpenExecutor : IStepExecutor
                 ? CanBitTimingCalculator.CalculateData(setting.DataBitRate, setting.DataSamplePoint)
                 : null;
 
-            var adapter = CanAdapterFactory.Create(setting.AdapterType);
+            var physicalKey = CanChannelIdentity.Normalize(setting.AdapterType, channel);
+            await CanConnectionResource.WaitForPreviousOwnerAsync(physicalKey, Remaining(), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            epoch.ThrowIfExpired();
+            var raw = _create(setting.AdapterType);
+            CanConnectionResource adapter;
+            try { adapter = new CanConnectionResource(raw, physicalKey,
+                ex => context.Log(LogLevel.Error, "CAN 自动收尾未确认，请查看详情", ex.ToString())); }
+            catch { raw.Dispose(); throw; } // No Open has been submitted for this losing reservation.
+            PluginCommon.ExecutionScopedExecutor.Own(adapter.Dispose);
             var adapterConfig = new CanAdapterConfig
             {
                 Channel = channel,
@@ -48,10 +89,23 @@ public sealed class CanOpenExecutor : IStepExecutor
                 DataBitTiming = dataTiming,
                 RxQueueSize = setting.RxQueueSize
             };
-            adapter.Open(adapterConfig);
-
-            // Set 会自动销毁同名旧适配器（如上次运行异常终止未关闭）
-            context.Resources.Set(key, adapter);
+            // 打开可能已取得部分原生句柄；先登记所有者，清理失败后仍可通过 CAN_Close 重试。
+            try
+            {
+                epoch.ThrowIfExpired();
+                if (!context.Resources.TryAdd(key, adapter, ResourceLifetime.Execution))
+                    throw new InvalidOperationException($"CAN 连接 {connName} 已被其他步骤注册");
+                epoch.ThrowIfExpired();
+                await adapter.OpenAsync(adapterConfig, Remaining(), cancellationToken, epoch.ThrowIfExpired);
+                epoch.ThrowIfExpired();
+                _ = Remaining();
+            }
+            catch
+            {
+                adapter.Dispose();
+                if (adapter.IsClosed && context.Resources.TryGet<ICanAdapter>(key, out var current) && ReferenceEquals(current, adapter)) context.Resources.Remove(key);
+                throw;
+            }
 
             string timingDetails;
             if (arbitrationTiming != null)
@@ -88,16 +142,23 @@ public sealed class CanOpenExecutor : IStepExecutor
                 timingDetails += $"; {dataDetails}";
             }
             string terminationDetails = $"内置终端电阻={(setting.EnableTermination ? "已使能" : "未使能")}";
-            context.Log(
-                $"CAN 通道已打开: {channel} ({setting.AdapterType}, {setting.Protocol}); " +
-                $"{timingDetails}; {terminationDetails}");
+            try
+            {
+                context.Log(
+                    $"CAN 通道已打开: {channel} ({setting.AdapterType}, {setting.Protocol}); " +
+                    $"{timingDetails}; {terminationDetails}");
+                cancellationToken.ThrowIfCancellationRequested();
+                epoch.ThrowIfExpired();
+                _ = Remaining();
+            }
+            catch { adapter.Dispose(); throw; }
 
             return new ExecutionResult
             {
                 StepResult = new StepResult { Status = TestStatus.Completed }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult
             {

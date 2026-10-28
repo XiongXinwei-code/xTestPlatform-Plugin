@@ -34,21 +34,22 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="客户端名称:" VerticalAlignment="Center" Margin="0,6" />
                     <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,6"
-                        ScriptText="{Binding ClientName, Mode=TwoWay}"
+                        ScriptText="{Binding ClientName, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="服务基地址:" VerticalAlignment="Center" Margin="0,6" />
                     <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,6"
-                        ScriptText="{Binding BaseUrl, Mode=TwoWay}"
+                        ScriptText="{Binding BaseUrl, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="超时(ms):" VerticalAlignment="Center" Margin="0,6" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="建立/请求超时(ms):" VerticalAlignment="Center" Margin="0,6" />
                     <TextBox Grid.Row="2" Grid.Column="1" Margin="0,6" Width="200" HorizontalAlignment="Left"
                              Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -60,7 +61,7 @@
                                Visibility="{Binding IsBasic, Converter={StaticResource BoolToVis}}" />
                     <expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,6"
                         Visibility="{Binding IsBasic, Converter={StaticResource BoolToVis}}"
-                        ScriptText="{Binding UserName, Mode=TwoWay}"
+                        ScriptText="{Binding UserName, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -68,7 +69,7 @@
                                Visibility="{Binding IsBasic, Converter={StaticResource BoolToVis}}" />
                     <expr:ExpressionTextBox Grid.Row="5" Grid.Column="1" Margin="0,6"
                         Visibility="{Binding IsBasic, Converter={StaticResource BoolToVis}}"
-                        ScriptText="{Binding Password, Mode=TwoWay}"
+                        ScriptText="{Binding Password, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -76,7 +77,7 @@
                                Visibility="{Binding IsToken, Converter={StaticResource BoolToVis}}" />
                     <expr:ExpressionTextBox Grid.Row="6" Grid.Column="1" Margin="0,6"
                         Visibility="{Binding IsToken, Converter={StaticResource BoolToVis}}"
-                        ScriptText="{Binding Token, Mode=TwoWay}"
+                        ScriptText="{Binding Token, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -84,7 +85,7 @@
                                Visibility="{Binding IsCertificate, Converter={StaticResource BoolToVis}}" />
                     <expr:ExpressionTextBox Grid.Row="7" Grid.Column="1" Margin="0,6"
                         Visibility="{Binding IsCertificate, Converter={StaticResource BoolToVis}}"
-                        ScriptText="{Binding ClientCertPath, Mode=TwoWay}"
+                        ScriptText="{Binding ClientCertPath, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
@@ -92,11 +93,11 @@
                                Visibility="{Binding IsCertificate, Converter={StaticResource BoolToVis}}" />
                     <expr:ExpressionTextBox Grid.Row="8" Grid.Column="1" Margin="0,6"
                         Visibility="{Binding IsCertificate, Converter={StaticResource BoolToVis}}"
-                        ScriptText="{Binding ClientCertPassword, Mode=TwoWay}"
+                        ScriptText="{Binding ClientCertPassword, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                    <TextBlock Grid.Row="9" Grid.Column="0" Text="忽略证书错误:" VerticalAlignment="Center" Margin="0,6" />
+                    <TextBlock Grid.Row="9" Grid.Column="0" Text="忽略证书错误（不安全）:" VerticalAlignment="Center" Margin="0,6" />
                     <CheckBox Grid.Row="9" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
                               IsChecked="{Binding IgnoreServerCertificateErrors}" />
 
@@ -104,12 +105,23 @@
                     <CheckBox Grid.Row="10" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
                               IsChecked="{Binding ReplaceIfExists}" />
 
-                    <TextBlock Grid.Row="11" Grid.Column="0" Text="默认请求头:" VerticalAlignment="Top" Margin="0,10" />
-                    <DataGrid Grid.Row="11" Grid.Column="1" Margin="0,6" Height="160"
+                    <TextBlock Grid.Row="11" Grid.Column="0" Text="兼容模式（关闭连接）:" VerticalAlignment="Center" Margin="0,6" />
+                    <CheckBox Grid.Row="11" Grid.Column="1" Margin="0,6" IsChecked="{Binding ForceConnectionClose}"
+                              ToolTip="默认开启以兼容无长度报文的设备；标准 HTTP 服务可关闭以复用连接。忽略证书错误仅限测试环境。" />
+                    <TextBlock Grid.Row="12" Grid.Column="0" Text="默认请求头:" VerticalAlignment="Top" Margin="0,10" />
+                    <DataGrid Grid.Row="12" Grid.Column="1" Margin="0,6" Height="160"
                               ItemsSource="{Binding DefaultHeaders}" AutoGenerateColumns="False" CanUserAddRows="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="200" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridTextColumn Header="Value (表达式)" Width="*" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridTemplateColumn Header="Value (表达式)" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <expr:ExpressionTextBox ScriptText="{Binding Value, Mode=TwoWay}" ExpectedResultType="String"
+                                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

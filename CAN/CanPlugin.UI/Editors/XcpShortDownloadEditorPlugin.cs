@@ -27,6 +27,7 @@ public sealed class XcpShortDownloadEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (XcpShortDownloadSetting)new XcpShortDownloadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        XcpEditorValidation.Check(s, context, errors);
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("XCP_301", "ConnectionName 不能为空"));

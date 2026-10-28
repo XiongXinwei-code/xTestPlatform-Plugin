@@ -11,6 +11,11 @@ public class SomeIpFireAndForgetViewModel : EthernetViewModelBase<SomeIpFireAndF
         get => Setting == null ? 0 : Array.IndexOf(Transports, Setting.Transport);
         set { if (Setting == null || value < 0 || value >= Transports.Length) return; Setting.Transport = Transports[value]; OnPropertyChanged(); QueueSave(); }
     }
+    public int SendTimeoutMs
+    {
+        get => Setting?.SendTimeoutMs ?? 3000;
+        set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
+    }
     public string RemoteHost
     {
         get => Setting?.RemoteHost ?? "\"192.168.1.20\"";

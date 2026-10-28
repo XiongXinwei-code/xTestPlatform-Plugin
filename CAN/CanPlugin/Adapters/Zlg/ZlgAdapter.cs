@@ -1,14 +1,16 @@
 using CAN.Models;
 using CAN.Helpers;
+using CAN.Runtime;
 
 namespace CAN.Adapters.Zlg;
 
 /// <summary>周立功 ZLG CAN 适配器实现（zlgcan.dll）</summary>
-public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
+public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, ICanConfirmedTransmitter,
+    ICanClockValidity, ICanCloseState, ICanTransmitQuiescence, ICanQueueStatistics, ICanBudgetedConfirmedTransmitter
 {
     private IntPtr _deviceHandle = IntPtr.Zero;
     private IntPtr _channelHandle = IntPtr.Zero;
-    private bool _isConnected;
+    private volatile bool _isConnected;
     private bool _isFd;
     private readonly CanReceiveDiagnostics _diagnostics = new("ZLG");
 
@@ -19,22 +21,29 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
 
     public void Open(CanAdapterConfig config)
     {
+        lock (_closeGate) OpenWithCleanup(config);
+    }
+
+    private void OpenWithCleanup(CanAdapterConfig config)
+    {
+        if (_deviceHandle != IntPtr.Zero || _channelHandle != IntPtr.Zero || _receivePump != null)
+            throw new InvalidOperationException("ZLG 旧连接尚未释放，不能重新打开");
         try
         {
             OpenInternal(config);
         }
-        catch (DllNotFoundException)
+        catch (DllNotFoundException ex)
         {
-            CleanupFailedOpen();
+            CleanupFailedOpen(ex);
             throw new InvalidOperationException(
                 "未找到 zlgcan.dll，请将周立功 ZLGCAN 二次开发库（x64，含 kerneldlls 子目录）放入插件目录下的 Native\\Zlg 文件夹，" +
                 "或安装 ZLGCAN 驱动并将其所在目录加入 PATH。" +
                 "下载地址: https://www.zlg.cn/can/down/down/id/22.html" +
                 Environment.NewLine + "诊断信息：" + ZlgApi.GetLoadDiagnostics());
         }
-        catch
+        catch (Exception ex)
         {
-            CleanupFailedOpen();
+            CleanupFailedOpen(ex);
             throw;
         }
     }
@@ -85,7 +94,7 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
             throw new ArgumentException($"ZLG 设备 {parts[0]} 不支持 {config.BaudRate} bps 标准波特率，请使用设备 XML 中的标准波特率。");
         }
 
-        _deviceHandle = ZlgApi.OpenDevice(deviceType, deviceIndex, 0);
+        _deviceHandle = _io.OpenDevice(deviceType, deviceIndex);
         if (_deviceHandle == IntPtr.Zero)
             throw new InvalidOperationException(
                 $"打开 ZLG 设备失败：{parts[0]} 索引 {deviceIndex}（请检查设备连接和驱动安装）" +
@@ -120,10 +129,10 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
             // canfd_* 属性，但仍接受 InitCAN 结构体中的直接时序值（v1.0.19 的方式）。
             // 因此属性设置只作为优先路径，失败时退回直接时序，不能在此提前中止打开过程。
             bool fdPropertiesConfigured =
-                ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_standard", "0") &
-                ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
+                _io.SetProperty(_deviceHandle, $"{channelIndex}/canfd_standard", "0") &
+                _io.SetProperty(_deviceHandle, $"{channelIndex}/canfd_abit_baud_rate",
                     config.BaudRate.ToString()) &
-                ZlgApi.TrySetProperty(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
+                _io.SetProperty(_deviceHandle, $"{channelIndex}/canfd_dbit_baud_rate",
                     config.DataBitRate.ToString());
 
             if (!fdPropertiesConfigured)
@@ -151,33 +160,24 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
                     ZlgApi.ToTiming(config.BaudRate, config.ArbitrationSamplePoint);
         }
 
-        _channelHandle = ZlgApi.InitCAN(_deviceHandle, channelIndex, ref initConfig);
+        _channelHandle = _io.InitCan(_deviceHandle, channelIndex, ref initConfig);
         if (_channelHandle == IntPtr.Zero)
         {
-            ZlgApi.CloseDevice(_deviceHandle);
-            _deviceHandle = IntPtr.Zero;
             throw new InvalidOperationException($"初始化 ZLG CAN 通道 {channelIndex} 失败");
         }
 
         // ZLGCAN 属性名沿用厂商设备 XML 中的 initenal_resistance（原始拼写）。
         // 老设备不具备该属性时，未启用状态保持兼容；用户明确启用时必须确认已生效。
-        bool terminationConfigured = ZlgApi.TrySetProperty(
+        bool terminationConfigured = _io.SetProperty(
             _deviceHandle, $"{channelIndex}/initenal_resistance", config.EnableTermination ? "1" : "0");
         if (config.EnableTermination && !terminationConfigured)
         {
-            ZlgApi.ResetCAN(_channelHandle);
-            ZlgApi.CloseDevice(_deviceHandle);
-            _deviceHandle = IntPtr.Zero;
-            _channelHandle = IntPtr.Zero;
             throw new InvalidOperationException(
                 $"启用 ZLG 通道 {channelIndex} 内置 120 Ω 终端电阻失败；请确认设备支持该属性，或取消勾选并外接电阻。");
         }
 
-        if (ZlgApi.StartCAN(_channelHandle) != ZlgApi.STATUS_OK)
+        if (_io.StartCan(_channelHandle) != ZlgApi.STATUS_OK)
         {
-            ZlgApi.CloseDevice(_deviceHandle);
-            _deviceHandle = IntPtr.Zero;
-            _channelHandle = IntPtr.Zero;
             throw new InvalidOperationException($"启动 ZLG CAN 通道 {channelIndex} 失败");
         }
 
@@ -205,50 +205,34 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
         }
 
         _isConnected = true;
+        StartRuntime(deviceType, channelIndex);
     }
 
     private void SetRequiredProperty(uint channelIndex, string name, string value)
     {
         string path = $"{channelIndex}/{name}";
-        if (!ZlgApi.TrySetProperty(_deviceHandle, path, value))
+        if (!_io.SetProperty(_deviceHandle, path, value))
             throw new InvalidOperationException($"设置 ZLG 属性 {path}={value} 失败，请检查板卡型号、x64 二次开发库及驱动版本。");
     }
 
-    private void CleanupFailedOpen()
+    private void CleanupFailedOpen(Exception original)
     {
-        if (_channelHandle != IntPtr.Zero)
-        {
-            try { ZlgApi.ResetCAN(_channelHandle); } catch { }
-            _channelHandle = IntPtr.Zero;
-        }
-        if (_deviceHandle != IntPtr.Zero)
-        {
-            try { ZlgApi.CloseDevice(_deviceHandle); } catch { }
-            _deviceHandle = IntPtr.Zero;
-        }
-        _isConnected = false;
+        try { Close(); }
+        catch (Exception cleanup) { throw new AggregateException("ZLG 打开失败且资源清理未完成", original, cleanup); }
     }
 
     public void Close()
     {
-        if (!_isConnected) return;
-
-        if (_channelHandle != IntPtr.Zero)
-        {
-            ZlgApi.ResetCAN(_channelHandle);
-            _channelHandle = IntPtr.Zero;
-        }
-        if (_deviceHandle != IntPtr.Zero)
-        {
-            ZlgApi.CloseDevice(_deviceHandle);
-            _deviceHandle = IntPtr.Zero;
-        }
-        _isConnected = false;
+        CloseRuntime();
     }
 
     public void Write(CanMessage message)
     {
-        if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
+        lock (_transmitGate) Submit(message);
+    }
+
+    private void Transmit(CanMessage message)
+    {
 
         uint canId = message.FrameType == CanFrameType.Extended
             ? message.Id | ZlgApi.CAN_EFF_FLAG
@@ -270,8 +254,9 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
                 transmit_type = 0
             };
             Array.Copy(message.Data, data.frame.data, len);
+            if (_echoSupported) data.frame.flags |= ZlgApi.TX_ECHO_FLAG;
 
-            if (ZlgApi.TransmitFD(_channelHandle, ref data, 1) != 1)
+            if (_io.TransmitFd(_channelHandle, ref data) != 1)
                 throw new InvalidOperationException(
                     $"ZLG CANFD 报文发送失败（ID=0x{message.Id:X}，长度={dlcLen}），请检查总线连接、终端电阻及波特率配置");
         }
@@ -288,8 +273,9 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
                 transmit_type = 0
             };
             Array.Copy(message.Data, data.frame.data, Math.Min(message.Data.Length, 8));
+            if (_echoSupported) data.frame.pad |= ZlgApi.TX_ECHO_FLAG;
 
-            if (ZlgApi.Transmit(_channelHandle, ref data, 1) != 1)
+            if (_io.Transmit(_channelHandle, ref data) != 1)
                 throw new InvalidOperationException(
                     $"ZLG CAN 报文发送失败（ID=0x{message.Id:X}，长度={data.frame.can_dlc}），请检查总线连接、终端电阻及波特率配置");
         }
@@ -314,69 +300,29 @@ public sealed class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics
 
     private CanMessage? ReadInternal(uint? filterId, int timeoutMs, CancellationToken ct)
     {
-        if (!_isConnected) throw new InvalidOperationException("CAN 通道未打开");
-
-        var deadline = timeoutMs < 0 ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
+        if (!_isConnected || _closing) throw new InvalidOperationException("CAN 通道未打开或正在关闭");
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
         var session = _diagnostics.BeginRead(filterId, timeoutMs, _isFd);
-
-        while (!ct.IsCancellationRequested && DateTime.UtcNow < deadline)
+        lock (_runtimeGate)
         {
-            int remainMs = (int)Math.Min((deadline - DateTime.UtcNow).TotalMilliseconds, 100);
-            if (remainMs <= 0) break;
-
-            CanMessage? msg = _isFd ? ReadOneFd(Math.Min(remainMs, 100)) : ReadOneClassic(Math.Min(remainMs, 100));
-            if (msg != null)
+            while (true)
             {
-                if (filterId == null || msg.Id == filterId.Value)
+                ct.ThrowIfCancellationRequested(); ThrowIfPumpFailed();
+                if (_closing) throw new InvalidOperationException("ZLG 接收正在关闭");
+                while (_received.TryDequeue(out var msg))
                 {
-                    session.Matched();
-                    return msg;
+                    if (filterId == null || msg.Id == filterId.Value) { session.Matched(); return msg; }
+                    session.Filtered(msg.Id);
                 }
-
-                session.Filtered(msg.Id); // ID 不匹配，继续读取
+                var remaining = timeoutMs < 0 ? 50 : Math.Min(50, timeoutMs - (int)elapsed.ElapsedMilliseconds);
+                if (remaining <= 0) { session.TimedOut(); return null; }
+                Monitor.Wait(_runtimeGate, remaining);
             }
         }
-
-        session.TimedOut();
-        return null;
     }
 
-    public string GetReceiveDiagnostics() => _diagnostics.Get();
-
-    private CanMessage? ReadOneClassic(int waitMs)
-    {
-        var data = new ZlgApi.ZCAN_Receive_Data();
-        if (ZlgApi.Receive(_channelHandle, ref data, 1, waitMs) != 1) return null;
-
-        bool isExtended = (data.frame.can_id & ZlgApi.CAN_EFF_FLAG) != 0;
-        var payload = new byte[data.frame.can_dlc];
-        Array.Copy(data.frame.data, payload, data.frame.can_dlc);
-        return new CanMessage
-        {
-            Id = data.frame.can_id & ~ZlgApi.CAN_EFF_FLAG,
-            FrameType = isExtended ? CanFrameType.Extended : CanFrameType.Standard,
-            Data = payload,
-            TimestampNs = (long)data.timestamp * 1_000
-        };
-    }
-
-    private CanMessage? ReadOneFd(int waitMs)
-    {
-        var data = new ZlgApi.ZCAN_ReceiveFD_Data();
-        if (ZlgApi.ReceiveFD(_channelHandle, ref data, 1, waitMs) != 1) return null;
-
-        bool isExtended = (data.frame.can_id & ZlgApi.CAN_EFF_FLAG) != 0;
-        var payload = new byte[data.frame.len];
-        Array.Copy(data.frame.data, payload, data.frame.len);
-        return new CanMessage
-        {
-            Id = data.frame.can_id & ~ZlgApi.CAN_EFF_FLAG,
-            FrameType = isExtended ? CanFrameType.Extended : CanFrameType.Standard,
-            Data = payload,
-            IsFd = true,
-            TimestampNs = (long)data.timestamp * 1_000
-        };
-    }
+    public string GetReceiveDiagnostics()
+    { lock (_runtimeGate) return $"{_diagnostics.Get()}; 代次={_epoch}; 回显能力={_echoSupported}; 未决发送={_pending.Count}; 发送未知={_unknownSend}; 关闭时未确认发送={_closedUnknownCount}; 接收错误={_pumpError}; 时钟={_clock.Id}"; }
 
     public void Dispose() => Close();
 }

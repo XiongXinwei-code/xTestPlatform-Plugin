@@ -19,10 +19,10 @@ public class DoipDiagRequestSetting
     [ExpressionField]
     public string RequestData { get; set; } = "\"22 F1 90\"";
 
-    /// <summary>响应超时（毫秒）</summary>
+    /// <summary>本次事务排队、发送、ACK 和完整响应的总超时（毫秒）</summary>
     public int TimeoutMs { get; set; } = 3000;
 
-    /// <summary>结果存储变量路径（存储响应十六进制字符串，可选）</summary>
+    /// <summary>可选结果变量完整路径；非空时须已声明为 string（当前值允许 null），通信前预检。</summary>
     [VariablePathField]
     public string ResultVariable { get; set; } = string.Empty;
 }

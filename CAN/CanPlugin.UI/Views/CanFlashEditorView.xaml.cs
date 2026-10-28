@@ -21,11 +21,19 @@ public partial class CanFlashEditorView : UserControl, IRefreshableEditor
             new PropertyMetadata(null));
     public EditPosition? EditPosition { get => (EditPosition?)GetValue(EditPositionProperty); set => SetValue(EditPositionProperty, value); }
 
-    public CanFlashEditorView()
+    public CanFlashEditorView() : this(new CanFlashViewModel()) { }
+
+    internal CanFlashEditorView(CanFlashViewModel viewModel)
     {
         InitializeComponent();
-        ViewModel = new CanFlashViewModel();
+        ViewModel = viewModel;
         DataContext = ViewModel;
+        Unloaded += (_, _) =>
+        {
+            try { ViewModel.Flush(); }
+            finally { ViewModel.SuspendAnalysis(); }
+        };
+        Loaded += (_, _) => ViewModel.ResumeAnalysis();
     }
 
     public void RefreshFromStep(Step step)
@@ -43,7 +51,7 @@ public partial class CanFlashEditorView : UserControl, IRefreshableEditor
         };
 
         if (dialog.ShowDialog() == true)
-            ViewModel.FilePath = $"\"{dialog.FileName}\"";
+            ViewModel.FilePath = CAN.UI.Services.FirmwareAnalyzer.FilePathExpression(dialog.FileName);
     }
 
     private async void OnAnalyzeFirmware(object sender, RoutedEventArgs e)

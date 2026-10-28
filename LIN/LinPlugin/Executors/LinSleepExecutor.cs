@@ -14,17 +14,19 @@ public sealed class LinSleepExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new LinSleepPlugin().CreateSerializer();
-        var setting = (LinSleepSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            var guard = new LIN.Runtime.LinExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new LinSleepPlugin().CreateSerializer();
+            var setting = (LinSleepSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (!Enum.IsDefined(setting.SleepMode)) throw new ArgumentException("LIN 睡眠模式无效");
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = LinHelper.GetAdapterKey(connName);
 
             if (!context.Resources.TryGet<ILinAdapter>(key, out var adapter))
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -34,16 +36,20 @@ public sealed class LinSleepExecutor : IStepExecutor
                     }
                 };
             }
+            guard.Watch(key, adapter);
 
             cancellationToken.ThrowIfCancellationRequested();
-            adapter.Sleep(setting.SleepMode == LinSleepMode.Remote);
-            context.Log($"LIN 总线已进入睡眠: {connName} ({(setting.SleepMode == LinSleepMode.Remote ? "总线睡眠" : "本地睡眠")})");
+            await LIN.Runtime.LinConnectionResource.For(adapter).SleepAsync(setting.SleepMode == LinSleepMode.Remote, setting.TimeoutMs, cancellationToken, guard.Check);
+            cancellationToken.ThrowIfCancellationRequested();
+            guard.Log($"LIN 总线已进入睡眠: {connName} ({(setting.SleepMode == LinSleepMode.Remote ? "总线睡眠" : "本地睡眠")})");
 
             if (setting.PostSleepDelayMs > 0)
             {
                 await Task.Delay(setting.PostSleepDelayMs, cancellationToken);
-                context.Log($"入睡后延时 {setting.PostSleepDelayMs}ms 完成，从节点应已入睡");
+                guard.Log($"入睡后延时 {setting.PostSleepDelayMs}ms 完成，从节点应已入睡");
             }
+
+            guard.Check();
 
             return new ExecutionResult
             {

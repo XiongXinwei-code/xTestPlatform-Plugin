@@ -1,3 +1,4 @@
+using PluginCommon;
 using System.IO.Ports;
 using System.Net.Sockets;
 using Modbus.Helpers;
@@ -21,29 +22,53 @@ public sealed class ModbusDisconnectExecutor : IStepExecutor
 
 	public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
 	{
-		var step = context.CurrentStep!.Step;
-		var serializer = new ModbusDisconnectPlugin().CreateSerializer();
-		var setting = (ModbusDisconnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+        try
+        {
+			cancellationToken.ThrowIfCancellationRequested();
+			var epoch = ExecutionGuard.Capture(context.Resources, cancellationToken);
+			var step = context.CurrentStep!.Step;
+			var serializer = new ModbusDisconnectPlugin().CreateSerializer();
+			var setting = (ModbusDisconnectSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
 
-		try
-		{
+			if (setting.TimeoutMs < 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs));
 			var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+			epoch.ThrowIfExpired();
+			if (string.IsNullOrWhiteSpace(connName)) throw new ArgumentException("Modbus 连接名称不能为空");
+			cancellationToken.ThrowIfCancellationRequested();
 			var key = ModbusHelper.GetConnectionKey(connName);
 
-			// Remove 会自动 Dispose 资源
-			context.Resources.Remove(key);
-			if (context.Resources.TryGet<object>(key + "_transport", out var tObj))
+			ModbusConnectionResource? resource;
+			lock (ModbusHelper.RegistryLock(context.Resources))
 			{
-				if (tObj is SerialPort sp) { try { sp.Close(); } catch { /* 忽略关闭异常 */ } }
-				context.Resources.Remove(key + "_transport");
+				context.Resources.TryGet<ModbusConnectionResource>(key, out resource);
+				epoch.ThrowIfExpired();
+				ModbusHelper.MarkCloseRequested(context.Resources, key);
+			}
+			if (resource != null)
+			{
+				epoch.ThrowIfExpired();
+				await resource.CloseAsync(setting.TimeoutMs > 0 ? setting.TimeoutMs : resource.TimeoutMs, cancellationToken);
+				epoch.ThrowIfExpired();
+				lock (ModbusHelper.RegistryLock(context.Resources))
+				{
+					if (context.Resources.TryGet<ModbusConnectionResource>(key, out var current) && ReferenceEquals(current, resource))
+					context.Resources.Remove(key);
+				}
+				if (resource.CloseWarning is { } warning)
+					context.Log(LogLevel.Warn, $"Modbus 连接 {connName} 已释放；保留已退出的停止诊断", warning.ToString());
+				epoch.ThrowIfExpired();
 			}
 
 			context.Log($"Modbus 连接已关闭: {connName}");
+			epoch.ThrowIfExpired();
+			ModbusResultPublisher.EnsureCallerActive(context, cancellationToken);
 			return new ExecutionResult
 			{
 				StepResult = new StepResult { Status = TestStatus.Completed, Value = $"已断开: {connName}" }
 			};
 		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{ return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Aborted } }; }
 		catch (Exception ex)
 		{
 			return new ExecutionResult

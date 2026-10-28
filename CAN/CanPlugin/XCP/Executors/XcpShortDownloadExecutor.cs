@@ -9,13 +9,13 @@ public sealed class XcpShortDownloadExecutor : IStepExecutor
 {
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new XcpShortDownloadPlugin().CreateSerializer();
-        var setting = (XcpShortDownloadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
-            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken);
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            var step = context.CurrentStep!.Step;
+            var serializer = new XcpShortDownloadPlugin().CreateSerializer();
+            var setting = (XcpShortDownloadSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            var (client, error) = await XcpExecutorHelper.CreateClientAsync(setting, context, cancellationToken, guard);
             if (client == null)
                 return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Error, Error = new ErrorInfo { Message = error! } } };
 
@@ -44,9 +44,9 @@ public sealed class XcpShortDownloadExecutor : IStepExecutor
                 data = reversed;
             }
 
-            await client.ShortDownloadAsync(address, addrExt, data, cancellationToken);
+            await guard.RunAsync(() => client.ShortDownloadAsync(address, addrExt, data, cancellationToken));
 
-            context.Log($"XCP SHORT_DOWNLOAD 0x{address:X8} ← {XcpExecutorHelper.ToHex(data)}");
+            guard.Log($"XCP SHORT_DOWNLOAD 0x{address:X8} ← {XcpExecutorHelper.ToHex(data)}");
 
             return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed } };
         }

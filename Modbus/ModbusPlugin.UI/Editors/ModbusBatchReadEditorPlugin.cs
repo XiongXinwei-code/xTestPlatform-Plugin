@@ -1,5 +1,6 @@
 using System.Windows;
 using Modbus.Models;
+using Modbus.Helpers;
 using Modbus.UI.Views;
 using Modbus.UI.Validation;
 using StepEditor.Abstractions;
@@ -31,14 +32,21 @@ public sealed class ModbusBatchReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("MB_040", "连接标识名不能为空"));
         else if (!context.Evaluator.ValidateExpression(s.ConnectionName, context.ExecutionContext, out var connErr))
             errors.Add(StepSettingError.Error("MB_040E", $"ConnectionName 表达式无效: {connErr}"));
-            errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
+        if (s.Items.Count == 0) errors.Add(StepSettingError.Warning("MB_041", "批量读取列表为空"));
+        if (s.IntervalMs < 0) errors.Add(StepSettingError.Error("MB_045", "读取间隔时间不能为负数"));
         for (int i = 0; i < s.Items.Count; i++)
         {
             var item = s.Items[i];
-            if (string.IsNullOrWhiteSpace(item.ResultVariable))
-                errors.Add(StepSettingError.Error("MB_042", $"第 {i + 1} 行：结果变量不能为空"));
-            else if (!context.ExecutionContext.HasVariable(item.ResultVariable))
+            if (!Enum.IsDefined(item.RegisterType)) errors.Add(StepSettingError.Error("MB_ENUM_TYPE", $"第 {i + 1} 行：不支持的寄存器类型"));
+            if (!Enum.IsDefined(item.DataFormat)) errors.Add(StepSettingError.Error("MB_ENUM_FORMAT", $"第 {i + 1} 行：不支持的数据格式"));
+            ModbusRequestValidator.Read(item.RegisterType, item.DataFormat, item.StartAddress, item.Quantity, errors, $"第 {i + 1} 行：");
+            if (!string.IsNullOrWhiteSpace(item.ResultVariable) && !ModbusRequestPreflight.IsScopedPath(item.ResultVariable))
+                errors.Add(StepSettingError.Error("MB_044", $"第 {i + 1} 行：结果必须使用带作用域的完整变量路径，如 Locals.result"));
+            else if (!string.IsNullOrWhiteSpace(item.ResultVariable) && !context.ExecutionContext.HasVariable(item.ResultVariable))
                 errors.Add(StepSettingError.Error("MB_044", $"第 {i + 1} 行：变量 {item.ResultVariable} 不存在，请先创建该变量"));
+            else if (!string.IsNullOrWhiteSpace(item.ResultVariable))
+                ModbusVariableValidator.CheckKnownOutput(context.ExecutionContext, item.ResultVariable,
+                    item.RegisterType, item.DataFormat, errors, "MB_046", "MB_047", item.Quantity);
             if (item.Quantity == 0)
                 errors.Add(StepSettingError.Error("MB_043", $"第 {i + 1} 行：读取数量必须大于 0"));
         }

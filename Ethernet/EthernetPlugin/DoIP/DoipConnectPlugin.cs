@@ -31,8 +31,8 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
         ## 行为
 
         - 连接或路由激活失败时步骤报错
-        - 建立的会话以 `SessionName` 为标识名保存在**插件内部的全局 DoIP 会话池**（非运行期资源表），供 DoIP_DiagRequest / DoIP_Disconnect 步骤取用；会话池不随序列结束自动释放，必须显式调用 DoIP_Disconnect
-        - 用同一个 SessionName 重复连接时：**静默替换**——旧会话会被自动释放，再建立新会话，不会报错
+        - 会话保存在执行级资源表，不同执行不共享同名会话；正常流程应显式等待 DoIP_Disconnect 完成，序列清理会请求关闭
+        - 用同一个 SessionName 重复连接时：先释放旧会话再建立；并发打开/关闭有代次保护，超时后不会迟到登记；连接及激活共用一个总期限
 
         ## 相关插件
 
@@ -41,7 +41,7 @@ public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
         - `DoIP_VehicleDiscovery`：发现车辆 DoIP 实体
         """;
 
-    public override IStepExecutor CreateExecutor() => new DoipConnectExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new DoipConnectExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

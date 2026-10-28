@@ -37,4 +37,7 @@ public class NiDaqSyncConfigSetting
 
     /// <summary>触发边沿</summary>
     public TriggerEdge TriggerEdge { get; set; } = TriggerEdge.Rising;
+
+    /// <summary>名称求值后的配置阶段总期限(ms)，包含旧资源收尾及 SDK；不包含表达式求值。</summary>
+    public int TimeoutMs { get; set; } = 10000;
 }

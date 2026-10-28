@@ -7,6 +7,8 @@ namespace CAN.Models;
 [MessagePackObject(true)]
 public class CanWriteSetting
 {
+    /// <summary>发送等待期限；驱动提交成功不等于已上总线。</summary>
+    public int TimeoutMs { get; set; } = 5000;
     /// <summary>连接标识名</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"CAN1\"";

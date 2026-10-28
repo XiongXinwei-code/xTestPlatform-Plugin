@@ -33,12 +33,14 @@ public sealed class OpcUaDataAcqReadEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error("OPCUA_090E", $"TaskName 表达式无效: {taskNameErr}"));
         if (s.SamplesToRead == 0 || s.SamplesToRead < -1)
             errors.Add(StepSettingError.Error("OPCUA_091", "读取条数必须大于 0，或为 -1 表示读取全部可用数据"));
-        if (string.IsNullOrWhiteSpace(s.ResultVariable))
-            errors.Add(StepSettingError.Error("OPCUA_092", "结果变量不能为空"));
-        else if (!context.ExecutionContext.HasVariable(s.ResultVariable))
+        if (s.TimeoutMs <= 0)
+            errors.Add(StepSettingError.Error("OPCUA_096", "消费/转换/导出总期限 TimeoutMs 必须大于 0"));
+        if (!string.IsNullOrWhiteSpace(s.ResultVariable) && !context.ExecutionContext.HasVariable(s.ResultVariable))
             errors.Add(StepSettingError.Error("OPCUA_093", $"变量 {s.ResultVariable} 不存在，请先创建该变量"));
-        else
+        else if (!string.IsNullOrWhiteSpace(s.ResultVariable))
             OpcUaVariableValidator.CheckWaveformVariable(context.ExecutionContext, s.ResultVariable, "OPCUA_094", errors);
+        OpcUaVariableValidator.CheckOptionalStringVariable(context.ExecutionContext, s.RecordsJsonVariable, "OPCUA_097", errors);
+        OpcUaVariableValidator.CheckOptionalStringVariable(context.ExecutionContext, s.HealthVariable, "OPCUA_098", errors);
         if (s.SaveToFile && string.IsNullOrWhiteSpace(s.CsvFilePath))
             errors.Add(StepSettingError.Error("OPCUA_095", "启用存盘时 CSV 文件路径不能为空"));
         else if (s.SaveToFile && !context.Evaluator.ValidateExpression(s.CsvFilePath, context.ExecutionContext, out var pathErr))

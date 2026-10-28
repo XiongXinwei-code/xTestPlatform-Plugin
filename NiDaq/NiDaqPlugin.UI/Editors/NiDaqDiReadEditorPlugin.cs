@@ -15,6 +15,7 @@ public sealed class NiDaqDiReadEditorPlugin : IStepEditorPlugin
     public FrameworkElement CreateEditor(Step step, SequenceFile? sequenceFile)
     {
         var view = new NiDaqDiReadEditorView();
+        view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new NiDaqDiReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
         return view;
@@ -38,6 +39,7 @@ public sealed class NiDaqDiReadEditorPlugin : IStepEditorPlugin
             if (val is not null && val is not uint)
                 errors.Add(StepSettingError.Error("DAQ_093", $"变量 {s.ResultVariable} 类型不匹配，期望 uint，实际类型 {val.GetType().Name}"));
         }
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("DAQ_099", "总期限必须大于 0（包含旧资源收尾等待）"));
         return errors;
     }
 }

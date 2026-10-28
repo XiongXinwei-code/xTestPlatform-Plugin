@@ -14,16 +14,19 @@ public sealed class CanWriteExecutor : IStepExecutor
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
-        var step = context.CurrentStep!.Step;
-        var serializer = new CanWritePlugin().CreateSerializer();
-        var setting = (CanWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-
         try
         {
+            var guard = new CAN.Runtime.CanExecutionGuard(context, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            var step = context.CurrentStep!.Step;
+            var serializer = new CanWritePlugin().CreateSerializer();
+            var setting = (CanWriteSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (setting.TimeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(setting.TimeoutMs));
             var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
             var key = CanHelper.GetAdapterKey(connName);
             if (!context.Resources.TryGet<ICanAdapter>(key, out var adapter))
             {
+                guard.Check();
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -35,6 +38,7 @@ public sealed class CanWriteExecutor : IStepExecutor
             }
 
             // 求值 CAN ID
+            guard.Watch(key, adapter);
             var canIdStr = await Evaluator.EvalStringAsync(setting.CanId, context);
             uint canId = CanHelper.ParseCanId(canIdStr);
 
@@ -50,9 +54,11 @@ public sealed class CanWriteExecutor : IStepExecutor
                 IsFd = setting.UseFdFrame
             };
 
-            adapter.Write(message);
+            if (adapter is not CAN.Runtime.CanConnectionResource connection)
+                throw new InvalidOperationException("此旧 CAN 连接不提供可确认退出的发送生命周期，请先关闭并重新执行 CAN_Open");
+            await guard.RunAsync(() => connection.WriteAsync(message, setting.TimeoutMs, cancellationToken));
 
-            context.Log($"CAN 发送: ID=0x{canId:X}, Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
+            guard.Log($"CAN 驱动提交完成（非上总线确认）: ID=0x{canId:X}, Data=[{BitConverter.ToString(data).Replace("-", " ")}]");
 
             return new ExecutionResult
             {
@@ -63,7 +69,7 @@ public sealed class CanWriteExecutor : IStepExecutor
                 }
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             return new ExecutionResult
             {
@@ -82,5 +88,4 @@ public sealed class CanWriteExecutor : IStepExecutor
             };
         }
     }
-
-    }
+}

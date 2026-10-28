@@ -8,7 +8,7 @@ namespace Ethernet;
 public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
 {
     public override string StepTypeId  => "Ethernet.TcpOpen";
-    public override string DisplayName => "Ethernet_TcpOpen";
+    public override string DisplayName => "Ethernet_TCP_Open";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_open.png";
 
@@ -29,8 +29,8 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
         ## 行为
 
         - 连接失败或超时时步骤报错
-        - 建立的连接以 `ConnectionName` 为标识名保存在**插件内部的全局 TCP 连接池**（非运行期资源表），供 Ethernet_TcpSend / Ethernet_TcpReceive / Ethernet_TcpClose 步骤取用；连接池不随序列结束自动释放，必须显式调用 Ethernet_TcpClose
-        - 用同一个 ConnectionName 重复打开时：**静默替换**——旧连接会被自动关闭并释放，再建立新连接，不会报错
+        - 连接保存在执行级资源表，不同执行不共享同名连接；序列清理会请求关闭，正常流程仍应显式等待 Ethernet_TcpClose 完成
+        - 用同一个 ConnectionName 重复打开时：先确认旧连接释放再打开；并发打开/关闭按代次控制，被取代的建立操作报错，不能迟到登记
 
         ## 相关插件
 
@@ -38,7 +38,7 @@ public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
         - `Ethernet_TcpClose`：关闭连接
         """;
 
-    public override IStepExecutor CreateExecutor() => new TcpOpenExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("Ethernet", () => new TcpOpenExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

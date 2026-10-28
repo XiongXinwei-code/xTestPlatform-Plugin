@@ -46,6 +46,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="任务名称" VerticalAlignment="Center"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" Margin="0,0,0,8"
@@ -57,19 +58,25 @@
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SamplesPerChannel, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="采样模式" VerticalAlignment="Center"/>
                 <ComboBox Grid.Row="3" Grid.Column="1" ItemsSource="{Binding Source={StaticResource AiSampleModeValues}}" SelectedItem="{Binding SampleMode}" Width="200" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="配置总期限(ms)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="4" Grid.Column="1" Margin="0,8,0,0"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="时钟配置">
+        <syncfusion:TabItemExt Header="时钟配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="时钟源" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" Width="300" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="AI 时钟源" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ClockSource, UpdateSourceTrigger=PropertyChanged}" ToolTip="空表示 AI 内部时钟；每路 CI 独立任务固定使用同设备 /设备名/ai/SampleClock，驱动不支持则配置失败；跨设备当前明确拒绝。" Width="300" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="触发配置">
+        <syncfusion:TabItemExt Header="触发配置"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12" VerticalAlignment="Top">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -87,13 +94,15 @@
                 <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Source={StaticResource TriggerEdgeValues}}" SelectedItem="{Binding TriggerEdge}" Width="200" HorizontalAlignment="Left"/>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="AI 通道">
+        <syncfusion:TabItemExt Header="AI 通道"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <DataGrid Grid.Row="0" ItemsSource="{Binding AiChannels}" AutoGenerateColumns="False" CanUserAddRows="False">
+                <DataGrid x:Name="AiChannelsGrid" Grid.Row="0" ItemsSource="{Binding AiChannels}" AutoGenerateColumns="False" CanUserAddRows="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="物理通道" Binding="{Binding PhysicalChannel}" Width="*"/>
                         <DataGridTextColumn Header="列名" Binding="{Binding ColumnName}" Width="100"/>
@@ -108,18 +117,21 @@
                 </StackPanel>
             </Grid>
         </syncfusion:TabItemExt>
-        <syncfusion:TabItemExt Header="编码器通道">
+        <syncfusion:TabItemExt Header="编码器通道"
+                               Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_sync_config.png"
+                               ImageHeight="20" ImageWidth="20">
             <Grid Margin="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <DataGrid Grid.Row="0" ItemsSource="{Binding EncoderChannels}" AutoGenerateColumns="False" CanUserAddRows="False">
+                <DataGrid x:Name="EncoderChannelsGrid" Grid.Row="0" ItemsSource="{Binding EncoderChannels}" AutoGenerateColumns="False" CanUserAddRows="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Counter 通道" Binding="{Binding CounterChannel}" Width="*"/>
                         <DataGridTextColumn Header="列名" Binding="{Binding ColumnName}" Width="100"/>
                         <DataGridComboBoxColumn Header="解码类型" SelectedItemBinding="{Binding DecodingType}" ItemsSource="{Binding Source={StaticResource EncoderDecodingTypeValues}}" Width="80"/>
                         <DataGridTextColumn Header="PPR" Binding="{Binding PulsesPerRevolution}" Width="60"/>
+                        <DataGridCheckBoxColumn Header="启用 Z 索引" Binding="{Binding ZIndexEnable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
                     </DataGrid.Columns>
                 </DataGrid>
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">

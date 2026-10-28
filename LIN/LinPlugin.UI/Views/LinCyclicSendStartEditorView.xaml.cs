@@ -24,6 +24,7 @@ public partial class LinCyclicSendStartEditorView : UserControl, IRefreshableEdi
         InitializeComponent();
         ViewModel = new LinCyclicSendStartViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.Flush();
     }
 
     public void RefreshFromStep(Step step)
@@ -36,8 +37,8 @@ public partial class LinCyclicSendStartEditorView : UserControl, IRefreshableEdi
 
     private void OnRemoveFrame(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.Frames.Count > 0)
-            ViewModel.RemoveFrame(ViewModel.Frames[^1]);
+        if (FramesGrid.SelectedItem is LIN.Models.LinCyclicFrameItem selected)
+            ViewModel.RemoveFrame(selected);
     }
 }
 

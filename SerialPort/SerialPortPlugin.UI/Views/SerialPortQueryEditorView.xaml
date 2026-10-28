@@ -61,11 +61,13 @@
 						  Text="{Binding Terminator, UpdateSourceTrigger=PropertyChanged}" />
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-				<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+				<TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" ToolTip="已声明的 string 完整变量路径，如 Locals.rx；留空只返回结果。发送查询前预检，输出错误时不发设备请求。" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 			</Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>
-		<syncfusion:TabItemExt Header="Write Data">
+		<syncfusion:TabItemExt Header="Write Data"
+                               Image="pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_query.png"
+                               ImageHeight="20" ImageWidth="20">
 			<Grid Margin="16">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="120"/>

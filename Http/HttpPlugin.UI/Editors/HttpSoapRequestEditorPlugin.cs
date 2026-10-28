@@ -27,6 +27,8 @@ public sealed class HttpSoapRequestEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (HttpSoapRequestSetting)new HttpSoapRequestPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!Enum.IsDefined(s.SoapVersion))
+            errors.Add(StepSettingError.Error("HTTP_039", "SOAP 版本无效"));
 
         if (string.IsNullOrWhiteSpace(s.ClientName))
             errors.Add(StepSettingError.Error("HTTP_040", "客户端标识名不能为空"));

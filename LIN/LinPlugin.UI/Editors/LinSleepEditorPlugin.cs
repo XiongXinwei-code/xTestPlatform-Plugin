@@ -27,6 +27,8 @@ public sealed class LinSleepEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (LinSleepSetting)new LinSleepPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        if (!Enum.IsDefined(s.SleepMode)) errors.Add(StepSettingError.Error("LIN_MODE", "睡眠模式无效"));
+        if (s.TimeoutMs <= 0) errors.Add(StepSettingError.Error("LIN_TIMEOUT", "驱动调用超时必须大于 0 ms"));
 
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
             errors.Add(StepSettingError.Error("LIN_SL01", "连接标识名不能为空"));

@@ -27,6 +27,7 @@ public partial class VisaCloseEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new VisaCloseViewModel();
 		DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 
 	public void RefreshFromStep(Step step)

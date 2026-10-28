@@ -34,6 +34,7 @@ public partial class TcpReceiveEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new TcpReceiveViewModel();
         DataContext = ViewModel;
+        Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 
     public void RefreshFromStep(Step step)

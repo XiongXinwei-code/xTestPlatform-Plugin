@@ -5,8 +5,8 @@ namespace NiDaq.Helpers;
 
 internal static class ExpressionHelper
 {
-    /// <summary>对表达式字段求值并返回字符串，求值失败时回退到原始表达式字符串</summary>
+    /// <summary>返回求值结果；null 为明确空值，不把表达式源码当作设备/任务标识。</summary>
     public static async Task<string> EvalStringAsync(
         this IExpressionEvaluator evaluator, string expression, IExecutionContext context)
-        => await evaluator.EvaluateAsync<string>(expression, context) ?? expression;
+        => await evaluator.EvaluateAsync<string>(expression, context) ?? "";
 }

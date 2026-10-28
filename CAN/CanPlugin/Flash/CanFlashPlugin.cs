@@ -38,17 +38,17 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | MappedEndAddress | string([ExpressionField]) | 条件必填 | 空 | 映射范围结束地址（含），仅 UseMappedRange=true 时使用，求值结果为 string |
         | GapFillByte | string([ExpressionField]) | 否 | 0 | 映射范围内 HEX/S-Record 地址空洞的填充字节（0x00~0xFF），求值结果为 string |
         | AddressAndLengthFormatId | string([ExpressionField]) | 否 | "0x44" | 地址与长度格式标识，高半字节为长度字节数、低半字节为地址字节数；用于擦除例程与 0x34 请求下载，求值结果为 string |
-        | DataFormatId | string([ExpressionField]) | 否 | "0x00" | 数据格式标识，0x00 表示不压缩不加密，求值结果为 string |
+        | DataFormatId | string([ExpressionField]) | 否 | "0x00" | 数据格式标识 0~0xFF，0x00 表示不压缩不加密，求值结果为 string |
         | EraseBeforeDownload | bool | 否 | true | 是否在下载前执行擦除例程 |
-        | EraseRoutineId | string([ExpressionField]) | 否 | "0xFF00" | 擦除例程 ID，求值结果为 string |
+        | EraseRoutineId | string([ExpressionField]) | 否 | "0xFF00" | 擦除例程 ID 0~0xFFFF，求值结果为 string |
         | EraseWithAddressAndLength | bool | 否 | true | true 时擦除请求附带 [ALFID][地址][长度]；false 时执行无参数擦除；UseMappedRange=true 时强制带参数 |
-        | EraseTimeoutMs | int | 否 | 30000 | 擦除超时毫秒数 |
+        | EraseTimeoutMs | int | 否 | 30000 | 擦除超时毫秒数，必须大于 0 |
         | MaxBlockSize | int | 否 | 512 | 单块最大字节数，实际不超过 ECU 在 0x34 响应中允许的长度；0 表示完全采用 ECU 返回值 |
         | PreDownloadDelayMs | int | 否 | 0 | 擦除与下载前等待时间，用于等待 FlashDriver 激活 |
         | CheckMode | 枚举 | 否 | Crc32 | 可选值：None, Crc32, Checksum |
-        | CheckRoutineId | string([ExpressionField]) | 否 | "0x0202" | 校验例程 ID，求值结果为 string |
+        | CheckRoutineId | string([ExpressionField]) | 否 | "0x0202" | 校验例程 ID 0~0xFFFF，求值结果为 string；即使最后才执行校验，也在首次擦除/下载前求值验证 |
         | BlockRetryCount | int | 否 | 2 | 单块传输失败后的重试次数 |
-        | InterBlockDelayMs | int | 否 | 0 | 每块之间的间隔毫秒数 |
+        | InterBlockDelayMs | int | 否 | 0 | 每块之间的间隔毫秒数，不得为负数 |
         | ProgressVariable | string(VariablePathField) | 否 | 空 | 进度变量名，写入类型为 int（0~100）；如 Locals.progress |
         | ResultVariable | string(VariablePathField) | 否 | 空 | 结果变量名，写入类型为 int（已烧录总字节数）；如 Locals.result |
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
@@ -57,6 +57,8 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         | FrameType | 枚举 | 否 | Standard | CAN ID 类型：Standard（11-bit）或 Extended（29-bit） |
         | UseFdFrame | bool | 否 | false | 是否按 CAN FD/BRS 发送 ISO-TP；启用后分段帧最大使用 64 字节数据区 |
         | ResponseTimeoutMs | int | 否 | 5000 | 普通请求的响应超时毫秒数 |
+        | TransactionTimeoutMs | int | 否 | 60000 | 单个 UDS 事务总期限，包含排队、发送、响应及 NRC 0x78；必须大于 0，不是整个 Flash 步骤期限 |
+        | MaxResponseBytes | int | 否 | 4194304 | ISO-TP 响应重组上限（字节），必须大于 0；连接与固件页可配置，超限在分配前拒绝；不是下载块大小 |
 
         ## 行为
 
@@ -80,7 +82,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
         - `UDS_RawRequest`：烧录完成后发送 ECU 复位（0x11 0x01）
         """;
 
-    public override IStepExecutor CreateExecutor() => new CanFlashExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("CAN", () => new CanFlashExecutor());
 
     protected override CanFlashSetting MigrateSetting(byte[] data, int fromVersion)
     {

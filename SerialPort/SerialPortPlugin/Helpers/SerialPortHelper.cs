@@ -1,13 +1,75 @@
-﻿using SerialPort.Models;
-using SysSerialPort = System.IO.Ports.SerialPort;
+using SerialPort.Models;
+using xTestPlatform.Core.Engine;
 
 namespace SerialPort.Helpers;
 
 public static class SerialPortHelper
 {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> RegistryLocks = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, Dictionary<string, long>> CloseGenerations = new();
+    public static object RegistryLock(object resources) => RegistryLocks.GetValue(resources, static _ => new object());
+    internal static long GetCloseGeneration(object resources, string key)
+    {
+        lock (RegistryLock(resources)) return CloseGenerations.GetOrCreateValue(resources).GetValueOrDefault(key);
+    }
+    internal static void MarkCloseRequested(object resources, string key)
+    {
+        lock (RegistryLock(resources))
+        {
+            var generations = CloseGenerations.GetOrCreateValue(resources);
+            generations[key] = generations.GetValueOrDefault(key) + 1;
+        }
+    }
+    internal static void ThrowIfOpenSuperseded(object resources, string key, long generation)
+    {
+        if (GetCloseGeneration(resources, key) != generation)
+            throw new InvalidOperationException("串口建立期间收到同名关闭请求，旧代次不得迟到登记");
+    }
     private const string PortKeyPrefix = "__SerialPort_";
 
     public static string GetPortKey(string portName) => $"{PortKeyPrefix}{portName}";
+
+    public static string GetPhysicalPortKey(string portName)
+    {
+        var name = portName.Trim().TrimEnd(':');
+        if (name.StartsWith(@"\\.\", StringComparison.Ordinal)) name = name[4..];
+        if (name.StartsWith("COM", StringComparison.OrdinalIgnoreCase) && int.TryParse(name.AsSpan(3), out int number)) name = "COM" + number;
+        if (name.Length == 0) throw new ArgumentException("串口物理名称不能为空");
+        return "SerialPort:" + name.ToUpperInvariant();
+    }
+    public static int RemainingBudget(long startedAt, int timeoutMs)
+    {
+        if (timeoutMs <= 0) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
+        double remaining = timeoutMs - System.Diagnostics.Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+        if (remaining <= 0) throw new TimeoutException($"串口打开/关闭配置总期限 {timeoutMs} ms 已到，旧资源收尾不另加固定等待");
+        return (int)Math.Ceiling(remaining);
+    }
+
+    /// <summary>只接受明确作用域下的目标路径，不把普通字符串当隐式变量名。</summary>
+    public static bool IsScopedOutputPath(string path)
+    {
+        var parts = path.Split('.', 2);
+        return parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[1]) && parts[0].Length > 0 &&
+            (char.IsLetter(parts[0][0]) || parts[0][0] == '_') && parts[0].All(c => char.IsLetterOrDigit(c) || c == '_');
+    }
+
+    /// <summary>留空保持旧行为不写变量；非空在通信前验证声明与字符串类型。</summary>
+    public static void ValidateStringOutput(IExecutionContext context, string path)
+        => ValidateStringOutput(context, path, static () => { });
+
+    internal static void ValidateStringOutput(IExecutionContext context, string path, Action ensureActive)
+    {
+        ensureActive();
+        if (string.IsNullOrWhiteSpace(path)) return;
+        if (!IsScopedOutputPath(path)) throw new ArgumentException($"串口输出必须为带作用域的完整变量路径：{path}");
+        bool exists = context.HasVariable(path);
+        ensureActive();
+        if (!exists) throw new ArgumentException($"串口输出变量 {path} 未声明或路径不存在；请声明 string 变量，或留空不写入");
+        var value = context.GetVariable(path);
+        ensureActive();
+        if (value is not (null or string))
+            throw new ArgumentException($"串口输出变量 {path} 类型不匹配，需要 string");
+    }
 
     /// <summary>
     /// 将用户配置的终止符归一化为真实字符（同时支持转义文本 \n、\r、\r\n、\t 与真实字符）；
@@ -27,7 +89,7 @@ public static class SerialPortHelper
             SerialPortDataFormat.Hex => HexToBytes(data),
             SerialPortDataFormat.Bin => BinToBytes(data),
             SerialPortDataFormat.String => System.Text.Encoding.UTF8.GetBytes(data),
-            _ => System.Text.Encoding.UTF8.GetBytes(data)
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "不支持的串口数据格式，未发送任何字节")
         };
     }
 
@@ -38,7 +100,7 @@ public static class SerialPortHelper
             SerialPortDataFormat.Hex => BitConverter.ToString(data).Replace("-", " "),
             SerialPortDataFormat.Bin => string.Join(" ", data.Select(b => Convert.ToString(b, 2).PadLeft(8, '0'))),
             SerialPortDataFormat.String => System.Text.Encoding.UTF8.GetString(data),
-            _ => System.Text.Encoding.UTF8.GetString(data)
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "不支持的串口数据格式")
         };
     }
 
@@ -66,147 +128,4 @@ public static class SerialPortHelper
         return bytes;
     }
 
-    /// <summary>
-    /// 带真实超时的串口写入。
-    /// SerialStream 的 WriteAsync 在 Windows 上会忽略 CancellationToken 且不受 WriteTimeout 约束，
-    /// 硬件流控未就绪时会永久阻塞；同步 Write 才会遵守 WriteTimeout 并抛出 TimeoutException。
-    /// 超时时抛出 <see cref="TimeoutException"/>，用户取消时抛出 <see cref="OperationCanceledException"/>。
-    /// </summary>
-    public static async Task WriteWithTimeoutAsync(
-        SysSerialPort port, byte[] data, int timeoutMs, CancellationToken cancellationToken)
-    {
-        if (timeoutMs <= 0 && timeoutMs != SysSerialPort.InfiniteTimeout)
-            throw new ArgumentOutOfRangeException(nameof(timeoutMs), $"写超时必须大于 0 或为 -1（不超时），当前值: {timeoutMs}");
-        port.WriteTimeout = timeoutMs;
-        await RunWithTimeoutAsync(
-            () => { port.Write(data, 0, data.Length); return 0; },
-            timeoutMs, cancellationToken);
-    }
-
-    /// <summary>
-    /// 按固定字节数或终止符读取串口数据。
-    /// timeoutMs 为 -1 时表示永不超时（仅可由取消终止）；终止符按原始字节匹配，与显示格式无关。
-    /// 超时或未满足结束条件时抛出 <see cref="TimeoutException"/>。
-    /// </summary>
-    public static async Task<byte[]> ReadFrameAsync(
-        SysSerialPort port, int readBytes, string? terminatorText, int timeoutMs, string operationName, CancellationToken cancellationToken)
-    {
-        var infinite = timeoutMs == SysSerialPort.InfiniteTimeout;
-        var deadline = infinite ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        int Remaining() => infinite ? SysSerialPort.InfiniteTimeout : (int)(deadline - DateTime.UtcNow).TotalMilliseconds;
-
-        if (readBytes > 0)
-        {
-            var buffer = new byte[readBytes];
-            int totalRead = 0;
-            try
-            {
-                while (totalRead < readBytes)
-                {
-                    var remaining = Remaining();
-                    if (!infinite && remaining <= 0) break;
-
-                    int read = await ReadWithTimeoutAsync(
-                        port, buffer, totalRead, readBytes - totalRead, remaining, cancellationToken);
-                    if (read == 0) break;
-                    totalRead += read;
-                }
-            }
-            catch (TimeoutException)
-            {
-            }
-
-            if (totalRead < readBytes)
-                throw new TimeoutException(
-                    $"{operationName}超时({timeoutMs}ms): 需读 {readBytes} 字节，实际只读到 {totalRead} 字节");
-            return buffer;
-        }
-
-        var terminator = NormalizeTerminator(terminatorText);
-        var terminatorBytes = System.Text.Encoding.UTF8.GetBytes(terminator);
-        var needTerminator = terminatorBytes.Length > 0;
-
-        if (!needTerminator && infinite)
-            throw new InvalidOperationException($"{operationName}失败: 未配置读取字节数和终止符时，读取超时不能为 -1（永不超时）");
-
-        using var ms = new MemoryStream();
-        var temp = new byte[1024];
-        var matched = false;
-
-        while (true)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var remaining = Remaining();
-            if (!infinite && remaining <= 0) break;
-
-            int read;
-            try
-            {
-                read = await ReadWithTimeoutAsync(port, temp, 0, temp.Length, remaining, cancellationToken);
-            }
-            catch (TimeoutException)
-            {
-                break;
-            }
-            if (read == 0) break;
-            ms.Write(temp, 0, read);
-
-            if (needTerminator && ms.GetBuffer().AsSpan(0, (int)ms.Length).IndexOf(terminatorBytes) >= 0)
-            {
-                matched = true;
-                break;
-            }
-        }
-
-        var data = ms.ToArray();
-
-        if (needTerminator && !matched)
-            throw new TimeoutException(
-                $"{operationName}超时({timeoutMs}ms): 未收到终止符，已收到 {data.Length} 字节");
-
-        if (data.Length == 0)
-            throw new TimeoutException($"{operationName}超时({timeoutMs}ms): 未收到任何数据");
-
-        return data;
-    }
-
-    /// <summary>
-    /// 带真实超时的串口读取，返回本次读到的字节数（同步 Read 至少返回 1 字节，超时抛 TimeoutException）。
-    /// 原因同 <see cref="WriteWithTimeoutAsync"/>：SerialStream.ReadAsync 不响应 CancellationToken。
-    /// </summary>
-    public static Task<int> ReadWithTimeoutAsync(
-        SysSerialPort port, byte[] buffer, int offset, int count, int timeoutMs, CancellationToken cancellationToken)
-    {
-        port.ReadTimeout = timeoutMs;
-        return RunWithTimeoutAsync(() => port.Read(buffer, offset, count), timeoutMs, cancellationToken);
-    }
-
-    /// <summary>
-    /// 在后台线程执行阻塞式串口操作，并附加一层软超时兜底：
-    /// 即使底层驱动无视 ReadTimeout/WriteTimeout，步骤也能超时返回而不会卡死整条序列。
-    /// </summary>
-    private static async Task<int> RunWithTimeoutAsync(
-        Func<int> operation, int timeoutMs, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var task = Task.Run(operation, CancellationToken.None);
-
-        // 留出余量，优先让驱动层自身的超时机制抛出 TimeoutException
-        var guard = timeoutMs > 0
-            ? TimeSpan.FromMilliseconds(timeoutMs + 1000)
-            : Timeout.InfiniteTimeSpan;
-
-        try
-        {
-            return await task.WaitAsync(guard, cancellationToken);
-        }
-        catch (TimeoutException)
-        {
-            // 底层未按时返回，标记任务异常避免 UnobservedTaskException
-            _ = task.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
-            throw new TimeoutException($"串口操作超时({timeoutMs}ms)，端口无响应");
-        }
-    }
 }

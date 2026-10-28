@@ -40,7 +40,7 @@ public sealed class VisaQueryPlugin : StepPluginBase<VisaQuerySetting>
         - `VISA_Write` / `VISA_Read`：单独的写入/读取操作
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaQueryExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaQueryExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

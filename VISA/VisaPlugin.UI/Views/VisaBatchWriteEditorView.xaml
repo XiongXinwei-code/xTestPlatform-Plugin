@@ -15,16 +15,19 @@
             <DockPanel Margin="16">
                 <!-- 连接名称 -->
                 <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="140"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="连接名称:" VerticalAlignment="Center"/>
                     <expr:ExpressionTextBox Grid.Column="1"
-                        ScriptText="{Binding ConnectionName, Mode=TwoWay}"
+                        ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                </Grid>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="事务总期限(ms，0=按命令数计算)" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                <TextBox x:Name="LifecycleTimeoutBox" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" ToolTip="包含登记等待、旧资源收尾及本次SDK操作；停止等待不等于原生调用已退出。" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0"/>
+            </Grid>
 
                 <!-- 工具栏 -->
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
@@ -41,7 +44,7 @@
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <expr:ExpressionTextBox
-                                        ScriptText="{Binding Command, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        ScriptText="{Binding Command, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
                                         SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                                 </DataTemplate>

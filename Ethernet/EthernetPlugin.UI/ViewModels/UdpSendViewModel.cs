@@ -22,6 +22,11 @@ public class UdpSendViewModel : EthernetViewModelBase<UdpSendSetting>
         get => Setting?.LocalPort ?? 0;
         set { if (Setting == null || Setting.LocalPort == value) return; Setting.LocalPort = value; OnPropertyChanged(); QueueSave(); }
     }
+    public int SendTimeoutMs
+    {
+        get => Setting?.SendTimeoutMs ?? 3000;
+        set { if (Setting == null || Setting.SendTimeoutMs == value) return; Setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); }
+    }
     public string Data
     {
         get => Setting?.Data ?? "\"01 02 03\"";

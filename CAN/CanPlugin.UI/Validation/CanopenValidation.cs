@@ -54,9 +54,15 @@ internal static class CanopenValidation
     }
 
     /// <summary>EDS 路径仅用于编辑期选择对象，不存在时给出警告</summary>
-    public static void EdsFile(string path, List<StepSettingError> errors)
+    public static async Task EdsFileAsync(string path, List<StepSettingError> errors, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(path) && !System.IO.File.Exists(path))
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(path)) return;
+        // File.Exists can wait on an offline network share. Never execute it on
+        // the validation/UI thread; cancellation ends only this caller's wait.
+        bool exists = await Task.Run(() => System.IO.File.Exists(path)).WaitAsync(cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!exists)
             errors.Add(StepSettingError.Warning("CO_EDS", $"EDS 文件不存在: {path}"));
     }
 }

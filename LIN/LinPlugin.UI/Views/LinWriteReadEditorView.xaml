@@ -16,7 +16,7 @@
 		<syncfusion:TabItemExt Header="LIN WriteRead"
 							   Image="pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_write_read.png"
 							   ImageHeight="20" ImageWidth="20">
-			<Grid Margin="16">
+			<Grid Margin="16" ToolTip="NI-XNET 无 LDF 模式：仅 LIN 2.x 主节点、普通帧 Enhanced 校验；Classic、诊断数据帧及从节点尚不支持。">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="150"/>
 					<ColumnDefinition Width="*"/>
@@ -28,7 +28,10 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
+				    <RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
+				<TextBlock Grid.Row="6" Grid.Column="0" Text="请求发送超时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+				<TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SendTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认3000，必须大于0；超时保留未退出任务和原生调用，不冒充停止成功。"/>
 
 				<TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
@@ -51,7 +54,7 @@
 				<TextBlock Grid.Row="3" Grid.Column="0" Text="ChecksumType:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
 						  SelectedIndex="{Binding ChecksumType, Converter={StaticResource EnumToIntConverter}}">
-					<ComboBoxItem Content="Classic"/>
+					<ComboBoxItem Content="Classic（需 LDF，暂不支持）" IsEnabled="False"/>
 					<ComboBoxItem Content="Enhanced"/>
 				</ComboBox>
 
@@ -61,7 +64,7 @@
 
 				<TextBlock Grid.Row="5" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
 				<TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
-						 Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+						 Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="已声明的 string 变量完整路径，如 Locals.result；留空不写入。发送请求前校验。"/>
 			</Grid>
 		</syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>

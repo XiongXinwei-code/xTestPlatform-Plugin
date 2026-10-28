@@ -12,6 +12,7 @@
         <syncfusion:TabItemExt Header="UDS ReadDTC"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_read_dtc.png"
                                            ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="140"/>
@@ -44,17 +45,28 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,8">
+                    <TextBox Text="{Binding ResponseTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Text="单个事务总超时 (ms):" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding TransactionTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="包含排队、发送、响应和 NRC 0x78；不是整个 Flash 步骤期限。必须大于 0。"/>
+                    <TextBlock Text="最大响应字节数（ISO-TP）:" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding MaxResponseBytes, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" Width="200" HorizontalAlignment="Left"
+                             ToolTip="必须大于 0；默认 4194304（4 MiB）。超限响应在分配重组缓冲区之前拒绝。"/>
+                    <TextBlock Text="默认 4194304（4 MiB），按 ECU 最大响应设置；不是下载分块大小。" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                </StackPanel>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="SubFunction:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SubFunction, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding SubFunction, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         ToolTip="子功能必须为 0～255 的整数；超出范围不会保存。"/>
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Status Mask:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding StatusMask, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding StatusMask, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                         ToolTip="状态掩码必须为 0～255 的整数；超出范围不会保存。"/>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

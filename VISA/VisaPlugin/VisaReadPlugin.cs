@@ -39,7 +39,7 @@ public sealed class VisaReadPlugin : StepPluginBase<VisaReadSetting>
         - `VISA_Query`：写+读一体操作
         """;
 
-    public override IStepExecutor CreateExecutor() => new VisaReadExecutor();
+    public override IStepExecutor CreateExecutor() => PluginCommon.ExecutionScopedExecutor.Create("VISA", () => new VisaReadExecutor());
 
     public override string GenerateDescription(byte[] setting)
     {

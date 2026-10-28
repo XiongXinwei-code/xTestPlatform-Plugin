@@ -10,6 +10,8 @@ public interface ICia402AxisTransport : IDisposable
 {
     /// <summary>允许在控制流程的单次事务之间独立读取；不表示底层 I/O 可并行。默认拒绝，后端须显式声明。</summary>
     bool SupportsConcurrentMonitoring => false;
+    /// <summary>反馈仅被动接收、不发送协议请求；Task 退出后可安全重试，但仍须尊重后端失效保护。旧后端默认不声明。</summary>
+    bool FeedbackIsPassiveReceive => false;
     Task<byte[]> ReadObjectAsync(ushort index, byte subIndex, CancellationToken ct);
     Task WriteObjectAsync(ushort index, byte subIndex, byte[] value, CancellationToken ct);
     Task WriteTargetAsync(OperationMode mode, long target, ushort controlWord, CancellationToken ct);

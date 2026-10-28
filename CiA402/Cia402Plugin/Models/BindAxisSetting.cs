@@ -1,4 +1,5 @@
 using MessagePack;
+using System.Collections.ObjectModel;
 using xTestPlatform.Core.Models.StepSettings;
 
 namespace CiA402.Models;
@@ -15,6 +16,7 @@ public sealed class BindAxisSetting : AxisSetting
 	public string SlaveAddress { get; set; } = "0";
 	public int ObjectIndexOffset { get; set; }
 	public int CommunicationTimeoutMs { get; set; } = 1000;
+	public int ShutdownTimeoutMs { get; set; } = 2000;
 	public int FeedbackMaxAgeMs { get; set; } = 100;
 	public int CspPdoNumber { get; set; }
 	public string CspPdoLayout { get; set; } = "0x607A:0:32";
@@ -24,6 +26,8 @@ public sealed class BindAxisSetting : AxisSetting
 	public string CstPdoLayout { get; set; } = "0x6071:0:16";
 	public int FeedbackPdoNumber { get; set; }
 	public string FeedbackPdoLayout { get; set; } = "0x6041:0:16,0x6064:0:32,0x6077:0:16";
+	public bool UseMultipleFeedbackPdos { get; set; }
+	public ObservableCollection<FeedbackPdoSetting> FeedbackPdos { get; set; } = [];
 	public int DiagnosticIndex { get; set; }
 	public int DiagnosticSubIndex { get; set; }
 	public int DiagnosticBytes { get; set; } = 2;

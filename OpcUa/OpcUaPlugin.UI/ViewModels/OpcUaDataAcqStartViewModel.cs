@@ -9,8 +9,9 @@ namespace OpcUa.UI.ViewModels;
 
 public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
 {
-    private const int SaveDebounceMs = 200;
-    private CancellationTokenSource? _saveCts;
+    private readonly EditorSaveCoordinator _save = new();
+    public Exception? LastSaveError => _save.LastError;
+    public void FlushPendingSave() => _save.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
@@ -18,11 +19,12 @@ public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
 
     public ObservableCollection<OpcUaDataAcqItem> Items { get; private set; } = new();
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { FlushPendingSave(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }
 
     private void Load()
     {
+        _save.Detach();
         if (_serializer == null || _step == null) return;
         _suppressSave = true;
         try
@@ -31,6 +33,7 @@ public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
                 ? (OpcUaDataAcqStartSetting)_serializer.Deserialize(d, _step.StepSetting.SettingVersion)
                 : (OpcUaDataAcqStartSetting)_serializer.CreateDefault();
             Items = _setting.Items;
+            _save.Observe(Items, QueueSave);
             OnPropertyChanged(string.Empty);
         }
         finally { _suppressSave = false; }
@@ -39,9 +42,8 @@ public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
     private void QueueSave()
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
-        _saveCts?.Cancel();
-        var cts = _saveCts = new CancellationTokenSource();
-        _ = Task.Run(async () => { try { await Task.Delay(SaveDebounceMs, cts.Token); _step.StepSetting.Setting = _serializer.Serialize(_setting); } catch (TaskCanceledException) { } });
+        var step = _step; var setting = _setting; var serializer = _serializer;
+        _save.Queue(() => step.StepSetting.Setting = serializer.Serialize(setting));
     }
 
     public string TaskName { get => _setting?.TaskName ?? ""; set { if (_setting == null || _setting.TaskName == value) return; _setting.TaskName = value; OnPropertyChanged(); QueueSave(); } }
@@ -53,6 +55,8 @@ public class OpcUaDataAcqStartViewModel : INotifyPropertyChanged
     public void AddItem() { Items.Add(new OpcUaDataAcqItem()); QueueSave(); }
     public void RemoveItem(OpcUaDataAcqItem item) { Items.Remove(item); QueueSave(); }
     public void NotifyItemChanged() => QueueSave();
+
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 5000; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
