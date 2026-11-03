@@ -9,6 +9,7 @@ namespace Http.Models;
 /// <summary>
 /// 提取映射项，把源文档中某个路径的值写入指定变量
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class HttpExtractItem : INotifyPropertyChanged
 {
@@ -38,6 +39,9 @@ public class HttpExtractItem : INotifyPropertyChanged
         set => SetProperty(ref _defaultValue, value);
     }
 
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
@@ -51,6 +55,7 @@ public class HttpExtractItem : INotifyPropertyChanged
 /// <summary>
 /// JSON 提取步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class HttpJsonExtractSetting
 {

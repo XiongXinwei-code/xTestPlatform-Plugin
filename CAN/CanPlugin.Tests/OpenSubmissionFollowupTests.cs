@@ -63,7 +63,7 @@ public sealed class OpenSubmissionFollowupTests
         {
             var result = await new CanOpenExecutor(_ => raw).ExecuteAsync(context, caller.Token).WaitAsync(guard.Token);
             Assert.True(reachedBoundary);
-            Assert.Equal(transition == "normal" ? TestStatus.Completed : transition == "cancel" ? TestStatus.Aborted : TestStatus.Error,
+            Assert.Equal(transition == "normal" ? TestStatus.Passed : transition == "cancel" ? TestStatus.Aborted : TestStatus.Error,
                 result.StepResult.Status);
             Assert.Equal(transition == "normal" ? 1 : 0, raw.Opens);
             if (transition == "marker") Assert.Contains("执行资源作用域已回收", result.StepResult.Error!.Message);

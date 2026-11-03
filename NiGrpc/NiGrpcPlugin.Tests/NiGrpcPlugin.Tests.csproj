@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0-windows</TargetFramework><UseWPF>true</UseWPF><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup><FrameworkReference Include="Microsoft.AspNetCore.App" /><ProjectReference Include="../NiGrpcPlugin/NiGrpcPlugin.csproj" /><ProjectReference Include="../NiGrpcPlugin.UI/NiGrpcPlugin.UI.csproj" /><PackageReference Include="Microsoft.NET.Test.Sdk" /><PackageReference Include="xunit" /><PackageReference Include="xunit.runner.visualstudio" /><PackageReference Include="Xunit.StaFact" /></ItemGroup>
+</Project>

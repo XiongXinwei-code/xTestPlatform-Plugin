@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class TcpOpenPlugin : StepPluginBase<TcpOpenSetting>
+public sealed class TcpOpenPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<TcpOpenSetting>
 {
     public override string StepTypeId  => "Ethernet.TcpOpen";
-    public override string DisplayName => "Ethernet_TCP_Open";
+    public override string DisplayName => "Ethernet_TCP_Connection_Open";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_open.png";
 

@@ -19,6 +19,7 @@ public sealed class LinWakeupEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new LinWakeupPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

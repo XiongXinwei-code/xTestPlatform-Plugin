@@ -20,6 +20,7 @@ public sealed class ModbusReadEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new ModbusReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

@@ -21,6 +21,7 @@ public sealed class CanopenPdoReceiveEditorPlugin : IStepEditorPlugin
         var view = new CanopenPdoReceiveEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

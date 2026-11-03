@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace SerialPort;
 
-public sealed class SerialPortOpenPlugin : StepPluginBase<SerialPortOpenSetting>
+public sealed class SerialPortOpenPlugin : SerialPort.PluginInfrastructure.StrictStepPluginBase<SerialPortOpenSetting>
 {
     public override string StepTypeId => "IO.SerialPortOpen";
-    public override string DisplayName => "SerialPort_Open";
+    public override string DisplayName => "SerialPort_Connection_Open";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_open.png";
 

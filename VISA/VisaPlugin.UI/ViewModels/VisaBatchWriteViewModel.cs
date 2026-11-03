@@ -13,6 +13,7 @@ namespace VISA.UI.ViewModels;
 public class VisaBatchWriteViewModel : INotifyPropertyChanged
 {
     private readonly EditorSaveCoordinator _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public Exception? LastSaveError => _save.LastError;
     public void FlushPendingSave() => _save.Flush();
     private bool _suppressSave;
@@ -74,7 +75,7 @@ public class VisaBatchWriteViewModel : INotifyPropertyChanged
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
         var step = _step; var setting = _setting; var serializer = _serializer;
-        _save.Queue(() => step.StepSetting.Setting = serializer.Serialize(setting));
+        _save.Queue(() => { step.StepSetting.Setting = serializer.Serialize(setting); step.StepSetting.SettingVersion = serializer.SettingVersion; });
     }
 
     public int TimeoutMs { get => _setting?.TimeoutMs ?? 0; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }

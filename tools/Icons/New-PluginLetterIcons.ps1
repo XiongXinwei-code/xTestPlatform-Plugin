@@ -69,6 +69,26 @@ $Badges = @{
 }
 
 $Groups = [ordered]@{
+	NiGrpc = @{
+		Text = 'NI'
+		Color = C 45 100 170
+		Dir = 'NiGrpc\NiGrpcPlugin.UI\Resources\Icons'
+		Icons = [ordered]@{
+			nigrpc_connect = 'open'; nigrpc_daqopen = 'open'; nigrpc_xnetopen = 'open'
+			nigrpc_daqaivoltage = 'config'; nigrpc_daqaovoltage = 'config'; nigrpc_daqsampleclock = 'config'
+			nigrpc_daqstart = 'start'; nigrpc_daqstop = 'stop'; nigrpc_daqreadanalog = 'read'; nigrpc_daqwriteanalog = 'write'
+			nigrpc_xnetstart = 'start'; nigrpc_xnetstop = 'stop'; nigrpc_xnetreadcan = 'read'; nigrpc_xnetwritecan = 'write'
+			nigrpc_xnetreadstate = 'read'; nigrpc_xnetgetproperty = 'read'; nigrpc_xnetsetproperty = 'write'
+			nigrpc_closesession = 'close'; nigrpc_disconnect = 'close'
+			nigrpc_daqdiconfig = 'config'; nigrpc_daqdoconfig = 'config'
+			nigrpc_daqreaddigital = 'read'; nigrpc_daqwritedigital = 'write'
+			nigrpc_daqcounteredgesconfig = 'config'; nigrpc_daqcounterfrequencyconfig = 'config'; nigrpc_daqcounterpulseconfig = 'config'
+			nigrpc_daqreadcounteru32 = 'read'; nigrpc_daqreadcounterf64 = 'read'
+			nigrpc_daqangularencoderconfig = 'config'; nigrpc_daqlinearencoderconfig = 'config'
+			nigrpc_daqimplicittiming = 'config'; nigrpc_daqstarttrigger = 'config'; nigrpc_daqexportsignal = 'config'
+			nigrpc_daqtimingsource = 'config'; nigrpc_daqtimingrate = 'config'; nigrpc_daqwritecounterfrequency = 'write'
+		}
+	}
 	CAN = @{
 		Text  = 'CAN'
 		Color = C 0 120 150

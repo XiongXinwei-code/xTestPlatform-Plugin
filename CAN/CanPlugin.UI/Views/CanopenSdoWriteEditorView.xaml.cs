@@ -11,7 +11,7 @@ namespace CAN.UI.Views;
 public partial class CanopenSdoWriteEditorView : UserControl, IRefreshableEditor
 {
     public CanopenSdoWriteViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     /// <summary>当前序列文件，供 ExpressionTextBox 提供变量提示与校验</summary>
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(CanopenSdoWriteEditorView),
@@ -29,6 +29,7 @@ public partial class CanopenSdoWriteEditorView : UserControl, IRefreshableEditor
         ViewModel = new CanopenSdoWriteViewModel();
         DataContext = ViewModel;
         Loaded += (_, _) => ViewModel.ResumeEdsLoading();
+        PluginCommon.UI.PluginEditorCommit.Attach(this, FlushEditor);
         Unloaded += (_, _) => { try { FlushEditor(); } finally { ViewModel.SuspendEdsLoading(); } };
     }
 

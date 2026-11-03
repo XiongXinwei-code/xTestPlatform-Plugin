@@ -7,7 +7,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class BindAxisPlugin : StepPluginBase<BindAxisSetting>
+public sealed class BindAxisPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<BindAxisSetting>
 {
     protected override int CurrentSettingVersion => 2;
     protected override BindAxisSetting MigrateSetting(byte[] data, int fromVersion)
@@ -16,7 +16,7 @@ public sealed class BindAxisPlugin : StepPluginBase<BindAxisSetting>
             : base.MigrateSetting(data, fromVersion);
 
     public override string StepTypeId => "Motion.CiA402BindAxis";
-    public override string DisplayName => "CiA402_Session_BindAxis";
+    public override string DisplayName => "CiA402_AxisConnection_BindAxis";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_bindaxis.png";
 

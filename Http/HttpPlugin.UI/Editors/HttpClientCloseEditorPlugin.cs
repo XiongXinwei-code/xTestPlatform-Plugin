@@ -19,6 +19,7 @@ public sealed class HttpClientCloseEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new HttpClientClosePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

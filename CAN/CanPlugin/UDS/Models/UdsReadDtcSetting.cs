@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.UDS.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsReadDtcSetting : UdsCommonSetting
 {
     /// <summary>DTC 子功能 (常用: 0x01=按状态掩码报告数量, 0x02=按状态掩码报告DTC)</summary>

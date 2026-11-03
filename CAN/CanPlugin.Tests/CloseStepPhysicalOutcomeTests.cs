@@ -25,7 +25,7 @@ public sealed class CloseStepPhysicalOutcomeTests
         try
         {
             var result = await new CanCloseExecutor().ExecuteAsync(closeContext);
-            Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+            Assert.Equal(TestStatus.Passed, result.StepResult.Status);
             Assert.True(owner.IsClosed); Assert.True(raw.HandlesReleased);
             Assert.Contains("historical driver stop failure", result.StepResult.Value?.ToString());
             Assert.Contains(((SdkCanContext)(object)closeContext).Logs, log => log.Contains("Warn") && log.Contains("historical driver stop failure"));
@@ -35,7 +35,7 @@ public sealed class CloseStepPhysicalOutcomeTests
             await Assert.ThrowsAsync<InvalidOperationException>(() => owner.CloseAsync());
             var opened = await new CanOpenExecutor(_ => new Driver()).ExecuteAsync(Context(registry, new CanOpenPlugin(),
                 new CanOpenSetting { AdapterType = CanAdapterType.Kvaser, Channel = $"\"{channel}\"", ConnectionName = "\"CAN1\"", TimeoutMs = 3000 }));
-            Assert.Equal(TestStatus.Completed, opened.StepResult.Status);
+            Assert.Equal(TestStatus.Passed, opened.StepResult.Status);
         }
         finally
         {

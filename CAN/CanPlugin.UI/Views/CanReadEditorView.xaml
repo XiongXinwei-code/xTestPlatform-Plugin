@@ -24,6 +24,9 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -33,7 +36,7 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Filter ID:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="筛选 ID 列表:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8"
                     ScriptText="{Binding FilterId, Mode=TwoWay}"
                     ExpectedResultType="String"
@@ -48,6 +51,13 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="IdVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding IdVariable, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="读取方式:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox x:Name="ReadModeCombo" Grid.Row="5" Grid.Column="1" SelectedIndex="{Binding ReadMode, Mode=TwoWay}" Width="320" HorizontalAlignment="Left" Margin="0,0,0,8">
+                    <ComboBoxItem Content="多个 ID 中读取首个匹配帧"/>
+                    <ComboBoxItem Content="每个 ID 各读取一帧（JSON）"/>
+                </ComboBox>
+                <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ResultHelp}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="7" Grid.Column="1" Text="ID 表达式示例：&quot;0x181,0x281&quot;；可填写字符串变量。空字符串表示任意 ID（仅首帧模式）。这里读取原始字节，需要选择 DBC 信号请使用 DBC Read；读取一段时间请使用 Capture。" TextWrapping="Wrap"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

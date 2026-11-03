@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class ReadStatePlugin : StepPluginBase<ReadStateSetting>
+public sealed class ReadStatePlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<ReadStateSetting>
 {
     public override string StepTypeId => "Motion.CiA402ReadState";
-    public override string DisplayName => "CiA402_State_ReadState";
+    public override string DisplayName => "CiA402_StateControl_ReadState";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_readstate.png";
 

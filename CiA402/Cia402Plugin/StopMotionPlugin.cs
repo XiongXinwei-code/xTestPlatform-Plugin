@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class StopMotionPlugin : StepPluginBase<StopMotionSetting>
+public sealed class StopMotionPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<StopMotionSetting>
 {
     public override string StepTypeId => "Motion.CiA402StopMotion";
     public override string DisplayName => "CiA402_Motion_StopMotion";

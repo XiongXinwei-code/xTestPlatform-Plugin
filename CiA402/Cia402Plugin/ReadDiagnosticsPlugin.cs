@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class ReadDiagnosticsPlugin : StepPluginBase<ReadDiagnosticsSetting>
+public sealed class ReadDiagnosticsPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<ReadDiagnosticsSetting>
 {
     public override string StepTypeId => "Motion.CiA402ReadDiagnostics";
-    public override string DisplayName => "CiA402_Feedback_ReadDiagnostics";
+    public override string DisplayName => "CiA402_FeedbackDiagnostics_ReadDiagnostics";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_readdiagnostics.png";
 

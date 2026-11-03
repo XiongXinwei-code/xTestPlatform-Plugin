@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class EnablePlugin : StepPluginBase<EnableSetting>
+public sealed class EnablePlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<EnableSetting>
 {
     public override string StepTypeId => "Motion.CiA402Enable";
-    public override string DisplayName => "CiA402_State_Enable";
+    public override string DisplayName => "CiA402_StateControl_Enable";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_enable.png";
 

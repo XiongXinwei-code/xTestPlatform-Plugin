@@ -27,6 +27,8 @@ public sealed class TcpReceiveExecutor : IStepExecutor
             EthernetStringOutput.Validate(context, setting.ResultVariable, CheckExecution);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
             ArgumentOutOfRangeException.ThrowIfNegative(setting.ExpectedLength);
+            if (setting.MaxBytes is < 1 or > 16777216) throw new ArgumentException("MaxBytes 必须在 1~16777216 内");
+            if (!setting.UseDelimiter && setting.ExpectedLength > setting.MaxBytes) throw new ArgumentException("ExpectedLength 不能超过 MaxBytes");
             if (!Enum.IsDefined(setting.Encoding)) throw new InvalidOperationException("TCP 接收编码无效");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
@@ -34,54 +36,21 @@ public sealed class TcpReceiveExecutor : IStepExecutor
             var name = await EthernetExecutorHelper.EvalStringAsync(setting.ConnectionName, context);
             CheckExecution();
 
+            byte[]? delimiter = null;
+            if (setting.UseDelimiter)
+            {
+                var text = await EthernetExecutorHelper.EvalStringAsync(setting.DelimiterHex, context); CheckExecution();
+                delimiter = EthernetDataHelper.Encode(text!, EthernetDataEncoding.Hex);
+                if (delimiter.Length is < 1 or > 64 || delimiter.Length > setting.MaxBytes)
+                    throw new ArgumentException("DelimiterHex 必须为 1~64 字节且不超过 MaxBytes");
+            }
             var client = TcpConnectionManager.Get(name!, context.Resources);
-            var stream = client.GetStream();
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(setting.TimeoutMs);
 
-            byte[] buffer;
-            if (setting.ExpectedLength > 0)
-            {
-                buffer = new byte[setting.ExpectedLength];
-                var received = 0;
-                while (received < setting.ExpectedLength)
-                {
-                    CheckExecution();
-                    var n = await stream.ReadAsync(buffer.AsMemory(received, setting.ExpectedLength - received), cts.Token);
-                    if (n == 0) break;
-                    received += n;
-                }
-                if (received < setting.ExpectedLength)
-                {
-                    return new ExecutionResult
-                    {
-                        StepResult = new StepResult
-                        {
-                            Status = TestStatus.Error,
-                            Error = new ErrorInfo { Message = $"TCP 接收失败: 对端已关闭连接，仅收到 {received}/{setting.ExpectedLength} 字节" }
-                        }
-                    };
-                }
-            }
-            else
-            {
-                buffer = new byte[65535];
-                CheckExecution();
-                var n = await stream.ReadAsync(buffer, cts.Token);
-                if (n == 0)
-                {
-                    return new ExecutionResult
-                    {
-                        StepResult = new StepResult
-                        {
-                            Status = TestStatus.Error,
-                            Error = new ErrorInfo { Message = "TCP 接收失败: 对端已关闭连接，未收到数据" }
-                        }
-                    };
-                }
-                buffer = buffer[..n];
-            }
+            var buffer = await TcpReceiveBuffer.For(client).ReadAsync(client, setting.ExpectedLength, delimiter,
+                setting.IncludeDelimiter, setting.MaxBytes, cts.Token, CheckExecution);
 
             var result = EthernetDataHelper.Decode(buffer, setting.Encoding);
 

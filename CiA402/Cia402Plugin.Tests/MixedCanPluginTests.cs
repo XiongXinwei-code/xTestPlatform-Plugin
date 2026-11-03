@@ -27,11 +27,11 @@ public sealed class MixedCanPluginTests
             var read = new CanopenSdoReadPlugin();
             var (readContext, readState) = TestContext.Create(read, new CanopenSdoReadSetting { Index = "0x2000", DataType = CanopenDataType.Unsigned32 });
             readState.Resources = state.Resources;
-            Assert.Equal(TestStatus.Completed, (await read.CreateExecutor().ExecuteAsync(readContext)).StepResult.Status);
+            Assert.Equal(TestStatus.Passed, (await read.CreateExecutor().ExecuteAsync(readContext)).StepResult.Status);
             var write = new CanopenSdoWritePlugin();
             var (writeContext, writeState) = TestContext.Create(write, new CanopenSdoWriteSetting { Index = "0x2000", Value = "9", DataType = CanopenDataType.Unsigned32 });
             writeState.Resources = state.Resources;
-            Assert.Equal(TestStatus.Completed, (await write.CreateExecutor().ExecuteAsync(writeContext)).StepResult.Status);
+            Assert.Equal(TestStatus.Passed, (await write.CreateExecutor().ExecuteAsync(writeContext)).StepResult.Status);
             Assert.Equal(new byte[] { 9, 0, 0, 0 }, raw.Objects[(0x2000, 0)]);
             await owner.WriteAsync(new() { Id = 0x202, Data = [1] }, 2000);
             await axis.CloseAsync();

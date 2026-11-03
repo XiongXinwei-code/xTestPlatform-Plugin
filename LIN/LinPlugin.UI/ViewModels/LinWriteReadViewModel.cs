@@ -11,6 +11,7 @@ public class LinWriteReadViewModel : INotifyPropertyChanged
     private bool _suppressSave;
     public int SendTimeoutMs { get => _setting?.SendTimeoutMs ?? 3000; set { if (_setting == null || _setting.SendTimeoutMs == value) return; _setting.SendTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;

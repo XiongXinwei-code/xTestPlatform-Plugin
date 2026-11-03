@@ -6,7 +6,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CAN.Flash;
 
-public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
+public sealed class CanFlashPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanFlashSetting>
 {
     /// <summary>
     /// 版本 2 新增映射范围、填充、擦除参数模式、自动块大小与下载前延时；
@@ -15,7 +15,7 @@ public sealed class CanFlashPlugin : StepPluginBase<CanFlashSetting>
     protected override int CurrentSettingVersion => 2;
 
     public override string StepTypeId => "UDS.Flash";
-    public override string DisplayName => "UDS_Flash";
+    public override string DisplayName => "UDS_RoutineFlashing_Flash";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_flash.png";
 

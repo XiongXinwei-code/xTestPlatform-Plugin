@@ -36,6 +36,7 @@ public sealed partial class ZlgAdapter
     private ulong _lastEcho;
 
     public ZlgAdapter() => _io = new();
+    internal ZlgAdapter(ZlgIo io) => _io = io;
     internal ZlgAdapter(ZlgIo io, uint type, bool fd)
     {
         _io = io; _deviceHandle = new(1); _channelHandle = new(2); _isFd = fd; _isConnected = true;
@@ -43,7 +44,8 @@ public sealed partial class ZlgAdapter
     }
 
     public bool ConfirmationAvailable => _isConnected && !_closing && _echoSupported && !_unknownSend && _pumpError == null;
-    public bool HandlesReleased => _deviceHandle == IntPtr.Zero && _channelHandle == IntPtr.Zero && _receivePump == null;
+    private bool DeviceHandlesReleased => _deviceHandle == IntPtr.Zero && _channelHandle == IntPtr.Zero && _receivePump == null;
+    public bool HandlesReleased => DeviceHandlesReleased && _cloudLease is null;
     public bool IsClockCurrent(string clockId)
     { lock (_runtimeGate) return _clock.IsCurrent(clockId, Stopwatch.GetTimestamp()); }
 
@@ -245,7 +247,7 @@ public sealed partial class ZlgAdapter
     {
         lock (_closeGate)
         {
-            if (HandlesReleased) return;
+            if (DeviceHandlesReleased) return;
             _closing = true;
             if (!Monitor.TryEnter(_transmitGate, 1000)) throw new TimeoutException("ZLG 原生发送/确认尚未退出，保留任务与句柄");
             try

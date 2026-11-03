@@ -1,0 +1,38 @@
+<UserControl x:Class="NiDaq.UI.Views.NiDaqDiConfigEditorView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:syncfusion="http://schemas.syncfusion.com/wpf" xmlns:skin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox" skin:SfSkinManager.Theme="{skin:SkinManagerExtension ThemeName=Windows11Light}">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="DiConfig" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_di_config.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <Grid Margin="16" MinWidth="550" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="TaskName" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="任务名表达式，求值结果为 string；配置后由 TaskStart/TaskStop 管理"/>
+                    <expr:ExpressionTextBox x:Name="TaskNameBox" Grid.Row="0" Grid.Column="1" Margin="0,4,0,4" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="1" Text="TimeoutMs" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="操作总期限 ms，大于0；包含表达式、排队和SDK调用"/>
+                    <TextBox x:Name="TimeoutMsBox" Grid.Row="1" Grid.Column="1" Margin="0,4,0,4" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="2" Text="Channels" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="求值结果为 string，逗号分隔端口/线组；每组最多32位，顺序就是数据行序"/>
+                    <expr:ExpressionTextBox x:Name="ChannelsBox" Grid.Row="2" Grid.Column="1" Margin="0,4,0,4" ScriptText="{Binding Channels, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="3" Text="UseSampleClock" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="false 按需单点；true 使用硬件采样时钟"/>
+                    <CheckBox x:Name="UseSampleClockBox" Grid.Row="3" Grid.Column="1" Margin="0,4,0,4" IsChecked="{Binding UseSampleClock, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="4" Text="ClockSource" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="时钟终端普通文本；空为设备内部时钟，是否支持由驱动验证"/>
+                    <TextBox x:Name="ClockSourceBox" Grid.Row="4" Grid.Column="1" Margin="0,4,0,4" Text="{Binding ClockSource, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="5" Text="SampleRate" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="采样率 Hz，启用时须有限正数"/>
+                    <TextBox x:Name="SampleRateBox" Grid.Row="5" Grid.Column="1" Margin="0,4,0,4" Text="{Binding SampleRate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="6" Text="SampleMode" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="FiniteSamples / ContinuousSamples"/>
+                    <ComboBox x:Name="SampleModeBox" Grid.Row="6" Grid.Column="1" Margin="0,4,0,4" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding SampleModeValues}" SelectedItem="{Binding SampleMode, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="7" Text="SamplesPerChannel" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="硬件定时模式每通道缓冲数量1~1000000；按需模式忽略"/>
+                    <TextBox x:Name="SamplesPerChannelBox" Grid.Row="7" Grid.Column="1" Margin="0,4,0,4" Text="{Binding SamplesPerChannel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="8" Text="UseTrigger" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="是否启用数字边沿启动触发"/>
+                    <CheckBox x:Name="UseTriggerBox" Grid.Row="8" Grid.Column="1" Margin="0,4,0,4" IsChecked="{Binding UseTrigger, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="9" Text="TriggerSource" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="触发终端普通文本；启用时必填"/>
+                    <TextBox x:Name="TriggerSourceBox" Grid.Row="9" Grid.Column="1" Margin="0,4,0,4" Text="{Binding TriggerSource, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="10" Text="TriggerEdge" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="Rising / Falling"/>
+                    <ComboBox x:Name="TriggerEdgeBox" Grid.Row="10" Grid.Column="1" Margin="0,4,0,4" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding TriggerEdgeValues}" SelectedItem="{Binding TriggerEdge, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="11" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="Gray" Text="每个逗号分隔条目对应一个通道，按填写顺序返回。硬件时钟模式下需设备支持数字量缓冲采样；不支持时由驱动报错，不退化为软件轮询。原 DI Read 瞬时步骤保持兼容。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

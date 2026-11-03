@@ -19,6 +19,7 @@ public sealed class LinReadEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new LinReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

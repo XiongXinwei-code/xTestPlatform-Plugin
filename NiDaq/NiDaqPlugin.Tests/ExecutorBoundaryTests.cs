@@ -140,7 +140,9 @@ public sealed class ExecutorBoundaryTests
         using var caller = new CancellationTokenSource(); caller.Cancel();
         IStepPlugin[] plugins = [new NiDaqAiConfigPlugin(), new NiDaqAiReadPlugin(), new NiDaqAoConfigPlugin(), new NiDaqAoWriteSinglePlugin(),
             new NiDaqEncoderConfigPlugin(), new NiDaqEncoderReadPlugin(), new NiDaqSyncConfigPlugin(), new NiDaqSyncReadPlugin(),
-            new NiDaqDiReadPlugin(), new NiDaqDoWritePlugin(), new NiDaqTaskStartPlugin(), new NiDaqTaskStopPlugin()];
+            new NiDaqDiReadPlugin(), new NiDaqDoWritePlugin(), new NiDaqTaskStartPlugin(), new NiDaqTaskStopPlugin(),
+            new NiDaqCounterInputConfigPlugin(), new NiDaqCounterOutputConfigPlugin(), new NiDaqCounterReadPlugin(),
+            new NiDaqDiConfigPlugin(), new NiDaqDoConfigPlugin(), new NiDaqDigitalReadPlugin(), new NiDaqDigitalWritePlugin()];
         var failures = new List<string>();
         foreach (var plugin in plugins)
         {

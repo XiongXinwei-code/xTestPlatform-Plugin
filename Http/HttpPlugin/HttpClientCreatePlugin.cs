@@ -8,10 +8,10 @@ namespace Http;
 /// <summary>
 /// 创建命名 HTTP 客户端插件，集中配置基地址、超时、认证与 TLS 选项
 /// </summary>
-public sealed class HttpClientCreatePlugin : StepPluginBase<HttpClientCreateSetting>
+public sealed class HttpClientCreatePlugin : Http.PluginInfrastructure.StrictStepPluginBase<HttpClientCreateSetting>
 {
     public override string StepTypeId => "IO.HttpClientCreate";
-    public override string DisplayName => "Http_ClientCreate";
+    public override string DisplayName => "Http_Connection_ClientCreate";
     public override string Category => "Network";
     public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_client_create.png";
 

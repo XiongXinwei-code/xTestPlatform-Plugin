@@ -3,6 +3,7 @@ using xTestPlatform.Core.Models.StepSettings;
 
 namespace NiDaq.Models;
 
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class NiDaqEncoderConfigSetting
 {
@@ -22,6 +23,13 @@ public class NiDaqEncoderConfigSetting
 
     /// <summary>是否启用 Z 索引复位</summary>
     public bool ZIndexEnable { get; set; } = false;
+
+    public string AInputTerminal { get; set; } = "";
+    public string BInputTerminal { get; set; } = "";
+    public string ZInputTerminal { get; set; } = "";
+    public double InitialPositionTicks { get; set; }
+    public double ZIndexValueTicks { get; set; }
+    public EncoderZPhase ZIndexPhase { get; set; } = EncoderZPhase.AHighBHigh;
 
     /// <summary>每脉冲对应的距离或角度</summary>
     public double DistancePerPulse { get; set; } = 0.3515625;

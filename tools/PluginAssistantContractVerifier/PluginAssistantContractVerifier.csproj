@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <HostInstallDirectory Condition="'$(HostInstallDirectory)' == ''">C:/Program Files/xTestPlatform</HostInstallDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The installed net8 host carries newer JSON libraries. Use its exact
+         binaries, otherwise loading Framework STJ8 first prevents host STJ10. -->
+    <Reference Include="System.Text.Json"><HintPath>$(HostInstallDirectory)/System.Text.Json.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="System.Text.Encodings.Web"><HintPath>$(HostInstallDirectory)/System.Text.Encodings.Web.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+</Project>

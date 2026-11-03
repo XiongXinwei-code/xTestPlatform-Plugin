@@ -58,7 +58,7 @@
                             • Kvaser / TOSUN：通道索引，如 0、1<LineBreak/>
                             • ZLG：&lt;设备类型&gt;/&lt;设备索引&gt;/&lt;通道索引&gt;，如 USBCAN2/0/0、USBCANFD-200U/0/1<LineBreak/>
                             &#160;&#160;PCI / PCIe 示例：PCI5010U/0/0、PCIe9120/0/1、PCIE-CANFD-200U/0/1<LineBreak/>
-                            &#160;&#160;支持 SDK 全部 PCI / PCIe 型号及现有 USB 型号；完整型号和依赖库见 ZLG 原生库 README。<LineBreak/>
+                            &#160;&#160;SDK 全部型号名称及连接配置见 ZLG Hardware 页；枚举存在不代表当前包或本机驱动支持。<LineBreak/>
                             &#160;&#160;型号不区分大小写，支持 SDK 的 ZCAN_* 名称；设备索引和通道索引从 0 开始。<LineBreak/>
                             &#160;&#160;PCIe CAN FD 型号仲裁段采样点为 80%，5 Mbps 数据段为 75%，其他标准数据段为 80%。<LineBreak/>
                             &#160;&#160;PCI5010U / PCI5020U 使用驱动标准波特率，仲裁段采样点由驱动决定，不应用目标采样点。
@@ -171,6 +171,75 @@
                     <TextBlock Margin="0,4,0,0" Foreground="Gray" TextWrapping="Wrap" Text="包含等待旧连接收尾、登记排队与本次打开；超时不会强制释放仍在执行的原生调用。"/>
                 </StackPanel>
             </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="ZLG Hardware" Visibility="{Binding IsZlg, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16">
+                    <TextBlock Text="SDK hardware catalog" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                    <WrapPanel Margin="0,0,0,6">
+                        <TextBlock Text="Hardware filter (Regex)" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox x:Name="ZlgHardwareFilterEditor" Width="330" Text="{Binding ZlgHardwareFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="不区分大小写。例如 USB、^CANFD.*TCP 或 USB|PCIE。保留当前已选型号；清空显示全部。筛选不会修改 Channel。"/>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding ZlgHardwareFilterError}" Foreground="Firebrick" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                    <WrapPanel Margin="0,0,0,8">
+                        <ComboBox x:Name="ZlgHardwareSelector" Width="330" ItemsSource="{Binding FilteredZlgDevices}" DisplayMemberPath="Display" SelectedItem="{Binding ZlgDeviceToApply, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ToolTip="选择后自动更新 Channel；如需保留动态 Channel 表达式，请直接编辑 Channel。"/>
+                        <TextBlock Text="Device index" Margin="12,0,4,0" VerticalAlignment="Center"/>
+                        <TextBox Width="70" Text="{Binding ZlgDeviceIndexToApply, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="Channel index" Margin="12,0,4,0" VerticalAlignment="Center"/>
+                        <TextBox Width="70" Text="{Binding ZlgChannelIndexToApply, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" VerticalContentAlignment="Center"/>
+                    </WrapPanel>
+                    <TextBlock Text="{Binding ZlgConfigurationHint}" TextWrapping="Wrap" Margin="0,0,0,12" Foreground="DimGray"/>
+                    <GroupBox x:Name="ZlgNetworkGroup" Header="Network connection" Visibility="{Binding ShowZlgNetwork, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,10">
+                        <StackPanel Margin="12">
+                            <TextBlock Text="PC TCP role (UDP ignores role)"/>
+                            <ComboBox Width="220" HorizontalAlignment="Left" SelectedIndex="{Binding ZlgNetworkWorkMode}">
+                                <ComboBoxItem Content="Client (0)"/><ComboBoxItem Content="Server (1)"/>
+                            </ComboBox>
+                            <TextBlock Text="Remote IPv4 address (expression)" Margin="0,8,0,3"/>
+                            <expr:ExpressionTextBox x:Name="ZlgRemoteAddressEditor" ScriptText="{Binding ZlgRemoteAddress, Mode=TwoWay}" ExpectedResultType="String"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <TextBlock Text="Remote work port" Margin="0,8,0,3"/>
+                            <TextBox x:Name="ZlgRemotePortEditor" Width="200" HorizontalAlignment="Left" Text="{Binding ZlgRemotePort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="Local port" Margin="0,8,0,3"/>
+                            <TextBox Width="200" HorizontalAlignment="Left" Text="{Binding ZlgLocalPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox x:Name="ZlgFileGroup" Header="CANFDCOM configuration file" Visibility="{Binding ShowZlgFile, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,10">
+                        <StackPanel Margin="12">
+                            <TextBlock Text="Vendor configuration file path (expression)" Margin="0,8,0,3"/>
+                            <expr:ExpressionTextBox ScriptText="{Binding ZlgConfigurationPath, Mode=TwoWay}" ExpectedResultType="String"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox x:Name="ZlgCloudGroup" Header="Cloud connection" Visibility="{Binding ShowZlgCloud, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Margin="12">
+                            <TextBlock Text="Password is an expression. Prefer a protected variable; inline literals are saved in the sequence. Both server names are required to avoid inheriting another login endpoint." TextWrapping="Wrap"/>
+                            <TextBlock Text="User name (expression)" Margin="0,8,0,3"/>
+                            <expr:ExpressionTextBox ScriptText="{Binding ZlgCloudUserName, Mode=TwoWay}" ExpectedResultType="String"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <TextBlock Text="Password (expression)" Margin="0,8,0,3"/>
+                            <expr:ExpressionTextBox ScriptText="{Binding ZlgCloudPassword, Mode=TwoWay}" ExpectedResultType="String"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <TextBlock Text="HTTP server (expression)" Margin="0,8,0,3"/>
+                            <expr:ExpressionTextBox ScriptText="{Binding ZlgCloudHttpServer, Mode=TwoWay}" ExpectedResultType="String"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <TextBlock Text="HTTP port" Margin="0,8,0,3"/>
+                            <TextBox Width="200" HorizontalAlignment="Left" Text="{Binding ZlgCloudHttpPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="Authentication server (expression)" Margin="0,8,0,3"/>
+                            <expr:ExpressionTextBox ScriptText="{Binding ZlgCloudAuthServer, Mode=TwoWay}" ExpectedResultType="String"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <TextBlock Text="Authentication port" Margin="0,8,0,3"/>
+                            <TextBox Width="200" HorizontalAlignment="Left" Text="{Binding ZlgCloudAuthPort, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True, ValidatesOnDataErrors=True}" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
             </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

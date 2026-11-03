@@ -10,7 +10,7 @@ namespace NiDaq.UI.Views;
 public partial class NiDaqAoConfigEditorView : UserControl, IRefreshableEditor
 {
     public NiDaqAoConfigViewModel ViewModel { get; } = new();
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty = DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(NiDaqAoConfigEditorView));
     public SequenceFile? SequenceFile { get => (SequenceFile?)GetValue(SequenceFileProperty); set => SetValue(SequenceFileProperty, value); }
     public static readonly DependencyProperty EditPositionProperty = DependencyProperty.Register(nameof(EditPosition), typeof(EditPosition), typeof(NiDaqAoConfigEditorView));
@@ -19,6 +19,7 @@ public partial class NiDaqAoConfigEditorView : UserControl, IRefreshableEditor
     {
         InitializeComponent();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => { ChannelsGrid.CommitEdit(DataGridEditingUnit.Cell, true); ChannelsGrid.CommitEdit(DataGridEditingUnit.Row, true); ViewModel.FlushPendingSave(); };
     }
     private void AddChannel_Click(object sender, RoutedEventArgs e) => ViewModel.AddChannel();

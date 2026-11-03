@@ -22,6 +22,7 @@ public partial class ReadDiagnosticsEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new ReadDiagnosticsViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

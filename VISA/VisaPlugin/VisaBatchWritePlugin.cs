@@ -8,10 +8,10 @@ namespace VISA;
 /// <summary>
 /// VISA 批量写入插件，按顺序发送多条 SCPI 命令，支持命令间延时
 /// </summary>
-public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
+public sealed class VisaBatchWritePlugin : VISA.PluginInfrastructure.StrictStepPluginBase<VisaBatchWriteSetting>
 {
     public override string StepTypeId => "IO.VisaBatchWrite";
-    public override string DisplayName => "VISA_BatchWrite";
+    public override string DisplayName => "VISA_ReadWrite_BatchWrite";
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_batch_write.png";
 
@@ -24,7 +24,7 @@ public sealed class VisaBatchWritePlugin : StepPluginBase<VisaBatchWriteSetting>
 
         | 参数 | 类型 | 必填 | 默认值 | 说明 |
         |------|------|------|--------|------|
-        | ConnectionName | string([ExpressionField]) | 是 | "VISA1" |
+        | ConnectionName | string([ExpressionField]) | 是 | "VISA1" | 已打开的 VISA 连接名，求值结果为 string |
         | Items | 集合 | 是 | — | 命令列表，按顺序逐条发送 |
         | TimeoutMs | int | 否 | 0 | 0 按命令数、I/O 期限和延时计算，正数覆盖整个批次 |
 

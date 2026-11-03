@@ -19,6 +19,7 @@ public sealed class ReadModeEditorPlugin : IStepEditorPlugin
 		var view = new ReadModeEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new ReadModePlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

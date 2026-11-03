@@ -33,6 +33,7 @@ public sealed class NiDaqEncoderReadExecutor : IStepExecutor
 
             var resource = NiDaqTaskRegistry.Get(context, taskName, guard.Check);
             guard.EnsureCurrent(taskName, resource);
+            resource.RequireKind(DaqTaskKind.Encoder);
             double value = await resource.RunAsync(() =>
             {
                 resource.RequireStarted();

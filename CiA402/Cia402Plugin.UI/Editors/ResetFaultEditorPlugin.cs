@@ -19,6 +19,7 @@ public sealed class ResetFaultEditorPlugin : IStepEditorPlugin
 		var view = new ResetFaultEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new ResetFaultPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

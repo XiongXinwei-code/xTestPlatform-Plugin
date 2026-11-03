@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqAiConfigPlugin : StepPluginBase<NiDaqAiConfigSetting>
+public sealed class NiDaqAiConfigPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqAiConfigSetting>
 {
     public override string StepTypeId => "NiDaq.AiConfig";
     public override string DisplayName => "NiDaq_AI_Config";

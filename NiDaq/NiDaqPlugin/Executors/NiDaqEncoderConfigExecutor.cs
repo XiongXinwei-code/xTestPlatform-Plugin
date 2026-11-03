@@ -25,6 +25,8 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
             guard.Check();
             var serializer = new NiDaqEncoderConfigPlugin().CreateSerializer();
             var setting = (NiDaqEncoderConfigSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            if (!double.IsFinite(setting.InitialPositionTicks) || !double.IsFinite(setting.ZIndexValueTicks) || !Enum.IsDefined(setting.ZIndexPhase))
+                throw new ArgumentException("编码器初始位置、Z 索引值或相位无效");
 
             var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
             var counterCh = await Evaluator.EvalStringAsync(setting.CounterChannel, context);
@@ -32,7 +34,9 @@ public sealed class NiDaqEncoderConfigExecutor : IStepExecutor
             if (!double.IsFinite(setting.DistancePerPulse) || setting.DistancePerPulse <= 0 || !Enum.IsDefined(setting.Unit)) throw new ArgumentException("编码器换算参数无效");
             var owner = await DaqTaskFactory.CreateAndRegisterAsync(context, taskName, resource =>
             {
-                DaqTaskFactory.ConfigureEncoder(resource, resource.AddTask(), counterCh, "", setting.DecodingType, setting.ZIndexEnable, setting.PulsesPerRevolution);
+                resource.SetKind(DaqTaskKind.Encoder);
+                DaqTaskFactory.ConfigureEncoder(resource, resource.AddTask(), counterCh, "", setting.DecodingType, setting.ZIndexEnable, setting.PulsesPerRevolution,
+                    setting.AInputTerminal, setting.BInputTerminal, setting.ZInputTerminal, setting.InitialPositionTicks, setting.ZIndexValueTicks, setting.ZIndexPhase);
                 resource.Unit = setting.Unit; resource.DistancePerPulse = setting.DistancePerPulse;
             }, cancellationToken, physicalChannels: [counterCh], timeoutMs: setting.TimeoutMs, epoch: epoch);
             configuredOwner = owner;

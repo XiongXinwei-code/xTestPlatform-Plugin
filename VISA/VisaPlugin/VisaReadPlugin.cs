@@ -8,10 +8,10 @@ namespace VISA;
 /// <summary>
 /// VISA 读取插件，从仪器读取响应（不发送命令）
 /// </summary>
-public sealed class VisaReadPlugin : StepPluginBase<VisaReadSetting>
+public sealed class VisaReadPlugin : VISA.PluginInfrastructure.StrictStepPluginBase<VisaReadSetting>
 {
     public override string StepTypeId => "IO.VisaRead";
-    public override string DisplayName => "VISA_Read";
+    public override string DisplayName => "VISA_ReadWrite_Read";
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_read.png";
 

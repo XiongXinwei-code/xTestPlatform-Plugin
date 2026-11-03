@@ -7,6 +7,7 @@ namespace Modbus.Models;
 /// <summary>
 /// 批量写入中的单个写入项配置
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class ModbusBatchWriteItem : INotifyPropertyChanged
 {
@@ -30,6 +31,9 @@ public class ModbusBatchWriteItem : INotifyPropertyChanged
 
 	/// <summary>数据解析格式</summary>
 	public ModbusDataFormat DataFormat { get => _dataFormat; set => SetProperty(ref _dataFormat, value); }
+
+	// 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+	public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
 
 	public event PropertyChangedEventHandler? PropertyChanged;
 	protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)

@@ -32,6 +32,7 @@ public class NiDaqEncoderConfigViewModel : INotifyPropertyChanged
 
     private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
     private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public Action<string, Action>? ExecuteCommand { get => _saves.ExecuteCommand; set => _saves.ExecuteCommand = value; }
     public void FlushPendingSave() => _saves.Flush();
     public Exception? LastSaveError => _saves.LastError;
     private void QueueSave()
@@ -47,6 +48,13 @@ public class NiDaqEncoderConfigViewModel : INotifyPropertyChanged
     public EncoderDecodingType DecodingType { get => _setting?.DecodingType ?? EncoderDecodingType.X4; set { if (_setting == null || _setting.DecodingType == value) return; _setting.DecodingType = value; OnPropertyChanged(); QueueSave(); } }
     public int PulsesPerRevolution { get => _setting?.PulsesPerRevolution ?? 1024; set { if (_setting == null || _setting.PulsesPerRevolution == value) return; _setting.PulsesPerRevolution = value; OnPropertyChanged(); QueueSave(); } }
     public bool ZIndexEnable { get => _setting?.ZIndexEnable ?? false; set { if (_setting == null || _setting.ZIndexEnable == value) return; _setting.ZIndexEnable = value; OnPropertyChanged(); QueueSave(); } }
+    public string AInputTerminal { get => _setting?.AInputTerminal ?? ""; set { if (_setting == null || _setting.AInputTerminal == value) return; _setting.AInputTerminal = value; OnPropertyChanged(); QueueSave(); } }
+    public string BInputTerminal { get => _setting?.BInputTerminal ?? ""; set { if (_setting == null || _setting.BInputTerminal == value) return; _setting.BInputTerminal = value; OnPropertyChanged(); QueueSave(); } }
+    public string ZInputTerminal { get => _setting?.ZInputTerminal ?? ""; set { if (_setting == null || _setting.ZInputTerminal == value) return; _setting.ZInputTerminal = value; OnPropertyChanged(); QueueSave(); } }
+    public double InitialPositionTicks { get => _setting?.InitialPositionTicks ?? 0; set { if (_setting == null || _setting.InitialPositionTicks == value) return; _setting.InitialPositionTicks = value; OnPropertyChanged(); QueueSave(); } }
+    public double ZIndexValueTicks { get => _setting?.ZIndexValueTicks ?? 0; set { if (_setting == null || _setting.ZIndexValueTicks == value) return; _setting.ZIndexValueTicks = value; OnPropertyChanged(); QueueSave(); } }
+    public EncoderZPhase ZIndexPhase { get => _setting?.ZIndexPhase ?? EncoderZPhase.AHighBHigh; set { if (_setting == null || _setting.ZIndexPhase == value) return; _setting.ZIndexPhase = value; OnPropertyChanged(); QueueSave(); } }
+    public Array ZIndexPhaseValues => Enum.GetValues<EncoderZPhase>();
     public double DistancePerPulse { get => _setting?.DistancePerPulse ?? 0.3515625; set { if (_setting == null || _setting.DistancePerPulse == value) return; _setting.DistancePerPulse = value; OnPropertyChanged(); QueueSave(); } }
     public EncoderUnit Unit { get => _setting?.Unit ?? EncoderUnit.Degrees; set { if (_setting == null || _setting.Unit == value) return; _setting.Unit = value; OnPropertyChanged(); QueueSave(); } }
 

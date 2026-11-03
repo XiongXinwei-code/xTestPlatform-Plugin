@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Net.Sockets;
 using Ethernet.Runtime;
 using xTestPlatform.Core.Engine;
@@ -8,6 +9,7 @@ namespace Ethernet;
 public static class TcpConnectionManager
 {
     private static readonly NamedConnectionPool<TcpClient> Legacy = new();
+    private static readonly ConditionalWeakTable<TcpClient, NetworkStream> Streams = new();
     private static NamedConnectionPool<TcpClient> Pool(IResourceRegistry? resources) =>
         NamedConnectionPool<TcpClient>.For(resources, "Ethernet.TCP.ConnectionPool", Legacy);
 
@@ -25,7 +27,12 @@ public static class TcpConnectionManager
         return Pool(resources).OpenAsync(connectionName, async token =>
         {
             var client = new TcpClient();
-            try { await client.ConnectAsync(host, port, token).ConfigureAwait(false); return client; }
+            try
+            {
+                await client.ConnectAsync(host, port, token).ConfigureAwait(false);
+                _ = GetStream(client); // 建立时捕获真实 stream；.NET 8 取消读取可使 Connected 缓存永久为 false。
+                return client;
+            }
             catch { client.Dispose(); throw; }
         }, timeoutMs, ct, ensureExecution);
     }
@@ -34,10 +41,12 @@ public static class TcpConnectionManager
 
     public static TcpClient Get(string connectionName, IResourceRegistry? resources)
     {
-        var client = Pool(resources).Get(connectionName);
-        if (client.Connected) return client;
-        throw new InvalidOperationException($"TCP 连接 [{connectionName}] 已断开，请重新打开。");
+        // Connected 只是最后一次 socket 操作的缓存，不能据此推断关闭或拒绝后续读写。
+        // 本地关闭/替换由池代次拒绝；真实远端关闭由 Read=0 / I/O 异常报告。
+        return Pool(resources).Get(connectionName);
     }
+
+    internal static NetworkStream GetStream(TcpClient client) => Streams.GetValue(client, value => value.GetStream());
 
     public static Task CloseAsync(string connectionName, CancellationToken ct = default,
         IResourceRegistry? resources = null, int timeoutMs = 5000) =>

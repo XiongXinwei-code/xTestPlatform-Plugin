@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace SerialPort;
 
-public sealed class SerialPortQueryPlugin : StepPluginBase<SerialPortQuerySetting>
+public sealed class SerialPortQueryPlugin : SerialPort.PluginInfrastructure.StrictStepPluginBase<SerialPortQuerySetting>
 {
 	public override string StepTypeId => "IO.SerialPortQuery";
-	public override string DisplayName => "SerialPort_Query";
+	public override string DisplayName => "SerialPort_ReadWrite_Query";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_query.png";
 

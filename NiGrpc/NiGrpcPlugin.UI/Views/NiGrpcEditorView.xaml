@@ -1,0 +1,45 @@
+<UserControl x:Class="NiGrpc.UI.Views.NiGrpcEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+             xmlns:skin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             skin:SfSkinManager.Theme="{skin:SkinManagerExtension ThemeName=Windows11Light}">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt x:Name="MainTab" Header="NI gRPC" ImageWidth="20" ImageHeight="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16">
+                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="连接名称" VerticalAlignment="Center"/>
+                        <expr:ExpressionTextBox Grid.Column="1" ScriptText="{Binding ConnectionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Grid>
+                    <Grid x:Name="EndpointRow" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="服务地址" VerticalAlignment="Center"/>
+                        <expr:ExpressionTextBox Grid.Column="1" ScriptText="{Binding Endpoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Grid>
+                    <Grid x:Name="SessionRow" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="会话别名" VerticalAlignment="Center"/>
+                        <expr:ExpressionTextBox Grid.Column="1" ScriptText="{Binding SessionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Grid>
+                    <Grid x:Name="ConfigurationRow" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="创建配置 JSON" VerticalAlignment="Center"/>
+                        <expr:ExpressionTextBox Grid.Column="1" ScriptText="{Binding ConfigurationJson, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Grid>
+                    <Grid x:Name="RequestRow" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="请求 JSON" VerticalAlignment="Center"/>
+                        <expr:ExpressionTextBox Grid.Column="1" ScriptText="{Binding RequestJson, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    </Grid>
+                    <Grid x:Name="ResultRow" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="响应字符串变量" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="总期限 (ms)" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1" Width="220" HorizontalAlignment="Left" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}"/>
+                    </Grid>
+                    <TextBlock Text="请输入 protobuf JSON；每个表达式需按平台规则引用字符串。远端执行或释放未知时不会自动重发。" TextWrapping="Wrap" Opacity="0.7"/>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

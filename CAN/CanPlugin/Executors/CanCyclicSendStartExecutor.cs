@@ -4,13 +4,11 @@ using CAN.Runtime;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
 using xTestPlatform.Core.Plugins.Contracts;
-using xTestPlatform.Core.Services.ExpressionEngine;
 
 namespace CAN.Executors;
 
 public sealed class CanCyclicSendStartExecutor : IStepExecutor
 {
-    private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
         try
@@ -19,51 +17,70 @@ public sealed class CanCyclicSendStartExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var setting = (CanCyclicSendStartSetting)new CanCyclicSendStartPlugin().CreateSerializer()
                 .Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
-            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
+            if (setting.ControlRefreshMs <= 0 || setting.ExpressionTimeoutMs <= 0)
+                throw new ArgumentException("控制刷新间隔与表达式求值期限必须大于 0 ms");
+            int refreshMs = setting.ControlRefreshMs, expressionTimeoutMs = setting.ExpressionTimeoutMs;
+            string preparationKey = string.IsNullOrWhiteSpace(step.StepSetting.StepAddress)
+                ? setting.ConnectionName + "/" + setting.TaskName : step.StepSetting.StepAddress;
+            using var preparation = CanCyclicPreparationGate.Enter(context.Resources, preparationKey, expressionTimeoutMs, cancellationToken);
+            void CheckIdentity() { preparation.Check(); guard.Check(); }
+            using var ownedPreparation = PluginCommon.ExecutionScopedExecutor.OwnOperation(preparation.Dispose);
+            var connName = await preparation.Evaluations.EvaluateAsync<string>(setting.ConnectionName, context, preparation.Token, CheckIdentity).ConfigureAwait(false);
+            guard.Check();
             if (!context.Resources.TryGet<CanConnectionResource>(CanHelper.GetAdapterKey(connName), out var connection))
             {
                 guard.Check();
                 throw new InvalidOperationException($"CAN 连接 {connName} 未找到，请使用新版 CAN_Open");
             }
-            var taskName = await Evaluator.EvalStringAsync(setting.TaskName, context);
+            var taskName = await preparation.Evaluations.EvaluateAsync<string>(setting.TaskName, context, preparation.Token, CheckIdentity).ConfigureAwait(false);
             guard.Watch(CanHelper.GetAdapterKey(connName), connection);
-            var messages = setting.Messages.Where(m => m.Enabled).ToArray();
-            if (messages.Any(m => m.CycleTimeMs <= 0)) throw new ArgumentException("周期必须大于零");
-            cancellationToken.ThrowIfCancellationRequested();
-            if (messages.Length == 0) return new() { StepResult = new() { Status = TestStatus.Completed, Value = "没有启用的报文" } };
-            var job = connection.StartJob(taskName, async token =>
+            if (string.IsNullOrWhiteSpace(taskName)) throw new ArgumentException("周期任务名不能为空");
+            if (setting.Messages == null || setting.Messages.Count > 128) throw new ArgumentException("周期报文最多 128 行");
+            var messages = setting.Messages.Select(m => m?.Copy() ?? throw new ArgumentException("周期报文行不能为空"))
+                .Where(m => m.Enabled || !string.IsNullOrWhiteSpace(m.EnabledExpression)).ToArray();
+            if (messages.Length == 0) return CanExecutionResults.Passed("没有配置报文，发送池保持不变");
+            connection.ValidateCyclicProtocol(messages.Any(m => m.UseFdFrame));
+            var definitions = new List<CanCyclicDefinition>();
+            foreach (var message in messages)
             {
-                // 保留逐报文独立调度；跟踪全部任务，取消后等待实际退出。
-                using var groupStop = CancellationTokenSource.CreateLinkedTokenSource(token);
-                void CheckJobLifetime()
+                var initial = await ReadControl(message, preparation.Evaluations, preparation.Token, CheckIdentity).ConfigureAwait(false);
+                using var tableDeadline = CancellationTokenSource.CreateLinkedTokenSource(preparation.Token);
+                tableDeadline.CancelAfter(expressionTimeoutMs);
+                try
                 {
-                    // CancelAsync marks the original token before delivering its
-                    // callbacks. Do not let a blocked linked callback admit a write.
-                    token.ThrowIfCancellationRequested();
-                    groupStop.Token.ThrowIfCancellationRequested();
-                    guard.CheckLifetime();
+                    message.Protection = await CanPayloadProtectionExpressions.ResolveAsync(message.Protection, context,
+                        tableDeadline.Token, CheckIdentity, guard.Log, preparation.Evaluations.Track).ConfigureAwait(false);
                 }
-                var workers = messages.Select(message => Task.Run(async () =>
-                {
-                    try
-                    {
-                        using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(message.CycleTimeMs));
-                        while (await timer.WaitForNextTickAsync(groupStop.Token).ConfigureAwait(false))
-                        {
-                            var id = CanHelper.ParseCanId(await Evaluator.EvalStringAsync(message.CanId, context));
-                            var data = CanHelper.ParseHexData(await Evaluator.EvalStringAsync(message.Data, context));
-                            CheckJobLifetime();
-                            connection.Write(new CanMessage { Id = id, Data = data, FrameType = message.FrameType },
-                                token, CheckJobLifetime);
-                        }
-                    }
-                    catch { groupStop.Cancel(); throw; }
-                })).ToArray();
-                await Task.WhenAll(workers).ConfigureAwait(false);
-            });
-            try { guard.Check(); }
-            catch { job.Dispose(); throw; } // 只冻结本次任务；连接所有者继续跟踪真实退出。
-            return new() { StepResult = new() { Status = TestStatus.Completed, Value = $"周期任务已启动：{connName}/{taskName}；重复启动须先停止" } };
+                catch (OperationCanceledException ex) when (!preparation.Token.IsCancellationRequested)
+                { throw new TimeoutException($"Data ID 表求值超过 {expressionTimeoutMs} ms", ex); }
+                var initialFrame = await Build(message, preparation.Evaluations, preparation.Token, CheckIdentity).ConfigureAwait(false);
+                CanHelper.ValidateTransmitFrame(initialFrame);
+                CanPayloadProtection.Validate(message.Protection, initialFrame.Data.Length);
+                var evaluations = new CanCyclicEvaluationScope(expressionTimeoutMs);
+                int sampleMs = string.IsNullOrWhiteSpace(message.EnabledExpression) && string.IsNullOrWhiteSpace(message.CycleTimeMsExpression) ? 0 : refreshMs;
+                definitions.Add(new(initialFrame.Id, initialFrame.FrameType, initialFrame.IsFd, initial, sampleMs, expressionTimeoutMs,
+                    message.Protection, (ct, check) => Build(message, evaluations, ct, check),
+                    (ct, check) => ReadControl(message, evaluations, ct, check), guard.CheckLifetime, evaluations.DrainAsync));
+            }
+            CheckIdentity();
+            connection.UpdateCyclicPool(taskName, "CAN", definitions.ToArray(), CheckIdentity);
+            guard.Check();
+            return CanExecutionResults.Passed($"周期发送池已更新：{connName}/{taskName}；{messages.Length} 个 ID；重复 ID 下一节拍使用新配置，未发送初始化帧");
+
+            async Task<CanCyclicControl> ReadControl(CyclicMessageItem message, CanCyclicEvaluationScope evaluations, CancellationToken ct, Action check)
+            {
+                bool enabled = string.IsNullOrWhiteSpace(message.EnabledExpression) ? message.Enabled
+                    : await evaluations.EvaluateAsync<bool>(message.EnabledExpression, context, ct, check).ConfigureAwait(false);
+                int period = string.IsNullOrWhiteSpace(message.CycleTimeMsExpression) ? message.CycleTimeMs
+                    : await evaluations.EvaluateAsync<int>(message.CycleTimeMsExpression, context, ct, check).ConfigureAwait(false);
+                var result = new CanCyclicControl(enabled, period); CanDynamicCyclicLoop.Validate(result); return result;
+            }
+            async Task<CanMessage> Build(CyclicMessageItem message, CanCyclicEvaluationScope evaluations, CancellationToken ct, Action check)
+            {
+                uint id = CanHelper.ParseCanId(await evaluations.EvaluateAsync<string>(message.CanId, context, ct, check).ConfigureAwait(false));
+                byte[] data = CanHelper.ParseHexData(await evaluations.EvaluateAsync<string>(message.Data, context, ct, check).ConfigureAwait(false));
+                check(); return new() { Id = id, Data = data, FrameType = message.FrameType, IsFd = message.UseFdFrame };
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         { return new() { StepResult = new() { Status = TestStatus.Aborted } }; }

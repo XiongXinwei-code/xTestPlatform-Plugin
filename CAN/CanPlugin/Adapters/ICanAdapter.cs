@@ -35,6 +35,8 @@ public interface ICanAdapterDiagnostics
 public class CanAdapterConfig
 {
     public string Channel { get; set; } = "";
+    public CAN.Adapters.Zlg.ZlgConnectionOptions Zlg { get; set; } = new();
+    public string? AppliedConfigurationDescription { get; set; }
     public int BaudRate { get; set; } = 500_000;
     public CanProtocolType Protocol { get; set; } = CanProtocolType.Classic;
     public int DataBitRate { get; set; } = 2_000_000;

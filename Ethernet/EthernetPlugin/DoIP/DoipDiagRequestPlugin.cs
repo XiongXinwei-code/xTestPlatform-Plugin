@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipDiagRequestPlugin : StepPluginBase<DoipDiagRequestSetting>
+public sealed class DoipDiagRequestPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<DoipDiagRequestSetting>
 {
     public override string StepTypeId  => "DoIP.DiagRequest";
-    public override string DisplayName => "DoIP_DiagRequest";
+    public override string DisplayName => "DoIP_Diagnostics_DiagRequest";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_diag_request.png";
 

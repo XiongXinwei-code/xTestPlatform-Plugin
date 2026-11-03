@@ -1,6 +1,7 @@
 <UserControl x:Class="CAN.UI.Views.CanFlashEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:appearance="clr-namespace:CAN.UI.Appearance"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -135,7 +136,7 @@
 
                     <TextBlock Text="{Binding AnalysisMessage}" Style="{StaticResource HintStyle}"/>
 
-                    <ListBox ItemsSource="{Binding AnalysisSegments}" MaxHeight="160" Margin="0,0,0,8"
+                    <ListBox appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding AnalysisSegments}" MaxHeight="160" Margin="0,0,0,8"
                              FontFamily="Consolas"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              Visibility="{Binding HasSuggestion, Converter={StaticResource BoolToVis}}"/>

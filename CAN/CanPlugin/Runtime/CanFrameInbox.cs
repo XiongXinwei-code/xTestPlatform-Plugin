@@ -25,7 +25,14 @@ internal sealed class CanFrameInbox(Action<CanFrameInbox>? remove = null) : IDis
             _frames.AddLast(immutableFrame); Pulse();
         }
     }
-    internal async Task<CanMessage?> ReadAsync(uint? id, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop = null)
+    internal Task<CanMessage?> ReadAsync(uint? id, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop = null)
+        => ReadMatchingAsync(frame => !id.HasValue || frame.Id == id.Value, timeoutMs, ct, stop);
+    internal Task<CanMessage?> ReadAnyAsync(uint[] ids, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop = null)
+    {
+        var accepted = ids.ToHashSet();
+        return ReadMatchingAsync(frame => accepted.Contains(frame.Id), timeoutMs, ct, stop);
+    }
+    private async Task<CanMessage?> ReadMatchingAsync(Func<CanMessage, bool> matches, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop)
     {
         if (timeoutMs < Timeout.Infinite) throw new ArgumentOutOfRangeException(nameof(timeoutMs));
         long started = Stopwatch.GetTimestamp();
@@ -39,7 +46,7 @@ internal sealed class CanFrameInbox(Action<CanFrameInbox>? remove = null) : IDis
                 if (_stopped) throw new InvalidOperationException("共享CAN接收副本已关闭");
                 if (timeoutMs > 0 && Stopwatch.GetElapsedTime(started).TotalMilliseconds >= timeoutMs) return null;
                 var next = _frames.First;
-                while (next != null && id.HasValue && next.Value.Id != id.Value) next = next.Next;
+                while (next != null && !matches(next.Value)) next = next.Next;
                 if (next != null) { _frames.Remove(next); return CanReceiveRouter.Copy(next.Value); }
                 changed = _changed.Task;
             }

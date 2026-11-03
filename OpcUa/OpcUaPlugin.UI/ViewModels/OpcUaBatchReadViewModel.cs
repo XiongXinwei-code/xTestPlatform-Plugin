@@ -10,6 +10,7 @@ namespace OpcUa.UI.ViewModels;
 public class OpcUaBatchReadViewModel : INotifyPropertyChanged
 {
     private readonly EditorSaveCoordinator _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public Exception? LastSaveError => _save.LastError;
     public void FlushPendingSave() => _save.Flush();
     private bool _suppressSave;
@@ -43,7 +44,7 @@ public class OpcUaBatchReadViewModel : INotifyPropertyChanged
     {
         if (_suppressSave || _step == null || _setting == null || _serializer == null) return;
         var step = _step; var setting = _setting; var serializer = _serializer;
-        _save.Queue(() => step.StepSetting.Setting = serializer.Serialize(setting));
+        _save.Queue(() => { step.StepSetting.Setting = serializer.Serialize(setting); step.StepSetting.SettingVersion = serializer.SettingVersion; });
     }
 
     public string ConnectionName { get => _setting?.ConnectionName ?? ""; set { if (_setting == null || _setting.ConnectionName == value) return; _setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); } }

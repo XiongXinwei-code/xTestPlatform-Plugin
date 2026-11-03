@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace SerialPort;
 
-public sealed class SerialPortClosePlugin : StepPluginBase<SerialPortCloseSetting>
+public sealed class SerialPortClosePlugin : SerialPort.PluginInfrastructure.StrictStepPluginBase<SerialPortCloseSetting>
 {
     public override string StepTypeId => "IO.SerialPortClose";
-    public override string DisplayName => "SerialPort_Close";
+    public override string DisplayName => "SerialPort_Connection_Close";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_close.png";
 

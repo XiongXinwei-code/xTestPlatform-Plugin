@@ -9,7 +9,7 @@ namespace LIN.UI.Views;
 public partial class LinCyclicSendStopEditorView : UserControl, IRefreshableEditor
 {
     public LinCyclicSendStopViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(LinCyclicSendStopEditorView),
@@ -34,6 +34,7 @@ public partial class LinCyclicSendStopEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new LinCyclicSendStopViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
         Unloaded += (_, _) => ViewModel.Flush();
     }
 

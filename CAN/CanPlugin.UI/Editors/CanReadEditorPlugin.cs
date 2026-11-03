@@ -5,6 +5,8 @@ using CAN.UI.Validation;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
+using CAN.Helpers;
+using System.Text.Json;
 
 namespace CAN.UI;
 
@@ -19,14 +21,33 @@ public sealed class CanReadEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new CanReadPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 
-    public async Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
+    public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(
 		StepEditorValidationContext context, CancellationToken ct = default)
     {
         var errors = new List<StepSettingError>();
         var s = (CanReadSetting)new CanReadPlugin().CreateSerializer().Deserialize(context.Setting, 1);
+        ct.ThrowIfCancellationRequested();
+        if (!Enum.IsDefined(s.ReadMode)) errors.Add(StepSettingError.Error("CAN_READ_MODE", "读取模式无效"));
+        // Literal ID lists can be checked without executing user expressions in the editor.
+        string filterText = s.FilterId?.Trim() ?? "";
+        if (filterText.Length == 0 || filterText.StartsWith('"') && filterText.EndsWith('"'))
+        {
+            try
+            {
+                var ids = CanReadFilter.ParseIds(filterText.Length == 0 ? "" : JsonSerializer.Deserialize<string>(filterText));
+                if (s.ReadMode == CanReadMode.EachId && ids.Length == 0)
+                    errors.Add(StepSettingError.Error("CAN_READ_IDS", "每 ID 一帧模式必须指定至少一个 ID"));
+            }
+            catch (JsonException) { /* May be a composite C# expression; the evaluator below validates its syntax. */ }
+            catch (Exception ex) when (ex is ArgumentException or FormatException or OverflowException)
+            { errors.Add(StepSettingError.Error("CAN_READ_IDS", $"ID 筛选无效：{ex.Message}")); }
+        }
+        if (!string.IsNullOrWhiteSpace(s.ResultVariable) && string.Equals(s.ResultVariable, s.IdVariable, StringComparison.OrdinalIgnoreCase))
+            errors.Add(StepSettingError.Error("CAN_READ_TARGET", "结果变量和 ID 变量不能使用同一路径"));
         if (!string.IsNullOrWhiteSpace(s.FilterId) && !context.Evaluator.ValidateExpression(s.FilterId, context.ExecutionContext, out var filterError))
             errors.Add(StepSettingError.Error("CAN_FILTER_EXPR", $"FilterId 表达式无效：{filterError}"));
         if (string.IsNullOrWhiteSpace(s.ConnectionName))
@@ -57,6 +78,6 @@ public sealed class CanReadEditorPlugin : IStepEditorPlugin
             }
         }
         CanLifecycleValidator.CheckPrecedingOpen(context.SequenceFile, context.Block, context.CurrentStep, s.ConnectionName, errors);
-        return errors;
+        return Task.FromResult<IReadOnlyList<StepSettingError>>(errors);
     }
 }

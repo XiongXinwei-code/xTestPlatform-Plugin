@@ -10,7 +10,7 @@ namespace OpcUa.UI.Views;
 public partial class OpcUaBatchWriteEditorView : UserControl, IRefreshableEditor
 {
     public OpcUaBatchWriteViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(OpcUaBatchWriteEditorView),
             new PropertyMetadata(null));
@@ -26,6 +26,7 @@ public partial class OpcUaBatchWriteEditorView : UserControl, IRefreshableEditor
         DataTypeColumn.ItemsSource = Enum.GetValues<OpcUaDataType>();
         ViewModel = new OpcUaBatchWriteViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, FlushEditor);
         Unloaded += (_, _) => FlushEditor();
     }
 

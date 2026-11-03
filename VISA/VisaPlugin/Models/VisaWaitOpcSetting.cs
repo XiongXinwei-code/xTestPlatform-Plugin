@@ -6,6 +6,7 @@ namespace VISA.Models;
 /// <summary>
 /// VISA 等待操作完成步骤的设置参数（发送 *OPC? 并等待响应）
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class VisaWaitOpcSetting
 {

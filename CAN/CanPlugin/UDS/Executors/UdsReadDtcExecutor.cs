@@ -28,7 +28,7 @@ public sealed class UdsReadDtcExecutor : IStepExecutor
                 if (!string.IsNullOrWhiteSpace(setting.ResultVariable))
                     guard.SetVariable(setting.ResultVariable, hex);
                 guard.Log($"UDS ReadDTC: SubFunc=0x{setting.SubFunction:X2}, Data=[{hex}]");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
             }
             else
             {

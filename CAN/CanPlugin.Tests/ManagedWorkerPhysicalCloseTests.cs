@@ -39,10 +39,10 @@ public sealed class ManagedWorkerPhysicalCloseTests
             var nextRaw = new Driver();
             var opened = await new CanOpenExecutor(_ => nextRaw).ExecuteAsync(Context(registry, new CanOpenPlugin(),
                 new CanOpenSetting { AdapterType = CanAdapterType.Kvaser, ConnectionName = "\"CAN1\"", Channel = $"\"{channel}\"", TimeoutMs = 1000 }));
-            Assert.Equal(TestStatus.Completed, opened.StepResult.Status); Assert.False(closing.IsCompleted);
+            Assert.Equal(TestStatus.Passed, opened.StepResult.Status); Assert.False(closing.IsCompleted);
             Assert.True(registry.TryGet<ICanAdapter>(key, out var next));
             release.TrySetResult();
-            Assert.Equal(TestStatus.Completed, (await closing).StepResult.Status);
+            Assert.Equal(TestStatus.Passed, (await closing).StepResult.Status);
             await staleRejected.Task.WaitAsync(TimeSpan.FromSeconds(3));
             Assert.True(registry.TryGet<ICanAdapter>(key, out var afterClose)); Assert.Same(next, afterClose);
             Assert.Equal(0, raw.Writes); Assert.Equal(0, nextRaw.Writes);

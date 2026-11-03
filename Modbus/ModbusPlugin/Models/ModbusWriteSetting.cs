@@ -6,6 +6,7 @@ namespace Modbus.Models;
 /// <summary>
 /// Modbus 写入步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class ModbusWriteSetting
 {

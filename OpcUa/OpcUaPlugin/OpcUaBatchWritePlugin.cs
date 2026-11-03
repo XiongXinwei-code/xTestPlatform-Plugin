@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 批量写入插件</summary>
-public sealed class OpcUaBatchWritePlugin : StepPluginBase<OpcUaBatchWriteSetting>
+public sealed class OpcUaBatchWritePlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaBatchWriteSetting>
 {
     public override string StepTypeId => "OpcUa.BatchWrite";
-    public override string DisplayName => "OpcUa_BatchWrite";
+    public override string DisplayName => "OpcUa_ReadWrite_BatchWrite";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_batch_write.png";
 

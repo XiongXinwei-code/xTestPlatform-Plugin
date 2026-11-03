@@ -21,6 +21,7 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new CanOpenPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 
@@ -56,13 +57,20 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Warning("CAN_W02", "接收缓冲区小于 NI-XNET 建议值 8192 帧，高负载总线下可能丢帧"));
 
         bool? isPcieFd = null;
+        uint? zlgType = null;
         if (s.AdapterType == CanAdapterType.ZLG && !string.IsNullOrWhiteSpace(s.Channel))
         {
             try
             {
                 string? channel = JsonSerializer.Deserialize<string>(s.Channel);
                 if (channel is not null)
+                {
+                    var parts = channel.Split('/');
+                    if (parts.Length != 3 || !uint.TryParse(parts[1], out _) || !uint.TryParse(parts[2], out _))
+                        throw new ArgumentException("ZLG Channel 必须为 型号/设备索引/通道索引");
+                    zlgType = ZlgDeviceCatalog.Parse(parts[0]);
                     isPcieFd = ZlgAdapter.IsPcieCanFdChannel(channel);
+                }
             }
             catch (JsonException)
             {
@@ -108,7 +116,7 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
                 "CAN_008", "当前 libTSCAN 波特率接口仅能可靠使用 80% 仲裁段采样点"));
         }
         else if (s.AdapterType == CanAdapterType.ZLG &&
-                 (s.Protocol == CanProtocolType.FD || isPcieFd == true) &&
+                 ((s.Protocol == CanProtocolType.FD && zlgType is 41 or 42 or 43) || isPcieFd == true) &&
                  Math.Abs(s.ArbitrationSamplePoint - 80d) > 0.01)
         {
             errors.Add(StepSettingError.Error(
@@ -127,13 +135,13 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
             errors.Add(StepSettingError.Error(
                 "CAN_012", $"当前 {s.AdapterType} 的通用 CAN FD 波特率接口仅能可靠使用 80% 数据段采样点"));
         }
-        if (s.Protocol == CanProtocolType.FD && s.AdapterType == CanAdapterType.ZLG)
+        if (s.Protocol == CanProtocolType.FD && s.AdapterType == CanAdapterType.ZLG &&
+            (zlgType is null or 41 or 42 or 43 || isPcieFd == true))
         {
-            if (s.DataBitRate == 5_000_000 && isPcieFd is null &&
-                (Math.Abs(s.DataSamplePoint - 75d) <= 0.01 || Math.Abs(s.DataSamplePoint - 80d) <= 0.01))
+            if (zlgType is null)
             {
                 errors.Add(StepSettingError.Warning(
-                    "CAN_W04", "5 Mbps 数据段采样点取决于运行时通道型号：PCIe CAN FD 为 75%，当前 USB CAN FD 接口为 80%"));
+                    "CAN_W04", "动态 Channel 的采样点能力由运行时型号决定：PCIe 5 Mbps 为 75%，USBCANFD-100U/200U/MINI 为 80%；其他型号按驱动或设备配置处理"));
             }
             else
             {
@@ -149,6 +157,64 @@ public sealed class CanOpenEditorPlugin : IStepEditorPlugin
         {
             errors.Add(StepSettingError.Error(
                 "CAN_010", $"{s.AdapterType} 当前通用驱动接口不能控制内置终端电阻，请取消勾选并外接 120 Ω 电阻"));
+        }
+        if (s.AdapterType == CanAdapterType.ZLG)
+        {
+            var fields = new List<(string Name, string Expression)>();
+            if (zlgType is null || ZlgDeviceCatalog.IsNetwork(zlgType.Value)) fields.Add((nameof(s.ZlgRemoteAddress), s.ZlgRemoteAddress));
+            if (zlgType is null or 44) fields.Add((nameof(s.ZlgConfigurationPath), s.ZlgConfigurationPath));
+            if (zlgType is null or 46)
+            {
+                fields.Add((nameof(s.ZlgCloudUserName), s.ZlgCloudUserName)); fields.Add((nameof(s.ZlgCloudPassword), s.ZlgCloudPassword));
+                fields.Add((nameof(s.ZlgCloudHttpServer), s.ZlgCloudHttpServer)); fields.Add((nameof(s.ZlgCloudAuthServer), s.ZlgCloudAuthServer));
+            }
+            bool literals = true;
+            var values = new Dictionary<string, string>();
+            foreach (var field in fields)
+            {
+                if (!context.Evaluator.ValidateExpression(field.Expression, context.ExecutionContext, out _))
+                    errors.Add(StepSettingError.Error("CAN_ZLG_EXPR", $"{field.Name} 表达式无效，请检查语法（不记录凭据内容）"));
+                try { values[field.Name] = JsonSerializer.Deserialize<string>(field.Expression) ?? ""; }
+                catch (JsonException) { literals = false; }
+            }
+            if (zlgType is { } type)
+            {
+                if (s.Protocol == CanProtocolType.FD && !ZlgDeviceCatalog.IsCanFd(type))
+                    errors.Add(StepSettingError.Error("CAN_ZLG_PROTOCOL", "所选 ZLG 型号不支持 CAN FD"));
+                if (ZlgDeviceCatalog.UsesExternalBusConfiguration(type))
+                {
+                    errors.Add(s.EnableTermination
+                        ? StepSettingError.Error("CAN_ZLG_TERMINATION", "该型号由设备或厂商工具配置终端电阻，本步骤不能使能；请取消此选项并在设备侧配置")
+                        : StepSettingError.Warning("CAN_ZLG_EXTERNAL", "该型号的波特率、采样点和终端电阻由设备/配置工具管理，本步骤未修改这些参数"));
+                }
+                bool scalarValid = true;
+                try
+                {
+                    new ZlgConnectionOptions
+                    {
+                        NetworkWorkMode = s.ZlgNetworkWorkMode, RemotePort = s.ZlgRemotePort, LocalPort = s.ZlgLocalPort,
+                        CloudHttpPort = s.ZlgCloudHttpPort, CloudAuthPort = s.ZlgCloudAuthPort
+                    }.ValidateScalarValues(type);
+                }
+                catch (ArgumentException ex) { scalarValid = false; errors.Add(StepSettingError.Error("CAN_ZLG_CONFIG", ex.Message)); }
+                if (literals && scalarValid)
+                {
+                    string Value(string key) => values.GetValueOrDefault(key, "");
+                    try
+                    {
+                        new ZlgConnectionOptions
+                        {
+                            RemoteAddress = Value(nameof(s.ZlgRemoteAddress)), RemotePort = s.ZlgRemotePort,
+                            LocalPort = s.ZlgLocalPort, NetworkWorkMode = s.ZlgNetworkWorkMode,
+                            ConfigurationPath = Value(nameof(s.ZlgConfigurationPath)),
+                            CloudUserName = Value(nameof(s.ZlgCloudUserName)), CloudPassword = Value(nameof(s.ZlgCloudPassword)),
+                            CloudHttpServer = Value(nameof(s.ZlgCloudHttpServer)), CloudHttpPort = s.ZlgCloudHttpPort,
+                            CloudAuthServer = Value(nameof(s.ZlgCloudAuthServer)), CloudAuthPort = s.ZlgCloudAuthPort
+                        }.Validate(type, checkFile: false);
+                    }
+                    catch (ArgumentException ex) { errors.Add(StepSettingError.Error("CAN_ZLG_CONFIG", ex.Message)); }
+                }
+            }
         }
         return errors;
     }

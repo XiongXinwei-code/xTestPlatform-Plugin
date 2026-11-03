@@ -19,6 +19,7 @@ public sealed class BindAxisEditorPlugin : IStepEditorPlugin
 		var view = new BindAxisEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new BindAxisPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

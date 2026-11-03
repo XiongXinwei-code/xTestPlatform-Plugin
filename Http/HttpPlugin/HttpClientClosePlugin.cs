@@ -8,10 +8,10 @@ namespace Http;
 /// <summary>
 /// 释放命名 HTTP 客户端插件
 /// </summary>
-public sealed class HttpClientClosePlugin : StepPluginBase<HttpClientCloseSetting>
+public sealed class HttpClientClosePlugin : Http.PluginInfrastructure.StrictStepPluginBase<HttpClientCloseSetting>
 {
     public override string StepTypeId => "IO.HttpClientClose";
-    public override string DisplayName => "Http_ClientClose";
+    public override string DisplayName => "Http_Connection_ClientClose";
     public override string Category => "Network";
     public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_client_close.png";
 

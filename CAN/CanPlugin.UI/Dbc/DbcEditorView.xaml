@@ -1,0 +1,295 @@
+<UserControl x:Class="CAN.UI.Dbc.DbcEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:appearance="clr-namespace:CAN.UI.Appearance"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+    xmlns:views="clr-namespace:CAN.UI.Views"
+    xmlns:dbc="clr-namespace:CAN.UI.Dbc"
+    syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
+        <DataTemplate x:Key="ProtectionEditorTemplate">
+            <views:PayloadProtectionEditorView DataContext="{Binding Protection}" IsEnabled="{Binding DataContext.HasActiveMessage, RelativeSource={RelativeSource AncestorType=dbc:DbcEditorView}}" ReadMode="{Binding DataContext.IsRead, RelativeSource={RelativeSource AncestorType=dbc:DbcEditorView}}"
+                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=dbc:DbcEditorView}}"
+                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=dbc:DbcEditorView}}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="TaskNameTemplate">
+            <expr:ExpressionTextBox ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="String"
+
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="IssueGridTemplate">
+            <DataGrid x:Name="LoadIssuesGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding LoadIssues}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
+                      CanUserSortColumns="False" HeadersVisibility="Column" MaxHeight="180" MinRowHeight="32"
+                      HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="行号 / 报文 ID / 名称 / 原因（此报文不可用于读写）" Binding="{Binding DisplayText}" Width="*" MinWidth="420">
+                        <DataGridTextColumn.ElementStyle><Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Margin" Value="4"/></Style></DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </DataTemplate>
+        <DataTemplate x:Key="BatchPickerTemplate">
+            <StackPanel>
+                <TextBlock Text="已配置的报文已勾选。搜索后勾选添加、取消勾选移除，一次应用；切换搜索不会丢失其他选择。" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <TextBox x:Name="BatchFilterBox" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" ToolTip="例如 0x123、291 或报文名称"/>
+                <WrapPanel Margin="0,0,0,6">
+                    <Button x:Name="BatchSelectVisibleButton" Content="全选筛选结果" Click="OnSelectVisibleMessages" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="取消选择筛选结果" Click="OnDeselectVisibleMessages" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button x:Name="BatchConfirmButton" Content="应用选择" Click="OnConfirmBatchAdd" Padding="10,4" Margin="0,0,8,0"/>
+                    <Button Content="取消" Click="OnCancelBatchAdd" Padding="10,4"/>
+                </WrapPanel>
+                <DataGrid x:Name="BatchMessagesGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding VisibleRows}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="True" MinRowHeight="32" Height="230" SelectionMode="Extended" SelectionUnit="FullRow">
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="保留" Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <CheckBox IsChecked="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSelect}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                        <DataGridTextColumn Header="报文 ID / 名称" Binding="{Binding Display}" IsReadOnly="True" Width="*" MinWidth="360"/>
+                        <DataGridTextColumn Header="状态" Binding="{Binding State}" IsReadOnly="True" Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock x:Name="BatchSummaryText" Text="{Binding Summary}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="MessageStageTemplate">
+            <StackPanel>
+                <CheckBox x:Name="UseMessageListCheckBox" Content="使用多 ID 报文列表" IsChecked="{Binding UseMessageList, Mode=TwoWay}" Margin="0,0,0,8"/>
+                <StackPanel Visibility="{Binding UseMessageList, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,12">
+                    <WrapPanel Margin="0,0,0,8">
+                        <Button x:Name="BatchAddButton" Content="选择报文…" Click="OnBeginBatchAdd" IsEnabled="{Binding CanBatchAdd}" Padding="10,4" Margin="0,0,8,0"/>
+                        <TextBlock Text="快速添加：" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox x:Name="AddMessageSelector" Width="390" ItemsSource="{Binding Messages}" DisplayMemberPath="Display" SelectedItem="{Binding MessageToAdd, Mode=TwoWay}" IsEnabled="{Binding CanSelect}" Margin="0,0,8,0" ToolTip="这里只选择待添加报文，不切换下方当前编辑 ID；点击添加后才编辑该 ID。"/>
+                        <Button Content="添加所选 ID" Click="OnAddMessage" IsEnabled="{Binding CanSelect}" Padding="10,4" Margin="0,0,8,0"/>
+                        <Button x:Name="RemoveMessagesButton" Content="移除所选报文" Click="OnRemoveMessage" IsEnabled="{Binding HasActiveMessage}" Padding="10,4"/>
+                    </WrapPanel>
+                    <Border x:Name="BatchSelectionPanel" Visibility="{Binding HasBatchSelection, Converter={StaticResource BoolVisibility}}" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Padding="10" Margin="0,0,0,10">
+                            <ContentControl x:Name="BatchPickerHost" HorizontalContentAlignment="Stretch"/>
+                    </Border>
+                    <DataGrid x:Name="MessagesGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding ConfiguredMessages}" SelectedItem="{Binding SelectedConfiguredMessage, Mode=TwoWay}"
+                              AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Extended" SelectionUnit="FullRow" MinRowHeight="32" MinHeight="85" MaxHeight="220">
+                        <DataGrid.Columns>
+                            <DataGridCheckBoxColumn Header="启用" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+                            <DataGridTextColumn Header="报文 ID / 名称" Binding="{Binding Display}" IsReadOnly="True" Width="360"/>
+                            <DataGridTextColumn Header="该 ID 的 RC / CRC" Binding="{Binding ProtectionSummary}" IsReadOnly="True" Width="330"/>
+                            <DataGridCheckBoxColumn x:Name="AutomaticCycleColumn" Header="采用 DBC 周期" Binding="{Binding UseDbcCycleTime, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                            <DataGridTextColumn x:Name="ManualCycleColumn" Header="手动 / 备用 (ms)" Binding="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Width="130"/>
+                            <DataGridTextColumn x:Name="EffectiveCycleColumn" Header="实际发送周期 / 来源" Binding="{Binding TimingSummary}" IsReadOnly="True" Width="320"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="按住 Ctrl / Shift 可多选已配置报文后批量移除。下方信号列表显示所有已配置 ID；每行所属报文明确标注。" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    <TextBlock Text="{Binding MessageSelectionHelp}" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="SettingsStageTemplate">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="连接名称：" VerticalAlignment="Center" Margin="0,0,8,8" Visibility="{Binding HasConnection, Converter={StaticResource BoolVisibility}}"/>
+                    <expr:ExpressionTextBox Grid.Column="1" ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String" Margin="0,0,0,8"
+                        Visibility="{Binding HasConnection, Converter={StaticResource BoolVisibility}}"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="1" Text="帧格式 / RC 配置 ID：" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                    <ComboBox x:Name="MessageSelector" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Messages}" DisplayMemberPath="Display" SelectedItem="{Binding SelectedMessage, Mode=TwoWay}" IsEnabled="{Binding CanEditMessage}" Margin="0,0,0,8" Visibility="{Binding IsSingleMessage, Converter={StaticResource BoolVisibility}}"/>
+                    <ComboBox x:Name="ConfiguredMessageSelector" Grid.Row="1" Grid.Column="1" ItemsSource="{Binding ConfiguredMessages}" DisplayMemberPath="Display" SelectedItem="{Binding SelectedConfiguredMessage, Mode=TwoWay}" IsEnabled="{Binding CanSelect}" Margin="0,0,0,8" Visibility="{Binding UseMessageList, Converter={StaticResource BoolVisibility}}" ToolTip="只切换帧格式、周期及 RC/CRC 配置对象，不修改 ID，也不筛选下方全部信号。"/>
+                    <TextBlock Grid.Row="2" Text="帧格式：" Margin="0,0,8,8" Visibility="{Binding HasConnection, Converter={StaticResource BoolVisibility}}"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1" Width="280" HorizontalAlignment="Left" SelectedIndex="{Binding FrameFormat, Mode=TwoWay}" Margin="0,0,0,8" Visibility="{Binding HasConnection, Converter={StaticResource BoolVisibility}}">
+                        <ComboBoxItem Content="按 DBC 声明 / 数据长度自动判断"/><ComboBoxItem Content="经典 CAN"/><ComboBoxItem Content="CAN FD"/>
+                    </ComboBox>
+                    <TextBlock Grid.Row="3" Text="等待期限 (ms)：" Margin="0,0,8,8"/>
+                    <TextBox x:Name="TimeoutBox" Grid.Row="3" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" ToolTip="单次操作/启动准备的配置期限；周期运行时也限制每批求值与提交总时间。按时长读取的采集时窗另由采集时间控制。"/>
+                    <TextBlock Grid.Row="4" Text="后台任务名称：" Margin="0,0,8,8" Visibility="{Binding HasTaskName, Converter={StaticResource BoolVisibility}}"/>
+                    <ContentControl x:Name="TaskNameHost" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" HorizontalContentAlignment="Stretch" Visibility="{Binding HasTaskName, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBlock Grid.Row="5" Text="当前 ID 发送周期：" Margin="0,0,8,8" Visibility="{Binding IsCyclic, Converter={StaticResource BoolVisibility}}"/>
+                    <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" Visibility="{Binding IsCyclic, Converter={StaticResource BoolVisibility}}" IsEnabled="{Binding CanEditMessage}">
+                        <CheckBox x:Name="UseDbcCycleTimeCheckBox" Content="自动采用 DBC 周期（取消勾选可人工修改）" IsChecked="{Binding UseDbcCycleTime, Mode=TwoWay}" Margin="0,0,0,5"/>
+                        <WrapPanel>
+                            <TextBlock Text="手动 / 备用周期 (ms)：" VerticalAlignment="Center"/>
+                            <TextBox x:Name="CycleTimeBox" Width="130" Text="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" ToolTip="人工模式直接采用此值；自动模式仅在 DBC 没有有效周期时使用此备用值。每个 ID 独立设置。"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="CycleSourceText" Text="{Binding ActiveTimingSummary}" TextWrapping="Wrap" Margin="0,5,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="6" Text="采集持续时间 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBox Grid.Row="6" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding DurationMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBlock Grid.Row="7" Text="最大采集帧数：" Margin="0,0,8,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBox Grid.Row="7" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding MaxFrames, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
+                    <CheckBox Grid.Row="8" Grid.Column="1" Content="采集 DBC 内全部报文（仅单 ID 模式可用）" IsChecked="{Binding AllDbcMessages, Mode=TwoWay}" IsEnabled="{Binding CanCaptureAll}" Margin="0,0,0,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBlock Grid.Row="9" Text="JSON 结果变量：" Margin="0,0,8,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBox x:Name="ResultVariableBox" Grid.Row="9" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}" ToolTip="填写已声明的字符串变量完整路径，如 Locals.DbcResult；若已配置逐信号输出可留空。不得与信号输出共用目标变量。"/>
+                    <TextBlock Grid.Row="10" Text="发布间隔 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBox x:Name="PublishIntervalBox" Grid.Row="10" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding PublishIntervalMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}" ToolTip="变量更新的合并间隔，不改变 CAN 总线采样频率。"/>
+                    <TextBlock Grid.Row="11" Text="新鲜度期限 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBox x:Name="MaxAgeBox" Grid.Row="11" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding MaxAgeMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}"/>
+                </Grid>
+                <TextBlock Text="勾选需要写入的信号，值可填常量、变量或表达式，默认使用物理值（factor / offset），也可选原始值 Raw。未勾选的活动信号使用 DBC 初值；DBC 未声明初值时使用原始值 0。复用分支按选择器值启用。" TextWrapping="Wrap" Margin="0,8,0,8" Visibility="{Binding IsWrite, Converter={StaticResource BoolVisibility}}"/>
+                <TextBlock Text="达到最大帧数后停止本步骤采集并提前 PASS，结果注明已满；保留已收数据，其他 CAN 接收者继续运行。" TextWrapping="Wrap" Margin="0,4,0,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
+                <TextBlock Text="每个 ID 按自己的周期发送，到期时重新求值当前分支的信号表达式。自动周期优先使用报文 GenMsgCycleTime；未声明时使用最短的有效 GenSigCycleTime，再没有则用备用周期。每次发送的是完整报文，不单独发送某个信号。DBC、周期和 RC/CRC 在启动时固定；使用 CAN_Cyclic_SendStop 的相同连接名称和任务名称停止。" TextWrapping="Wrap" Margin="0,0,0,8" Visibility="{Binding IsCyclic, Converter={StaticResource BoolVisibility}}"/>
+                <TextBlock Text="读取结果保留完整原始帧、ID 和时间信息；信号结果只包含勾选的有效分支信号，提供物理值、原始值、单位和枚举说明。" TextWrapping="Wrap" Margin="0,8,0,8" Visibility="{Binding IsRead, Converter={StaticResource BoolVisibility}}"/>
+                <TextBlock Text="{Binding OutputHelp}" TextWrapping="Wrap" Margin="0,0,0,8" Visibility="{Binding IsRead, Converter={StaticResource BoolVisibility}}"/>
+                <Button Content="恢复全部信号并清空所有 ID 的变量映射" Click="OnResetReadSignals" HorizontalAlignment="Left" Padding="10,4" Margin="0,0,0,8"
+                    Visibility="{Binding IsRead, Converter={StaticResource BoolVisibility}}" IsEnabled="{Binding CanSelect}"
+                    ToolTip="显式清空本步骤所有 ID 的信号筛选和逐信号变量配置，恢复完整 JSON 信号输出；保留 JSON 结果变量和 RC/CRC 配置。切换为采集全部 DBC 前可使用此操作。"/>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="SignalStageTemplate">
+            <StackPanel>
+                <TextBlock x:Name="SignalSummaryText" Text="{Binding SignalSummary}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                <StackPanel x:Name="SignalPager" Visibility="{Binding ShowSignalPaging, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,8">
+                    <WrapPanel>
+                        <Button x:Name="SignalFirstPage" Content="首页" Click="OnSignalPageNavigation" Margin="0,0,4,3" Padding="7,2" IsEnabled="{Binding HasPreviousSignalPage}"/>
+                        <Button x:Name="SignalPreviousPage" Content="上一页" Click="OnSignalPageNavigation" Margin="0,0,4,3" Padding="7,2" IsEnabled="{Binding HasPreviousSignalPage}"/>
+                        <TextBox x:Name="SignalPageInput" Text="{Binding SignalPageNumber, Mode=OneWay}" Width="48" VerticalContentAlignment="Center" KeyDown="OnSignalPageKeyDown" Margin="4,0,3,3" ToolTip="输入页码并按 Enter，或点击跳转。"/>
+                        <TextBlock VerticalAlignment="Center" Margin="0,0,6,3"><Run Text="/ "/><Run Text="{Binding SignalPageCount, Mode=OneWay}"/><Run Text=" 页"/></TextBlock>
+                        <Button x:Name="SignalJumpPage" Content="跳转" Click="OnSignalPageNavigation" Margin="0,0,4,3" Padding="7,2"/>
+                        <Button x:Name="SignalNextPage" Content="下一页" Click="OnSignalPageNavigation" Margin="0,0,4,3" Padding="7,2" IsEnabled="{Binding HasNextSignalPage}"/>
+                        <Button x:Name="SignalLastPage" Content="末页" Click="OnSignalPageNavigation" Margin="0,0,10,3" Padding="7,2" IsEnabled="{Binding HasNextSignalPage}"/>
+                        <ComboBox x:Name="SignalLocateSelector" Width="240" ItemsSource="{Binding ConfiguredMessages}" DisplayMemberPath="Display" IsSynchronizedWithCurrentItem="False" Margin="0,0,4,3" ToolTip="按已配置报文定位信号，RC/CRC 仍属于其原选择。"
+                                  Visibility="{Binding UseMessageList, Converter={StaticResource BoolVisibility}}"/>
+                        <Button x:Name="SignalLocateButton" Content="定位报文" Click="OnLocateSignalMessage" Padding="7,2" Margin="0,0,0,3" Visibility="{Binding UseMessageList, Converter={StaticResource BoolVisibility}}"/>
+                    </WrapPanel>
+                    <TextBlock x:Name="SignalPageNotice" TextWrapping="Wrap" Visibility="Collapsed"/>
+                </StackPanel>
+                <TextBlock x:Name="SignalPresentationStatus" Text="{Binding Status}" TextWrapping="Wrap">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                        <DataTrigger Binding="{Binding Status}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                    </Style.Triggers></Style></TextBlock.Style>
+                </TextBlock>
+                <Button x:Name="SignalPresentationRetry" Content="重新显示此页信号" Click="OnRetryPresentation" HorizontalAlignment="Left">
+                    <Button.Style><Style TargetType="Button"><Style.Triggers>
+                        <DataTrigger Binding="{Binding Error}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                    </Style.Triggers></Style></Button.Style>
+                </Button>
+                <Grid x:Name="SignalRegion" MinHeight="180" Visibility="Collapsed"><DataGrid appearance:CanListAppearance.Enabled="True" MinRowHeight="36" x:Name="SignalsGrid" Visibility="Collapsed" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="0.25,0.25" ScrollViewer.CanContentScroll="True" PreviewMouseLeftButtonDown="OnSignalMouseDown" BeginningEdit="OnSignalBeginningEdit" PreparingCellForEdit="OnSignalPreparingEdit" MinHeight="180" MaxHeight="440">
+                    <DataGrid.GroupStyle>
+                        <GroupStyle><GroupStyle.Panel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></GroupStyle.Panel><GroupStyle.HeaderTemplate><DataTemplate>
+                            <Border Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Padding="8,6" Margin="0,4,0,0">
+                                <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"><Run Text="{Binding Name, Mode=OneWay}"/><Run Text=" · "/><Run Text="{Binding ItemCount, Mode=OneWay}"/><Run Text=" 个信号"/></TextBlock>
+                            </Border>
+                        </DataTemplate></GroupStyle.HeaderTemplate></GroupStyle>
+                    </DataGrid.GroupStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="所属报文 ID / 帧类型 / 名称" Binding="{Binding MessageDisplay}" IsReadOnly="True" Width="280"/>
+                        <DataGridTemplateColumn x:Name="SelectedColumn" Header="写入" Width="65"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <CheckBox IsChecked="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSelect}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                        <DataGridTemplateColumn x:Name="OutputSelectedColumn" Header="读取信号" Width="85"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                            <CheckBox IsChecked="{Binding OutputSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSelectOutput}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                ToolTip="勾选后可进入 JSON 和指定变量；取消勾选同时停止该信号的 JSON 输出与变量写入。"/>
+                        </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                        <DataGridTextColumn Header="信号" Binding="{Binding Name}" IsReadOnly="True" Width="170"/>
+                        <DataGridTemplateColumn x:Name="ValueColumn" Header="发送值表达式" Width="220">
+                            <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Margin="4,0" IsEnabled="{Binding IsEditable}" ToolTip="单击编辑发送值表达式，或按 F2 编辑当前单元格。"/>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate><DataTemplate>
+                            <expr:ExpressionTextBox ScriptText="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}"
+                                SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        </DataTemplate></DataGridTemplateColumn.CellEditingTemplate></DataGridTemplateColumn>
+                        <DataGridTemplateColumn x:Name="ValueKindColumn" Header="值类型" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <TextBlock VerticalAlignment="Center" Margin="4,0" IsEnabled="{Binding IsEditable}" ToolTip="选择物理值或原始值 Raw"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="物理值 ▾"/><Style.Triggers><DataTrigger Binding="{Binding ValueKind}" Value="1"><Setter Property="Text" Value="原始值 Raw ▾"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate><DataTemplate>
+                            <ComboBox Loaded="OnKindEditorLoaded" SelectedIndex="{Binding ValueKind, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}"><ComboBoxItem Content="物理值"/><ComboBoxItem Content="原始值 Raw"/></ComboBox>
+                        </DataTemplate></DataGridTemplateColumn.CellEditingTemplate></DataGridTemplateColumn>
+                        <DataGridTemplateColumn x:Name="OutputVariableColumn" Header="输出变量（留空不输出）" Width="250"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <TextBlock Text="{Binding OutputVariable}" Margin="4,0" VerticalAlignment="Center" IsEnabled="{Binding CanBindOutput}" ToolTip="单击输入平台变量路径，或按 F2 编辑。"/>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate><DataTemplate>
+                            <TextBox Text="{Binding OutputVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanBindOutput}"
+                                ToolTip="填写已经声明的完整变量路径，不加引号，例如 Locals.Voltage；按时长读取请选择列表变量。"/>
+                        </DataTemplate></DataGridTemplateColumn.CellEditingTemplate></DataGridTemplateColumn>
+                        <DataGridTemplateColumn x:Name="OutputValueKindColumn" Header="输出值类型" Width="115"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <TextBlock VerticalAlignment="Center" Margin="4,0" IsEnabled="{Binding CanBindOutput}" ToolTip="选择物理值或原始值 Raw"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="物理值 ▾"/><Style.Triggers><DataTrigger Binding="{Binding OutputValueKind}" Value="1"><Setter Property="Text" Value="原始值 Raw ▾"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                            <DataGridTemplateColumn.CellEditingTemplate><DataTemplate>
+                            <ComboBox Loaded="OnKindEditorLoaded" SelectedIndex="{Binding OutputValueKind, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanBindOutput}"><ComboBoxItem Content="物理值"/><ComboBoxItem Content="原始值 Raw"/></ComboBox>
+                        </DataTemplate></DataGridTemplateColumn.CellEditingTemplate></DataGridTemplateColumn>
+                        <DataGridTextColumn Header="单位" Binding="{Binding Unit}" IsReadOnly="True" Width="70"/>
+                        <DataGridTextColumn x:Name="DefaultValueColumn" Header="未选时使用" Binding="{Binding DefaultValue}" IsReadOnly="True" Width="190"/>
+                        <DataGridTextColumn Header="位布局" Binding="{Binding Layout}" IsReadOnly="True" Width="160"/>
+                        <DataGridTextColumn Header="缩放" Binding="{Binding Scaling}" IsReadOnly="True" Width="140"/>
+                        <DataGridTextColumn Header="物理范围" Binding="{Binding Range}" IsReadOnly="True" Width="150"/>
+                        <DataGridTextColumn Header="复用" Binding="{Binding Multiplex}" IsReadOnly="True" Width="140"/>
+                        <DataGridTextColumn Header="自动字段" Binding="{Binding ProtectionNote}" IsReadOnly="True" Width="120"/>
+                        <DataGridTextColumn Header="值说明" Binding="{Binding Meaning}" IsReadOnly="True" Width="200"/>
+                        <DataGridTextColumn Header="注释" Binding="{Binding Comment}" IsReadOnly="True" Width="220"/>
+                    </DataGrid.Columns>
+                </DataGrid></Grid>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+    <syncfusion:TabControlExt SelectionChanged="OnTabSelectionChanged" CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="{Binding Title}" Image="{Binding IconPath}" ImageWidth="20" ImageHeight="20">
+            <ScrollViewer x:Name="EditorScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16">
+                    <TextBlock Text="可直接填写 DBC 文件完整路径，或导入内嵌快照，再配置一个或多个报文 ID。路径非空时始终使用该文件；留空时使用已保存的内嵌快照。" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="DBC 文件路径：" VerticalAlignment="Center"/>
+                        <TextBox x:Name="DbcFilePathBox" Grid.Column="1" Text="{Binding DbcFilePath, UpdateSourceTrigger=PropertyChanged}" MinWidth="180" Margin="0,0,8,0" ToolTip="DbcFilePath 为普通文本，填写完整绝对路径，不加表达式引号。助手可直接设置此参数。路径不存在或加载失败时不会回退到内嵌快照。"/>
+                        <Button x:Name="BrowsePathButton" Grid.Column="2" Content="浏览路径…" Click="OnBrowsePath" Padding="10,4"/>
+                    </Grid>
+                    <WrapPanel Margin="0,0,0,8">
+                        <Button x:Name="BrowseButton" Content="导入内嵌快照…" Click="OnBrowse" Padding="12,4" IsEnabled="{Binding CanSelect}" Margin="0,0,12,0" ToolTip="成功后把完整 DBC 保存到步骤并清空文件路径；失败保留原设置。运行不再依赖外部文件。"/>
+                        <TextBlock Text="文件编码：" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="DbcFileEncodingSelector" Width="120" SelectedValuePath="Content" SelectedValue="{Binding DbcFileEncoding, Mode=TwoWay}" Margin="0,0,12,0" ToolTip="DbcFileEncoding：Auto 优先 UTF-8，失败尝试 GBK；GB2312 文件可显式选择 GB2312。修改编码不会改写已有内嵌正文。">
+                            <ComboBoxItem Content="Auto"/><ComboBoxItem Content="UTF-8"/><ComboBoxItem Content="GBK"/><ComboBoxItem Content="GB2312"/><ComboBoxItem Content="Latin1"/>
+                        </ComboBox>
+                        <Button Content="重新加载当前来源" Click="OnReload" Padding="10,4" IsEnabled="{Binding CanSelect}"/>
+                    </WrapPanel>
+                    <Expander Header="助手目录查询（可选）" Margin="0,0,0,6">
+                        <StackPanel Margin="8,4">
+                            <TextBox x:Name="CatalogQueryBox" Text="{Binding CatalogQuery, UpdateSourceTrigger=PropertyChanged}" ToolTip="使用普通文本查询目录；留空关闭查询。"/>
+                            <TextBlock Text="示例：messages 1 查询报文列表第一页，signals Standard 0x331 1 查询该 ID 的信号第一页。结果在步骤校验信息中显示。" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Expander>
+                    <TextBlock x:Name="SourceInfoText" Text="{Binding SourceInfo}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="LoadErrorText" Text="{Binding LoadError}" Foreground="DarkRed" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <Expander x:Name="LoadIssuesPanel" Header="{Binding LoadIssueSummary}" IsExpanded="True" HorizontalContentAlignment="Stretch"
+                              Visibility="{Binding HasLoadIssues, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,8">
+                        <ContentControl x:Name="IssueGridHost" HorizontalContentAlignment="Stretch"/>
+                    </Expander>
+                    <TextBlock Text="加载中…" Visibility="{Binding IsLoading, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,8"/>
+                    <StackPanel x:Name="StageFailure" Visibility="Collapsed" Margin="0,0,0,8">
+                        <TextBlock x:Name="StageErrorText" Foreground="DarkRed" TextWrapping="Wrap"/>
+                        <Button x:Name="RetryStageButton" Content="重试加载设置区" HorizontalAlignment="Left" Click="OnRetryStages"/>
+                    </StackPanel>
+                    <ContentControl x:Name="MessageStageHost" HorizontalContentAlignment="Stretch">
+                        <TextBlock Text="正在加载报文设置…" Margin="0,0,0,8"/>
+                    </ContentControl>
+                    <ContentControl x:Name="SettingsStageHost" HorizontalContentAlignment="Stretch">
+                        <TextBlock Text="正在加载通信设置…" Margin="0,0,0,8"/>
+                    </ContentControl>
+                    <ContentControl x:Name="SignalStageHost" HorizontalContentAlignment="Stretch">
+                        <TextBlock Text="正在加载信号列表…" Margin="0,0,0,8"/>
+                    </ContentControl>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt x:Name="ProtectionTab" Header="RC / CRC" Visibility="{Binding HasConnection, Converter={StaticResource BoolVisibility}}" Image="{Binding IconPath}" ImageWidth="20" ImageHeight="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="16">
+                <StackPanel Visibility="{Binding UseMessageList, Converter={StaticResource BoolVisibility}}" Margin="0,0,0,10">
+                    <TextBlock Text="选择要配置 RC / CRC 的报文：" Margin="0,0,0,5"/>
+                    <ComboBox x:Name="ProtectionMessageSelector" ItemsSource="{Binding ConfiguredMessages}" SelectedItem="{Binding SelectedConfiguredMessage, Mode=TwoWay}" DisplayMemberPath="Display" IsEnabled="{Binding CanSelect}"/>
+                </StackPanel>
+                <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Padding="12,8" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock x:Name="ProtectionOwnerText" Text="{Binding ActiveMessageTitle}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ActiveProtectionSummary}" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                        <TextBlock Text="以下字段仅作用于上方所选 ID，其他 ID 不受影响。偏移从 0 开始，结束位置包含在内。" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding ProtectionHelp}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                <ContentControl x:Name="ProtectionHost" HorizontalContentAlignment="Stretch"/>
+            </StackPanel></ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

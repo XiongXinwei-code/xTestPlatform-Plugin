@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class RunTorquePlugin : StepPluginBase<RunTorqueSetting>
+public sealed class RunTorquePlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<RunTorqueSetting>
 {
     public override string StepTypeId => "Motion.CiA402RunTorque";
     public override string DisplayName => "CiA402_Motion_RunTorque";

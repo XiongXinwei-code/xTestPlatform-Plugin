@@ -89,12 +89,18 @@ internal static class DaqTaskFactory
         if (remaining <= 0) throw new TimeoutException("DAQ 配置/操作总期限已到，不另加固定收尾等待");
         return (int)Math.Ceiling(remaining);
     }
-    public static void ConfigureEncoder(DaqTaskResource owner, DaqTask task, string channel, string name, EncoderDecodingType decoding, bool zIndex, int ppr)
+    public static void ConfigureEncoder(DaqTaskResource owner, DaqTask task, string channel, string name, EncoderDecodingType decoding, bool zIndex, int ppr,
+        string aTerminal = "", string bTerminal = "", string zTerminal = "", double initialTicks = 0, double zTicks = 0, EncoderZPhase zPhase = EncoderZPhase.AHighBHigh)
     {
         if (ppr <= 0) throw new ArgumentOutOfRangeException(nameof(ppr));
         var type = decoding switch { EncoderDecodingType.X1 => CIEncoderDecodingType.X1, EncoderDecodingType.X2 => CIEncoderDecodingType.X2, EncoderDecodingType.X4 => CIEncoderDecodingType.X4, _ => throw new ArgumentOutOfRangeException(nameof(decoding)) };
+        if (!double.IsFinite(initialTicks) || !double.IsFinite(zTicks) || !Enum.IsDefined(zPhase)) throw new ArgumentException("编码器初值/Z值须有限，Z相位必须有效");
+        var phase = zPhase switch { EncoderZPhase.AHighBHigh => CIEncoderZIndexPhase.AHighBHigh, EncoderZPhase.AHighBLow => CIEncoderZIndexPhase.AHighBLow, EncoderZPhase.ALowBHigh => CIEncoderZIndexPhase.ALowBHigh, EncoderZPhase.ALowBLow => CIEncoderZIndexPhase.ALowBLow, _ => throw new ArgumentException("Z相位无效") };
         owner.EnsureOperationActive();
-        task.CIChannels.CreateAngularEncoderChannel(channel, name, type, zIndex, 0, CIEncoderZIndexPhase.AHighBHigh, ppr, 0, CIAngularEncoderUnits.Ticks);
+        var encoder = task.CIChannels.CreateAngularEncoderChannel(channel, name, type, zIndex, zTicks, phase, ppr, initialTicks, CIAngularEncoderUnits.Ticks);
+        if (!string.IsNullOrWhiteSpace(aTerminal)) { owner.EnsureOperationActive(); encoder.EncoderAInputTerminal = aTerminal.Trim(); }
+        if (!string.IsNullOrWhiteSpace(bTerminal)) { owner.EnsureOperationActive(); encoder.EncoderBInputTerminal = bTerminal.Trim(); }
+        if (!string.IsNullOrWhiteSpace(zTerminal)) { owner.EnsureOperationActive(); encoder.EncoderZInputTerminal = zTerminal.Trim(); }
     }
     public static void ConfigureClock(DaqTaskResource owner, DaqTask task, string source, double rate, AiSampleMode mode, int samples)
     {

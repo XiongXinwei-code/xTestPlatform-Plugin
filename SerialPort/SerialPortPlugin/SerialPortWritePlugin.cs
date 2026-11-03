@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace SerialPort;
 
-public sealed class SerialPortWritePlugin : StepPluginBase<SerialPortWriteSetting>
+public sealed class SerialPortWritePlugin : SerialPort.PluginInfrastructure.StrictStepPluginBase<SerialPortWriteSetting>
 {
     public override string StepTypeId => "IO.SerialPortWrite";
-    public override string DisplayName => "SerialPort_Write";
+    public override string DisplayName => "SerialPort_ReadWrite_Write";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/SerialPort.StepPlugin.UI;component/Resources/Icons/serialport_write.png";
 

@@ -11,6 +11,8 @@ internal sealed class CanReceiveRouter
     private readonly object _gate = new();
     private readonly Dictionary<uint, Queue<CanMessage>> _queues = new();
     private readonly HashSet<FeedbackSubscription> _subscriptions = [];
+    private readonly HashSet<CanCaptureWindow> _captures = [];
+    private readonly HashSet<CanLatestSubscription> _listeners = [];
     private readonly CanFrameInbox _raw = new();
     private readonly HashSet<CanFrameInbox> _nodeInboxes = [];
     private TaskCompletionSource _changed = NewSignal();
@@ -39,6 +41,8 @@ internal sealed class CanReceiveRouter
         {
             if (_stopped) return;
             _raw.Publish(copy);
+            foreach (var capture in _captures) capture.Publish(copy);
+            foreach (var listener in _listeners) listener.Publish(copy);
             if (copy.IsFd || copy.FrameType != CanFrameType.Standard || copy.Id > 0x7FF) return;
             foreach (var inbox in _nodeInboxes) inbox.Publish(copy);
             if (!_queues.TryGetValue(copy.Id, out var queue)) _queues[copy.Id] = queue = new();
@@ -51,6 +55,8 @@ internal sealed class CanReceiveRouter
 
     internal Task<CanMessage?> ReadRawAsync(uint? id, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop)
         => _raw.ReadAsync(id, timeoutMs, ct, stop);
+    internal Task<CanMessage?> ReadRawAnyAsync(uint[] ids, int timeoutMs, CancellationToken ct, OwnerStopSignal? stop)
+        => _raw.ReadAnyAsync(ids, timeoutMs, ct, stop);
     internal CanFrameInbox CreateNodeInbox()
     {
         lock (_gate)
@@ -106,6 +112,35 @@ internal sealed class CanReceiveRouter
     }
 
     public void Remove(FeedbackSubscription subscription) { lock (_gate) _subscriptions.Remove(subscription); }
+    internal CanCaptureWindow StartCapture(uint[]? ids, int maximumFrames, int durationMs,
+        Func<CanMessage, bool>? matches = null, bool firstOnly = false)
+    {
+        if (maximumFrames is < 1 or > 100_000 || durationMs <= 0 || ids?.Any(id => id > 0x1FFFFFFF) == true)
+            throw new ArgumentException("采集时间必须大于 0，最大帧数须为 1~100000，ID 不得超过 29 位");
+        lock (_gate)
+        {
+            if (_stopped || _error != null) throw new InvalidOperationException("CAN 共享接收不可用", _error);
+            var capture = new CanCaptureWindow(ids, maximumFrames, durationMs, this, matches, firstOnly);
+            _captures.Add(capture); return capture;
+        }
+    }
+    internal void RemoveCapture(CanCaptureWindow capture) { lock (_gate) _captures.Remove(capture); }
+    internal int CaptureCount { get { lock (_gate) return _captures.Count; } }
+    internal CanLatestSubscription Listen(CanLatestRoute[] routes)
+    {
+        if (routes.Length is < 1 or > 128 || routes.Any(r => !Enum.IsDefined(r.FrameType) || !Enum.IsDefined(r.Format) ||
+            r.Id > (r.FrameType == CanFrameType.Standard ? 0x7FFu : 0x1FFFFFFFu) || r.MaxAgeMs <= 0) ||
+            routes.Select(r => (r.Id, r.FrameType, r.Format)).Distinct().Count() != routes.Length)
+            throw new ArgumentException("监听要求 1~128 条不同路由、有效 ID/帧格式与正数有效期");
+        lock (_gate)
+        {
+            if (_stopped || _error != null) throw new InvalidOperationException("CAN 共享接收已停止或失败", _error);
+            var subscription = new CanLatestSubscription(routes.ToArray(), RemoveListener);
+            _listeners.Add(subscription); return subscription;
+        }
+    }
+    private void RemoveListener(CanLatestSubscription listener) { lock (_gate) _listeners.Remove(listener); }
+    internal int ListenerCount { get { lock (_gate) return _listeners.Count; } }
     public void Discard(uint id)
     {
         lock (_gate) if (_queues.TryGetValue(id, out var queue)) queue.Clear();
@@ -115,9 +150,54 @@ internal sealed class CanReceiveRouter
     public void Finish(Exception? error)
     {
         lock (_gate)
-        { _error = error; _stopped = true; _raw.Finish(error); foreach (var inbox in _nodeInboxes) inbox.Finish(error); Pulse(); }
+        { _error = error; _stopped = true; _raw.Finish(error); foreach (var inbox in _nodeInboxes) inbox.Finish(error); foreach (var capture in _captures) capture.Finish(error); foreach (var listener in _listeners) listener.Finish(error); Pulse(); }
     }
     private void Pulse() { var old = _changed; _changed = NewSignal(); old.TrySetResult(); }
+}
+
+internal sealed class CanCaptureWindow(uint[]? ids, int maximumFrames, int durationMs, CanReceiveRouter router,
+    Func<CanMessage, bool>? matches = null, bool firstOnly = false) : IDisposable
+{
+    private readonly object _gate = new();
+    private readonly HashSet<uint>? _ids = ids is { Length: > 0 } ? ids.ToHashSet() : null;
+    private readonly long _started = Stopwatch.GetTimestamp();
+    private readonly List<CanMessage> _frames = [];
+    private readonly TaskCompletionSource _finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool _disposed, _full;
+    private Exception? _error;
+    private bool _firstReceived;
+    internal Task Finished => _finished.Task;
+    internal bool IsFull { get { lock (_gate) return _full; } }
+    internal void Publish(CanMessage frame)
+    {
+        lock (_gate)
+        {
+            if (_disposed || _error != null || _firstReceived || _full || Stopwatch.GetElapsedTime(_started).TotalMilliseconds >= durationMs ||
+                (_ids != null && !_ids.Contains(frame.Id)) || (matches != null && !matches(frame))) return;
+            _frames.Add(CanReceiveRouter.Copy(frame));
+            if (firstOnly) { _firstReceived = true; _finished.TrySetResult(); }
+            else if (_frames.Count == maximumFrames) { _full = true; _finished.TrySetResult(); }
+        }
+    }
+    internal void Finish(Exception? error)
+    {
+        lock (_gate)
+        {
+            if (_disposed || _firstReceived || _full) return;
+            _error = error ?? new InvalidOperationException("CAN 连接已关闭，采集未完成"); _finished.TrySetResult();
+        }
+    }
+    internal CanMessage[] Complete()
+    {
+        router.RemoveCapture(this);
+        lock (_gate)
+        {
+            _disposed = true;
+            if (_error != null) throw new InvalidOperationException("CAN 采集接收已停止或失败", _error);
+            return _frames.ToArray();
+        }
+    }
+    public void Dispose() { router.RemoveCapture(this); lock (_gate) { _disposed = true; _finished.TrySetResult(); } }
 }
 
 internal sealed class FeedbackSubscription(FeedbackRoute[] routes, CanReceiveRouter router) : IDisposable

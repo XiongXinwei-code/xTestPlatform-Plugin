@@ -20,6 +20,7 @@ public sealed class SerialPortQueryEditorPlugin : IStepEditorPlugin
 		view.SequenceFile = sequenceFile;
 		view.ViewModel.AttachSerializer(new SerialPortQueryPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

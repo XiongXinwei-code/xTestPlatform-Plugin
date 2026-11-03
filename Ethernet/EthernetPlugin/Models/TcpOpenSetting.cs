@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.Models;
 
 /// <summary>Ethernet_TcpOpen 步骤设置</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class TcpOpenSetting
 {

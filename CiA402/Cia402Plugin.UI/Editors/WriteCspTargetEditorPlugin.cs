@@ -19,6 +19,7 @@ public sealed class WriteCspTargetEditorPlugin : IStepEditorPlugin
 		var view = new WriteCspTargetEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new WriteCspTargetPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

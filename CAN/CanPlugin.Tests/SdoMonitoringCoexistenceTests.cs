@@ -84,7 +84,7 @@ public sealed class SdoMonitoringCoexistenceTests
             var context = DispatchProxy.Create<IExecutionContext, SdkCanContext>(); var state = (SdkCanContext)(object)context;
             state.Registry = registry; state.Plugin = new CanClosePlugin(); state.Setting = new CanCloseSetting { TimeoutMs = 5000 };
             var result = await new CanCloseExecutor().ExecuteAsync(context);
-            Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+            Assert.Equal(TestStatus.Passed, result.StepResult.Status);
             Assert.True(owner.IsClosed); Assert.Equal(2, io.Inner.Cleared);
             Assert.Equal(0, io.Inner.SingleCalls); Assert.Equal(0, io.Inner.Calls);
             Assert.False(registry.Contains(CanHelper.GetAdapterKey("CAN1")));
@@ -127,7 +127,7 @@ public sealed class SdoMonitoringCoexistenceTests
         try
         {
             var result = await plugin.CreateExecutor().ExecuteAsync(context);
-            Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+            Assert.Equal(TestStatus.Passed, result.StepResult.Status);
             await raw.WriteEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
             using var ready = new CancellationTokenSource(5000);
             while (owner.GetService("test").Snapshot().Cycle.Timing?.Batch == null) await Task.Delay(2, ready.Token);

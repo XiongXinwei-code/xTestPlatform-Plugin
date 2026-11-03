@@ -36,7 +36,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
                 await guard.RunAsync(() => client.SendOnlyAsync(requestData, cancellationToken));
                 guard.Log($"UDS RawRequest (无响应): [{requestDisplay}]");
                 cancellationToken.ThrowIfCancellationRequested();
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = requestDisplay } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = requestDisplay } };
             }
 
             var response = await guard.RunAsync(() => client.RequestAsync(requestData, cancellationToken));
@@ -51,7 +51,7 @@ public sealed class UdsRawRequestExecutor : IStepExecutor
             cancellationToken.ThrowIfCancellationRequested();
 
             if (response.IsPositive)
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = responseDisplay } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = responseDisplay } };
             else if (securityAccess)
                 return ExecutionResults.Error($"UDS 安全访问失败：{response.GetNrcDescription()}", detail: response.RequestDescription, value: responseDisplay);
             else

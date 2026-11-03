@@ -8,10 +8,10 @@ namespace Modbus;
 /// <summary>
 /// Modbus 断开连接插件，关闭并释放指定的 Modbus 连接资源
 /// </summary>
-public sealed class ModbusDisconnectPlugin : StepPluginBase<ModbusDisconnectSetting>
+public sealed class ModbusDisconnectPlugin : Modbus.PluginInfrastructure.StrictStepPluginBase<ModbusDisconnectSetting>
 {
 	public override string StepTypeId => "IO.ModbusDisconnect";
-	public override string DisplayName => "Modbus_Disconnect";
+	public override string DisplayName => "Modbus_Connection_Disconnect";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_disconnect.png";
 

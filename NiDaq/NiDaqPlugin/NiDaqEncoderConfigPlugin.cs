@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfigSetting>
+public sealed class NiDaqEncoderConfigPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqEncoderConfigSetting>
 {
     public override string StepTypeId => "NiDaq.EncoderConfig";
     public override string DisplayName => "NiDaq_Encoder_Config";
@@ -26,6 +26,12 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
         | DecodingType | 枚举 | 否 | X4 | 可选值：X1, X2, X4 |
         | PulsesPerRevolution | int | 否 | 1024 | 每转脉冲数 PPR |
         | ZIndexEnable | bool | 否 | false | 是否启用 Z 索引复位 |
+        | AInputTerminal | string | 否 | 空 | A 相输入端子，如 /Dev1/PFI0；空值保留设备默认路由 |
+        | BInputTerminal | string | 否 | 空 | B 相输入端子；使用字面端子名，不填表达式 |
+        | ZInputTerminal | string | 否 | 空 | Z 相输入端子；仅 Z 索引使能后参与复位 |
+        | InitialPositionTicks | double | 否 | 0 | 原始 Ticks 初始位置，必须为有限值 |
+        | ZIndexValueTicks | double | 否 | 0 | Z 索引复位时的原始 Ticks 值，必须为有限值 |
+        | ZIndexPhase | 枚举 | 否 | AHighBHigh | AHighBHigh、AHighBLow、ALowBHigh、ALowBLow；依设备与接线选择 |
         | DistancePerPulse | double | 否 | 0.3515625 | 每脉冲对应的距离/角度 |
         | Unit | 枚举 | 否 | Degrees | 可选值：Pulses, Degrees, Millimeters |
         | TimeoutMs | int | 否 | 10000 | 名称/通道求值后的配置阶段总期限（毫秒），包含登记、旧资源收尾及 SDK 配置；不包含表达式求值 |
@@ -35,7 +41,7 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
         格式为 `<设备名>/ctr<计数器号>`，设备名在 NI MAX 中查看（默认 Dev1、Dev2…）：
 
         - 计数器通道：`Dev1/ctr0`、`Dev1/ctr1`（每个编码器占用一个计数器）
-        - 编码器 A/B/Z 相实际接线端子由计数器默认路由决定，可在 NI MAX 中查看
+        - 编码器 A/B/Z 相输入可显式选择端子；留空保留计数器默认路由，可在 NI MAX 中查看。实际路由能力由设备和驱动校验。
 
         ## 行为
 
@@ -43,6 +49,8 @@ public sealed class NiDaqEncoderConfigPlugin : StepPluginBase<NiDaqEncoderConfig
         - 建立前先登记当前 owner，关闭请求可以冻结建立期资源；同名活动资源明确拒绝覆盖。同一插件上次执行的同物理资源正在收尾时，在本步骤期限内等待，真实退出前不再次占用设备。
 
         - 仅创建任务，不启动采集
+        - 本步骤明确标记为 Encoder 任务；普通边沿计数/频率任务需使用 Counter Read，不可混用 Encoder Read。
+        - 新增端子、初始位置及 Z 配置仅扩展本独立步骤；Sync Config 仍采用原有同设备 AI + Encoder 同步结构和默认路由、零初始位置。
 
         ## 相关插件
 

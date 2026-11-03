@@ -22,6 +22,7 @@ public partial class StopMotionEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new StopMotionViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

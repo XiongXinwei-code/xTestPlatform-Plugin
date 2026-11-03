@@ -1,0 +1,36 @@
+<UserControl x:Class="NiDaq.UI.Views.NiDaqCounterInputConfigEditorView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:syncfusion="http://schemas.syncfusion.com/wpf" xmlns:skin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox" skin:SfSkinManager.Theme="{skin:SkinManagerExtension ThemeName=Windows11Light}">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="CounterInputConfig" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ci_config.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <Grid Margin="16" MinWidth="550" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="TaskName" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="任务名表达式，求值结果为 string；配置后由 TaskStart/TaskStop 管理"/>
+                    <expr:ExpressionTextBox x:Name="TaskNameBox" Grid.Row="0" Grid.Column="1" Margin="0,4,0,4" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="1" Text="TimeoutMs" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="操作总期限 ms，大于0；包含表达式、排队和SDK调用"/>
+                    <TextBox x:Name="TimeoutMsBox" Grid.Row="1" Grid.Column="1" Margin="0,4,0,4" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="2" Text="CounterChannel" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="求值结果为 string，只允许一个计数器，如 Dev1/ctr0"/>
+                    <expr:ExpressionTextBox x:Name="CounterChannelBox" Grid.Row="2" Grid.Column="1" Margin="0,4,0,4" ScriptText="{Binding CounterChannel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="3" Text="Mode" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="CountEdges / Frequency；测频使用 LowFrequencyOneCounter 方法"/>
+                    <ComboBox x:Name="ModeBox" Grid.Row="3" Grid.Column="1" Margin="0,4,0,4" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding ModeValues}" SelectedItem="{Binding Mode, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="4" Text="Edge" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="计数/测频的 Rising / Falling 边沿"/>
+                    <ComboBox x:Name="EdgeBox" Grid.Row="4" Grid.Column="1" Margin="0,4,0,4" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding EdgeValues}" SelectedItem="{Binding Edge, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="5" Text="InitialCount" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="CountEdges 初始计数，0~4294967295"/>
+                    <TextBox x:Name="InitialCountBox" Grid.Row="5" Grid.Column="1" Margin="0,4,0,4" Text="{Binding InitialCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="6" Text="Direction" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="CountEdges 方向：Up / Down / ExternallyControlled"/>
+                    <ComboBox x:Name="DirectionBox" Grid.Row="6" Grid.Column="1" Margin="0,4,0,4" Width="240" HorizontalAlignment="Left" ItemsSource="{Binding DirectionValues}" SelectedItem="{Binding Direction, Mode=TwoWay}"/>
+                    <TextBlock Grid.Row="7" Text="InputTerminal" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="输入终端普通文本；空使用设备默认路由，如 /Dev1/PFI0"/>
+                    <TextBox x:Name="InputTerminalBox" Grid.Row="7" Grid.Column="1" Margin="0,4,0,4" Text="{Binding InputTerminal, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="8" Text="MinimumFrequency" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="Frequency 测量下限 Hz，有限正数"/>
+                    <TextBox x:Name="MinimumFrequencyBox" Grid.Row="8" Grid.Column="1" Margin="0,4,0,4" Text="{Binding MinimumFrequency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="9" Text="MaximumFrequency" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="Frequency 测量上限 Hz，有限且大于下限"/>
+                    <TextBox x:Name="MaximumFrequencyBox" Grid.Row="9" Grid.Column="1" Margin="0,4,0,4" Text="{Binding MaximumFrequency, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="10" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="Gray" Text="CountEdges 返回 UInt32 计数，Frequency 返回 Hz double；测频使用单计数器低频方法，量程和端子能力由驱动验证。配置后须 TaskStart，再使用 Counter Read。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

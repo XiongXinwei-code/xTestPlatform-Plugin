@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class ResetFaultPlugin : StepPluginBase<ResetFaultSetting>
+public sealed class ResetFaultPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<ResetFaultSetting>
 {
     public override string StepTypeId => "Motion.CiA402ResetFault";
-    public override string DisplayName => "CiA402_State_ResetFault";
+    public override string DisplayName => "CiA402_StateControl_ResetFault";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_resetfault.png";
 

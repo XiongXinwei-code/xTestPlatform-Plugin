@@ -53,7 +53,7 @@
 							   Visibility="{Binding HasBody, Converter={StaticResource BoolToVis}}" />
 					<expr:ExpressionTextBox Grid.Row="4" Grid.Column="1" Margin="0,6" MinHeight="80"
 						Visibility="{Binding HasBody, Converter={StaticResource BoolToVis}}"
-                        ScriptText="{Binding Body, Mode=TwoWay}" ExpectedResultType="String"
+                        ScriptText="{Binding Body, Mode=TwoWay}" ExpectedResultType="String" ToolTip="{Binding BodyHint}"
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="5" Grid.Column="0" Text="响应变量:" VerticalAlignment="Center" Margin="0,6" />
@@ -90,5 +90,23 @@
                 </Grid>
 			</ScrollViewer>
 		</syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="Response / Limits">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <TextBlock Text="响应正文格式" Margin="0,6" />
+                    <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding ResponseFormats}" SelectedItem="{Binding ResponseFormat, Mode=TwoWay}" />
+                    <TextBlock Text="{Binding ResponseHint}" TextWrapping="Wrap" Margin="0,6,0,16" />
+                    <TextBlock Text="响应头 JSON 输出变量（可选）" Margin="0,6" />
+                    <TextBox Text="{Binding ResponseHeadersVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="JSON 对象：每个响应头名称对应一个字符串数组，包含内容头和接收完成后的尾部头。可能包含 Cookie 等敏感值，请仅映射到所需变量。" TextWrapping="Wrap" Margin="0,6,0,16" />
+                    <TextBlock Text="本次请求期限 (ms)" Margin="0,6" />
+                    <TextBox Width="240" HorizontalAlignment="Left" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                    <TextBlock Text="0 沿用客户端期限；正值与客户端期限取较小者。只影响本次请求，不修改共享客户端。覆盖发送、等待响应及完整正文读取。" TextWrapping="Wrap" Margin="0,6,0,16" />
+                    <TextBlock Text="响应正文最大字节数" Margin="0,6" />
+                    <TextBox Width="240" HorizontalAlignment="Left" Text="{Binding MaxResponseBytes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                    <TextBlock Text="默认 16777216（16 MiB），必须大于 0。超出返回 Error，不发布截断正文或本次输出；Hex / Base64 的编码长度不计入此上限。" TextWrapping="Wrap" Margin="0,6" />
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>
 </UserControl>

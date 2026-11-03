@@ -19,6 +19,7 @@ public sealed class UdsRawRequestEditorPlugin : IStepEditorPlugin
 		var view = new UdsRawRequestEditorView();
 		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CAN.UDS;
 
-public sealed class UdsDiagSessionPlugin : StepPluginBase<UdsDiagSessionSetting>
+public sealed class UdsDiagSessionPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<UdsDiagSessionSetting>
 {
     public override string StepTypeId => "UDS.DiagSession";
-    public override string DisplayName => "UDS_DiagSession";
+    public override string DisplayName => "UDS_SessionSecurity_DiagSession";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/uds_diag_session.png";
 
@@ -26,6 +26,8 @@ public sealed class UdsDiagSessionPlugin : StepPluginBase<UdsDiagSessionSetting>
         | ConnectionName | string([ExpressionField]) | 是 | — | 已打开的 CAN 连接名，求值结果为 string |
         | TxId | string([ExpressionField]) | 是 | — | 请求 CAN ID，如 0x7DF，求值结果为 string |
         | RxId | string([ExpressionField]) | 是 | — | 响应 CAN ID，如 0x7E8，求值结果为 string |
+        | FrameType | 枚举 | 否 | Standard | CAN 标识符格式：Standard（11位）或 Extended（29位），应与 ECU 及收发 ID 配置一致 |
+        | UseFdFrame | bool | 否 | false | 是否使用 CAN FD ISO-TP 帧；true 需要连接按 FD 模式打开，false 使用经典 CAN 帧 |
         | ResponseTimeoutMs | int | 否 | 5000 | 响应超时毫秒数 |
         | TransactionTimeoutMs | int | 否 | 60000 | 单个 UDS 事务总期限，包含排队、发送、响应及 NRC 0x78；必须大于 0，不是整个 Flash 步骤期限 |
         | MaxResponseBytes | int | 否 | 4194304 | ISO-TP 响应重组上限（字节），必须大于 0；编辑器连接区可配置，超限在分配前拒绝；不是下载块大小 |

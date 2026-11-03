@@ -19,6 +19,7 @@ public abstract class CanopenViewModelBase<TSetting> : INotifyPropertyChanged wh
     /// <summary>加载设置期间抑制回写，避免打开步骤即被标记为修改</summary>
     private bool _suppressSave;
     private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;

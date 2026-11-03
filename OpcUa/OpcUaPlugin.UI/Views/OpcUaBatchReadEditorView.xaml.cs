@@ -10,7 +10,7 @@ namespace OpcUa.UI.Views;
 public partial class OpcUaBatchReadEditorView : UserControl, IRefreshableEditor
 {
     public OpcUaBatchReadViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(OpcUaBatchReadEditorView),
             new PropertyMetadata(null));
@@ -25,6 +25,7 @@ public partial class OpcUaBatchReadEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaBatchReadViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, FlushEditor);
         Unloaded += (_, _) => FlushEditor();
     }
 

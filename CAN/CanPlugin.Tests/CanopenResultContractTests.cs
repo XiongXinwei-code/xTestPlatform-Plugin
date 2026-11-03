@@ -8,7 +8,7 @@ namespace CAN.Tests;
 public sealed class CanopenResultContractTests
 {
     [Theory]
-    [InlineData(TestStatus.Completed)]
+    [InlineData(TestStatus.Passed)]
     [InlineData(TestStatus.Aborted)]
     [InlineData(TestStatus.Error)]
     public void Missing_optional_result_keeps_the_SDK_non_null_string_contract(TestStatus status)

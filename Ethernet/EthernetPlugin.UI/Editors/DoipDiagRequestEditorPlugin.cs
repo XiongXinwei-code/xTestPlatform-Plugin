@@ -17,6 +17,7 @@ public sealed class DoipDiagRequestEditorPlugin : IStepEditorPlugin
         var view = new DoipDiagRequestEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

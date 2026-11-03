@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class WriteCsvTargetPlugin : StepPluginBase<WriteCsvTargetSetting>
+public sealed class WriteCsvTargetPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<WriteCsvTargetSetting>
 {
     public override string StepTypeId => "Motion.CiA402WriteCsvTarget";
-    public override string DisplayName => "CiA402_Target_WriteCsvTarget";
+    public override string DisplayName => "CiA402_Targets_WriteCsvTarget";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_writecsvtarget.png";
 

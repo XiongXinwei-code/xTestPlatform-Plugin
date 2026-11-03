@@ -8,10 +8,10 @@ namespace Modbus;
 /// <summary>
 /// Modbus 读取插件，支持读取线圈、离散输入、保持寄存器、输入寄存器
 /// </summary>
-public sealed class ModbusReadPlugin : StepPluginBase<ModbusReadSetting>
+public sealed class ModbusReadPlugin : Modbus.PluginInfrastructure.StrictStepPluginBase<ModbusReadSetting>
 {
 	public override string StepTypeId => "IO.ModbusRead";
-	public override string DisplayName => "Modbus_Read";
+	public override string DisplayName => "Modbus_ReadWrite_Read";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_read.png";
 

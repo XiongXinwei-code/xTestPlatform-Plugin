@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace LIN;
 
-public sealed class LinClosePlugin : StepPluginBase<LinCloseSetting>
+public sealed class LinClosePlugin : LIN.PluginInfrastructure.StrictStepPluginBase<LinCloseSetting>
 {
     public override string StepTypeId   => "IO.LinClose";
-    public override string DisplayName  => "LIN_Close";
+    public override string DisplayName  => "LIN_Connection_Close";
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_close.png";
 

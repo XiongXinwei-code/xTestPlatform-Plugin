@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqEncoderReadPlugin : StepPluginBase<NiDaqEncoderSetting>
+public sealed class NiDaqEncoderReadPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqEncoderSetting>
 {
     public override string StepTypeId => "NiDaq.EncoderRead";
     public override string DisplayName => "NiDaq_Encoder_Read";

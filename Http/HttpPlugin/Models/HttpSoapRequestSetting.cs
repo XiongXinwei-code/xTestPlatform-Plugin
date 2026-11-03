@@ -7,6 +7,7 @@ namespace Http.Models;
 /// <summary>
 /// SOAP 请求步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class HttpSoapRequestSetting
 {
@@ -31,6 +32,12 @@ public class HttpSoapRequestSetting
 
     /// <summary>本次请求附加的请求头列表</summary>
     public ObservableCollection<HttpHeaderItem> Headers { get; set; } = [];
+
+    /// <summary>本次请求期限，0 沿用客户端；正值与客户端期限取较小者</summary>
+    public int TimeoutMs { get; set; }
+
+    /// <summary>允许读取的响应正文最大字节数，超出报错且不发布结果</summary>
+    public int MaxResponseBytes { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>存放响应 XML 字符串的变量名，留空则不写入</summary>
     [VariablePathField]

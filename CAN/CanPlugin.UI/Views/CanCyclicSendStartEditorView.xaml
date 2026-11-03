@@ -1,20 +1,29 @@
 <UserControl x:Class="CAN.UI.Views.CanCyclicSendStartEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:appearance="clr-namespace:CAN.UI.Appearance"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
              xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+             xmlns:views="clr-namespace:CAN.UI.Views"
+             xmlns:converters="clr-namespace:CAN.UI.Converters"
              syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <converters:EnumToIntConverter x:Key="EnumToIntConverter"/>
+        <converters:CyclicExpressionTextConverter x:Key="CyclicExpressionTextConverter"/>
+    </UserControl.Resources>
     <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
         <syncfusion:TabItemExt Header="CAN CyclicSend Start"
                                    Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_cyclic_start.png"
                                    ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16" VerticalAlignment="Top">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -45,32 +54,91 @@
                     <Button Content="Remove" Width="60" Click="OnRemoveMessage"/>
                 </StackPanel>
 
-                <DataGrid x:Name="MessagesGrid" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                <DataGrid appearance:CanListAppearance.Enabled="True" MinRowHeight="36" x:Name="MessagesGrid" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                           ItemsSource="{Binding Messages}"
+                          SelectedItem="{Binding SelectedMessage, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           CanUserDeleteRows="False"
                           MinHeight="150"
+                          MaxHeight="260"
                           Margin="0,0,0,8">
                     <DataGrid.Columns>
-                        <DataGridCheckBoxColumn Header="Enabled" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+                        <DataGridTemplateColumn Header="发送条件" Width="180">
+                            <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <expr:ExpressionTextBox x:Name="EnabledExpressionBox" ExpectedResultType="Boolean"
+                                    ToolTip="填写 true 持续发送、false 暂停，或布尔表达式（如 Locals.SendEnabled）。运行期间动态求值；暂停不推进 RC，恢复发送保留计数。"
+                                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanCyclicSendStartEditorView}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanCyclicSendStartEditorView}}">
+                                    <expr:ExpressionTextBox.ScriptText>
+                                        <MultiBinding Converter="{StaticResource CyclicExpressionTextConverter}" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                                            <Binding Path="EnabledExpression" Mode="TwoWay"/>
+                                            <Binding Path="Enabled" Mode="OneWay"/>
+                                        </MultiBinding>
+                                    </expr:ExpressionTextBox.ScriptText>
+                                </expr:ExpressionTextBox>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="CAN ID 表达式" Width="180">
                             <DataGridTemplateColumn.CellTemplate><DataTemplate>
                                 <expr:ExpressionTextBox ScriptText="{Binding CanId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
                                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                             </DataTemplate></DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="FrameType (0=Std,1=Ext)" Binding="{Binding FrameTypeInt, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
-                        <DataGridTemplateColumn Header="Data (Hex) 表达式" Width="*">
+                        <DataGridTextColumn Header="FrameType (0=Std,1=Ext)" Binding="{Binding FrameType, Converter={StaticResource EnumToIntConverter}, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                        <DataGridCheckBoxColumn Header="CAN FD/BRS" Binding="{Binding UseFdFrame, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                        <DataGridTemplateColumn Header="Data (Hex) 表达式" Width="*" MinWidth="240">
                             <DataGridTemplateColumn.CellTemplate><DataTemplate>
                                 <expr:ExpressionTextBox ScriptText="{Binding Data, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
                                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                             </DataTemplate></DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Cycle (ms)" Binding="{Binding CycleTimeMs, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                        <DataGridTemplateColumn Header="周期表达式 (ms)" Width="180">
+                            <DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                <expr:ExpressionTextBox x:Name="CycleTimeExpressionBox" ExpectedResultType="Int32"
+                                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanCyclicSendStartEditorView}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanCyclicSendStartEditorView}}">
+                                    <expr:ExpressionTextBox.ScriptText>
+                                        <MultiBinding Converter="{StaticResource CyclicExpressionTextConverter}" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                                            <Binding Path="CycleTimeMsExpression" Mode="TwoWay"/>
+                                            <Binding Path="CycleTimeMs" Mode="OneWay"/>
+                                        </MultiBinding>
+                                    </expr:ExpressionTextBox.ScriptText>
+                                </expr:ExpressionTextBox>
+                            </DataTemplate></DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridCheckBoxColumn Header="RC" Binding="{Binding Protection.RcEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="45"/>
+                        <DataGridCheckBoxColumn Header="CRC" Binding="{Binding Protection.CrcEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                        <DataGridTextColumn Header="CRC 算法" Binding="{Binding Protection.CrcAlgorithm}" IsReadOnly="True" Width="140"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,8,0,0">
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <TextBlock Text="发送条件 / 周期刷新间隔 (ms)：" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox x:Name="ControlRefreshMsBox" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding ControlRefreshMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="1" Text="表达式求值超时 (ms)：" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <TextBox x:Name="ExpressionTimeoutMsBox" Grid.Row="1" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding ExpressionTimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8"/>
+                    </Grid>
+                    <TextBlock Text="发送条件填写 true 表示发送、false 表示暂停，也可填写布尔变量或表达式。每个刷新间隔重新求值；暂停不推进 RC，恢复发送或修改周期保留计数，停止任务后重新启动才恢复初值。Data ID 表表达式仅在启动时求值并冻结。" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    <TextBlock Text="快捷选择 RC / CRC 配置报文：" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                    <ComboBox x:Name="ProtectionMessageSelector" ItemsSource="{Binding ProtectionChoices}" DisplayMemberPath="Display"
+                              SelectedItem="{Binding SelectedProtectionChoice, Mode=TwoWay}" IsEnabled="{Binding CanSelectProtection}"
+                              IsTextSearchEnabled="True" TextSearch.TextPath="Display" Margin="0,0,0,8"
+                              ToolTip="选择此处或上方报文行均可切换保护配置。显示原始 ID 表达式，不在编辑时求值；行号和帧类型用于区分相同 ID。"/>
+                    <TextBlock x:Name="SelectedProtectionTitle" Text="{Binding SelectedProtectionTitle}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <TextBlock Text="可直接使用上方快捷选择框切换报文，无需返回列表。仅编辑所选行的 RC/CRC；每行独立计数，停止任务并重新启动后从初值开始。" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <views:PayloadProtectionEditorView x:Name="ProtectionEditor" DataContext="{Binding SelectedMessage.Protection}"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanCyclicSendStartEditorView}}"
+                        EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanCyclicSendStartEditorView}}">
+                        <views:PayloadProtectionEditorView.Style>
+                            <Style TargetType="views:PayloadProtectionEditorView">
+                                <Style.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers>
+                            </Style>
+                        </views:PayloadProtectionEditorView.Style>
+                    </views:PayloadProtectionEditorView>
+                </StackPanel>
             </Grid>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

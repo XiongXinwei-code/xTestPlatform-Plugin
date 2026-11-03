@@ -19,6 +19,7 @@ public sealed class XcpShortUploadEditorPlugin : IStepEditorPlugin
         var view = new XcpShortUploadEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

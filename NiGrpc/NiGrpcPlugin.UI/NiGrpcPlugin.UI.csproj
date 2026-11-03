@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.5</Version><TargetFramework>net8.0-windows</TargetFramework><Nullable>enable</Nullable><UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings><AssemblyName>NiGrpc.StepPlugin.UI</AssemblyName><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup><Resource Include="Resources/Icons/*.png" CopyToOutputDirectory="Never" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../NiGrpcPlugin/NiGrpcPlugin.csproj" />
+    <PackageReference Include="xTestPlatform.StepEditor.SDK" /><PackageReference Include="MessagePack" />
+    <PackageReference Include="CommunityToolkit.Mvvm" /><PackageReference Include="AvalonEdit" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" /><PackageReference Include="Syncfusion.SfSkinManager.WPF" /><PackageReference Include="Syncfusion.Tools.WPF" />
+  </ItemGroup>
+</Project>

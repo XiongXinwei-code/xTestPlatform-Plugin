@@ -7,6 +7,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CyclicMessageItem : INotifyPropertyChanged
 {
     private string _canId = "\"0x7FF\"";
@@ -14,6 +15,29 @@ public class CyclicMessageItem : INotifyPropertyChanged
     private string _data = "\"FF FF FF FF FF FF FF FF\"";
     private int _cycleTimeMs = 100;
     private bool _enabled = true;
+    private string _cycleTimeMsExpression = "";
+    private string _enabledExpression = "";
+    private bool _useFdFrame;
+    private CanPayloadProtectionSetting _protection = new();
+
+    public CyclicMessageItem() => _protection.PropertyChanged += ProtectionChanged;
+
+    /// <summary>每行独立的 RC 与 CRC，子属性修改也触发编辑器保存。</summary>
+    public CanPayloadProtectionSetting Protection
+    {
+        get => _protection;
+        set
+        {
+            var replacement = value ?? new CanPayloadProtectionSetting();
+            if (ReferenceEquals(_protection, replacement)) return;
+            _protection.PropertyChanged -= ProtectionChanged;
+            _protection = replacement;
+            _protection.PropertyChanged += ProtectionChanged;
+            OnPropertyChanged();
+        }
+    }
+
+    private void ProtectionChanged(object? sender, PropertyChangedEventArgs e) => OnPropertyChanged(nameof(Protection));
 
     /// <summary>CAN ID（支持表达式，如 0x185）</summary>
     [ExpressionField]
@@ -38,6 +62,13 @@ public class CyclicMessageItem : INotifyPropertyChanged
         set => SetProperty(ref _data, value);
     }
 
+    /// <summary>以 CAN FD/BRS 帧发送；旧序列默认使用经典帧。</summary>
+    public bool UseFdFrame
+    {
+        get => _useFdFrame;
+        set => SetProperty(ref _useFdFrame, value);
+    }
+
     /// <summary>发送周期（毫秒）</summary>
     public int CycleTimeMs
     {
@@ -52,15 +83,33 @@ public class CyclicMessageItem : INotifyPropertyChanged
         set => SetProperty(ref _enabled, value);
     }
 
-    /// <summary>帧类型（整数形式，供 UI 绑定）</summary>
-    [IgnoreMember]
-    public int FrameTypeInt
+    /// <summary>可选动态周期表达式，结果为 int 毫秒；空值兼容旧 CycleTimeMs。</summary>
+    [ExpressionField]
+    public string CycleTimeMsExpression
     {
-        get => (int)_frameType;
-        set { if ((int)_frameType != value) { _frameType = (CanFrameType)value; OnPropertyChanged(); OnPropertyChanged(nameof(FrameType)); } }
+        get => _cycleTimeMsExpression;
+        set => SetProperty(ref _cycleTimeMsExpression, value);
     }
 
+    /// <summary>可选动态启用表达式，结果为 bool；暂停和恢复不重置 Counter。</summary>
+    [ExpressionField]
+    public string EnabledExpression
+    {
+        get => _enabledExpression;
+        set => SetProperty(ref _enabledExpression, value);
+    }
+
+    internal CyclicMessageItem Copy() => new()
+    {
+        CanId = CanId, FrameType = FrameType, Data = Data, UseFdFrame = UseFdFrame,
+        CycleTimeMs = CycleTimeMs, Enabled = Enabled,
+        CycleTimeMsExpression = CycleTimeMsExpression, EnabledExpression = EnabledExpression,
+        Protection = Protection.Copy()
+    };
+
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public override string ToString() => CAN.Helpers.CanSettingText.Format(this);
 
     protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
     {

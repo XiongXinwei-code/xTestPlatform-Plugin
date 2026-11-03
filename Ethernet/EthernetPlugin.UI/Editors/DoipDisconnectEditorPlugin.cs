@@ -17,6 +17,7 @@ public sealed class DoipDisconnectEditorPlugin : IStepEditorPlugin
         var view = new DoipDisconnectEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

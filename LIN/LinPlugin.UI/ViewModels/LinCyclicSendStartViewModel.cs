@@ -13,6 +13,7 @@ public class LinCyclicSendStartViewModel : INotifyPropertyChanged
     private bool _suppressSave;
     public int ReplaceTimeoutMs { get => _setting?.ReplaceTimeoutMs ?? 3000; set { if (_setting == null || _setting.ReplaceTimeoutMs == value) return; _setting.ReplaceTimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;

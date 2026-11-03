@@ -1,6 +1,6 @@
 # HTTP 步骤插件
 
-当前版本 **1.0.27**：关闭以请求、取消回调和 Dispose 的真实退出为准；已退出回调错误保留警告，真实 Dispose 失败继续报错。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+当前版本 **1.0.33**：REST 增加 Bytes 请求体、Text/Hex/Base64 响应及响应头 JSON 输出；REST/SOAP 增加独立请求期限和正文大小上限。关闭仍以请求、取消回调和 Dispose 的真实退出为准。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
 修改汇总与交付边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
@@ -84,3 +84,16 @@
 - `HTTP_080~083`：XML 提取（含 XPath 语法编译校验）
 - `HTTP_100`：客户端关闭
 - `HTTP_LC01`：生命周期警告，请求步骤之前未找到同名 `Http_ClientCreate`
+
+
+## REST 二进制与响应信息
+
+Http_Request 的 ContentType=Bytes 时，Body 仍为字符串表达式，求值结果是十六进制字节，如 `"00 01 FE FF"`，按原始字节与 `application/octet-stream` 发送。ResponseFormat 可选 Text、Hex（连续大写十六进制）或 Base64，结果均映射到 string 变量。ResponseHeadersVariable 可选映射完整响应头 JSON，其中每个头名称对应字符串数组，包含内容头及接收完成后的尾部头；头值可能包含 Cookie 等敏感内容，不自动输出到日志。
+
+REST 与 SOAP 的 TimeoutMs=0 沿用客户端期限，正值与客户端期限取较小者；不修改共享 HttpClient.Timeout。期限覆盖请求排队、发送、等待响应及正文读取。MaxResponseBytes 默认 16777216（16 MiB），限制正文原始字节数，包含没有 Content-Length 的分块响应；超出报 Error，不发布本次响应、状态码等输出。内部超时与调用方中断分开处理，资源继续追踪实际请求及取消回调退出。
+
+现有六个步骤覆盖常规 REST/SOAP、认证、请求头/查询路径、文本或二进制正文、JSON/XML提取及客户端关闭；不宣称覆盖所有 HTTP 应用。当前不提供 multipart 文件上传、流式文件下载、WebSocket、HTTP服务端或浏览器自动化。大文件处理需要独立的文件流生命周期与提交机制，不应使用此有界正文缓冲代替。
+
+## 参数写入校验
+
+平台助手与页面使用同一份强类型设置。插件在参数转换及保存前校验：未知或重复字段、类型不符、未定义枚举、不允许的 null、非有限数和赋值后被忽略/改写的值均明确报错，并保留原步骤数据。对象数组需提交完整 JSON 数组；请先读取全部当前项再修改，避免替换时遗漏配置。表达式文本不会在保存时执行，依赖变量或设备的有效性仍由步骤校验与执行处理。

@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.UDS.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsReadDataByIdSetting : UdsCommonSetting
 {
     /// <summary>DID（Data Identifier），支持表达式，如 "0xF190"</summary>

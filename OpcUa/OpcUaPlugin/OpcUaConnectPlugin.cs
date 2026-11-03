@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 连接插件，建立与 OPC UA 服务器的会话</summary>
-public sealed class OpcUaConnectPlugin : StepPluginBase<OpcUaConnectSetting>
+public sealed class OpcUaConnectPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaConnectSetting>
 {
     public override string StepTypeId => "OpcUa.Connect";
-    public override string DisplayName => "OpcUa_Connect";
+    public override string DisplayName => "OpcUa_Connection_Connect";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_connect.png";
 

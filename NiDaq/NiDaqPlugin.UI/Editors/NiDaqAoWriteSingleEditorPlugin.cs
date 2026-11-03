@@ -17,6 +17,7 @@ public sealed class NiDaqAoWriteSingleEditorPlugin : IStepEditorPlugin
         var view = new NiDaqAoWriteSingleEditorView { SequenceFile = sequenceFile };
         view.ViewModel.AttachSerializer(new NiDaqAoWriteSinglePlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
     public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(StepEditorValidationContext context, CancellationToken ct = default)

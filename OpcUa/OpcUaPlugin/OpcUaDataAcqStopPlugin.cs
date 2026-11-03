@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 数据采集停止插件</summary>
-public sealed class OpcUaDataAcqStopPlugin : StepPluginBase<OpcUaDataAcqStopSetting>
+public sealed class OpcUaDataAcqStopPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaDataAcqStopSetting>
 {
     public override string StepTypeId => "OpcUa.DataAcqStop";
-    public override string DisplayName => "OpcUa_DataAcq_Stop";
+    public override string DisplayName => "OpcUa_AcquisitionSubscription_DataAcqStop";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_stop.png";
 

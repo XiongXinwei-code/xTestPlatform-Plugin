@@ -22,6 +22,7 @@ public partial class RunTorqueEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new RunTorqueViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

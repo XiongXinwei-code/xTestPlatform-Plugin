@@ -115,7 +115,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                 var old = slot.Value;
                 if (old is not null)
                 {
-                    old.Dispose();
+                    await DisposeResourceAsync(old).ConfigureAwait(false);
                     lock (_sync) if (ReferenceEquals(slot.Value, old)) slot.Value = null;
                 }
                 CheckOpeningDeadline();
@@ -142,7 +142,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                     {
                         // A late factory result is still an owned handle, even if its cleanup throws.
                         lock (_sync) { slot.Value = staged; slot.ValueGeneration = generation; }
-                        staged.Dispose();
+                        await DisposeResourceAsync(staged).ConfigureAwait(false);
                         lock (_sync) if (ReferenceEquals(slot.Value, staged)) slot.Value = null;
                     }
                 }
@@ -261,7 +261,7 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
                 lock (_sync) current = slot.ValueGeneration <= retirement.Generation ? slot.Value : null;
                 if (current is not null)
                 {
-                    current.Dispose(); // Failed release retains the instance for an explicit retry.
+                    await DisposeResourceAsync(current).ConfigureAwait(false); // Failed release retains the instance for an explicit retry.
                     lock (_sync) if (ReferenceEquals(slot.Value, current)) slot.Value = null;
                 }
                 // Acquiring the gate proves the captured factory has exited. A newer
@@ -277,6 +277,12 @@ internal sealed class NamedConnectionPool<T> : IDisposable where T : class, IDis
             RetiringResources.ForgetReleased(slot.RetirementKeyOverride ?? RetirementKey(name), retirement);
         });
         return actual;
+    }
+
+    private static async ValueTask DisposeResourceAsync(T resource)
+    {
+        if (resource is IAsyncDisposable asynchronous) await asynchronous.DisposeAsync().ConfigureAwait(false);
+        else resource.Dispose();
     }
 
     private static string RetirementKey(string name) => $"Ethernet:{typeof(T).FullName}:{name}";

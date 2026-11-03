@@ -7,6 +7,8 @@
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
              xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
              xmlns:local="clr-namespace:CAN.UI.Converters"
+             xmlns:views="clr-namespace:CAN.UI.Views"
+             xmlns:appearance="clr-namespace:CAN.UI.Appearance"
              syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -17,6 +19,7 @@
         <syncfusion:TabItemExt Header="CAN Write"
                                            Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_write.png"
                                            ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="16">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="130"/>
@@ -29,9 +32,10 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="5" Grid.Column="0" Text="发送等待超时(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认5000；超时或取消后原生调用未退出则保持隔离。成功只表示驱动提交，不确认已上总线。"/>
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="步骤总期限(ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8" ToolTip="默认5000，包含求值、排队及所有启用行的提交等待；原生调用未退出时仍由原连接跟踪。成功表示驱动提交。"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
@@ -63,7 +67,71 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="Use FD Frame:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <CheckBox Grid.Row="4" Grid.Column="1" IsChecked="{Binding UseFdFrame}" Margin="0,0,0,8"/>
+                <CheckBox x:Name="UseMessageListCheckBox" Grid.Row="6" Grid.ColumnSpan="2" Content="使用多报文列表（启用后忽略上面的单帧 ID / Data / RC / CRC；到“多报文”页配置）"
+                          IsChecked="{Binding UseMessageList, Mode=TwoWay}" Margin="0,8,0,8"/>
             </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="RC / CRC" IsEnabled="{Binding IsSingleMessage}"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_write.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16">
+                    <TextBlock Text="同一连接内，此步骤的同一 CAN ID / 帧格式独立累加 RC；不同发送步骤不共享计数。关闭连接重新打开后从初值开始。" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <views:PayloadProtectionEditorView x:Name="ProtectionEditor" DataContext="{Binding Protection}"
+                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanWriteEditorView}}"
+                        EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanWriteEditorView}}"/>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="多报文"
+                               Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_write.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16">
+                    <CheckBox Content="启用多报文列表" IsChecked="{Binding UseMessageList, Mode=TwoWay}" Margin="0,0,0,10"/>
+                    <TextBlock Text="每行独立设置 ID、数据、RC 和 CRC，只有勾选“发送”的行参与本次写入。列表按顺序作为一批提交；成功表示驱动接收，不能撤回已尝试发送的帧。最多 128 行。" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                    <StackPanel IsEnabled="{Binding UseMessageList}">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="添加报文" Click="OnAddMessage" Padding="10,4" Margin="0,0,8,0"/>
+                            <Button Content="删除所选报文" Click="OnRemoveMessage" Padding="10,4"/>
+                        </StackPanel>
+                        <DataGrid x:Name="MessagesGrid" appearance:CanListAppearance.Enabled="True" MinRowHeight="36" ItemsSource="{Binding Messages}" SelectedItem="{Binding SelectedMessage, Mode=TwoWay}"
+                                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" MinHeight="150" MaxHeight="300" Margin="0,0,0,10">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="发送" Binding="{Binding Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                                <DataGridTemplateColumn Header="CAN ID 表达式" Width="170"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <expr:ExpressionTextBox ScriptText="{Binding CanId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="帧类型" Width="110"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <ComboBox SelectedIndex="{Binding FrameType, Converter={StaticResource EnumToIntConverter}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <ComboBoxItem Content="标准帧"/><ComboBoxItem Content="扩展帧"/>
+                                    </ComboBox>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridCheckBoxColumn Header="CAN FD" Binding="{Binding UseFdFrame, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="65"/>
+                                <DataGridTemplateColumn Header="Data (Hex) 表达式" Width="260"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <expr:ExpressionTextBox ScriptText="{Binding Data, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                                        SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridCheckBoxColumn Header="RC" Binding="{Binding Protection.RcEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="45"/>
+                                <DataGridCheckBoxColumn Header="CRC" Binding="{Binding Protection.CrcEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                                <DataGridTextColumn Header="CRC 算法" Binding="{Binding Protection.CrcAlgorithm}" IsReadOnly="True" Width="140"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock x:Name="BatchProtectionTitle" Text="{Binding SelectedProtectionTitle}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                        <TextBlock Text="先选中一行，再配置它的 RC / CRC。每行独立计数，不同 ID 不共享计数；相同 ID 的不同行也独立。删除或移动位置会改变计数来源，关闭重开连接从初值开始。"
+                                   TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <views:PayloadProtectionEditorView x:Name="BatchProtectionEditor" DataContext="{Binding SelectedMessage.Protection}"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanWriteEditorView}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanWriteEditorView}}">
+                            <views:PayloadProtectionEditorView.Style><Style TargetType="views:PayloadProtectionEditorView"><Style.Triggers>
+                                <DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="IsEnabled" Value="False"/></DataTrigger>
+                            </Style.Triggers></Style></views:PayloadProtectionEditorView.Style>
+                        </views:PayloadProtectionEditorView>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>
 </UserControl>

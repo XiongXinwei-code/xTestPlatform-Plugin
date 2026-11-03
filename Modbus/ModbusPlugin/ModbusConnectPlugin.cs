@@ -8,10 +8,10 @@ namespace Modbus;
 /// <summary>
 /// Modbus 连接插件，支持 TCP 和 RTU(串口) 两种传输方式
 /// </summary>
-public sealed class ModbusConnectPlugin : StepPluginBase<ModbusConnectSetting>
+public sealed class ModbusConnectPlugin : Modbus.PluginInfrastructure.StrictStepPluginBase<ModbusConnectSetting>
 {
 	public override string StepTypeId => "IO.ModbusConnect";
-	public override string DisplayName => "Modbus_Connect";
+	public override string DisplayName => "Modbus_Connection_Connect";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_connect.png";
 

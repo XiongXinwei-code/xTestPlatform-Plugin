@@ -4,6 +4,7 @@ using MessagePack;
 
 namespace NiDaq.Models;
 
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class NiDaqAiChannel : INotifyPropertyChanged
 {
@@ -28,6 +29,9 @@ public class NiDaqAiChannel : INotifyPropertyChanged
     /// <summary>终端配置</summary>
     public AiTerminalConfig Terminal { get => _terminal; set => SetProperty(ref _terminal, value); }
 
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
@@ -39,6 +43,7 @@ public class NiDaqAiChannel : INotifyPropertyChanged
     }
 }
 
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class NiDaqSyncEncoderChannel : INotifyPropertyChanged
 {
@@ -70,6 +75,9 @@ public class NiDaqSyncEncoderChannel : INotifyPropertyChanged
 
     /// <summary>是否启用 Z 索引</summary>
     public bool ZIndexEnable { get => _zIndexEnable; set => SetProperty(ref _zIndexEnable, value); }
+
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -88,7 +88,7 @@ public sealed class CanCloseExecutor : IStepExecutor
             _ = Remaining();
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Completed, Value = closeDiagnostics ?? string.Empty }
+                StepResult = new StepResult { Status = TestStatus.Passed, Value = closeDiagnostics ?? string.Empty }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

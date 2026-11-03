@@ -9,7 +9,7 @@ namespace LIN.UI.Views;
 public partial class LinWriteEditorView : UserControl, IRefreshableEditor
 {
     public LinWriteViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(LinWriteEditorView),
@@ -34,6 +34,7 @@ public partial class LinWriteEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new LinWriteViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
         Unloaded += (_, _) => ViewModel.Flush();
     }
 

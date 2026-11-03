@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CAN.XCP;
 
-public sealed class XcpDisconnectPlugin : StepPluginBase<XcpDisconnectSetting>
+public sealed class XcpDisconnectPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<XcpDisconnectSetting>
 {
     public override string StepTypeId  => "XCP.Disconnect";
-    public override string DisplayName => "XCP_Disconnect";
+    public override string DisplayName => "XCP_Connection_Disconnect";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_disconnect.png";
 

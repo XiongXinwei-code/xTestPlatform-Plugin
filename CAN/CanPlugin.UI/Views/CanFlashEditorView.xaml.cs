@@ -9,7 +9,7 @@ namespace CAN.UI.Views;
 public partial class CanFlashEditorView : UserControl, IRefreshableEditor
 {
     public CanFlashViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(CanFlashEditorView),
@@ -28,6 +28,7 @@ public partial class CanFlashEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = viewModel;
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
         Unloaded += (_, _) =>
         {
             try { ViewModel.Flush(); }

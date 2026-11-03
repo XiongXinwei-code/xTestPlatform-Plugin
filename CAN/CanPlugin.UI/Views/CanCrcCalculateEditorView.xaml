@@ -1,0 +1,32 @@
+<UserControl x:Class="CAN.UI.Views.CanCrcCalculateEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+    xmlns:views="clr-namespace:CAN.UI.Views">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="CAN 离线 CRC" Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_write.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="16" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Text="完整报文数据 (Hex)：" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                    <expr:ExpressionTextBox x:Name="DataExpression" Grid.Column="1" Margin="0,0,0,8" ScriptText="{Binding Data, Mode=TwoWay}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanCrcCalculateEditorView}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanCrcCalculateEditorView}}"/>
+                    <TextBlock Grid.Row="1" Text="计算超时 (ms)：" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="2" Text="CRC 结果变量（可选）：" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2" TextWrapping="Wrap" Foreground="#666666" Text="纯离线计算，无需 CAN 连接。输入完整报文字节，计算范围在 CRC 配置中选择；结果为 0x 开头的十六进制字符串。可填已声明的字符串变量路径（如 Locals.Crc），留空时只返回步骤结果。只读取现有 Counter / NIBBLE，不累加 RC、不改写输入报文、不发送报文。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="CRC 配置" Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_write.png" ImageHeight="20" ImageWidth="20">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Margin="16,12,16,4" TextWrapping="Wrap" Text="请启用 CRC。本步骤只计算 CRC，不与原字段比较。RC 字段仅描述已有数据的布局，不会生成或修改 Counter。Profile 2 表表达式只在本步骤开始时解析为 16 字节并冻结，本步骤不执行 E2E 接收状态机。" Foreground="#666666"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <views:PayloadProtectionEditorView x:Name="ProtectionEditor" Margin="16" DataContext="{Binding Protection}" ReadMode="True" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=views:CanCrcCalculateEditorView}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=views:CanCrcCalculateEditorView}}"/>
+                </ScrollViewer>
+            </DockPanel>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

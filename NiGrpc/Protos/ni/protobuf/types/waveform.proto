@@ -1,0 +1,174 @@
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+syntax = "proto3";
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+package ni.protobuf.types;
+
+import "ni/protobuf/types/precision_timestamp.proto";
+
+//---------------------------------------------------------------------
+//---------------------------------------------------------------------
+option csharp_namespace = "NationalInstruments.Protobuf.Types";
+option go_package = "types";
+option java_multiple_files = true;
+option java_outer_classname = "WaveformProto";
+option java_package = "com.ni.protobuf.types";
+option objc_class_prefix = "NIPT";
+option php_namespace = "NI\\PROTOBUF\\TYPES";
+option ruby_package = "NI::Protobuf::Types";
+
+// A double-precision analog waveform with timing and extended properties.
+message DoubleAnalogWaveform {
+  // The time of the first sample in y_data.
+  PrecisionTimestamp t0 = 1;
+
+  // The time interval in seconds between data points in the waveform.
+  double dt = 2;
+
+  // The data values of the waveform.
+  repeated double y_data = 3;
+
+  // Attribute names and values. See WaveformAttributeValue for more details.
+  map<string, WaveformAttributeValue> attributes = 4;
+}
+
+// A 16-bit integer analog waveform with timing and extended properties.
+message I16AnalogWaveform {
+  // The time of the first sample in y_data.
+  PrecisionTimestamp t0 = 1;
+
+  // The time interval in seconds between data points in the waveform.
+  double dt = 2;
+
+  // The data values of the waveform.
+  repeated sint32 y_data = 3;
+
+  // Attribute names and values. See WaveformAttributeValue for more details.
+  map<string, WaveformAttributeValue> attributes = 4;
+
+  // Optional scaling information used to convert raw data to scaled data.
+  Scale scale = 5;
+}
+
+// A double-precision complex waveform with timing and extended properties.
+message DoubleComplexWaveform {
+  // The time of the first sample in y_data.
+  PrecisionTimestamp t0 = 1;
+
+  // The time interval in seconds between data points in the waveform.
+  double dt = 2;
+
+  // The data values of the waveform.
+  //
+  // This data consists of interleaved real and imaginary parts.
+  // Example: [1.0+2.0j, 3.0+4.0j] is represented as [1.0, 2.0, 3.0, 4.0].
+  repeated double y_data = 3;
+
+  // Attribute names and values. See WaveformAttributeValue for more details.
+  map<string, WaveformAttributeValue> attributes = 4;
+}
+
+// A 16-bit integer complex waveform with timing and extended properties.
+message I16ComplexWaveform {
+  // The time of the first sample in y_data.
+  PrecisionTimestamp t0 = 1;
+
+  // The time interval in seconds between data points in the waveform.
+  double dt = 2;
+
+  // The data values of the waveform.
+  //
+  // This data consists of interleaved real and imaginary parts.
+  // Example: [1+2j, 3+4j] is represented as [1, 2, 3, 4].
+  repeated sint32 y_data = 3;
+
+  // Attribute names and values. See WaveformAttributeValue for more details.
+  map<string, WaveformAttributeValue> attributes = 4;
+
+  // Optional scaling information used to convert raw data to scaled data.
+  Scale scale = 5;
+}
+
+// A double-precision frequency spectrum with extended properties.
+message DoubleSpectrum {
+  // The start frequency of the spectrum.
+  double start_frequency = 1;
+
+  // The frequency increment of the spectrum.
+  double frequency_increment = 2;
+
+  // The data values of the spectrum.
+  repeated double data = 3;
+
+  // Attribute names and values. See WaveformAttributeValue for more details.
+  map<string, WaveformAttributeValue> attributes = 4;
+}
+
+// Metadata attached to a waveform.
+//
+// The NI-DAQmx driver sets the following string attributes:
+// 
+// - NI_ChannelName: the name of the virtual channel producing the waveform.
+// - NI_LineNames: the name of the digital line in the waveform.
+// - NI_UnitDescription: the units of measure for the waveform.
+// - NI_dBReference: the reference value to use when converting measurement levels to decibel.
+//
+// For additional information on waveform attributes, please visit
+// https://www.ni.com/docs/en-US/bundle/labview-api-ref/page/functions/get-waveform-attribute.html
+message WaveformAttributeValue {
+  // The kind of attribute value.
+  oneof attribute
+  {
+    // Represents a bool attribute.
+    bool bool_value = 1;
+
+    // Represents an integer attribute.
+    int32 integer_value = 2;
+
+    // Represents a double attribute.
+    double double_value = 3;
+
+    // Represents a string attribute.
+    string string_value = 4;
+  }
+}
+
+// A digital waveform as bytes with timing and extended properties.
+message DigitalWaveform {
+  // The time of the first sample in y_data.
+  PrecisionTimestamp t0 = 1;
+
+  // The time interval in seconds between data points in the waveform.
+  double dt = 2;
+
+  // The number of signals in each sample of data.
+  int32 signal_count = 3;
+
+  // The data values of the waveform.
+  //
+  // This data is a flattened array of bytes that are ordered such that each
+  // signal_count bytes represents a sample.
+  bytes y_data = 4;
+
+  // Attribute names and values. See WaveformAttributeValue for more details.
+  map<string, WaveformAttributeValue> attributes = 5;
+}
+
+// Scaling information for converting unscaled waveform data to scaled data.
+message Scale {
+  oneof mode {
+    LinearScale linear_scale = 1;
+  }
+}
+
+// A linear scale consisting of a gain and an offset.
+message LinearScale {
+  // The gain of the linear scale
+  double gain = 1;
+
+  // The offset of the linear scale
+  double offset = 2;
+}
+

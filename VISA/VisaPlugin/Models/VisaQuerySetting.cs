@@ -6,6 +6,7 @@ namespace VISA.Models;
 /// <summary>
 /// VISA 查询（发送命令并读取响应）步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class VisaQuerySetting
 {

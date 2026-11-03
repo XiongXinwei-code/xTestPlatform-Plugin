@@ -39,7 +39,7 @@ public sealed class CanCyclicSendStopExecutor : IStepExecutor
             if (warning != null)
                 guard.Log(LogLevel.Warn, $"CAN 周期任务 {name}/{taskName} 的实际写调用已退出；保留历史诊断", warning);
             _ = Remaining();
-            return new() { StepResult = new() { Status = TestStatus.Completed, Value = $"周期工作任务已退出：{name}/{taskName}；不代表电机停止" } };
+            return new() { StepResult = new() { Status = TestStatus.Passed, Value = $"周期工作任务已退出：{name}/{taskName}；不代表电机停止" } };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         { return new() { StepResult = new() { Status = TestStatus.Aborted } }; }

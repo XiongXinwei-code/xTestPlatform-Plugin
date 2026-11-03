@@ -4,6 +4,23 @@ namespace Ethernet.UI.ViewModels;
 
 public class UdpSendViewModel : EthernetViewModelBase<UdpSendSetting>
 {
+    public bool UseConnection
+    {
+        get => Setting?.UseConnection ?? false;
+        set { if (Setting == null || Setting.UseConnection == value) return; Setting.UseConnection = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsTransient)); QueueSave(); }
+    }
+    public bool IsTransient => !UseConnection;
+    public string ConnectionName
+    {
+        get => Setting?.ConnectionName ?? "\"UDP1\"";
+        set { if (Setting == null || Setting.ConnectionName == value) return; Setting.ConnectionName = value; OnPropertyChanged(); QueueSave(); }
+    }
+    public bool EnableBroadcast
+    {
+        get => Setting?.EnableBroadcast ?? false;
+        set { if (Setting == null || Setting.EnableBroadcast == value) return; Setting.EnableBroadcast = value; OnPropertyChanged(); QueueSave(); }
+    }
+
     private static readonly EthernetDataEncoding[] Encodings =
         [EthernetDataEncoding.Hex, EthernetDataEncoding.Utf8, EthernetDataEncoding.Ascii];
 

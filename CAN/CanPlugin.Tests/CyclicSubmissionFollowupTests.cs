@@ -27,18 +27,14 @@ public sealed class CyclicSubmissionFollowupTests
         Task<ExecutionResult>? stopping = null;
         try
         {
-            Assert.Equal(TestStatus.Completed, (await Start(registry)).StepResult.Status);
-            await raw.BeforeTransmitGate.Task.WaitAsync(guard.Token);
+            Assert.Equal(TestStatus.Passed, (await Start(registry)).StepResult.Status);
+            await WaitForQueuedBatch(owner, guard.Token);
             stopping = new CanCyclicSendStopExecutor().ExecuteAsync(Context(registry, false), guard.Token);
-            var job = Job(owner);
-            var stop = (CancellationTokenSource)typeof(CanBackgroundJob).GetField("_stop", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(job)!;
-            while (!stop.IsCancellationRequested) await Task.Delay(1, guard.Token);
-            await ((Task)typeof(CanBackgroundJob).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(job)!).WaitAsync(guard.Token);
-            // Cancelling a queued unit now removes it without waiting for an
-            // unrelated older unit to leave the connection FIFO.
-            Assert.Equal(TestStatus.Completed, (await stopping.WaitAsync(guard.Token)).StepResult.Status);
+            // The per-name configuration is stopped without cancelling the shared
+            // connection pool or waiting for an unrelated FIFO owner.
+            Assert.Equal(TestStatus.Passed, (await stopping.WaitAsync(guard.Token)).StepResult.Status);
             releaseGate.Set();
-            Assert.Equal(TestStatus.Completed, (await stopping.WaitAsync(guard.Token)).StepResult.Status);
+            await WaitForNextTransmitTurn(owner, guard.Token); // The obsolete queued unit has actually passed its fence.
             Assert.Equal(0, raw.WriteCount);
         }
         finally
@@ -62,24 +58,23 @@ public sealed class CyclicSubmissionFollowupTests
         await holding.Entered.WaitAsync(guard.Token);
         try
         {
-            Assert.Equal(TestStatus.Completed, (await Start(registry)).StepResult.Status);
-            await raw.BeforeTransmitGate.Task.WaitAsync(guard.Token);
-            var job = Job(owner);
+            Assert.Equal(TestStatus.Passed, (await Start(registry)).StepResult.Status);
+            await WaitForQueuedBatch(owner, guard.Token);
             // The real SDK can remove an execution entry before disposing the
             // remaining owners. Reproduce this specific intermediate state; this
             // is not claimed to execute the complete CleanupExecution flow.
             Assert.True(registry.Remove("PluginCommon.ExecutionEpoch:CAN"));
             Assert.True(owner.IsConnected); // No owner-close flag can hide the missing boundary.
             releaseGate.Set();
-            await job.Completion.WaitAsync(guard.Token);
+            await WaitForNextTransmitTurn(owner, guard.Token);
+            await owner.StopJobAsync("queued", 5000, guard.Token);
             Assert.Equal(0, raw.WriteCount);
-            Assert.NotNull(job.Error);
         }
         finally { releaseGate.Set(); await holding.Completion; await Close(owner); Cleanup(registry); }
     }
 
     [Fact]
-    public async Task Original_job_cancellation_blocks_submission_before_linked_callbacks_are_delivered()
+    public async Task Original_pool_cancellation_blocks_submission_before_linked_callbacks_are_delivered()
     {
         using var guard = new CancellationTokenSource(15000);
         using var releaseGate = new ManualResetEventSlim();
@@ -91,30 +86,29 @@ public sealed class CyclicSubmissionFollowupTests
         registry.Set(CanHelper.GetAdapterKey("CAN1"), owner);
         var holding = HoldTransmitGate(owner, releaseGate);
         await holding.Entered.WaitAsync(guard.Token);
-        Task<ExecutionResult>? stopping = null;
+        Task? stopping = null;
         try
         {
-            Assert.Equal(TestStatus.Completed, (await Start(registry)).StepResult.Status);
-            await raw.BeforeTransmitGate.Task.WaitAsync(guard.Token);
-            var job = Job(owner);
+            Assert.Equal(TestStatus.Passed, (await Start(registry)).StepResult.Status);
+            await WaitForQueuedBatch(owner, guard.Token);
+            var job = PoolJob(owner);
             var stop = (CancellationTokenSource)typeof(CanBackgroundJob).GetField("_stop", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(job)!;
             using var blockedCallback = stop.Token.Register(() =>
             {
                 callbackEntered.TrySetResult();
                 if (!releaseCallback.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("test cancellation-delivery barrier");
             });
-            // Registered after the linked CTS: LIFO callbacks block delivery to
-            // groupStop, while the actual job token already reports cancelled.
-            stopping = new CanCyclicSendStopExecutor().ExecuteAsync(Context(registry, false), guard.Token);
+            // Named rows no longer own a CTS. Exercise the shared pool's real stop
+            // boundary: freeze native admission before delayed linked callbacks.
+            stopping = job.StopAsync(5000, guard.Token);
             await callbackEntered.Task.WaitAsync(guard.Token);
             Assert.True(stop.IsCancellationRequested);
             releaseGate.Set();
-            var actualWork = (Task)typeof(CanBackgroundJob).GetField("_work", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(job)!;
-            await actualWork.WaitAsync(guard.Token);
+            await WaitForNextTransmitTurn(owner, guard.Token);
             Assert.Equal(0, raw.WriteCount);
             Assert.False(stopping.IsCompleted); // Do not pretend the blocked cancellation callback has exited.
             releaseCallback.Set();
-            Assert.Equal(TestStatus.Completed, (await stopping.WaitAsync(guard.Token)).StepResult.Status);
+            await stopping.WaitAsync(guard.Token);
         }
         finally
         {
@@ -138,14 +132,14 @@ public sealed class CyclicSubmissionFollowupTests
         await holding.Entered.WaitAsync(guard.Token);
         try
         {
-            Assert.Equal(TestStatus.Completed, (await Start(registry, caller.Token)).StepResult.Status);
-            await raw.BeforeTransmitGate.Task.WaitAsync(guard.Token);
+            Assert.Equal(TestStatus.Passed, (await Start(registry, caller.Token)).StepResult.Status);
+            await WaitForQueuedBatch(owner, guard.Token);
             caller.Cancel();
             releaseGate.Set(); // The first native entry is necessarily after the short token cancellation.
             await raw.Written.Task.WaitAsync(guard.Token);
             Assert.True(raw.WriteCount > 0);
-            Assert.Null(Job(owner).Error);
-            Assert.Equal(TestStatus.Completed, (await new CanCyclicSendStopExecutor().ExecuteAsync(Context(registry, false), guard.Token)).StepResult.Status);
+            Assert.Null(PoolJob(owner).Error);
+            Assert.Equal(TestStatus.Passed, (await new CanCyclicSendStopExecutor().ExecuteAsync(Context(registry, false), guard.Token)).StepResult.Status);
         }
         finally { releaseGate.Set(); await holding.Completion; await Close(owner); Cleanup(registry); }
     }
@@ -167,13 +161,26 @@ public sealed class CyclicSubmissionFollowupTests
         return context;
     }
 
-    private static CanBackgroundJob Job(CanConnectionResource owner)
-        => ((Dictionary<string, CanBackgroundJob>)typeof(CanConnectionResource).GetField("_jobs", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!)["queued"];
+    private static CanBackgroundJob PoolJob(CanConnectionResource owner)
+        => (CanBackgroundJob)typeof(CanConnectionResource).GetField("_cyclicPoolJob", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
+
+    private static CanSubmissionGate TransmitGate(CanConnectionResource owner)
+        => (CanSubmissionGate)typeof(CanConnectionResource).GetField("_txGate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
+
+    private static async Task WaitForQueuedBatch(CanConnectionResource owner, CancellationToken ct)
+    {
+        while (TransmitGate(owner).QueuedCount == 0) await Task.Delay(1, ct);
+    }
+
+    private static Task WaitForNextTransmitTurn(CanConnectionResource owner, CancellationToken ct) => Task.Run(() =>
+    {
+        using var next = TransmitGate(owner).Enter(null, ct, () => { }, 0);
+    }, CancellationToken.None);
 
     private static (Task Entered, Task Completion) HoldTransmitGate(CanConnectionResource owner, ManualResetEventSlim release)
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var transmitGate = (CanSubmissionGate)typeof(CanConnectionResource).GetField("_txGate", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
+        var transmitGate = TransmitGate(owner);
         var completion = Task.Run(() =>
         {
             using (transmitGate.Enter(null, default, () => { }, 0))
@@ -196,21 +203,10 @@ public sealed class CyclicSubmissionFollowupTests
 
     private sealed class QueuedCycleAdapter : ICanAdapter
     {
-        private int _checks;
         internal int WriteCount;
         internal Action? AfterWrite;
-        internal readonly TaskCompletionSource BeforeTransmitGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource Written = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public bool IsConnected
-        {
-            get
-            {
-                // StartJob performs the first check. WriteCore performs the next
-                // immediately before taking the transmit gate. No native I/O runs.
-                if (Interlocked.Increment(ref _checks) >= 2) BeforeTransmitGate.TrySetResult();
-                return true;
-            }
-        }
+        public bool IsConnected => true;
         public void Open(CanAdapterConfig config) { }
         public void Close() { }
         public void Dispose() { }

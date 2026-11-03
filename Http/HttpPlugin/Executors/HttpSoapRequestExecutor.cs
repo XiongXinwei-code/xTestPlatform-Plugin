@@ -38,6 +38,8 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new HttpSoapRequestPlugin().CreateSerializer();
             var setting = (HttpSoapRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegative(setting.TimeoutMs);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.MaxResponseBytes);
             if (!Enum.IsDefined(setting.SoapVersion)) throw new InvalidOperationException("SOAP 版本无效");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
@@ -112,7 +114,7 @@ public sealed class HttpSoapRequestExecutor : IStepExecutor
             CheckExecution();
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             HttpHelper.ValidateRequestDestination(resource, request);
-            var sending = resource.SendAsync(request, cancellationToken);
+            var sending = resource.SendAsync(request, cancellationToken, setting.TimeoutMs, setting.MaxResponseBytes);
             pendingRequest = null;
             var response = await sending;
             var responseXml = response.Content;

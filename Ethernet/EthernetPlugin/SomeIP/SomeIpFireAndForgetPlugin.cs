@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.SomeIP;
 
-public sealed class SomeIpFireAndForgetPlugin : StepPluginBase<SomeIpFireAndForgetSetting>
+public sealed class SomeIpFireAndForgetPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<SomeIpFireAndForgetSetting>
 {
     public override string StepTypeId  => "SomeIp.FireAndForget";
-    public override string DisplayName => "SomeIp_FireAndForget";
+    public override string DisplayName => "SomeIp_ReadWrite_FireAndForget";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_fire_and_forget.png";
 

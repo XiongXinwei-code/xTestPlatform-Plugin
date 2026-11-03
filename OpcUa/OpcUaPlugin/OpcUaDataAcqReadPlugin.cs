@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 数据采集读取插件（FIFO 消费）</summary>
-public sealed class OpcUaDataAcqReadPlugin : StepPluginBase<OpcUaDataAcqReadSetting>
+public sealed class OpcUaDataAcqReadPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaDataAcqReadSetting>
 {
     public override string StepTypeId => "OpcUa.DataAcqRead";
-    public override string DisplayName => "OpcUa_DataAcq_Read";
+    public override string DisplayName => "OpcUa_AcquisitionSubscription_DataAcqRead";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_read.png";
 

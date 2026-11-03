@@ -12,7 +12,7 @@ namespace VISA.UI.Views;
 public partial class VisaOpenEditorView : UserControl, IRefreshableEditor
 {
 	public VisaOpenViewModel ViewModel { get; }
-	public Action<string, Action>? ExecuteCommand { get; set; }
+	public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 	public static readonly DependencyProperty SequenceFileProperty =
 	    DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(VisaOpenEditorView),
 	        new PropertyMetadata(null));
@@ -27,6 +27,7 @@ public partial class VisaOpenEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new VisaOpenViewModel();
 		DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 

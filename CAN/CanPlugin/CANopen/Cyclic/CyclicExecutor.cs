@@ -112,7 +112,7 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                         if (stopped.BackgroundError != null)
                             context.Log(LogLevel.Warn, "CANopen 服务已完成关闭，历史故障仍保留：" + stopped.ErrorSummary);
                         guard.Check();
-                        return CanopenExecutorHelper.Result(TestStatus.Completed, stopJson);
+                        return CanopenExecutorHelper.Result(TestStatus.Passed, stopJson);
                     case CyclicOperation.SnapshotRead:
                         var snapshot = service.Snapshot();
                         var json = JsonSerializer.Serialize(snapshot);
@@ -122,11 +122,11 @@ public sealed class CyclicExecutor(CyclicPluginBase plugin) : IStepExecutor
                             return CanopenExecutorHelper.Result(TestStatus.Error, json,
                                 "CANopen 快照无效或后台任务故障；SnapshotStatus=" + snapshot.SnapshotStatus + "；" +
                                 (snapshot.ErrorSummary?.Split('\n')[0].TrimEnd('\r') ?? "部分反馈缺失、过期或时间不可信；历史故障与完整堆栈见结果 JSON"));
-                        return CanopenExecutorHelper.Result(TestStatus.Completed, json);
+                        return CanopenExecutorHelper.Result(TestStatus.Passed, json);
                 }
             }
             guard.Check();
-            return CanopenExecutorHelper.Result(TestStatus.Completed, $"{plugin.Operation}: {connectionName}/{name}");
+            return CanopenExecutorHelper.Result(TestStatus.Passed, $"{plugin.Operation}: {connectionName}/{name}");
         }
         catch (Exception ex) { return CanopenExecutorHelper.FromException(ex, cancellationToken, plugin.DisplayName); }
     }

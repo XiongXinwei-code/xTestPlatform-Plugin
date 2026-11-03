@@ -5,6 +5,7 @@ namespace CAN.XCP.Models;
 
 /// <summary>XCP_ShortUpload 步骤设置（从 ECU 读取内存）</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class XcpShortUploadSetting : XcpCommonSetting
 {
     /// <summary>ECU 内存地址（支持表达式，如 "0x40001000"）</summary>

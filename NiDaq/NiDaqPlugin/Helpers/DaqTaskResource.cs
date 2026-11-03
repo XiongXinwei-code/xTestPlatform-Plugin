@@ -6,6 +6,8 @@ using DaqTask = NationalInstruments.DAQmx.Task;
 using xTestPlatform.Core.Engine;
 namespace NiDaq.Helpers;
 
+internal enum DaqTaskKind { Unspecified, Encoder, CounterEdges, CounterFrequency, CounterOutput, DigitalInput, DigitalOutput }
+
 /// <summary>执行上下文拥有复合任务；Abort 解除阻塞，原始 I/O 退出后才能释放。</summary>
 public sealed class DaqTaskResource : IDisposable
 {
@@ -48,6 +50,25 @@ public sealed class DaqTaskResource : IDisposable
     public string[] CounterNames { get; set; } = [];
     public bool IsSync => _analogOutput == null && _tasks.Count > 1;
     public bool IsAnalogOutput => _analogOutput != null;
+    internal DaqTaskKind Kind { get; private set; }
+    internal string[] DigitalChannels { get; private set; } = [];
+    internal int[] DigitalWidths { get; private set; } = [];
+    internal uint[] DigitalMasks { get; private set; } = [];
+    internal bool DigitalBuffered { get; private set; }
+    internal void SetKind(DaqTaskKind kind)
+    {
+        EnsureOperationActive();
+        lock (_state) { if (_configured || Kind != DaqTaskKind.Unspecified) throw new InvalidOperationException("任务类型已经固定，不能重新配置"); Kind = kind; }
+    }
+    internal void SetDigitalLayout(string[] channels, int[] widths, bool buffered)
+    {
+        EnsureOperationActive();
+        if (channels.Length == 0 || channels.Length != widths.Length || widths.Any(w => w is < 1 or > 32)) throw new ArgumentException("每个数字通道须为1~32位，布局不能为空");
+        var masks = channels.Select((channel, index) => DaqExpansionValidation.DigitalMask(channel, widths[index])).ToArray();
+        DigitalChannels = (string[])channels.Clone(); DigitalWidths = (int[])widths.Clone(); DigitalMasks = masks; DigitalBuffered = buffered;
+    }
+    internal void RequireKind(params DaqTaskKind[] kinds)
+    { if (!kinds.Contains(Kind)) throw new InvalidOperationException($"步骤与任务类型不匹配：实际={Kind}，需要={string.Join('/', kinds)}"); }
     public bool Started { get; private set; }
     public EncoderUnit Unit { get; set; } = EncoderUnit.Pulses;
     public double DistancePerPulse { get; set; } = 1;

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqTaskStopPlugin : StepPluginBase<NiDaqTaskStopSetting>
+public sealed class NiDaqTaskStopPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqTaskStopSetting>
 {
     public override string StepTypeId => "NiDaq.TaskStop";
-    public override string DisplayName => "NiDaq_Task_Stop";
+    public override string DisplayName => "NiDaq_TaskManagement_Stop";
     public override string Category => "DataAcquisition";
     public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_task_stop.png";
 

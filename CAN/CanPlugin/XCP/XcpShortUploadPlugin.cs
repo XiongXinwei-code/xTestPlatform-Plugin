@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CAN.XCP;
 
-public sealed class XcpShortUploadPlugin : StepPluginBase<XcpShortUploadSetting>
+public sealed class XcpShortUploadPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<XcpShortUploadSetting>
 {
     public override string StepTypeId  => "XCP.ShortUpload";
-    public override string DisplayName => "XCP_ShortUpload";
+    public override string DisplayName => "XCP_ReadWrite_ShortUpload";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_short_upload.png";
 

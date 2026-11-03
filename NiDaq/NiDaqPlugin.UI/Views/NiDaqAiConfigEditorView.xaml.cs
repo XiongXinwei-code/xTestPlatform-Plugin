@@ -12,7 +12,7 @@ public partial class NiDaqAiConfigEditorView : UserControl, IRefreshableEditor
 {
     public NiDaqAiConfigViewModel ViewModel { get; } = new();
 
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(NiDaqAiConfigEditorView),
             new PropertyMetadata(null));
@@ -26,6 +26,7 @@ public partial class NiDaqAiConfigEditorView : UserControl, IRefreshableEditor
     {
         InitializeComponent();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, FlushEditor);
         Unloaded += (_, _) => FlushEditor();
     }
 

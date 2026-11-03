@@ -14,6 +14,7 @@ public enum RoutineControlType
 }
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsRoutineControlSetting : UdsCommonSetting
 {
     /// <summary>控制类型</summary>

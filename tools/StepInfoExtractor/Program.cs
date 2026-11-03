@@ -67,6 +67,20 @@ foreach (var dll in dlls)
                 var description = GetStringProperty(type, instance, "Description");
                 if (strict)
                 {
+                    var category = GetStringProperty(type, instance, "Category");
+                    var segments = displayName.Split('_');
+                    if (segments.Length < 3 || segments.Any(segment => !IsEnglishToolboxLabel(segment)) ||
+                        !IsEnglishToolboxLabel(category))
+                    {
+                        invalid = true;
+                        Console.Error.WriteLine($"工具箱分类及步骤名须为英文且包含功能分组：{stepTypeId} / {category} / {displayName}");
+                    }
+                    if (stepTypeId.StartsWith("IO.CanDbc", StringComparison.Ordinal) &&
+                        !segments[^1].StartsWith("DBC ", StringComparison.Ordinal))
+                    {
+                        invalid = true;
+                        Console.Error.WriteLine($"DBC 步骤的叶节点名称须显式包含 DBC：{stepTypeId} / {displayName}");
+                    }
                     // Creating an executor must not open hardware. Validate the
                     // actual inherited factories too (e.g. six CANopen cycle steps).
                     var factory = type.GetMethod("CreateExecutor", Type.EmptyTypes)
@@ -144,6 +158,11 @@ if (strict)
     }
     if (steps.Count == 0 || steps.GroupBy(s => s.stepTypeId, StringComparer.Ordinal).Any(g => g.Count() > 1))
         invalid = true;
+    if (steps.GroupBy(s => s.displayName, StringComparer.Ordinal).Any(g => g.Count() > 1))
+    {
+        invalid = true;
+        Console.Error.WriteLine("工具箱显示路径存在重复，无法唯一选择步骤");
+    }
     foreach (var step in steps)
     {
         var count = editorIds.Count(id => string.Equals(id, step.stepTypeId, StringComparison.Ordinal));
@@ -165,6 +184,9 @@ var json = JsonSerializer.Serialize(
     });
 Console.WriteLine(json);
 return strict && invalid ? 2 : 0;
+
+static bool IsEnglishToolboxLabel(string value) =>
+    System.Text.RegularExpressions.Regex.IsMatch(value, @"^[A-Za-z][A-Za-z0-9 +()/.-]*$");
 
 // 读取实例的 string 属性（含继承链）
 static string GetStringProperty(Type type, object? instance, string name)

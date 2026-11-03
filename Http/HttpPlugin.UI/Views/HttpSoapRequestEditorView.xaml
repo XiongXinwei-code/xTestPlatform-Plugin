@@ -87,5 +87,18 @@
                 </Grid>
 			</ScrollViewer>
 		</syncfusion:TabItemExt>
+        <syncfusion:TabItemExt Header="Limits">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+
+                    <TextBlock Text="本次请求期限 (ms)" Margin="0,6" />
+                    <TextBox Width="240" HorizontalAlignment="Left" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                    <TextBlock Text="0 沿用客户端期限；正值与客户端期限取较小者。只影响本次请求，不修改共享客户端。覆盖发送、等待响应及完整正文读取。" TextWrapping="Wrap" Margin="0,6,0,16" />
+                    <TextBlock Text="响应正文最大字节数" Margin="0,6" />
+                    <TextBox Width="240" HorizontalAlignment="Left" Text="{Binding MaxResponseBytes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                    <TextBlock Text="默认 16777216（16 MiB），必须大于 0。超出返回 Error，不发布截断正文或本次输出。" TextWrapping="Wrap" Margin="0,6" />
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
 	</syncfusion:TabControlExt>
 </UserControl>

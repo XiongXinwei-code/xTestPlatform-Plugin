@@ -4,6 +4,7 @@ using CAN.XCP.Models;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
+using xTestPlatform.Core.Plugins.BuiltIn;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 using Xunit;
@@ -34,6 +35,7 @@ public sealed class Round2XcpContractTests
         var property = setting.GetType().GetProperty(field)!; property.SetValue(setting, Enum.ToObject(property.PropertyType, 256));
         var context = DispatchProxy.Create<IExecutionContext, CloseContext>(); var state = (CloseContext)(object)context;
         var raw = new FakeAdapter(); state.Adapter = raw; state.Plugin = plugin; state.Setting = setting;
+        state.SettingBytes = SerializeUntrustedSetting(plugin, setting);
         var result = await plugin.CreateExecutor().ExecuteAsync(context);
         Assert.Empty(raw.Sent); Assert.Equal(TestStatus.Error, result.StepResult.Status);
     }
@@ -64,7 +66,7 @@ public sealed class Round2XcpContractTests
         var plugin = Plugin(name); var setting = plugin.CreateSerializer().CreateDefault();
         var property = setting.GetType().GetProperty(field)!;
         property.SetValue(setting, property.PropertyType.IsEnum ? Enum.ToObject(property.PropertyType, value) : value);
-        var context = Context(plugin, setting);
+        var context = Context(plugin, setting, untrustedInput: true);
         var editor = (IStepEditorPlugin)Activator.CreateInstance(typeof(CAN.UI.XcpConnectEditorPlugin).Assembly.GetType($"CAN.UI.Xcp{name}EditorPlugin")!)!;
         var errors = await editor.ValidateWithContextAsync(context);
         Assert.Contains(errors, e => e.Code != "CAN_LC01" && e.Code != "XCP_LC01");
@@ -78,11 +80,25 @@ public sealed class Round2XcpContractTests
         Assert.DoesNotContain("静默替换", new XcpConnectPlugin().Description);
     }
 
-    internal static StepEditorValidationContext Context(IStepPlugin plugin, object setting)
+    internal static StepEditorValidationContext Context(IStepPlugin plugin, object setting, bool untrustedInput = false)
     {
-        var step = new Step(); step.StepSetting.Setting = plugin.CreateSerializer().Serialize(setting); step.StepSetting.SettingVersion = 1;
+        var serializer = plugin.CreateSerializer(); var step = new Step();
+        step.StepSetting.Setting = untrustedInput ? SerializeUntrustedSetting(plugin, setting) : serializer.Serialize(setting);
+        step.StepSetting.SettingVersion = serializer.SettingVersion;
         return new() { Setting = step.StepSetting.Setting, CurrentStep = step, Block = [step], SequenceFile = new(),
             ExecutionContext = DispatchProxy.Create<IExecutionContext, CloseContext>(), Evaluator = ExpressionEvaluatorFactory.Default };
+    }
+    internal static byte[] SerializeUntrustedSetting(IStepPlugin plugin, object setting)
+    {
+        // Only damaged-storage tests bypass the public write guard. Use the SDK's
+        // own serializer/options so the editor still exercises real stored bytes.
+        Type? sdkBase = plugin.GetType();
+        while (sdkBase != null && !(sdkBase.IsGenericType && sdkBase.GetGenericTypeDefinition() == typeof(StepPluginBase<>)))
+            sdkBase = sdkBase.BaseType;
+        Assert.NotNull(sdkBase);
+        var method = sdkBase.GetMethod(nameof(IStepPlugin.CreateSerializer), BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)!;
+        var serializer = (IStepSettingSerializer)method.Invoke(plugin, null)!;
+        return serializer.Serialize(setting);
     }
     private static IStepPlugin Plugin(string name) => (IStepPlugin)Activator.CreateInstance(typeof(XcpConnectPlugin).Assembly.GetType($"CAN.XCP.Xcp{name}Plugin")!)!;
 }

@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 读取节点插件</summary>
-public sealed class OpcUaReadPlugin : StepPluginBase<OpcUaReadSetting>
+public sealed class OpcUaReadPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaReadSetting>
 {
     public override string StepTypeId => "OpcUa.Read";
-    public override string DisplayName => "OpcUa_Read";
+    public override string DisplayName => "OpcUa_ReadWrite_Read";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_read.png";
 

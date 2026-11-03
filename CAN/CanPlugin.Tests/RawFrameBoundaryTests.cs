@@ -54,11 +54,8 @@ public sealed class RawFrameBoundaryTests
         state.Setting = new CanCyclicSendStartSetting { Messages = [new() { CanId = $"\"{id}\"", Data = $"\"{data}\"", CycleTimeMs = 1 }] };
         try
         {
-            var result = await state.Plugin.CreateExecutor().ExecuteAsync(context); Assert.Equal(TestStatus.Completed, result.StepResult.Status);
-            var jobs = (Dictionary<string, CanBackgroundJob>)typeof(CanConnectionResource).GetField("_jobs", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
-            var job = Assert.Single(jobs).Value;
-            await Task.WhenAny(job.Completion, submitted.Task).WaitAsync(TimeSpan.FromSeconds(3));
-            Assert.Empty(raw.Sent); await job.Completion; Assert.NotNull(job.Error);
+            var result = await state.Plugin.CreateExecutor().ExecuteAsync(context); Assert.Equal(TestStatus.Error, result.StepResult.Status);
+            Assert.Empty(raw.Sent); Assert.Empty(owner.GetCyclicStatuses());
         }
         finally { await Record.ExceptionAsync(() => owner.CloseAsync()); Assert.True(owner.IsClosed); }
     }

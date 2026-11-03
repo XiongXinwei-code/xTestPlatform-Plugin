@@ -8,6 +8,7 @@ namespace Modbus.Models;
 /// <summary>
 /// 批量读取中的单个读取项配置
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class ModbusBatchItem : INotifyPropertyChanged
 {
@@ -36,6 +37,9 @@ public class ModbusBatchItem : INotifyPropertyChanged
 	/// <summary>存储读取结果的变量路径（为空则不存储）</summary>
 	[VariablePathField]
 	public string ResultVariable { get => _resultVariable; set => SetProperty(ref _resultVariable, value); }
+
+	// 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+	public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
 
 	public event PropertyChangedEventHandler? PropertyChanged;
 	protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)

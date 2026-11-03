@@ -13,7 +13,7 @@ internal static class CanopenPluginInfo
 }
 
 /// <summary>CANopen_SdoRead：SDO 读取对象字典条目</summary>
-public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
+public sealed class CanopenSdoReadPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenSdoReadSetting>
 {
     public override string StepTypeId => "CANopen.SdoRead";
     public override string DisplayName => "CANopen_SDO_Read";
@@ -62,7 +62,7 @@ public sealed class CanopenSdoReadPlugin : StepPluginBase<CanopenSdoReadSetting>
 }
 
 /// <summary>CANopen_SdoWrite：SDO 写入对象字典条目</summary>
-public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSetting>
+public sealed class CanopenSdoWritePlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenSdoWriteSetting>
 {
     public override string StepTypeId => "CANopen.SdoWrite";
     public override string DisplayName => "CANopen_SDO_Write";
@@ -110,7 +110,7 @@ public sealed class CanopenSdoWritePlugin : StepPluginBase<CanopenSdoWriteSettin
 }
 
 /// <summary>CANopen_NmtControl：发送 NMT 网络管理命令</summary>
-public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSetting>
+public sealed class CanopenNmtControlPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenNmtControlSetting>
 {
     public override string StepTypeId => "CANopen.NmtControl";
     public override string DisplayName => "CANopen_Network_NmtControl";
@@ -152,7 +152,7 @@ public sealed class CanopenNmtControlPlugin : StepPluginBase<CanopenNmtControlSe
 }
 
 /// <summary>CANopen_WaitHeartbeat：等待节点心跳/状态</summary>
-public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeartbeatSetting>
+public sealed class CanopenWaitHeartbeatPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenWaitHeartbeatSetting>
 {
     public override string StepTypeId => "CANopen.WaitHeartbeat";
     public override string DisplayName => "CANopen_Network_WaitHeartbeat";
@@ -194,7 +194,7 @@ public sealed class CanopenWaitHeartbeatPlugin : StepPluginBase<CanopenWaitHeart
 }
 
 /// <summary>CANopen_PdoSend：发送 PDO</summary>
-public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
+public sealed class CanopenPdoSendPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenPdoSendSetting>
 {
     public override string StepTypeId => "CANopen.PdoSend";
     public override string DisplayName => "CANopen_PDO_Send";
@@ -236,7 +236,7 @@ public sealed class CanopenPdoSendPlugin : StepPluginBase<CanopenPdoSendSetting>
 }
 
 /// <summary>CANopen_PdoReceive：接收 PDO</summary>
-public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSetting>
+public sealed class CanopenPdoReceivePlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenPdoReceiveSetting>
 {
     public override string StepTypeId => "CANopen.PdoReceive";
     public override string DisplayName => "CANopen_PDO_Receive";
@@ -276,7 +276,7 @@ public sealed class CanopenPdoReceivePlugin : StepPluginBase<CanopenPdoReceiveSe
 }
 
 /// <summary>CANopen_SyncSend：发送一帧 SYNC</summary>
-public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSetting>
+public sealed class CanopenSyncSendPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenSyncSendSetting>
 {
     public override string StepTypeId => "CANopen.SyncSend";
     public override string DisplayName => "CANopen_Network_SyncSend";
@@ -320,7 +320,7 @@ public sealed class CanopenSyncSendPlugin : StepPluginBase<CanopenSyncSendSettin
 }
 
 /// <summary>CANopen_EmcyReceive：等待并解析节点 EMCY 紧急报文</summary>
-public sealed class CanopenEmcyReceivePlugin : StepPluginBase<CanopenEmcyReceiveSetting>
+public sealed class CanopenEmcyReceivePlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanopenEmcyReceiveSetting>
 {
     public override string StepTypeId => "CANopen.EmcyReceive";
     public override string DisplayName => "CANopen_Network_EmcyReceive";

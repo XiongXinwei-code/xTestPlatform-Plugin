@@ -278,6 +278,7 @@ public sealed record CycleOptions(int PeriodMs = 10, int CycleTimeoutMs = 1000,
     public int HoldTimeoutMs { get; init; } = 100;
 }
 
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
 public enum TrajectoryMissPolicy { Fail, SkipAndCatchUp, HoldLast }
 
 public sealed record MonitoringOptions(int PeriodMs = 10, int SendTimeoutMs = 1000, int MaxLatenessMs = 100)

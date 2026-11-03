@@ -9,7 +9,7 @@ namespace NiDaq.UI.Views;
 public partial class NiDaqAoWriteSingleEditorView : UserControl, IRefreshableEditor
 {
     public NiDaqAoWriteSingleViewModel ViewModel { get; } = new();
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty = DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(NiDaqAoWriteSingleEditorView));
     public SequenceFile? SequenceFile { get => (SequenceFile?)GetValue(SequenceFileProperty); set => SetValue(SequenceFileProperty, value); }
     public static readonly DependencyProperty EditPositionProperty = DependencyProperty.Register(nameof(EditPosition), typeof(EditPosition), typeof(NiDaqAoWriteSingleEditorView));
@@ -17,6 +17,7 @@ public partial class NiDaqAoWriteSingleEditorView : UserControl, IRefreshableEdi
     public NiDaqAoWriteSingleEditorView()
     {
         InitializeComponent(); DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
     public void RefreshFromStep(Step step)

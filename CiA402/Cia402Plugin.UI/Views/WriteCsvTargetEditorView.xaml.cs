@@ -22,6 +22,7 @@ public partial class WriteCsvTargetEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new WriteCsvTargetViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

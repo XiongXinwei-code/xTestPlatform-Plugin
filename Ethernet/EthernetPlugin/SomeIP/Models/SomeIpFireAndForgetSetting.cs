@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.SomeIP.Models;
 
 /// <summary>SomeIp_FireAndForget 步骤设置（无响应方法调用）</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class SomeIpFireAndForgetSetting
 {

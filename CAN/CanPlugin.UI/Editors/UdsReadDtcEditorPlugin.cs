@@ -19,6 +19,7 @@ public sealed class UdsReadDtcEditorPlugin : IStepEditorPlugin
 		var view = new UdsReadDtcEditorView();
 		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

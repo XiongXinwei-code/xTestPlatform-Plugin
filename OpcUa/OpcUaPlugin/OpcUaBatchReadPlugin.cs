@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 批量读取插件</summary>
-public sealed class OpcUaBatchReadPlugin : StepPluginBase<OpcUaBatchReadSetting>
+public sealed class OpcUaBatchReadPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaBatchReadSetting>
 {
     public override string StepTypeId => "OpcUa.BatchRead";
-    public override string DisplayName => "OpcUa_BatchRead";
+    public override string DisplayName => "OpcUa_ReadWrite_BatchRead";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_batch_read.png";
 

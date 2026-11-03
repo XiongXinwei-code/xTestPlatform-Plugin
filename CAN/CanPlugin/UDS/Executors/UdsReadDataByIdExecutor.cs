@@ -38,7 +38,7 @@ public sealed class UdsReadDataByIdExecutor : IStepExecutor
                     guard.SetVariable(setting.ResultVariable, hex);
 
                 guard.Log($"UDS ReadDataByID: DID=0x{did:X4}, Data=[{hex}]");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = hex } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = hex } };
             }
             else
             {

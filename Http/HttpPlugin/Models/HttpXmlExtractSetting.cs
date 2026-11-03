@@ -7,6 +7,7 @@ namespace Http.Models;
 /// <summary>
 /// XML 提取步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class HttpXmlExtractSetting
 {

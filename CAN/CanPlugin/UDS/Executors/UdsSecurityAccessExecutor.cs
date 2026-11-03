@@ -93,7 +93,7 @@ public sealed class UdsSecurityAccessExecutor : IStepExecutor
             if (unlocked)
             {
                 guard.Log($"UDS SecurityAccess: 解锁成功 (Level {setting.SecurityLevel})");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = "Unlocked" } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = "Unlocked" } };
             }
             else
             {

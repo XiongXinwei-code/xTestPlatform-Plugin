@@ -26,7 +26,8 @@ $modules = @(
     @{ Name = 'NiDaq'; Project = 'NiDaqPlugin' },
     @{ Name = 'OpcUa'; Project = 'OpcUaPlugin' },
     @{ Name = 'SerialPort'; Project = 'SerialPortPlugin' },
-    @{ Name = 'VISA'; Project = 'VisaPlugin' }
+    @{ Name = 'VISA'; Project = 'VisaPlugin' },
+    @{ Name = 'NiGrpc'; Project = 'NiGrpcPlugin' }
 )
 function Invoke-Dotnet([string[]]$Arguments) {
     & dotnet @Arguments

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet;
 
-public sealed class TcpClosePlugin : StepPluginBase<TcpCloseSetting>
+public sealed class TcpClosePlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<TcpCloseSetting>
 {
     public override string StepTypeId  => "Ethernet.TcpClose";
-    public override string DisplayName => "Ethernet_TCP_Close";
+    public override string DisplayName => "Ethernet_TCP_Connection_Close";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_close.png";
 

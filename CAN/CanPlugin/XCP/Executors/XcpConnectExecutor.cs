@@ -33,7 +33,7 @@ public sealed class XcpConnectExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Completed,
+                    Status = TestStatus.Passed,
                     Value  = $"MaxCTO={response.MaxCto} MaxDTO={response.MaxDto} Resource=0x{response.ResourceMask:X2}"
                 }
             };

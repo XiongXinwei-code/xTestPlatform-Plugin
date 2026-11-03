@@ -102,7 +102,7 @@ public sealed class ServiceShutdownSemanticsTests
             state.Setting = new CyclicSetting { ConnectionName = "\"CAN1\"", ServiceName = "\"test\"", StopTimeoutMs = 1000 };
             if (warningSinkFails) state.OnLog = _ => throw new InvalidOperationException("fake warning sink failure");
             var result = await plugin.CreateExecutor().ExecuteAsync(context);
-            Assert.Equal(warningSinkFails ? TestStatus.Error : TestStatus.Completed, result.StepResult.Status);
+            Assert.Equal(warningSinkFails ? TestStatus.Error : TestStatus.Passed, result.StepResult.Status);
             Assert.Throws<InvalidOperationException>(() => owner.GetService("test"));
             if (warningSinkFails)
             {

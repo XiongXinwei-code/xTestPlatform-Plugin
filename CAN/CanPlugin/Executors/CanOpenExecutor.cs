@@ -1,4 +1,5 @@
 using CAN.Adapters;
+using CAN.Adapters.Zlg;
 using CAN.Helpers;
 using CAN.Models;
 using CAN.Runtime;
@@ -15,7 +16,12 @@ public sealed class CanOpenExecutor : IStepExecutor
     private static readonly IExpressionEvaluator Evaluator = ExpressionEvaluatorFactory.Default;
     private readonly Func<CanAdapterType, ICanAdapter> _create;
     public CanOpenExecutor() : this(CanAdapterFactory.Create) { }
-    internal CanOpenExecutor(Func<CanAdapterType, ICanAdapter> create) => _create = create;
+    private readonly Func<string, IExecutionContext, Task<string>> _evaluate;
+    internal CanOpenExecutor(Func<CanAdapterType, ICanAdapter> create, Func<string, IExecutionContext, Task<string>>? evaluate = null)
+    {
+        _create = create;
+        _evaluate = evaluate ?? ((expression, context) => Evaluator.EvalStringAsync(expression, context));
+    }
 
     public async Task<ExecutionResult> ExecuteAsync(IExecutionContext context, CancellationToken cancellationToken = default)
     {
@@ -28,15 +34,50 @@ public sealed class CanOpenExecutor : IStepExecutor
             var serializer = new CanOpenPlugin().CreateSerializer();
             var setting = (CanOpenSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.TimeoutMs);
-            var channel = await Evaluator.EvalStringAsync(setting.Channel, context);
-            var connName = await Evaluator.EvalStringAsync(setting.ConnectionName, context);
 
             var budget = Stopwatch.StartNew();
             int Remaining()
             {
                 int remaining = setting.TimeoutMs - (int)Math.Min(int.MaxValue, budget.ElapsedMilliseconds);
-                if (remaining <= 0) throw new TimeoutException($"CAN 打开总期限 {setting.TimeoutMs} ms 已到（含登记、旧连接收尾与本次驱动打开）");
+                if (remaining <= 0) throw new TimeoutException($"CAN 打开总期限 {setting.TimeoutMs} ms 已到（含表达式求值、登记、旧连接收尾与本次驱动打开）");
                 return remaining;
+            }
+            async Task<string> ResolveInput(string expression, string? secretField = null)
+            {
+                cancellationToken.ThrowIfCancellationRequested(); epoch.ThrowIfExpired(); _ = Remaining();
+                try
+                {
+                    Task<string> actual = _evaluate(expression, context);
+                    _ = actual.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                    string value = await actual.WaitAsync(TimeSpan.FromMilliseconds(Remaining()), cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested(); epoch.ThrowIfExpired(); _ = Remaining();
+                    return value;
+                }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception) when (secretField is not null) { throw new InvalidOperationException($"ZLG {secretField} 表达式求值失败（不输出凭据或表达式内容）"); }
+            }
+            var channel = await ResolveInput(setting.Channel);
+            var connName = await ResolveInput(setting.ConnectionName);
+            var zlg = new ZlgConnectionOptions();
+            if (setting.AdapterType == CanAdapterType.ZLG)
+            {
+                uint type = ZlgDeviceCatalog.Parse(channel.Split('/')[0]);
+                bool network = ZlgDeviceCatalog.IsNetwork(type), cloud = type == 46;
+                zlg = new ZlgConnectionOptions
+                {
+                    RemoteAddress = network ? await ResolveInput(setting.ZlgRemoteAddress) : "",
+                    RemotePort = setting.ZlgRemotePort, LocalPort = setting.ZlgLocalPort,
+                    NetworkWorkMode = setting.ZlgNetworkWorkMode,
+                    ConfigurationPath = ZlgDeviceCatalog.RequiresFilePath(type) ? await ResolveInput(setting.ZlgConfigurationPath) : "",
+                    CloudUserName = cloud ? await ResolveInput(setting.ZlgCloudUserName, nameof(setting.ZlgCloudUserName)) : "",
+                    CloudPassword = cloud ? await ResolveInput(setting.ZlgCloudPassword, nameof(setting.ZlgCloudPassword)) : "",
+                    CloudHttpServer = cloud ? await ResolveInput(setting.ZlgCloudHttpServer) : "",
+                    CloudHttpPort = setting.ZlgCloudHttpPort,
+                    CloudAuthServer = cloud ? await ResolveInput(setting.ZlgCloudAuthServer) : "",
+                    CloudAuthPort = setting.ZlgCloudAuthPort
+                };
+                zlg.Validate(type);
             }
             var key = CanHelper.GetAdapterKey(connName);
             using var lifecycle = await CanRegistryGuard.EnterAsync(context.Resources, connName, cancellationToken, Remaining());
@@ -79,6 +120,7 @@ public sealed class CanOpenExecutor : IStepExecutor
             var adapterConfig = new CanAdapterConfig
             {
                 Channel = channel,
+                Zlg = zlg,
                 BaudRate = setting.BaudRate,
                 Protocol = setting.Protocol,
                 DataBitRate = setting.DataBitRate,
@@ -108,7 +150,9 @@ public sealed class CanOpenExecutor : IStepExecutor
             }
 
             string timingDetails;
-            if (arbitrationTiming != null)
+            if (adapterConfig.AppliedConfigurationDescription is not null)
+                timingDetails = adapterConfig.AppliedConfigurationDescription;
+            else if (arbitrationTiming != null)
             {
                 timingDetails = $"仲裁段: {CanBitTimingCalculator.Describe(arbitrationTiming)}";
             }
@@ -132,16 +176,18 @@ public sealed class CanOpenExecutor : IStepExecutor
                 timingDetails =
                     $"仲裁段={setting.BaudRate} bps, 目标采样点={setting.ArbitrationSamplePoint:F2}%";
             }
-            if (setting.Protocol == CanProtocolType.FD)
+            if (setting.Protocol == CanProtocolType.FD && adapterConfig.AppliedConfigurationDescription is null)
             {
                 string dataDetails = dataTiming != null
                     ? $"数据段: {CanBitTimingCalculator.Describe(dataTiming)}"
                     : adapterConfig.AppliedDataBitRate.HasValue && adapterConfig.AppliedDataSamplePoint.HasValue
                         ? $"数据段={adapterConfig.AppliedDataBitRate:F0} bps, 目标采样点={setting.DataSamplePoint:F2}%, 实际采样点={adapterConfig.AppliedDataSamplePoint:F2}%"
-                        : $"数据段={setting.DataBitRate} bps, 目标采样点={setting.DataSamplePoint:F2}%";
+                        : adapterConfig.AppliedDataBitRate.HasValue
+                            ? $"数据段={adapterConfig.AppliedDataBitRate:F0} bps，采样点由驱动标准配置决定，目标采样点未应用"
+                            : $"数据段={setting.DataBitRate} bps, 目标采样点={setting.DataSamplePoint:F2}%";
                 timingDetails += $"; {dataDetails}";
             }
-            string terminationDetails = $"内置终端电阻={(setting.EnableTermination ? "已使能" : "未使能")}";
+            string terminationDetails = adapterConfig.AppliedConfigurationDescription is not null ? "终端电阻状态请核对设备配置" : $"内置终端电阻={(setting.EnableTermination ? "已使能" : "未使能")}";
             try
             {
                 context.Log(
@@ -155,7 +201,7 @@ public sealed class CanOpenExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Completed }
+                StepResult = new StepResult { Status = TestStatus.Passed }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

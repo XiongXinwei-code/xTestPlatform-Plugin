@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace LIN;
 
-public sealed class LinReadPlugin : StepPluginBase<LinReadSetting>
+public sealed class LinReadPlugin : LIN.PluginInfrastructure.StrictStepPluginBase<LinReadSetting>
 {
     public override string StepTypeId   => "IO.LinRead";
-    public override string DisplayName  => "LIN_Read";
+    public override string DisplayName  => "LIN_ReadWrite_Read";
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_read.png";
 

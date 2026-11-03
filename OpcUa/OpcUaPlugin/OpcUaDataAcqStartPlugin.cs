@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 数据采集启动插件</summary>
-public sealed class OpcUaDataAcqStartPlugin : StepPluginBase<OpcUaDataAcqStartSetting>
+public sealed class OpcUaDataAcqStartPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaDataAcqStartSetting>
 {
     public override string StepTypeId => "OpcUa.DataAcqStart";
-    public override string DisplayName => "OpcUa_DataAcq_Start";
+    public override string DisplayName => "OpcUa_AcquisitionSubscription_DataAcqStart";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_data_acq_start.png";
 
