@@ -97,7 +97,7 @@ internal static class CanopenExecutorHelper
         };
         var result = status switch
         {
-            TestStatus.Completed => ExecutionResults.Completed(text),
+            TestStatus.Passed => CAN.Runtime.CanExecutionResults.Passed(text),
             TestStatus.Aborted => ExecutionResults.Aborted(text),
             TestStatus.Error => ExecutionResults.Error(error ?? "CANopen 执行失败，未提供错误描述", value: text),
             _ => throw new ArgumentOutOfRangeException(nameof(status), status, "不支持的 CANopen 执行状态")

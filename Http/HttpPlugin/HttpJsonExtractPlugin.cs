@@ -8,10 +8,10 @@ namespace Http;
 /// <summary>
 /// JSON 提取插件，按路径从 JSON 文本中提取字段写入变量
 /// </summary>
-public sealed class HttpJsonExtractPlugin : StepPluginBase<HttpJsonExtractSetting>
+public sealed class HttpJsonExtractPlugin : Http.PluginInfrastructure.StrictStepPluginBase<HttpJsonExtractSetting>
 {
     public override string StepTypeId => "IO.HttpJsonExtract";
-    public override string DisplayName => "Http_JsonExtract";
+    public override string DisplayName => "Http_DataParsing_JsonExtract";
     public override string Category => "Network";
     public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_json_extract.png";
 

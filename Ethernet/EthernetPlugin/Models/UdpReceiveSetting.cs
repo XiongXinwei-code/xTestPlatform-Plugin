@@ -4,9 +4,14 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.Models;
 
 /// <summary>Ethernet_UdpReceive 步骤设置</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class UdpReceiveSetting
 {
+    /// <summary>true 使用 UdpOpen 的 socket，接收此前已到达其缓冲区的数据报。</summary>
+    public bool UseConnection { get; set; }
+    [ExpressionField] public string ConnectionName { get; set; } = "\"UDP1\"";
+    [VariablePathField] public string RemoteEndpointVariable { get; set; } = string.Empty;
     /// <summary>绑定本机端口，0 表示由系统分配临时端口。</summary>
     public int LocalPort { get; set; } = 30490;
 

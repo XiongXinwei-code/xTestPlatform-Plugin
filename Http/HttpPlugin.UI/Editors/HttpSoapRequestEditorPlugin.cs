@@ -19,6 +19,7 @@ public sealed class HttpSoapRequestEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new HttpSoapRequestPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 
@@ -29,6 +30,8 @@ public sealed class HttpSoapRequestEditorPlugin : IStepEditorPlugin
         var s = (HttpSoapRequestSetting)new HttpSoapRequestPlugin().CreateSerializer().Deserialize(context.Setting, 1);
         if (!Enum.IsDefined(s.SoapVersion))
             errors.Add(StepSettingError.Error("HTTP_039", "SOAP 版本无效"));
+        if (s.TimeoutMs < 0) errors.Add(StepSettingError.Error("HTTP_048", "请求期限不能为负数；0 沿用客户端期限"));
+        if (s.MaxResponseBytes <= 0) errors.Add(StepSettingError.Error("HTTP_049", "响应正文最大字节数必须大于 0"));
 
         if (string.IsNullOrWhiteSpace(s.ClientName))
             errors.Add(StepSettingError.Error("HTTP_040", "客户端标识名不能为空"));

@@ -1,0 +1,53 @@
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.CanBackgroundEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+    xmlns:appearance="clr-namespace:CAN.UI.Appearance">
+    <UserControl.Resources><BooleanToVisibilityConverter x:Key="BoolVisibility"/></UserControl.Resources>
+    <syncfusion:TabControlExt SelectedIndex="0" CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="{Binding Title}" Image="{Binding IconPath}" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <TextBlock Text="连接名称：" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <expr:ExpressionTextBox x:Name="ConnectionEditor" Grid.Column="1" ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String" Margin="0,0,0,8" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <TextBlock Grid.Row="1" Text="任务名称：" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                        <expr:ExpressionTextBox x:Name="TaskNameEditor" Grid.Row="1" Grid.Column="1" ScriptText="{Binding TaskName, Mode=TwoWay}" ExpectedResultType="String" Margin="0,0,0,8" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                        <TextBlock Grid.Row="2" Text="步骤等待期限 (ms)：" Margin="0,0,8,8"/>
+                        <TextBox x:Name="TimeoutBox" Grid.Row="2" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="3" Text="发布间隔 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsStart, Converter={StaticResource BoolVisibility}}"/>
+                        <TextBox x:Name="PublishIntervalBox" Grid.Row="3" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding PublishIntervalMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsStart, Converter={StaticResource BoolVisibility}}"/>
+                        <TextBlock Grid.Row="4" Text="新鲜度期限 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsStart, Converter={StaticResource BoolVisibility}}"/>
+                        <TextBox x:Name="MaxAgeBox" Grid.Row="4" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding MaxAgeMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsStart, Converter={StaticResource BoolVisibility}}"/>
+                        <TextBlock Grid.Row="5" Text="输出格式：" Margin="0,0,8,8" Visibility="{Binding IsStatus, Converter={StaticResource BoolVisibility}}"/>
+                        <StackPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" Visibility="{Binding IsStatus, Converter={StaticResource BoolVisibility}}">
+                            <TextBlock x:Name="OutputFormatBox" Text="JSON 字符串"/>
+                        </StackPanel>
+                        <TextBlock x:Name="ResultVariableLabel" Grid.Row="6" Text="{Binding ResultLabel}" Margin="0,0,8,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}"/>
+                        <TextBox vardrop:VariableDrop.Target="True" x:Name="ResultVariableBox" Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}" ToolTip="{Binding ResultHelp}"/>
+                        <TextBlock x:Name="ResultHelpText" Grid.Row="7" Grid.Column="1" Text="{Binding ResultHelp}" TextWrapping="Wrap" Margin="0,0,0,12" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}"/>
+                    </Grid>
+                    <CheckBox x:Name="IncludeInactiveCheckBox" Content="包含非活动任务（已停止、故障、被接管）" IsChecked="{Binding IncludeInactive, Mode=TwoWay}" Margin="0,0,0,8" Visibility="{Binding IsStatus, Converter={StaticResource BoolVisibility}}"/>
+                    <CheckBox x:Name="IgnoreIfMissingCheckBox" Content="任务不存在时视为已停止" IsChecked="{Binding IgnoreIfMissing, Mode=TwoWay}" Margin="0,0,0,8" Visibility="{Binding IsStop, Converter={StaticResource BoolVisibility}}"/>
+                    <TextBlock Text="{Binding Help}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                    <StackPanel Visibility="{Binding IsStart, Converter={StaticResource BoolVisibility}}">
+                        <WrapPanel Margin="0,0,0,8"><Button Content="添加 ID 映射" Click="OnAddMapping" Padding="10,4" Margin="0,0,8,0"/><Button Content="移除所选映射" Click="OnRemoveMapping" Padding="10,4"/></WrapPanel>
+                        <DataGrid x:Name="MappingsGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding Mappings}" SelectedItem="{Binding SelectedMapping, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" MinRowHeight="36" MinHeight="150" MaxHeight="440">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="启用" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+                                <DataGridTemplateColumn Header="目标 ID 表达式" Width="230"><DataGridTemplateColumn.CellTemplate><DataTemplate><expr:ExpressionTextBox ScriptText="{Binding CanId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" IsEnabled="{Binding Enabled}" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="帧类型" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox SelectedIndex="{Binding FrameType, Mode=TwoWay}" IsEnabled="{Binding Enabled}"><ComboBoxItem Content="标准帧"/><ComboBoxItem Content="扩展帧"/></ComboBox></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="帧格式" Width="130"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox SelectedIndex="{Binding FrameFormat, Mode=TwoWay}" IsEnabled="{Binding Enabled}"><ComboBoxItem Content="经典 / FD 均接收"/><ComboBoxItem Content="仅经典 CAN"/><ComboBoxItem Content="仅 CAN FD"/></ComboBox></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="最新十六进制数据 → 字符串变量" Width="320"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBox vardrop:VariableDrop.Target="True" Text="{Binding DataVariable, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Enabled}" ToolTip="例如 Locals.Latest123。可留空，仅写 JSON；不同映射不得共用输出变量。"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <TextBlock Text="每行匹配一个标准/扩展 CAN ID，最多 128 行；禁用行不参与运行校验。变量保留最近一次值，不因后续无报文自动清空；请通过 JSON/任务状态判断是否过期。Shift + 鼠标滚轮可横向滚动。" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

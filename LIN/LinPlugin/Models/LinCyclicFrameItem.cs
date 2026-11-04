@@ -5,6 +5,7 @@ using xTestPlatform.Core.Models.StepSettings;
 
 namespace LIN.Models;
 
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class LinCyclicFrameItem : INotifyPropertyChanged
 {
@@ -50,6 +51,9 @@ public class LinCyclicFrameItem : INotifyPropertyChanged
         get => _enabled;
         set => SetProperty(ref _enabled, value);
     }
+
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

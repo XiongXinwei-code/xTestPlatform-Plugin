@@ -12,14 +12,15 @@ namespace Http.UI.ViewModels;
 public class HttpClientCloseViewModel : INotifyPropertyChanged, IDataErrorInfo
 {
     private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public Action<string, Action>? ExecuteCommand { get => _saver.ExecuteCommand; set => _saver.ExecuteCommand = value; }
     public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     private HttpClientCloseSetting? _setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { _saver.Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { _saver.Flush(); _step = step; Load(); }
 
     private void Load()
     {

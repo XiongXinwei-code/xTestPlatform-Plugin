@@ -6,6 +6,7 @@ namespace VISA.Models;
 /// <summary>
 /// VISA 打开会话步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class VisaOpenSetting
 {

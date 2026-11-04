@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqDoWritePlugin : StepPluginBase<NiDaqDoWriteSetting>
+public sealed class NiDaqDoWritePlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqDoWriteSetting>
 {
     public override string StepTypeId => "NiDaq.DoWrite";
     public override string DisplayName => "NiDaq_DO_Write";

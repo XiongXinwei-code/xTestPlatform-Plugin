@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.SomeIP.Models;
 
 /// <summary>SomeIp_Request 步骤设置（RPC 方法调用，等待响应）</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class SomeIpRequestSetting
 {

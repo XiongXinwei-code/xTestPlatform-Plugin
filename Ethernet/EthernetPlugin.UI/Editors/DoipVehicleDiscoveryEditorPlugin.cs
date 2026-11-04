@@ -17,6 +17,7 @@ public sealed class DoipVehicleDiscoveryEditorPlugin : IStepEditorPlugin
         var view = new DoipVehicleDiscoveryEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

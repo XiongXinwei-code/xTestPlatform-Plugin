@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 写入节点插件</summary>
-public sealed class OpcUaWritePlugin : StepPluginBase<OpcUaWriteSetting>
+public sealed class OpcUaWritePlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaWriteSetting>
 {
     public override string StepTypeId => "OpcUa.Write";
-    public override string DisplayName => "OpcUa_Write";
+    public override string DisplayName => "OpcUa_ReadWrite_Write";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_write.png";
 

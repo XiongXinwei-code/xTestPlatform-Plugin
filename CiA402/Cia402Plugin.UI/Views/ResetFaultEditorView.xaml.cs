@@ -22,6 +22,7 @@ public partial class ResetFaultEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new ResetFaultViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

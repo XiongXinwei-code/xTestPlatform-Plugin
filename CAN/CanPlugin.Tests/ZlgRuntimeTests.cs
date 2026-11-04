@@ -1,4 +1,11 @@
 using System.Collections.Concurrent;
+using System.Reflection;
+using CAN.Adapters;
+using CAN.Executors;
+using CAN.Helpers;
+using CAN.Tests;
+using xTestPlatform.Core.Engine;
+using xTestPlatform.Core.Models;
 using CAN.Adapters.Zlg;
 using CAN.Models;
 using CAN.Runtime;
@@ -128,7 +135,28 @@ public class ZlgRuntimeTests
         Assert.False(service.Snapshot().Cycle.HostExited);
         connection.Write(new() { Id = 0x201, Data = [2] });
         Assert.True(SpinWait.SpinUntil(adapter.ConfirmTransmitQuiescent, 2000)); // Strict diagnostic fixture only.
-        await connection.CloseAsync(); Assert.True(connection.IsClosed);
+        // Monitoring may submit immediately after the quiescence observation above.
+        // Exercise the actual close step: retain cancellation history, but report
+        // successful physical release instead of requiring the diagnostic API to be error-free.
+        var registry = (IResourceRegistry)Activator.CreateInstance(typeof(IResourceRegistry).Assembly
+            .GetType("xTestPlatform.Core.Engine.ResourceRegistry", true)!, nonPublic: true)!;
+        registry.Set(CanHelper.GetAdapterKey("CAN1"), connection);
+        var context = DispatchProxy.Create<IExecutionContext, SdkCanContext>();
+        var state = (SdkCanContext)(object)context;
+        state.Registry = registry; state.Plugin = new CanClosePlugin();
+        state.Setting = new CanCloseSetting { ConnectionName = "\"CAN1\"", TimeoutMs = 5000 };
+        var result = await new CanCloseExecutor().ExecuteAsync(context);
+        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
+        Assert.True(connection.IsClosed); Assert.True(adapter.HandlesReleased); Assert.Equal(1, driver.Closed);
+        Assert.False(registry.TryGet<ICanAdapter>(CanHelper.GetAdapterKey("CAN1"), out _));
+        // Closing while monitoring is active may retain different cancellation or
+        // admission failures. The contract is complete diagnostic retention after
+        // verified physical release, not one particular exception subclass.
+        if (!string.IsNullOrEmpty(result.StepResult.Value?.ToString()))
+        {
+            string diagnostic = result.StepResult.Value.ToString()!;
+            Assert.Contains(state.Logs, log => log.Contains("Warn") && log.Contains(diagnostic, StringComparison.Ordinal));
+        }
     }
     [Fact]
     public void ReopenResetsTimestampBarrierAndConnectionEpoch()

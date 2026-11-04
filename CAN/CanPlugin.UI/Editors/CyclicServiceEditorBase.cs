@@ -18,6 +18,7 @@ public abstract class CyclicServiceEditorBase : IStepEditorPlugin
     {
         var view = new CyclicServiceEditorView(Plugin) { SequenceFile = sequenceFile };
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
     public Task<IReadOnlyList<StepSettingError>> ValidateWithContextAsync(StepEditorValidationContext context, CancellationToken cancellationToken = default)

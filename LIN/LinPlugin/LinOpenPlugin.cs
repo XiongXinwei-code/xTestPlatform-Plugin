@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace LIN;
 
-public sealed class LinOpenPlugin : StepPluginBase<LinOpenSetting>
+public sealed class LinOpenPlugin : LIN.PluginInfrastructure.StrictStepPluginBase<LinOpenSetting>
 {
     public override string StepTypeId   => "IO.LinOpen";
-    public override string DisplayName  => "LIN_Open";
+    public override string DisplayName  => "LIN_Connection_Open";
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_open.png";
 

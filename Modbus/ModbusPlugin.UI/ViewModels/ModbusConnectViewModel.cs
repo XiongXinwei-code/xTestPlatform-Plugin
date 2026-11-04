@@ -36,6 +36,7 @@ public class ModbusConnectViewModel : INotifyPropertyChanged
 
 	private readonly System.Windows.Threading.Dispatcher _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
     private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public Action<string, Action>? ExecuteCommand { get => _saves.ExecuteCommand; set => _saves.ExecuteCommand = value; }
     public void FlushPendingSave() => _saves.Flush();
     public Exception? LastSaveError => _saves.LastError;
     private void QueueSave()

@@ -16,6 +16,7 @@ public sealed class TcpCloseEditorPlugin : IStepEditorPlugin
         var view = new TcpCloseEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

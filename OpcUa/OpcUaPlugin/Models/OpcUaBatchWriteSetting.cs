@@ -7,6 +7,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace OpcUa.Models;
 
 /// <summary>批量写入的单个节点项</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class OpcUaBatchWriteItem : INotifyPropertyChanged
 {
@@ -24,6 +25,9 @@ public class OpcUaBatchWriteItem : INotifyPropertyChanged
     /// <summary>数据类型</summary>
     public OpcUaDataType DataType { get => _dataType; set => SetProperty(ref _dataType, value); }
 
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
+
     public event PropertyChangedEventHandler? PropertyChanged;
     protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
     {
@@ -35,6 +39,7 @@ public class OpcUaBatchWriteItem : INotifyPropertyChanged
 }
 
 /// <summary>OPC UA 批量写入步骤的设置参数</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class OpcUaBatchWriteSetting
 {

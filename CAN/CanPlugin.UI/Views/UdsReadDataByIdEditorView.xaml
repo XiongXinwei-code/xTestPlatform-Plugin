@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.UdsReadDataByIdEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.UdsReadDataByIdEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -61,7 +61,7 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

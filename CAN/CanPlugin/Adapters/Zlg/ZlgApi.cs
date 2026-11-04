@@ -4,7 +4,7 @@ using CAN.Helpers;
 namespace CAN.Adapters.Zlg;
 
 /// <summary>周立功 ZLGCAN P/Invoke 封装（zlgcan.dll）</summary>
-internal static class ZlgApi
+internal static partial class ZlgApi
 {
     private const string DllName = "zlgcan.dll";
 
@@ -394,9 +394,7 @@ internal static class ZlgApi
     }
 
     /// <summary>判断设备是否支持 CAN FD。</summary>
-    public static bool IsCanFdDevice(uint deviceType) =>
-        deviceType is ZCAN_USBCANFD_200U or ZCAN_USBCANFD_100U or ZCAN_USBCANFD_MINI ||
-        IsPcieCanFdDevice(deviceType);
+    public static bool IsCanFdDevice(uint deviceType) => ZlgDeviceCatalog.IsCanFd(deviceType);
 
     public static bool IsPcieCanFdDevice(uint deviceType) => deviceType is
         ZCAN_PCIE_CANFD_100U or ZCAN_PCIE_CANFD_200U or ZCAN_PCIE_CANFD_400U or
@@ -410,7 +408,7 @@ internal static class ZlgApi
             (ZCAN_PCIE_CANFD_100U or ZCAN_PCIE_CANFD_200U or ZCAN_PCIE_CANFD_400U);
 
     public static bool UsesDriverClassicBitRate(uint deviceType) =>
-        deviceType is ZCAN_PCI5010U or ZCAN_PCI5020U;
+        deviceType is ZCAN_PCI5010U or ZCAN_PCI5020U or 31 or 34 or 45;
 
     public static double GetStandardDataSamplePoint(uint deviceType, int bitRate) =>
         IsPcieCanFdDevice(deviceType) && bitRate == 5_000_000 ? 75d : 80d;
@@ -435,79 +433,25 @@ internal static class ZlgApi
         }
     }
 
-    public static string GetDeviceOpenDiagnostics(uint deviceType)
+    public static string GetDeviceOpenDiagnostics(uint type)
     {
-        string? kernelDll = deviceType switch
-        {
-            ZCAN_PCI5121 or ZCAN_PCI5110 => "PCI51XXE.dll",
-            ZCAN_PCI9810 => "PCI9810.dll",
-            ZCAN_PCI9820 => "PCI9820.dll",
-            ZCAN_PCI9840 => "PCI9840B.dll",
-            ZCAN_PCI9820I => "PCI9820I.dll",
-            ZCAN_PCI5010U or ZCAN_PCI5020U => "pci50xx_u.dll",
-            ZCAN_PCIE9221 => "pcie9221.dll",
-            ZCAN_PCIE9120 => "pcie9120.dll",
-            ZCAN_PCIE9110 => "pcie9110.dll",
-            ZCAN_PCIE9140 => "pcie9140.dll",
-            ZCAN_PCIE_CANFD_100U or ZCAN_PCIE_CANFD_200U or ZCAN_PCIE_CANFD_400U => "zpcfd.dll",
-            _ when IsPcieCanFdDevice(deviceType) => "xpcfd.dll",
-            _ => null
-        };
-        if (deviceType == ZCAN_PCIE_9220)
-            return "当前 SDK 的 dll_cfg.ini 未配置 PCIe9220，请使用包含该型号的官方 x64 二次开发库。";
-        if (kernelDll is null)
-            return "";
-        if (NativeDir is null)
-            return $"请确认官方 x64 二次开发库的 kerneldlls 中包含 {kernelDll}。";
-
-        string path = Path.Combine(NativeDir, "kerneldlls", kernelDll);
-        return File.Exists(path)
-            ? $"板卡库已找到：{path}；请检查其依赖和 Windows 板卡驱动。"
-            : $"插件原生库目录缺少板卡库：{path}；请补充官方 x64 二次开发包（保持 kerneldlls 目录结构）。";
+        var model = ZlgDeviceCatalog.Devices.FirstOrDefault(d => d.Type == type);
+        if (string.IsNullOrEmpty(model?.KernelLibrary))
+            return "当前 SDK 的 dll_cfg.ini 未配置该型号内核，请部署包含该型号的官方 x64 二次开发库。";
+        if (NativeDir is null) return $"请确认官方 x64 库的 kerneldlls 中包含 {model.KernelLibrary}。";
+        string path = Path.Combine(NativeDir, "kerneldlls", model.KernelLibrary);
+        return File.Exists(path) ? $"已找到型号内核 {path}，还需安装其依赖及 Windows 驱动。"
+            : $"缺少型号内核 {path}；请部署匹配的完整官方 x64 二次开发库。";
     }
 
+    internal static void VerifyDeviceKernel(uint type)
+    {
+        var model = ZlgDeviceCatalog.Devices.FirstOrDefault(d => d.Type == type);
+        if (string.IsNullOrEmpty(model?.KernelLibrary) || NativeDir is not null && !File.Exists(Path.Combine(NativeDir, "kerneldlls", model.KernelLibrary)))
+            throw new InvalidOperationException(GetDeviceOpenDiagnostics(type));
+    }
     /// <summary>设备类型名转设备类型码</summary>
-    public static uint ParseDeviceType(string name)
-    {
-        string normalized = name.Trim().ToUpperInvariant();
-        if (normalized.StartsWith("ZCAN_", StringComparison.Ordinal))
-            normalized = normalized[5..];
-        return normalized.Replace('_', '-') switch
-        {
-            "USBCAN1" or "USBCAN-I" => ZCAN_USBCAN1,
-            "USBCAN2" or "USBCAN-II" => ZCAN_USBCAN2,
-            "USBCAN-E-U" => ZCAN_USBCAN_E_U,
-            "USBCAN-2E-U" => ZCAN_USBCAN_2E_U,
-            "USBCANFD-200U" => ZCAN_USBCANFD_200U,
-            "USBCANFD-100U" => ZCAN_USBCANFD_100U,
-            "USBCANFD-MINI" => ZCAN_USBCANFD_MINI,
-            "PCI5121" or "PCI-5121" => ZCAN_PCI5121,
-            "PCI9810" or "PCI-9810" => ZCAN_PCI9810,
-            "PCI9820" or "PCI-9820" => ZCAN_PCI9820,
-            "PCI5110" or "PCI-5110" => ZCAN_PCI5110,
-            "PCI9840" or "PCI-9840" => ZCAN_PCI9840,
-            "PCI9820I" or "PCI-9820I" => ZCAN_PCI9820I,
-            "PCIE9220" or "PCIE-9220" => ZCAN_PCIE_9220,
-            "PCI5010U" or "PCI-5010-U" => ZCAN_PCI5010U,
-            "PCI5020U" or "PCI-5020-U" => ZCAN_PCI5020U,
-            "PCIE9221" or "PCIE-9221" => ZCAN_PCIE9221,
-            "PCIE9120" or "PCIE-9120" => ZCAN_PCIE9120,
-            "PCIE9110" or "PCIE-9110" => ZCAN_PCIE9110,
-            "PCIE9140" or "PCIE-9140" => ZCAN_PCIE9140,
-            "PCIE-CANFD-100U" => ZCAN_PCIE_CANFD_100U,
-            "PCIE-CANFD-200U" => ZCAN_PCIE_CANFD_200U,
-            "PCIE-CANFD-400U" => ZCAN_PCIE_CANFD_400U,
-            "PCIE-CANFD-100U-EX" => ZCAN_PCIE_CANFD_100U_EX,
-            "PCIE-CANFD-400U-EX" => ZCAN_PCIE_CANFD_400U_EX,
-            "PCIE-CANFD-200U-MINI" => ZCAN_PCIE_CANFD_200U_MINI,
-            "PCIE-CANFD-200U-EX" or "PCIE-CANFD-200U-M2" => ZCAN_PCIE_CANFD_200U_EX,
-            "PCIE-CANFD-800U" => ZCAN_PCIE_CANFD_800U,
-            "PCIE-CANFD-1200U" => ZCAN_PCIE_CANFD_1200U,
-            "MINI-PCIE-CANFD" => ZCAN_MINI_PCIE_CANFD,
-            _ => throw new ArgumentException(
-                $"未知的 ZLG 设备类型 '{name}'，支持已接入的 USBCAN、USBCANFD、PCI 和 PCIe 型号；完整列表请查看 ZLG 原生库 README。")
-        };
-    }
+    public static uint ParseDeviceType(string name) => ZlgDeviceCatalog.Parse(name);
 
     /// <summary>Classic 波特率和采样点转 SJA1000 BTR0/BTR1 编码。</summary>
     public static (byte Timing0, byte Timing1) ToTiming(int baudRate, double samplePoint)

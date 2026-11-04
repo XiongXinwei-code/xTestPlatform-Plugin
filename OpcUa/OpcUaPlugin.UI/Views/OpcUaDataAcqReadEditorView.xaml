@@ -1,4 +1,4 @@
-<UserControl x:Class="OpcUa.UI.Views.OpcUaDataAcqReadEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="OpcUa.UI.Views.OpcUaDataAcqReadEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -41,7 +41,7 @@
                          Text="{Binding SamplesToRead, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="序号波形变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
                          Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <CheckBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,8"
@@ -55,10 +55,10 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 <TextBlock Grid.Row="5" Text="逐点记录 JSON 变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox x:Name="RecordsJsonVariableBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
+                <TextBox vardrop:VariableDrop.Target="True" x:Name="RecordsJsonVariableBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8"
                          Text="{Binding RecordsJsonVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 <TextBlock Grid.Row="6" Text="健康 JSON 变量:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox x:Name="HealthVariableBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
+                <TextBox vardrop:VariableDrop.Target="True" x:Name="HealthVariableBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8"
                          Text="{Binding HealthVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 <TextBlock x:Name="SamplingTimeHint" Grid.Row="7" Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="0,4,0,0"
                            Text="OPC UA 轮询不是等间隔硬件采样。兼容波形横轴仅为记录序号（sample）；真实源/服务器时间、主机接收 UTC、单调时间及质量请使用逐点记录 JSON 或 CSV。非 Good 数据会标记为 NaN 并报告错误，不作为有效测量值。"/>

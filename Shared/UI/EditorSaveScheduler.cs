@@ -12,6 +12,9 @@ internal sealed class EditorSaveScheduler
     private readonly DispatcherTimer _timer;
     private Action? _pending;
     public Exception? LastError { get; private set; }
+    // The host wraps this command with undo tracking, GenerateDescription and
+    // sequence-list refresh. Never write framework-owned PropertiesSetting here.
+    public Action<string, Action>? ExecuteCommand { get; set; }
 
     public EditorSaveScheduler()
     {
@@ -33,7 +36,11 @@ internal sealed class EditorSaveScheduler
     public void Queue(Action save)
     {
         _dispatcher.VerifyAccess(); ArgumentNullException.ThrowIfNull(save);
-        _pending = save; _timer.Stop(); _timer.Start();
+        // A cached editor can be rebound before Flush. Keep the command belonging
+        // to the same step as the queued setting, not the next injected command.
+        var command = ExecuteCommand;
+        _pending = command == null ? save : () => command("修改步骤参数", save);
+        _timer.Stop(); _timer.Start();
     }
 
     public void Flush()

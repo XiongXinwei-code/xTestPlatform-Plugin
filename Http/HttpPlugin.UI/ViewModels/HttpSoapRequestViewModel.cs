@@ -13,6 +13,7 @@ namespace Http.UI.ViewModels;
 public class HttpSoapRequestViewModel : INotifyPropertyChanged
 {
     private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public Action<string, Action>? ExecuteCommand { get => _saver.ExecuteCommand; set => _saver.ExecuteCommand = value; }
     private readonly HashSet<HttpHeaderItem> _observedItems = new();
     public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
@@ -20,8 +21,8 @@ public class HttpSoapRequestViewModel : INotifyPropertyChanged
     private IStepSettingSerializer? _serializer;
     private HttpSoapRequestSetting? _setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { _saver.Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { _saver.Flush(); _step = step; Load(); }
 
     private void Load()
     {
@@ -77,6 +78,8 @@ public class HttpSoapRequestViewModel : INotifyPropertyChanged
     public SoapVersion SoapVersion { get => _setting?.SoapVersion ?? SoapVersion.Soap11; set { if (_setting == null || _setting.SoapVersion == value) return; _setting.SoapVersion = value; OnPropertyChanged(); QueueSave(); } }
     public string SoapAction { get => _setting?.SoapAction ?? ""; set { if (_setting == null || _setting.SoapAction == value) return; _setting.SoapAction = value; OnPropertyChanged(); QueueSave(); } }
     public string Envelope { get => _setting?.Envelope ?? ""; set { if (_setting == null || _setting.Envelope == value) return; _setting.Envelope = value; OnPropertyChanged(); QueueSave(); } }
+    public int TimeoutMs { get => _setting?.TimeoutMs ?? 0; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
+    public int MaxResponseBytes { get => _setting?.MaxResponseBytes ?? 16777216; set { if (_setting == null || _setting.MaxResponseBytes == value) return; _setting.MaxResponseBytes = value; OnPropertyChanged(); QueueSave(); } }
     public string ResponseVariable { get => _setting?.ResponseVariable ?? ""; set { if (_setting == null || _setting.ResponseVariable == value) return; _setting.ResponseVariable = value; OnPropertyChanged(); QueueSave(); } }
     public string StatusCodeVariable { get => _setting?.StatusCodeVariable ?? ""; set { if (_setting == null || _setting.StatusCodeVariable == value) return; _setting.StatusCodeVariable = value; OnPropertyChanged(); QueueSave(); } }
     public bool TreatSoapFaultAsFailure { get => _setting?.TreatSoapFaultAsFailure ?? true; set { if (_setting == null || _setting.TreatSoapFaultAsFailure == value) return; _setting.TreatSoapFaultAsFailure = value; OnPropertyChanged(); QueueSave(); } }

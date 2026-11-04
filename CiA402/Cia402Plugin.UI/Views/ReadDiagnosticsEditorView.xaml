@@ -1,4 +1,4 @@
-<UserControl x:Class="CiA402.UI.Views.ReadDiagnosticsEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CiA402.UI.Views.ReadDiagnosticsEditorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -14,17 +14,17 @@
                     <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="错误码输出" FontWeight="SemiBold" Margin="0,4,0,4" />
-                        <TextBox Text="{Binding ErrorCodeVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBox vardrop:VariableDrop.Target="True" Text="{Binding ErrorCodeVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
                         <TextBlock Text="完整变量路径，double；配置后读取 0x603F，不支持则报错" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="硬件诊断输出" FontWeight="SemiBold" Margin="0,4,0,4" />
-                        <TextBox Text="{Binding HardwareValueVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBox vardrop:VariableDrop.Target="True" Text="{Binding HardwareValueVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
                         <TextBlock Text="完整变量路径，double；须在绑定轴时配置诊断对象" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="硬件异常输出" FontWeight="SemiBold" Margin="0,4,0,4" />
-                        <TextBox Text="{Binding HardwareActiveVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBox vardrop:VariableDrop.Target="True" Text="{Binding HardwareActiveVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
                         <TextBlock Text="完整变量路径，bool；须配置诊断对象及非零掩码" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12">

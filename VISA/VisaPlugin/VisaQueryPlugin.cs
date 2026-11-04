@@ -8,10 +8,10 @@ namespace VISA;
 /// <summary>
 /// VISA 查询插件，发送 SCPI 命令并读取响应，结果存入变量
 /// </summary>
-public sealed class VisaQueryPlugin : StepPluginBase<VisaQuerySetting>
+public sealed class VisaQueryPlugin : VISA.PluginInfrastructure.StrictStepPluginBase<VisaQuerySetting>
 {
     public override string StepTypeId => "IO.VisaQuery";
-    public override string DisplayName => "VISA_Query";
+    public override string DisplayName => "VISA_ReadWrite_Query";
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_query.png";
 

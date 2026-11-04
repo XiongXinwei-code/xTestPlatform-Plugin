@@ -21,6 +21,7 @@ public sealed class CanopenNmtControlEditorPlugin : IStepEditorPlugin
         var view = new CanopenNmtControlEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

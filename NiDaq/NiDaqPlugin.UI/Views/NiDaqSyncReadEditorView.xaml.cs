@@ -11,7 +11,7 @@ public partial class NiDaqSyncReadEditorView : UserControl, IRefreshableEditor
 {
     public NiDaqSyncReadViewModel ViewModel { get; } = new();
 
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(NiDaqSyncReadEditorView),
             new PropertyMetadata(null));
@@ -25,6 +25,7 @@ public partial class NiDaqSyncReadEditorView : UserControl, IRefreshableEditor
     {
         InitializeComponent();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 

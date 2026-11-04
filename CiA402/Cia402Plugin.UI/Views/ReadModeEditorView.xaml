@@ -1,4 +1,4 @@
-<UserControl x:Class="CiA402.UI.Views.ReadModeEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CiA402.UI.Views.ReadModeEditorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -14,7 +14,7 @@
                     <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="实际模式输出" FontWeight="SemiBold" Margin="0,4,0,4" />
-                        <TextBox Text="{Binding ModeVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBox vardrop:VariableDrop.Target="True" Text="{Binding ModeVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
                         <TextBlock Text="已声明的完整变量路径；写入 double，留空不写" TextWrapping="Wrap" Opacity="0.7" Margin="0,4,0,0" />
                     </StackPanel>
                     <StackPanel Margin="0,0,0,12">

@@ -10,7 +10,7 @@ namespace CAN.UI.Views;
 public partial class XcpShortDownloadEditorView : UserControl, IRefreshableEditor
 {
     public XcpShortDownloadViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(XcpShortDownloadEditorView),
@@ -35,6 +35,7 @@ public partial class XcpShortDownloadEditorView : UserControl, IRefreshableEdito
         InitializeComponent();
         ViewModel   = new XcpShortDownloadViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
         Unloaded += (_, _) => ViewModel.Flush();
     }
 

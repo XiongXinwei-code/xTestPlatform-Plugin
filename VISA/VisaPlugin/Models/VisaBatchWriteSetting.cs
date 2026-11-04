@@ -9,6 +9,7 @@ namespace VISA.Models;
 /// <summary>
 /// 批量写入的单条命令项
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class VisaBatchWriteItem : INotifyPropertyChanged
 {
@@ -21,6 +22,9 @@ public class VisaBatchWriteItem : INotifyPropertyChanged
 
     /// <summary>发送后延时（毫秒），0 表示不延时</summary>
     public int DelayMs { get => _delayMs; set => SetProperty(ref _delayMs, value); }
+
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
 
     public event PropertyChangedEventHandler? PropertyChanged;
     protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
@@ -35,6 +39,7 @@ public class VisaBatchWriteItem : INotifyPropertyChanged
 /// <summary>
 /// VISA 批量写入步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class VisaBatchWriteSetting
 {

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class WriteCspTargetPlugin : StepPluginBase<WriteCspTargetSetting>
+public sealed class WriteCspTargetPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<WriteCspTargetSetting>
 {
     public override string StepTypeId => "Motion.CiA402WriteCspTarget";
-    public override string DisplayName => "CiA402_Target_WriteCspTarget";
+    public override string DisplayName => "CiA402_Targets_WriteCspTarget";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_writecsptarget.png";
 

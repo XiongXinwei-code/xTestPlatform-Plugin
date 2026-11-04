@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.SomeIP.Models;
 
 /// <summary>SomeIp_Subscribe 步骤设置（在本地端口监听事件通知）</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class SomeIpSubscribeSetting
 {

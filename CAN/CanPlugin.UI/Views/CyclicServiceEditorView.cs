@@ -26,7 +26,9 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
     {
         ViewModel = new(plugin);
         DataContext = ViewModel;
-        Unloaded += (_, _) => ViewModel.Flush();
+        Loaded += (_, _) => ViewModel.Activate();
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
+        Unloaded += (_, _) => ViewModel.Deactivate();
         NameScope.SetNameScope(this, new NameScope());
         var tabs = new TabControlExt { CloseButtonType = CloseButtonType.Hide, AllowDragDrop = false, EnableLabelEdit = false };
         tabs.Items.Add(new TabItemExt { Header = plugin.DisplayName, Image = new BitmapImage(new Uri(plugin.IconPath)),
@@ -121,6 +123,7 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
         {
             var text = new TextBox { MinWidth = 100 };
             text.SetBinding(TextBox.TextProperty, Bind(property));
+            if (property == "ResultVariable") PluginCommon.UI.VariableDrop.SetTarget(text, true);
             editor = text;
         }
         RegisterName(property + "Editor", editor);
@@ -131,7 +134,8 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
     private static DataGridTemplateColumn ExpressionColumn(string header, string property, string expected, DataGridLength width)
     {
         var template = (DataTemplate)XamlReader.Parse($"<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>{ExpressionMarkup(property, expected)}</DataTemplate>");
-        return new DataGridTemplateColumn { Header = header, CellTemplate = template, CellEditingTemplate = template, Width = width };
+        return new DataGridTemplateColumn { Header = header, CellTemplate = template, CellEditingTemplate = template,
+            Width = width, MinWidth = width.IsStar ? 240 : 0 };
     }
     private void AddCheck(string label, string property)
     {
@@ -143,13 +147,14 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
     private void AddGrid(bool feedback)
     {
         var grid = new DataGrid { AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false,
-            CanUserSortColumns = false, CanUserReorderColumns = false, Height = 200, Margin = new Thickness(0, 8, 0, 4) };
+            CanUserSortColumns = false, CanUserReorderColumns = false, Height = 200, MinRowHeight = 36, Margin = new Thickness(0, 8, 0, 4) };
+        Appearance.CanListAppearance.SetEnabled(grid, true);
         if (feedback) grid.Columns.Add(new DataGridTextColumn { Header = "名称", Binding = Bind("Name"), Width = 100 });
         grid.Columns.Add(ExpressionColumn("COB-ID 表达式", "CobId", "Double", 180));
         grid.Columns.Add(new DataGridTextColumn { Header = "DLC", Binding = Bind("Dlc"), Width = 55 });
         if (feedback) grid.Columns.Add(new DataGridTextColumn { Header = "有效期 ms", Binding = Bind("MaxAgeMs"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
         else grid.Columns.Add(ExpressionColumn("原始数据表达式（保持组包）", "Data", "String", new DataGridLength(1, DataGridLengthUnitType.Star)));
-        grid.ItemsSource = feedback ? ViewModel.Routes : ViewModel.Targets;
+        grid.SetBinding(ItemsControl.ItemsSourceProperty, new Binding(feedback ? nameof(ViewModel.Routes) : nameof(ViewModel.Targets)));
         RegisterName(feedback ? "RoutesGrid" : "TargetsGrid", grid);
         _panel.Children.Add(grid);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
@@ -158,8 +163,8 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
         var remove = new Button { Content = "删除选中", Margin = new Thickness(0, 0, 0, 8), Padding = new Thickness(12, 3, 12, 3) };
         remove.Click += (_, _) =>
         {
-            if (grid.SelectedItem is not CyclicRowViewModel row) return;
-            if (feedback) ViewModel.RemoveRoute(row); else ViewModel.RemoveTarget(row);
+            if (feedback && grid.SelectedItem is FeedbackRouteSetting route) ViewModel.RemoveRoute(route);
+            else if (!feedback && grid.SelectedItem is TargetFrameSetting target) ViewModel.RemoveTarget(target);
         };
         buttons.Children.Add(add); buttons.Children.Add(remove); _panel.Children.Add(buttons);
     }

@@ -8,10 +8,10 @@ namespace VISA;
 /// <summary>
 /// VISA 关闭会话插件，关闭并释放仪器连接资源
 /// </summary>
-public sealed class VisaClosePlugin : StepPluginBase<VisaCloseSetting>
+public sealed class VisaClosePlugin : VISA.PluginInfrastructure.StrictStepPluginBase<VisaCloseSetting>
 {
     public override string StepTypeId => "IO.VisaClose";
-    public override string DisplayName => "VISA_Close";
+    public override string DisplayName => "VISA_Connection_Close";
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_close.png";
 

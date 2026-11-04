@@ -21,6 +21,7 @@ public sealed class CanopenSdoWriteEditorPlugin : IStepEditorPlugin
         var view = new CanopenSdoWriteEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

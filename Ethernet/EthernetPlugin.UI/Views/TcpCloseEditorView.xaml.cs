@@ -9,7 +9,7 @@ namespace Ethernet.UI.Views;
 public partial class TcpCloseEditorView : UserControl, IRefreshableEditor
 {
     public TcpCloseViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(TcpCloseEditorView),
@@ -34,7 +34,9 @@ public partial class TcpCloseEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel   = new TcpCloseViewModel();
         DataContext = ViewModel;
-        Unloaded += (_, _) => ViewModel.FlushPendingSave();
+        Loaded += (_, _) => ViewModel.Activate();
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
+        Unloaded += (_, _) => ViewModel.Deactivate();
     }
 
     public void RefreshFromStep(Step step)

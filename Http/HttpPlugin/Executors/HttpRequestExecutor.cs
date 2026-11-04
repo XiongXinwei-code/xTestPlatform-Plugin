@@ -33,6 +33,9 @@ public sealed class HttpRequestExecutor : IStepExecutor
             var step = context.CurrentStep!.Step;
             var serializer = new HttpRequestPlugin().CreateSerializer();
             var setting = (HttpRequestSetting)serializer.Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+            ArgumentOutOfRangeException.ThrowIfNegative(setting.TimeoutMs);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(setting.MaxResponseBytes);
+            if (!Enum.IsDefined(setting.ResponseFormat)) throw new InvalidOperationException("HTTP 响应格式无效");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
 
@@ -55,6 +58,7 @@ public sealed class HttpRequestExecutor : IStepExecutor
             HttpOutputPreflight.Validate(context, setting.ResponseVariable, typeof(string), CheckExecution);
             HttpOutputPreflight.Validate(context, setting.StatusCodeVariable, typeof(int), CheckExecution);
             HttpOutputPreflight.Validate(context, setting.ElapsedVariable, typeof(int), CheckExecution);
+            HttpOutputPreflight.Validate(context, setting.ResponseHeadersVariable, typeof(string), CheckExecution);
 
             var request = pendingRequest = new HttpRequestMessage(
                 HttpHelper.ToHttpMethod(setting.Method),
@@ -75,7 +79,11 @@ public sealed class HttpRequestExecutor : IStepExecutor
             {
                 body = await Evaluator.EvalStringAsync(setting.Body, context);
                 CheckExecution();
-                request.Content = new StringContent(body, Encoding.UTF8, mediaType);
+                request.Content = setting.ContentType == BodyContentType.Bytes
+                    ? new ByteArrayContent(HttpResponseReader.ParseHexBody(body))
+                    : new StringContent(body, Encoding.UTF8, mediaType);
+                if (setting.ContentType == BodyContentType.Bytes)
+                    request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mediaType);
             }
 
             if (setting.LogPayload)
@@ -84,7 +92,8 @@ public sealed class HttpRequestExecutor : IStepExecutor
             CheckExecution();
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             HttpHelper.ValidateRequestDestination(resource, request);
-            var sending = resource.SendAsync(request, cancellationToken);
+            var sending = resource.SendAsync(request, cancellationToken, setting.TimeoutMs,
+                setting.MaxResponseBytes, setting.ResponseFormat);
             pendingRequest = null; // Resource retains request ownership through the real worker's exit.
             var response = await sending;
             var content = response.Content;
@@ -106,6 +115,11 @@ public sealed class HttpRequestExecutor : IStepExecutor
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
             if (!string.IsNullOrWhiteSpace(setting.ElapsedVariable))
                 context.SetVariable(setting.ElapsedVariable, elapsedMs);
+            CheckExecution();
+            resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(setting.ResponseHeadersVariable))
+                context.SetVariable(setting.ResponseHeadersVariable, response.HeadersJson);
             CheckExecution();
             resource.CheckPublication(context.Resources, HttpHelper.GetClientKey(clientName), cancellationToken);
 

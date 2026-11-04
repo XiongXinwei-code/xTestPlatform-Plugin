@@ -9,14 +9,18 @@ namespace Ethernet.UI.ViewModels;
 public abstract class EthernetViewModelBase<TSetting> : INotifyPropertyChanged where TSetting : class, new()
 {
     private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public Action<string, Action>? ExecuteCommand { get => _saver.ExecuteCommand; set => _saver.ExecuteCommand = value; }
     public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
+    private bool _active = true;
+    public void Deactivate() { FlushPendingSave(); _active = false; }
+    public void Activate() { if (_active) return; _active = true; Load(); }
     private Step? _step;
     private IStepSettingSerializer? _serializer;
     protected TSetting? Setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { _saver.Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { _saver.Flush(); _step = step; _active = true; Load(); }
 
     private void Load()
     {
@@ -35,7 +39,7 @@ public abstract class EthernetViewModelBase<TSetting> : INotifyPropertyChanged w
 
     protected void QueueSave()
     {
-        if (_suppressSave || _step == null || Setting == null || _serializer == null) return;
+        if (!_active || _suppressSave || _step == null || Setting == null || _serializer == null) return;
         _saver.Schedule(_step, _serializer, Setting);
     }
 

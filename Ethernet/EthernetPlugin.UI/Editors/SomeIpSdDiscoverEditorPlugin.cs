@@ -17,6 +17,7 @@ public sealed class SomeIpSdDiscoverEditorPlugin : IStepEditorPlugin
         var view = new SomeIpSdDiscoverEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

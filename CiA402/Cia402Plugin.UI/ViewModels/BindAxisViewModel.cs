@@ -18,6 +18,7 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 	private Step? _step;
 	private BindAxisSetting? _setting;
 	private bool _dirty;
+	private Action<string, Action>? _dirtyCommand;
 	private bool _saveFailed;
 	private readonly PluginCommon.EditorSaveScheduler _pendingSave = new();
 	private readonly HashSet<FeedbackPdoSetting> _observedFeedback = new();
@@ -57,6 +58,7 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 
 	private void QueueSave()
 	{
+		if (!_dirty) _dirtyCommand = ExecuteCommand;
 		_dirty = true;
 		Error = _setting == null ? "设置不存在" : string.Join("；", SettingValidation.Validate(_setting));
 		OnPropertyChanged(nameof(Error));
@@ -76,11 +78,11 @@ public sealed class BindAxisViewModel : INotifyPropertyChanged
 				var step = _step;
 				var version = _serializer.SettingVersion;
 				_dirty = false;
+				var command = _dirtyCommand;
 				_pendingSave.Queue(() =>
 				{
-					if (bytes.SequenceEqual(step.StepSetting.Setting ?? [])) return;
 					void Save() { step.StepSetting.Setting = bytes; step.StepSetting.SettingVersion = version; }
-					if (ExecuteCommand != null) ExecuteCommand("修改 CiA402 参数", Save); else Save();
+					if (command != null) command("修改 CiA402 参数", Save); else Save();
 				});
 			}
 			_pendingSave.Flush();

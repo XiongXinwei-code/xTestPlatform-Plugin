@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class RunVelocityPlugin : StepPluginBase<RunVelocitySetting>
+public sealed class RunVelocityPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<RunVelocitySetting>
 {
     public override string StepTypeId => "Motion.CiA402RunVelocity";
     public override string DisplayName => "CiA402_Motion_RunVelocity";

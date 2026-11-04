@@ -1,56 +1,36 @@
-<UserControl x:Class="Ethernet.UI.Views.TcpReceiveEditorView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
-             xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
-             xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
-             syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}"
-             mc:Ignorable="d" d:DesignHeight="300" d:DesignWidth="600">
-    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
-        <syncfusion:TabItemExt Header="TCP Receive"
-                               Image="pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_receive.png"
-                               ImageHeight="20" ImageWidth="20">
-            <Grid Margin="16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="160"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8"
-                    ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String"
-                    SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="ExpectedLength:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <syncfusion:IntegerTextBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-                    Value="{Binding ExpectedLength, Mode=TwoWay}" MinValue="0"/>
-
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Timeout (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <syncfusion:IntegerTextBox Grid.Row="2" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-                    Value="{Binding TimeoutMs, Mode=TwoWay}" MinValue="1"/>
-
-                <TextBlock Grid.Row="3" Grid.Column="0" Text="Encoding:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <ComboBox Grid.Row="3" Grid.Column="1" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"
-                          SelectedIndex="{Binding EncodingIndex}">
-                    <ComboBoxItem Content="Hex"/>
-                    <ComboBoxItem Content="Utf8"/>
-                    <ComboBoxItem Content="Ascii"/>
-                </ComboBox>
-
-                <TextBlock Grid.Row="4" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
-                         ToolTip="可选。非空须填写已声明的完整作用域 string 变量路径；当前值可为 null，通信前预检。" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </syncfusion:TabItemExt>
-    </syncfusion:TabControlExt>
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="Ethernet.UI.Views.TcpReceiveEditorView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+ xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+ syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=Windows11Light}">
+ <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+  <syncfusion:TabItemExt Header="TCP Receive" Image="pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/tcp_receive.png" ImageHeight="20" ImageWidth="20">
+   <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+    <Grid Margin="16">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*" MinWidth="280"/></Grid.ColumnDefinitions>
+     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox x:Name="ConnectionNameEditor" Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="1" Text="Receive until delimiter:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox x:Name="UseDelimiterEditor" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" IsChecked="{Binding UseDelimiter, Mode=TwoWay}"/>
+                <TextBlock Grid.Row="2" Text="ExpectedLength:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox x:Name="ExpectedLengthEditor" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" IsEnabled="{Binding IsLengthMode}" Value="{Binding ExpectedLength, Mode=TwoWay}" Width="220" HorizontalAlignment="Left" MinValue="0"/>
+                <TextBlock Grid.Row="3" Text="DelimiterHex:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <expr:ExpressionTextBox x:Name="DelimiterHexEditor" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8" IsEnabled="{Binding UseDelimiter}" ScriptText="{Binding DelimiterHex, Mode=TwoWay}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="4" Text="IncludeDelimiter:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <CheckBox x:Name="IncludeDelimiterEditor" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" IsEnabled="{Binding UseDelimiter}" IsChecked="{Binding IncludeDelimiter, Mode=TwoWay}"/>
+                <TextBlock Grid.Row="5" Text="MaxBytes:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" Value="{Binding MaxBytes, Mode=TwoWay}" Width="220" HorizontalAlignment="Left" MinValue="1" MaxValue="16777216"/>
+                <TextBlock Grid.Row="6" Text="TimeoutMs:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <syncfusion:IntegerTextBox Grid.Row="6" Grid.Column="1" Margin="0,0,0,8" Value="{Binding TimeoutMs, Mode=TwoWay}" Width="220" HorizontalAlignment="Left" MinValue="1"/>
+                <TextBlock Grid.Row="7" Text="Encoding:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <ComboBox Grid.Row="7" Grid.Column="1" Margin="0,0,0,8" SelectedIndex="{Binding EncodingIndex, Mode=TwoWay}" Width="220" HorizontalAlignment="Left"><ComboBoxItem Content="Hex"/><ComboBoxItem Content="Utf8"/><ComboBoxItem Content="Ascii"/></ComboBox>
+                <TextBlock Grid.Row="8" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="8" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" ToolTip="可选；须填写已声明的完整作用域 string 变量路径；当前值可为 null，通信前预检。"/>
+    </Grid>
+   </ScrollViewer>
+  </syncfusion:TabItemExt>
+ </syncfusion:TabControlExt>
 </UserControl>

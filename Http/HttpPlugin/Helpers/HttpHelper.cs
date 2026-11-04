@@ -32,16 +32,26 @@ public sealed class HttpClientResource : IDisposable
     /// <summary>创建该客户端时使用的认证方式</summary>
     public AuthMode AuthMode { get; init; }
 
-    public sealed record Response(string Content, int StatusCode, bool IsSuccess, long ElapsedMs);
+    public sealed record Response(string Content, int StatusCode, bool IsSuccess, long ElapsedMs)
+    {
+        public string HeadersJson { get; init; } = "{}";
+    }
 
     // The worker owns the request until actual completion, not until a caller stops waiting.
     // HTTP requests remain concurrent; only admission/close/publication use the owner lock.
-    public Task<Response> SendAsync(HttpRequestMessage request, CancellationToken caller)
+    public Task<Response> SendAsync(HttpRequestMessage request, CancellationToken caller,
+        int timeoutMs = 0, int maxResponseBytes = 16 * 1024 * 1024,
+        HttpResponseFormat responseFormat = HttpResponseFormat.Text)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(timeoutMs);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResponseBytes);
+        if (!Enum.IsDefined(responseFormat)) throw new ArgumentException("HTTP 响应格式无效", nameof(responseFormat));
         Task<Response> actual;
         RequestCancellation cancellation;
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var timeout = Client.Timeout;
+        if (timeoutMs > 0 && (timeout == Timeout.InfiniteTimeSpan || timeoutMs < timeout.TotalMilliseconds))
+            timeout = TimeSpan.FromMilliseconds(timeoutMs);
         lock (_sync)
         {
             caller.ThrowIfCancellationRequested();
@@ -63,10 +73,12 @@ public sealed class HttpClientResource : IDisposable
                             if (timeout != Timeout.InfiniteTimeSpan && System.Diagnostics.Stopwatch.GetElapsedTime(started) >= timeout)
                                 throw new TimeoutException($"HTTP 请求提交前超过 {timeout.TotalMilliseconds} ms，本次未发送");
                         }
-                        using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellation.Token).ConfigureAwait(false);
-                        var content = await response.Content.ReadAsStringAsync(cancellation.Token).ConfigureAwait(false);
+                        using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellation.Token).ConfigureAwait(false);
+                        var content = await HttpResponseReader.ReadAsync(response, responseFormat, maxResponseBytes,
+                            request.Method == HttpMethod.Head, cancellation.Token).ConfigureAwait(false);
                         return new Response(content, (int)response.StatusCode, response.IsSuccessStatusCode,
-                            (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                            (long)System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds)
+                        { HeadersJson = HttpResponseReader.GetHeadersJson(response) };
                     }
                 }
                 catch (Exception ex) { primary = ex; throw; }
@@ -428,6 +440,7 @@ internal static class HttpHelper
         BodyContentType.Xml => "application/xml",
         BodyContentType.Text => "text/plain",
         BodyContentType.FormUrlEncoded => "application/x-www-form-urlencoded",
+        BodyContentType.Bytes => "application/octet-stream",
         BodyContentType.None => null,
         _ => throw new ArgumentOutOfRangeException(nameof(contentType), "HTTP 请求体类型无效")
     };

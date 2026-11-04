@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace LIN;
 
-public sealed class LinCyclicSendStartPlugin : StepPluginBase<LinCyclicSendStartSetting>
+public sealed class LinCyclicSendStartPlugin : LIN.PluginInfrastructure.StrictStepPluginBase<LinCyclicSendStartSetting>
 {
     public override string StepTypeId   => "IO.LinCyclicSendStart";
     public override string DisplayName  => "LIN_Cyclic_SendStart";

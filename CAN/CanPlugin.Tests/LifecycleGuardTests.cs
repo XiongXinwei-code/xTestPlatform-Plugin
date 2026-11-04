@@ -45,7 +45,7 @@ public sealed class LifecycleGuardTests
             state.Closing = closing;
         }
         var result = await state.Closing!.WaitAsync(TimeSpan.FromSeconds(2));
-        Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
         Assert.Same(replacement, state.Adapter);
         Assert.Equal(0, replacement.CloseCount);
         Assert.Equal(0, state.RemoveCount);

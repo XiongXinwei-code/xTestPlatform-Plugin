@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqSyncReadPlugin : StepPluginBase<NiDaqSyncReadSetting>
+public sealed class NiDaqSyncReadPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqSyncReadSetting>
 {
     public override string StepTypeId => "NiDaq.SyncRead";
     public override string DisplayName => "NiDaq_Sync_Read";

@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.UDS.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsSecurityAccessSetting : UdsCommonSetting
 {
     /// <summary>安全等级序号 1~63；Seed 子功能=2*等级-1，Key=2*等级，保留原有线协议映射。</summary>

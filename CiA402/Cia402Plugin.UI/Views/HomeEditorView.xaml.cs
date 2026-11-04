@@ -22,6 +22,7 @@ public partial class HomeEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new HomeViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

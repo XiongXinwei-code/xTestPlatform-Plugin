@@ -22,6 +22,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="ConnectionName:" VerticalAlignment="Center" Margin="0,0,8,8"/>
@@ -39,6 +40,8 @@
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="停止总超时 (ms):" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock x:Name="SharedTaskStopHint" Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" TextWrapping="Wrap"
+                    Text="同时适用于 CAN 周期发送和 DBC Cyclic Write。连接名称与任务名称的求值结果必须和启动步骤一致；DBC 默认任务名为 &quot;DbcTask1&quot;，请按实际配置填写。只停止指定任务，不停止同连接的其它周期任务。"/>
             </Grid>
         </syncfusion:TabItemExt>
     </syncfusion:TabControlExt>

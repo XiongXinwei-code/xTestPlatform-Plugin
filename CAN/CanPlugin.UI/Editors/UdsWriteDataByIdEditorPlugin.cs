@@ -19,6 +19,7 @@ public sealed class UdsWriteDataByIdEditorPlugin : IStepEditorPlugin
 		var view = new UdsWriteDataByIdEditorView();
 		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

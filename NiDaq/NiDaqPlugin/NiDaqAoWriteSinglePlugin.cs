@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqAoWriteSinglePlugin : StepPluginBase<NiDaqAoWriteSingleSetting>
+public sealed class NiDaqAoWriteSinglePlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqAoWriteSingleSetting>
 {
     public override string StepTypeId => "NiDaq.AoWriteSingle";
     public override string DisplayName => "NiDaq_AO_WriteSingle";

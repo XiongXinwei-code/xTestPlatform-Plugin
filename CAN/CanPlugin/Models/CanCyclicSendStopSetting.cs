@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanCyclicSendStopSetting
 {
     /// <summary>等待周期任务实际退出的总期限（ms）。</summary>

@@ -19,6 +19,7 @@ public sealed class RunVelocityEditorPlugin : IStepEditorPlugin
 		var view = new RunVelocityEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new RunVelocityPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

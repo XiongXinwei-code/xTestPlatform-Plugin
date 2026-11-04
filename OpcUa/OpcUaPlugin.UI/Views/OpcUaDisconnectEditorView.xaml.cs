@@ -9,7 +9,7 @@ namespace OpcUa.UI.Views;
 public partial class OpcUaDisconnectEditorView : UserControl, IRefreshableEditor
 {
     public OpcUaDisconnectViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(OpcUaDisconnectEditorView),
             new PropertyMetadata(null));
@@ -24,6 +24,7 @@ public partial class OpcUaDisconnectEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new OpcUaDisconnectViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 

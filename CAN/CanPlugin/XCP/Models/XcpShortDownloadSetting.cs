@@ -5,6 +5,7 @@ namespace CAN.XCP.Models;
 
 /// <summary>XCP_ShortDownload 步骤设置（向 ECU 写入内存）</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class XcpShortDownloadSetting : XcpCommonSetting
 {
     /// <summary>ECU 内存地址（支持表达式）</summary>

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class SetModePlugin : StepPluginBase<SetModeSetting>
+public sealed class SetModePlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<SetModeSetting>
 {
     public override string StepTypeId => "Motion.CiA402SetMode";
-    public override string DisplayName => "CiA402_State_SetMode";
+    public override string DisplayName => "CiA402_StateControl_SetMode";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_setmode.png";
 

@@ -6,6 +6,7 @@ namespace VISA.Models;
 /// <summary>
 /// VISA 写入（发送 SCPI 命令）步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class VisaWriteSetting
 {

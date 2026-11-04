@@ -8,10 +8,10 @@ namespace Modbus;
 /// <summary>
 /// Modbus 写入插件，支持写入线圈和保持寄存器
 /// </summary>
-public sealed class ModbusWritePlugin : StepPluginBase<ModbusWriteSetting>
+public sealed class ModbusWritePlugin : Modbus.PluginInfrastructure.StrictStepPluginBase<ModbusWriteSetting>
 {
 	public override string StepTypeId => "IO.ModbusWrite";
-	public override string DisplayName => "Modbus_Write";
+	public override string DisplayName => "Modbus_ReadWrite_Write";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_write.png";
 

@@ -16,6 +16,7 @@ public sealed class TcpReceiveEditorPlugin : IStepEditorPlugin
         var view = new TcpReceiveEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 
@@ -36,6 +37,12 @@ public sealed class TcpReceiveEditorPlugin : IStepEditorPlugin
 
         if (s.TimeoutMs <= 0)
             errors.Add(StepSettingError.Error("ETH_304", "接收超时时间必须大于 0"));
+
+        if (!Enum.IsDefined(s.Encoding)) errors.Add(StepSettingError.Error("ETH_305", "TCP 接收编码无效"));
+        if (s.MaxBytes is < 1 or > 16777216) errors.Add(StepSettingError.Error("ETH_306", "MaxBytes 必须在 1~16777216 内"));
+        if (!s.UseDelimiter && s.ExpectedLength > s.MaxBytes) errors.Add(StepSettingError.Error("ETH_307", "ExpectedLength 不能超过 MaxBytes"));
+        if (s.UseDelimiter && (string.IsNullOrWhiteSpace(s.DelimiterHex) || !context.Evaluator.ValidateExpression(s.DelimiterHex, context.ExecutionContext, out _)))
+            errors.Add(StepSettingError.Error("ETH_308", "DelimiterHex 必须为有效的十六进制字符串表达式，运行时为 1~64 字节且不超过 MaxBytes"));
 
         Validation.EthernetOutputValidator.Check(context, s.ResultVariable, errors);
         Validation.EthernetLifecycleValidator.CheckPrecedingOpen(context, s.ConnectionName, false, errors);

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipConnectPlugin : StepPluginBase<DoipConnectSetting>
+public sealed class DoipConnectPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<DoipConnectSetting>
 {
     public override string StepTypeId  => "DoIP.Connect";
-    public override string DisplayName => "DoIP_Connect";
+    public override string DisplayName => "DoIP_Connection_Connect";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_connect.png";
 

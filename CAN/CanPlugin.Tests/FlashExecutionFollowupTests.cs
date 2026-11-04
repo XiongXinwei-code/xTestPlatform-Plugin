@@ -111,7 +111,7 @@ public sealed class FlashExecutionFollowupTests
             }
             else
             {
-                Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+                Assert.Equal(TestStatus.Passed, result.StepResult.Status);
                 Assert.Equal(expectedChunk, transfers[0].Length - 2);
                 Assert.Equal(5, transfers.Sum(frame => frame.Length - 2));
                 Assert.All(transfers, frame => Assert.InRange(frame.Length, 3, Math.Min(ecuMaximum, configured == 0 ? int.MaxValue : configured + 2)));

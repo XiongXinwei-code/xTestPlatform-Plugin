@@ -12,7 +12,7 @@ namespace Modbus.UI.Views;
 public partial class ModbusDisconnectEditorView : UserControl, IRefreshableEditor
 {
 	public ModbusDisconnectViewModel ViewModel { get; }
-	public Action<string, Action>? ExecuteCommand { get; set; }
+	public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 	public static readonly DependencyProperty SequenceFileProperty =
 	    DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(ModbusDisconnectEditorView),
 	        new PropertyMetadata(null));
@@ -27,6 +27,7 @@ public partial class ModbusDisconnectEditorView : UserControl, IRefreshableEdito
 		InitializeComponent();
 		ViewModel = new ModbusDisconnectViewModel();
 		DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 

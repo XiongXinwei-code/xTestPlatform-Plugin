@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace LIN;
 
-public sealed class LinWritePlugin : StepPluginBase<LinWriteSetting>
+public sealed class LinWritePlugin : LIN.PluginInfrastructure.StrictStepPluginBase<LinWriteSetting>
 {
     public override string StepTypeId   => "IO.LinWrite";
-    public override string DisplayName  => "LIN_Write";
+    public override string DisplayName  => "LIN_ReadWrite_Write";
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_write.png";
 

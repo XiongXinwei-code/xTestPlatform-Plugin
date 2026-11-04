@@ -21,6 +21,7 @@ public sealed class CanopenWaitHeartbeatEditorPlugin : IStepEditorPlugin
         var view = new CanopenWaitHeartbeatEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

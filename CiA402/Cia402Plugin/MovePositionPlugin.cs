@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class MovePositionPlugin : StepPluginBase<MovePositionSetting>
+public sealed class MovePositionPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<MovePositionSetting>
 {
     public override string StepTypeId => "Motion.CiA402MovePosition";
     public override string DisplayName => "CiA402_Motion_MovePosition";

@@ -14,7 +14,7 @@ public partial class ModbusConnectEditorView : UserControl, IRefreshableEditor
 	public ModbusConnectViewModel ViewModel { get; }
 
 	/// <summary>框架注入的命令执行器</summary>
-	public Action<string, Action>? ExecuteCommand { get; set; }
+	public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
 	/// <summary>框架注入的序列文件，用于 ExpressionTextBox 变量补全</summary>
 	public static readonly DependencyProperty SequenceFileProperty =
@@ -33,6 +33,7 @@ public partial class ModbusConnectEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new ModbusConnectViewModel();
 		DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 

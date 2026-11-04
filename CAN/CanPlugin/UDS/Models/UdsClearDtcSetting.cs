@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.UDS.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsClearDtcSetting : UdsCommonSetting
 {
     /// <summary>DTC 组（3 字节，0xFFFFFF=全部清除）</summary>

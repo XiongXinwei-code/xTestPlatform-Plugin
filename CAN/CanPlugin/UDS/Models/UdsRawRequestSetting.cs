@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace CAN.UDS.Models;
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsRawRequestSetting : UdsCommonSetting
 {
     /// <summary>原始请求数据（十六进制字符串，如 "10 03"）</summary>

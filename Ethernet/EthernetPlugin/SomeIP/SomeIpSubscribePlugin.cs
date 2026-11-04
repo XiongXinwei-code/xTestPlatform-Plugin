@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.SomeIP;
 
-public sealed class SomeIpSubscribePlugin : StepPluginBase<SomeIpSubscribeSetting>
+public sealed class SomeIpSubscribePlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<SomeIpSubscribeSetting>
 {
     public override string StepTypeId  => "SomeIp.Subscribe";
-    public override string DisplayName => "SomeIp_Subscribe";
+    public override string DisplayName => "SomeIp_DiscoverySubscription_Subscribe";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_subscribe.png";
 

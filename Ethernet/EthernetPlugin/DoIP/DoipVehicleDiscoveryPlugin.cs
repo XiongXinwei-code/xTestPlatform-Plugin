@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipVehicleDiscoveryPlugin : StepPluginBase<DoipVehicleDiscoverySetting>
+public sealed class DoipVehicleDiscoveryPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<DoipVehicleDiscoverySetting>
 {
     public override string StepTypeId  => "DoIP.VehicleDiscovery";
-    public override string DisplayName => "DoIP_VehicleDiscovery";
+    public override string DisplayName => "DoIP_Discovery_VehicleDiscovery";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_vehicle_discovery.png";
 

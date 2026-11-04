@@ -19,6 +19,7 @@ public sealed class DisableEditorPlugin : IStepEditorPlugin
 		var view = new DisableEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new DisablePlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

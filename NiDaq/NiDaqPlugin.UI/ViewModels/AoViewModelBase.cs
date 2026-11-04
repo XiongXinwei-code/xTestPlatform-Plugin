@@ -11,6 +11,7 @@ public abstract class AoViewModelBase<T> : INotifyPropertyChanged where T : clas
     private IStepSettingSerializer? _serializer;
     private PluginEditor.SettingsChangeTracker? _changes;
     private readonly PluginCommon.EditorSaveScheduler _saves = new();
+    public Action<string, Action>? ExecuteCommand { get => _saves.ExecuteCommand; set => _saves.ExecuteCommand = value; }
     protected T Setting { get; private set; } = new();
     public void AttachSerializer(IStepSettingSerializer serializer) { FlushPendingSave(); _serializer = serializer; if (_step != null) Load(); }
     public void AttachStep(Step step) { FlushPendingSave(); _step = step; Load(); }

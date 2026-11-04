@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CAN.XCP;
 
-public sealed class XcpConnectPlugin : StepPluginBase<XcpConnectSetting>
+public sealed class XcpConnectPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<XcpConnectSetting>
 {
     public override string StepTypeId  => "XCP.Connect";
-    public override string DisplayName => "XCP_Connect";
+    public override string DisplayName => "XCP_Connection_Connect";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/xcp_connect.png";
 

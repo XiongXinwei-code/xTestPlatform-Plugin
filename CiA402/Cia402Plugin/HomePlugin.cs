@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class HomePlugin : StepPluginBase<HomeSetting>
+public sealed class HomePlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<HomeSetting>
 {
     public override string StepTypeId => "Motion.CiA402Home";
     public override string DisplayName => "CiA402_Motion_Home";

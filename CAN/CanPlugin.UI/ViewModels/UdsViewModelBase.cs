@@ -11,6 +11,7 @@ public abstract class UdsViewModelBase<TSetting> : INotifyPropertyChanged, IData
 {
     private bool _suppressSave;
     private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;

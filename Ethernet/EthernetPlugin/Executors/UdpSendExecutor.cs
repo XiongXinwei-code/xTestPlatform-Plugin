@@ -38,7 +38,7 @@ public sealed class UdpSendExecutor : IStepExecutor
             var dataStr = await EthernetExecutorHelper.EvalStringAsync(setting.Data, context);
             CheckExecution();
 
-            if (!int.TryParse(portStr, out var port))
+            if (!int.TryParse(portStr, out var port) || port is < 1 or > 65535)
                 return new ExecutionResult
                 {
                     StepResult = new StepResult
@@ -50,22 +50,47 @@ public sealed class UdpSendExecutor : IStepExecutor
 
             var bytes = EthernetDataHelper.Encode(dataStr!, setting.Encoding);
 
-            var endpoint = new IPEndPoint(IPAddress.Parse(host!), port);
+            if (!Enum.IsDefined(setting.Encoding)) throw new ArgumentException("UDP 编码无效");
+            if (bytes.Length > 65507) throw new ArgumentException("UDP 数据不能超过 65507 字节");
             using var operation = budget = new EthernetOperationBudget(setting.SendTimeoutMs, "UDP 发送", cancellationToken, CheckExecution);
-            using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources,
-                () => new UdpClient(setting.LocalPort), setting.LocalPort,
-                operation.RemainingMs, operation.Token, operation.Check);
-            await udp.RunAsync(async (socket, token) =>
+            Action? checkConnection = null;
+            if (setting.UseConnection)
             {
-                operation.BeforeSubmission();
-                await _network.SendUdpAsync(socket, endpoint, bytes, token);
+                var name = await EthernetExecutorHelper.EvalStringAsync(setting.ConnectionName, context); operation.Check();
+                var connection = UdpConnectionManager.Get(name!, context.Resources);
+                checkConnection = () =>
+                {
+                    CheckExecution(); connection.CheckOpen();
+                    if (!ReferenceEquals(connection, UdpConnectionManager.Get(name!, context.Resources)))
+                        throw new InvalidOperationException("UDP 连接已替换，旧代次发送不能报告成功");
+                };
+                await connection.SendAsync(_network, host!, port, bytes, operation);
                 operation.Check();
-            }, operation.Token, operation.Check);
+                if (!ReferenceEquals(connection, UdpConnectionManager.Get(name!, context.Resources)))
+                    throw new InvalidOperationException("UDP 连接已替换，旧代次发送不能报告成功");
+            }
+            else
+            {
+                if (setting.LocalPort is < 0 or > 65535) throw new ArgumentOutOfRangeException(nameof(setting.LocalPort));
+                using var udp = await TransientNetworkOperation<UdpClient>.OpenAsync(context.Resources,
+                    () => new UdpClient(setting.LocalPort) { EnableBroadcast = setting.EnableBroadcast }, setting.LocalPort,
+                    operation.RemainingMs, operation.Token, operation.Check);
+                await udp.RunAsync(async (socket, token) =>
+                {
+                    var endpoint = await EthernetNetworkIo.ResolveEndpointAsync(_network, host!, port,
+                        socket.Client.AddressFamily, operation, token);
+                    operation.BeforeSubmission();
+                    await _network.SendUdpAsync(socket, endpoint, bytes, token);
+                    operation.Check();
+                }, operation.Token, operation.Check);
+            }
 
+            checkConnection?.Invoke();
             context.Log($"UDP 发送: {host}:{port} 发送 {bytes.Length} 字节 [{EthernetDataHelper.Decode(bytes, EthernetDataEncoding.Hex)}]");
             cancellationToken.ThrowIfCancellationRequested();
             CheckExecution();
 
+            CheckExecution(); checkConnection?.Invoke();
             return new ExecutionResult
             {
                 StepResult = new StepResult

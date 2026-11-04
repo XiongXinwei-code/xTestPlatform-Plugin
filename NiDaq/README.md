@@ -1,6 +1,6 @@
 # NiDaq 插件
 
-当前版本 **1.0.27**：非 AO 任务在 Abort 已返回后继续合法 Dispose，独立保留 Abort 诊断；真实 Dispose 失败缓存，防止空操作伪成功。AO 终值与未知输出约束保持不变。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+当前版本 **1.0.33**：扩展持久数字量、通用计数器输入/输出和独立编码器端子配置；保留既有任务归属与确认释放机制。软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
 修改汇总与交付边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
@@ -22,20 +22,37 @@
 | NiDaq_AO_WriteSingle | 向已配置且成功 TaskStart 的 AO 电压任务写入一组单点值；不创建新任务、不自动启动、不改变通道顺序。 |
 | NiDaq_DI_Read | 读取 NI DAQ 数字输入通道的状态值，存入变量。 |
 | NiDaq_DO_Write | 设置 NI DAQ 数字输出通道的状态值。 |
+| NiDaq_Digital_DIConfig | 配置持久 DI 端口/线组，支持按需或设备支持的采样时钟、启动触发。 |
+| NiDaq_Digital_DOConfig | 配置持久 DO 端口/线组，缓冲模式先写数据再 Start。 |
+| NiDaq_Digital_Read | 读取已启动 DI 的多通道 UInt32 数据，按通道、样本写入完整 JSON。 |
+| NiDaq_Digital_Write | 按物理端口位写入单点或多通道缓冲 UInt32 数据；不隐式启动。 |
+| NiDaq_Counter_InputConfig | 创建边沿计数或单计数器测频任务，可配置边沿、计数方向/初值和输入端子。 |
+| NiDaq_Counter_Read | 从已启动普通 CI 读取 UInt32 边沿计数或 double Hz；不可混读 Encoder。 |
+| NiDaq_Counter_OutputConfig | 配置频率、占空比、初始延迟、输出端子与有限/连续脉冲；Start 才启动。 |
 | NiDaq_Encoder_Config | 配置 NI DAQ 编码器采集任务（Counter 通道、解码类型、脉冲数、单位），创建任务对象供后续 Start/Read 使用。 |
 | NiDaq_Encoder_Read | 从已配置的编码器任务中读取当前位置值，存入指定变量。 |
 | NiDaq_Sync_Config | 配置 NI DAQ 同步采集任务（AI 通道 + 编码器通道、共享时钟/触发），创建任务对象供后续 Start/Read 使用。 |
 | NiDaq_Sync_Read | 从已启动的同步采集任务中读取 AI 和编码器对齐数据，可导出为文件并/或将结果存入变量。 |
-| NiDaq_Task_Start | 启动已配置的 NI DAQ 任务（AI/编码器/同步采集，或 AO 单点输出）。 |
-| NiDaq_Task_Stop | 停止并释放 NI DAQ 任务（AI/编码器/同步采集或 AO 单点输出，亦可清理配置/启动失败的任务）。 |
+| NiDaq_TaskManagement_Start | 启动已配置的 AI/AO/DI/DO/CI/CO/编码器或同步任务。 |
+| NiDaq_TaskManagement_Stop | 停止并释放指定任务；不要求此前读写成功，亦可清理配置/启动失败的任务。 |
 
 ## 使用前提
 
 需安装 NI-DAQmx 驱动，并在 NI MAX 中确认设备名称。
 
+## 数字量、计数器和编码器扩展
+
+- 持久数字输入：`Digital_DIConfig → TaskManagement_Start → Digital_Read → TaskManagement_Stop`。数字输出按需模式为 `Digital_DOConfig → Start → Digital_Write → Stop`；硬件缓冲输出先 `DOConfig → Digital_Write` 预装，再 `Start → Stop`。原有 DI_Read / DO_Write 瞬时步骤保留。
+- Channels 为字符串表达式，如 `"Dev1/port0,Dev1/port1/line4:7"`，每个逗号条目对应数据一行。数组顺序为 `[通道, 样本]`；单通道接受整数或一维数组，多通道可填 `new uint[,] {{1,2},{0x10,0x20}}`，也可使用已物化 List。延迟枚举需先 `ToArray()`；不接收字符串数值、小数或自定义转换对象。
+- UInt32 保留物理端口位位置：`line4:7` 全高值是 `0xF0`，`line7` 是 `0x80`，不压缩到低位；写入未选中的位明确报错。每组最多 32 位，支持 line0~line31；不静默截断。
+- Digital_Read 输出 string JSON，示例：`{"channels":["Dev1/port0","Dev1/port1"],"samplesPerChannel":2,"data":[[1,2],[3,4]]}`。实际样本不完整时返回 Error，不伪造样本。采样时钟、启动触发、缓冲数字量及端子路由是否可用由设备和 DAQmx 验证，不退化为软件轮询。
+- 普通计数器：`Counter_InputConfig → Start → Counter_Read → Stop`。边沿计数返回 UInt32；频率模式采用 LowFrequencyOneCounter 并返回 Hz double。脉冲输出：`Counter_OutputConfig → Start → Stop`；配置只建立/验证，有限脉冲数完成后仍应 Stop 释放资源。停止后的电气状态由设备决定，不承诺高阻或外部装置安全。
+- 独立 Encoder_Config 支持 A/B/Z 显式输入终端、原始 Ticks 初值、Z 复位值/相位；留空端子和零位置兼容旧设置。Encoder_Read 与普通 Counter_Read 互斥。Sync_Config 保持同设备 AI + Encoder 共享时钟/触发及旧默认路由，不宣称通用跨设备同步。
+- 本轮依据本机 `NIDAQmx.h` 与 NI-DAQmx .NET 26.5.40.49613 核对接口，参考 [NI 通道创建契约](https://github.com/ni/grpc-device/wiki/NI-DAQMX-Channel-Configuration-And-Creation)、[NI 数字数据位规则](https://www.ni.com/docs/en-US/bundle/ni-daqmx/page/digitaldata.html) 和 [NI 时序/同步说明](https://www.ni.com/en/support/documentation/supplemental/06/timing-and-synchronization-features-of-ni-daqmx.html)。仍未覆盖全部传感器类型、双计数器测频、通用跨设备路由等 DAQmx 能力。
+
 ## AO 电压单点输出
 
-顺序：`NiDaq_AO_Config` → `NiDaq_Task_Start` → `NiDaq_AO_WriteSingle`（可多次）→ `NiDaq_Task_Stop`。仅支持按需电压输出，不提供硬件波形、周期或多通道电气同步保证。
+顺序：`NiDaq_AO_Config` → `NiDaq_TaskManagement_Start` → `NiDaq_AO_WriteSingle`（可多次）→ `NiDaq_TaskManagement_Stop`。仅支持按需电压输出，不提供硬件波形、周期或多通道电气同步保证。
 
 - 配置任务名使用字符串表达式，如 `"AO1"`；每行一个同设备/模块的物理通道，如 `Dev1/ao0`、`Dev1/ao1`，量程按设备手册填写。初值表达式如 `new double[] { 1.0, 2.0 }`，按通道行序对应电压 V；单通道也可直接填 `1.0`。
 - 配置只创建/验证，**TaskStart 才显式启动并写初值**；配置/Start 期间设备本身的电气行为仍须查手册，不保证无瞬态。WriteSingle 不会隐式启动，数量、NaN/无穷、越界均拒绝，不补零、不截断。
@@ -58,4 +75,8 @@ DI/DO 的实际表达式编辑框接收完整 `SequenceFile`/`EditPosition` 上�
 
 旧 AI/编码器/同步配置、TaskStart/Stop、DI/DO 的 `TimeoutMs` 计时范围是名称/通道/值表达式求值后的 SDK、排队及相关收尾阶段，并非可抢占任意表达式的全步骤期限；求值完成后会重查原 caller，取消后不继续登记/设备动作。AO 的既有更严格表达式+I/O 总预算保持不变。表达式引擎内部永久停顿的终止能力属于宿主边界，本轮未证明可强制中止。
 
-所有 12 步在首次等待前捕获 SDK 执行代次。资源表回收（即使 caller token 尚未取消）后，旧步骤不能查找新运行的同名任务、迟到配置或提交 DI/DO；普通 I/O 与发布返回中文 Error。宿主显式中断标志或原 caller 取消仍为 Aborted。代次检查不阻止已经启动的专用 Stop/Dispose 收尾：AO 仍等待真实 writer 退出，再按明确策略处理终值，未知终值不自动重发。验证边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+所有 19 步在首次等待前捕获 SDK 执行代次。资源表回收（即使 caller token 尚未取消）后，旧步骤不能查找新运行的同名任务、迟到配置或提交 DI/DO；普通 I/O 与发布返回中文 Error。宿主显式中断标志或原 caller 取消仍为 Aborted。代次检查不阻止已经启动的专用 Stop/Dispose 收尾：AO 仍等待真实 writer 退出，再按明确策略处理终值，未知终值不自动重发。验证边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+
+## 参数写入校验
+
+平台助手与页面使用同一份强类型设置。插件在参数转换及保存前校验：未知或重复字段、类型不符、未定义枚举、不允许的 null、非有限数和赋值后被忽略/改写的值均明确报错，并保留原步骤数据。对象数组需提交完整 JSON 数组；请先读取全部当前项再修改，避免替换时遗漏配置。表达式文本不会在保存时执行，依赖变量或设备的有效性仍由步骤校验与执行处理。

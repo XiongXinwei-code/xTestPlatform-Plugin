@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 断开连接插件</summary>
-public sealed class OpcUaDisconnectPlugin : StepPluginBase<OpcUaDisconnectSetting>
+public sealed class OpcUaDisconnectPlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaDisconnectSetting>
 {
     public override string StepTypeId => "OpcUa.Disconnect";
-    public override string DisplayName => "OpcUa_Disconnect";
+    public override string DisplayName => "OpcUa_Connection_Disconnect";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_disconnect.png";
 

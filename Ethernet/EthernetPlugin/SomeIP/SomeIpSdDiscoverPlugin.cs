@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.SomeIP;
 
-public sealed class SomeIpSdDiscoverPlugin : StepPluginBase<SomeIpSdDiscoverSetting>
+public sealed class SomeIpSdDiscoverPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<SomeIpSdDiscoverSetting>
 {
     public override string StepTypeId  => "SomeIp.SdDiscover";
-    public override string DisplayName => "SomeIp_SdDiscover";
+    public override string DisplayName => "SomeIp_DiscoverySubscription_SdDiscover";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_sd_discover.png";
 

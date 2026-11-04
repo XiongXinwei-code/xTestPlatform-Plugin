@@ -19,6 +19,7 @@ public sealed class HttpRequestEditorPlugin : IStepEditorPlugin
         view.SequenceFile = sequenceFile;
         view.ViewModel.AttachSerializer(new HttpRequestPlugin().CreateSerializer());
         view.ViewModel.AttachStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 
@@ -27,8 +28,10 @@ public sealed class HttpRequestEditorPlugin : IStepEditorPlugin
     {
         var errors = new List<StepSettingError>();
         var s = (HttpRequestSetting)new HttpRequestPlugin().CreateSerializer().Deserialize(context.Setting, 1);
-        if (!Enum.IsDefined(s.Method) || !Enum.IsDefined(s.ContentType))
-            errors.Add(StepSettingError.Error("HTTP_019", "HTTP 方法或请求体类型无效"));
+        if (!Enum.IsDefined(s.Method) || !Enum.IsDefined(s.ContentType) || !Enum.IsDefined(s.ResponseFormat))
+            errors.Add(StepSettingError.Error("HTTP_019", "HTTP 方法、请求体类型或响应格式无效"));
+        if (s.TimeoutMs < 0) errors.Add(StepSettingError.Error("HTTP_027", "请求期限不能为负数；0 沿用客户端期限"));
+        if (s.MaxResponseBytes <= 0) errors.Add(StepSettingError.Error("HTTP_028", "响应正文最大字节数必须大于 0"));
 
         if (string.IsNullOrWhiteSpace(s.ClientName))
             errors.Add(StepSettingError.Error("HTTP_020", "客户端标识名不能为空"));
@@ -51,6 +54,7 @@ public sealed class HttpRequestEditorPlugin : IStepEditorPlugin
         HttpEditorValidationHelper.CheckVariable(context, s.ResponseVariable, typeof(string), "HTTP_023", errors);
         HttpEditorValidationHelper.CheckVariable(context, s.StatusCodeVariable, typeof(int), "HTTP_024", errors);
         HttpEditorValidationHelper.CheckVariable(context, s.ElapsedVariable, typeof(int), "HTTP_025", errors);
+        HttpEditorValidationHelper.CheckVariable(context, s.ResponseHeadersVariable, typeof(string), "HTTP_029", errors);
         HttpEditorValidationHelper.CheckHeaders(context, s.Headers, "HTTP_026", errors);
 
         HttpLifecycleValidator.CheckPrecedingCreate(context.SequenceFile, context.Block, context.CurrentStep, s.ClientName, errors);

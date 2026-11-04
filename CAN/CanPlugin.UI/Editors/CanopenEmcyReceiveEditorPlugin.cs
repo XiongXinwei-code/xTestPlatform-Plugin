@@ -21,6 +21,7 @@ public sealed class CanopenEmcyReceiveEditorPlugin : IStepEditorPlugin
         var view = new CanopenEmcyReceiveEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

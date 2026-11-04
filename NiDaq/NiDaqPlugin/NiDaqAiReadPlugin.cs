@@ -5,7 +5,7 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqAiReadPlugin : StepPluginBase<NiDaqAiReadSetting>
+public sealed class NiDaqAiReadPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqAiReadSetting>
 {
     public override string StepTypeId => "NiDaq.AiRead";
     public override string DisplayName => "NiDaq_AI_Read";

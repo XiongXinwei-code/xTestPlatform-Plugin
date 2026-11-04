@@ -27,6 +27,9 @@
 	<PackageVersion Include="Syncfusion.SfBusyIndicator.WPF" Version="32.2.3" />
 
 	<!-- 通信协议 -->
+	<PackageVersion Include="Google.Protobuf" Version="3.28.2" />
+	<PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />
+	<PackageVersion Include="Grpc.Tools" Version="2.67.0" />
 	<PackageVersion Include="NModbus" Version="3.0.81" />
 	<PackageVersion Include="System.IO.Ports" Version="8.0.0" />
 	<PackageVersion Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.374.126" />

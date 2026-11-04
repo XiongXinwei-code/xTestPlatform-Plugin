@@ -22,6 +22,7 @@ public partial class WriteCstTargetEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new WriteCstTargetViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.DoIP;
 
-public sealed class DoipDisconnectPlugin : StepPluginBase<DoipDisconnectSetting>
+public sealed class DoipDisconnectPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<DoipDisconnectSetting>
 {
     public override string StepTypeId  => "DoIP.Disconnect";
-    public override string DisplayName => "DoIP_Disconnect";
+    public override string DisplayName => "DoIP_Connection_Disconnect";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/doip_disconnect.png";
 

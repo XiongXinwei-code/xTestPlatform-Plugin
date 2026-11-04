@@ -43,6 +43,7 @@ public class CanopenSdoSettingBase : CanopenCommonSetting
 
 /// <summary>CANopen_SdoRead 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenSdoReadSetting : CanopenSdoSettingBase
 {
     /// <summary>读取结果写入的变量</summary>
@@ -52,6 +53,7 @@ public class CanopenSdoReadSetting : CanopenSdoSettingBase
 
 /// <summary>CANopen_SdoWrite 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenSdoWriteSetting : CanopenSdoSettingBase
 {
     /// <summary>写入值</summary>
@@ -61,6 +63,7 @@ public class CanopenSdoWriteSetting : CanopenSdoSettingBase
 
 /// <summary>CANopen_NmtControl 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenNmtControlSetting : CanopenCommonSetting
 {
     /// <summary>排队与发送提交的总等待期限（ms），不代表节点状态确认。</summary>
@@ -75,6 +78,7 @@ public class CanopenNmtControlSetting : CanopenCommonSetting
 
 /// <summary>CANopen_WaitHeartbeat 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenWaitHeartbeatSetting : CanopenCommonSetting
 {
     /// <summary>目标节点 ID（1~127）</summary>
@@ -94,6 +98,7 @@ public class CanopenWaitHeartbeatSetting : CanopenCommonSetting
 
 /// <summary>CANopen_PdoSend 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenPdoSendSetting : CanopenCommonSetting
 {
     /// <summary>排队与发送提交的总等待期限（ms），不代表节点状态确认。</summary>
@@ -109,6 +114,7 @@ public class CanopenPdoSendSetting : CanopenCommonSetting
 
 /// <summary>CANopen_SyncSend 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenSyncSendSetting : CanopenCommonSetting
 {
     /// <summary>排队与发送提交的总等待期限（ms），不代表节点状态确认。</summary>
@@ -124,6 +130,7 @@ public class CanopenSyncSendSetting : CanopenCommonSetting
 
 /// <summary>CANopen_EmcyReceive 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenEmcyReceiveSetting : CanopenCommonSetting
 {
     /// <summary>目标节点 ID（1~127）</summary>
@@ -152,6 +159,7 @@ public class CanopenEmcyReceiveSetting : CanopenCommonSetting
 
 /// <summary>CANopen_PdoReceive 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanopenPdoReceiveSetting : CanopenCommonSetting
 {
     /// <summary>PDO 的 COB-ID</summary>

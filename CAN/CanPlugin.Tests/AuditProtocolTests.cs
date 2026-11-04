@@ -170,7 +170,7 @@ public sealed class AuditProtocolTests
         state.Adapter = fake; state.Plugin = new XcpConnectPlugin();
         state.Setting = new XcpConnectSetting { ConnectionName = "\"CAN1\"", ResourceVariable = "Locals.Mask" };
         var result = await new XcpConnectExecutor().ExecuteAsync(context);
-        Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
         Assert.Equal((byte)0x11, state.Variables["Locals.Mask"]);
         Assert.Equal(0, state.ResourceWrites);
     }

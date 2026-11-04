@@ -4,9 +4,16 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.Models;
 
 /// <summary>Ethernet_TcpReceive 步骤设置</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class TcpReceiveSetting
 {
+    /// <summary>启用时以分隔符分帧；否则保留 ExpectedLength 的既有语义。</summary>
+    public bool UseDelimiter { get; set; }
+    [ExpressionField] public string DelimiterHex { get; set; } = "\"0D 0A\"";
+    public bool IncludeDelimiter { get; set; }
+    /// <summary>单条 TCP 响应上限；分隔符本身计入。必须为 1~16777216。</summary>
+    public int MaxBytes { get; set; } = 1048576;
     /// <summary>连接标识名</summary>
     [ExpressionField]
     public string ConnectionName { get; set; } = "\"TCP1\"";

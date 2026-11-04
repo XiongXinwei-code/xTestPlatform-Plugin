@@ -13,6 +13,7 @@ public enum DiagSessionType
 }
 
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class UdsDiagSessionSetting : UdsCommonSetting
 {
     /// <summary>目标会话类型</summary>

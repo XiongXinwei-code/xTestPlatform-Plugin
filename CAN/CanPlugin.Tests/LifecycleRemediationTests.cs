@@ -33,7 +33,7 @@ public sealed class LifecycleRemediationTests
         try
         {
             var result = await new CAN.Executors.CanOpenExecutor(_ => next).ExecuteAsync(context);
-            Assert.Equal(xTestPlatform.Core.Models.TestStatus.Completed, result.StepResult.Status);
+            Assert.Equal(xTestPlatform.Core.Models.TestStatus.Passed, result.StepResult.Status);
             Assert.NotSame(old, state.Adapter); Assert.True(state.Adapter!.IsConnected);
         }
         finally { if (state.Adapter is CanConnectionResource owner && !ReferenceEquals(owner, old)) await owner.CloseAsync(); }

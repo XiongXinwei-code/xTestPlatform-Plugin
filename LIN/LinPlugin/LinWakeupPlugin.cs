@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace LIN;
 
-public sealed class LinWakeupPlugin : StepPluginBase<LinWakeupSetting>
+public sealed class LinWakeupPlugin : LIN.PluginInfrastructure.StrictStepPluginBase<LinWakeupSetting>
 {
     public override string StepTypeId   => "IO.LinWakeup";
-    public override string DisplayName  => "LIN_Wakeup";
+    public override string DisplayName  => "LIN_BusControl_Wakeup";
     public override string Category     => "Communication";
     public override string IconPath     => "pack://application:,,,/LIN.StepPlugin.UI;component/Resources/Icons/lin_wakeup.png";
 

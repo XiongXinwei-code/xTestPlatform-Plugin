@@ -12,6 +12,7 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
     private IntPtr _channelHandle = IntPtr.Zero;
     private volatile bool _isConnected;
     private bool _isFd;
+    private ZlgCloudLease? _cloudLease;
     private readonly CanReceiveDiagnostics _diagnostics = new("ZLG");
 
     public bool IsConnected => _isConnected;
@@ -26,7 +27,7 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
 
     private void OpenWithCleanup(CanAdapterConfig config)
     {
-        if (_deviceHandle != IntPtr.Zero || _channelHandle != IntPtr.Zero || _receivePump != null)
+        if (!HandlesReleased)
             throw new InvalidOperationException("ZLG 旧连接尚未释放，不能重新打开");
         try
         {
@@ -61,15 +62,21 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
         }
 
         uint deviceType = ZlgApi.ParseDeviceType(parts[0]);
+        config.Zlg.Validate(deviceType);
+        bool external = ZlgDeviceCatalog.UsesExternalBusConfiguration(deviceType);
+        bool extendedLocal = ZlgDeviceCatalog.IsAdditionalUsbFd(deviceType) || ZlgDeviceCatalog.IsPostConfigured(deviceType);
+        bool standardSample = deviceType is 41 or 42 or 43 || ZlgApi.IsPcieCanFdDevice(deviceType);
+        if (external && config.EnableTermination)
+            throw new ArgumentException("该 ZLG 型号的内置终端电阻由设备或厂商配置工具管理，本步骤不能使能；请取消此选项并在设备侧配置");
         _isFd = config.Protocol == CanProtocolType.FD;
         bool isPcieFd = ZlgApi.IsPcieCanFdDevice(deviceType);
         bool driverClassicBitRate = ZlgApi.UsesDriverClassicBitRate(deviceType);
-        bool useCanFdInit = _isFd || ZlgApi.UsesCanFdOnlyController(deviceType);
+        bool useCanFdInit = _isFd || ZlgApi.UsesCanFdOnlyController(deviceType) || deviceType == 59;
         double dataSamplePoint = ZlgApi.GetStandardDataSamplePoint(deviceType, config.DataBitRate);
 
         if (_isFd && !ZlgApi.IsCanFdDevice(deviceType))
             throw new InvalidOperationException($"ZLG 设备类型 {parts[0]} 不支持 CAN FD，请使用支持 CAN FD 的设备或将协议设为 Classic");
-        if ((_isFd || isPcieFd) &&
+        if (standardSample && (_isFd || isPcieFd) &&
             (!double.IsFinite(config.ArbitrationSamplePoint) ||
              Math.Abs(config.ArbitrationSamplePoint - 80d) > 0.01))
         {
@@ -77,7 +84,7 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
                 $"ZLG 设备 {parts[0]} 的标准波特率接口仅支持 80% 仲裁段采样点；" +
                 $"不能可靠表达 {config.ArbitrationSamplePoint:F2}%，请设为 80% 或提供厂商自定义时序规则。");
         }
-        if (_isFd &&
+        if (standardSample && _isFd &&
             (!double.IsFinite(config.DataSamplePoint) ||
              Math.Abs(config.DataSamplePoint - dataSamplePoint) > 0.01))
         {
@@ -94,6 +101,12 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
             throw new ArgumentException($"ZLG 设备 {parts[0]} 不支持 {config.BaudRate} bps 标准波特率，请使用设备 XML 中的标准波特率。");
         }
 
+        if (deviceType == 46)
+        {
+            _cloudLease = new ZlgCloudLease(_io);
+            _cloudLease.Acquire(config.Zlg);
+            _cloudLease.ValidateChannel(deviceIndex, channelIndex, _isFd);
+        }
         _deviceHandle = _io.OpenDevice(deviceType, deviceIndex);
         if (_deviceHandle == IntPtr.Zero)
             throw new InvalidOperationException(
@@ -105,7 +118,28 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
             can_type = useCanFdInit ? ZlgApi.ZCAN_TYPE_CANFD : ZlgApi.ZCAN_TYPE_CAN
         };
 
-        if (isPcieFd)
+        if (ZlgDeviceCatalog.IsNetwork(deviceType)) ConfigureNetwork(deviceType, channelIndex, config.Zlg);
+        if (ZlgDeviceCatalog.HasProtocolProperty(deviceType))
+            SetRequiredProperty(channelIndex, "protocol", useCanFdInit ? "1" : "0");
+
+        if (external)
+        {
+            if (deviceType == 44) SetRequiredProperty(channelIndex, "file_path", config.Zlg.ConfigurationPath);
+            if (useCanFdInit) initConfig.canfd.acc_mask = uint.MaxValue;
+            else initConfig.can.acc_mask = uint.MaxValue;
+        }
+        else if (extendedLocal)
+        {
+            if (useCanFdInit) initConfig.canfd.acc_mask = uint.MaxValue;
+            else initConfig.can.acc_mask = uint.MaxValue;
+            if (ZlgDeviceCatalog.IsAdditionalUsbFd(deviceType))
+            {
+                if (_isFd && deviceType != 59) SetRequiredProperty(channelIndex, "canfd_standard", "0");
+                SetRequiredProperty(channelIndex, "canfd_abit_baud_rate", config.BaudRate.ToString());
+                if (_isFd) SetRequiredProperty(channelIndex, "canfd_dbit_baud_rate", config.DataBitRate.ToString());
+            }
+        }
+        else if (isPcieFd)
         {
             // PCIe XML 使用 protocol/canfd_exp，不支持 USB 的 canfd_standard 属性。
             SetRequiredProperty(channelIndex, "protocol", useCanFdInit ? "1" : "0");
@@ -160,28 +194,48 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
                     ZlgApi.ToTiming(config.BaudRate, config.ArbitrationSamplePoint);
         }
 
+        if (deviceType == 45)
+            SetRequiredProperty(channelIndex, "initenal_resistance", config.EnableTermination ? "1" : "0");
         _channelHandle = _io.InitCan(_deviceHandle, channelIndex, ref initConfig);
         if (_channelHandle == IntPtr.Zero)
         {
             throw new InvalidOperationException($"初始化 ZLG CAN 通道 {channelIndex} 失败");
         }
 
-        // ZLGCAN 属性名沿用厂商设备 XML 中的 initenal_resistance（原始拼写）。
-        // 老设备不具备该属性时，未启用状态保持兼容；用户明确启用时必须确认已生效。
-        bool terminationConfigured = _io.SetProperty(
-            _deviceHandle, $"{channelIndex}/initenal_resistance", config.EnableTermination ? "1" : "0");
-        if (config.EnableTermination && !terminationConfigured)
+        if (ZlgDeviceCatalog.IsPostConfigured(deviceType))
         {
-            throw new InvalidOperationException(
-                $"启用 ZLG 通道 {channelIndex} 内置 120 Ω 终端电阻失败；请确认设备支持该属性，或取消勾选并外接电阻。");
+            if (deviceType is 32 or 37) SetRequiredProperty(channelIndex, "baud_rate", config.BaudRate.ToString());
+            else
+            {
+                SetRequiredProperty(channelIndex, "canfd_abit_baud_rate", config.BaudRate.ToString());
+                if (_isFd) SetRequiredProperty(channelIndex, "canfd_dbit_baud_rate", config.DataBitRate.ToString());
+            }
         }
-
+        if (!external && deviceType != 45)
+        {
+            string property = deviceType == 37 ? "internal_resistance" : "initenal_resistance";
+            bool configured = _io.SetProperty(_deviceHandle, $"{channelIndex}/{property}", config.EnableTermination ? "1" : "0");
+            if (config.EnableTermination && !configured)
+                throw new InvalidOperationException($"启用 ZLG 通道 {channelIndex} 内置终端电阻失败，请检查该型号支持或使用外接电阻");
+        }
         if (_io.StartCan(_channelHandle) != ZlgApi.STATUS_OK)
         {
             throw new InvalidOperationException($"启动 ZLG CAN 通道 {channelIndex} 失败");
         }
 
-        if (_isFd || isPcieFd)
+        if (external)
+        {
+            config.AppliedArbitrationBitRate = config.AppliedArbitrationSamplePoint = null;
+            config.AppliedDataBitRate = config.AppliedDataSamplePoint = null;
+            config.AppliedConfigurationDescription = "波特率、采样点和终端电阻由设备/厂商工具预配置，本步骤未修改；虚拟设备无物理总线参数";
+        }
+        else if (extendedLocal)
+        {
+            config.AppliedArbitrationBitRate = config.BaudRate;
+            config.AppliedArbitrationSamplePoint = null;
+            if (_isFd) { config.AppliedDataBitRate = config.DataBitRate; config.AppliedDataSamplePoint = null; }
+        }
+        else if (_isFd || isPcieFd)
         {
             config.AppliedArbitrationBitRate = config.BaudRate;
             config.AppliedArbitrationSamplePoint = 80;
@@ -208,6 +262,19 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
         StartRuntime(deviceType, channelIndex);
     }
 
+    private void ConfigureNetwork(uint type, uint channel, ZlgConnectionOptions options)
+    {
+        // TCP_CLIENT=0/TCP_SERVER=1 come from zlgcan.h. Some XML visibility rules are reversed.
+        if (!ZlgDeviceCatalog.IsUdp(type)) SetRequiredProperty(channel, "work_mode", options.NetworkWorkMode.ToString());
+        if (ZlgDeviceCatalog.IsUdp(type) || options.NetworkWorkMode == 0)
+        {
+            SetRequiredProperty(channel, "ip", options.RemoteAddress);
+            SetRequiredProperty(channel, "work_port", options.RemotePort.ToString());
+        }
+        if (ZlgDeviceCatalog.IsUdp(type) || options.NetworkWorkMode == 1)
+            SetRequiredProperty(channel, "local_port", options.LocalPort.ToString());
+    }
+
     private void SetRequiredProperty(uint channelIndex, string name, string value)
     {
         string path = $"{channelIndex}/{name}";
@@ -223,7 +290,17 @@ public sealed partial class ZlgAdapter : ICanAdapter, ICanAdapterDiagnostics, IC
 
     public void Close()
     {
-        CloseRuntime();
+        lock (_closeGate)
+        {
+            Exception? failure = null;
+            try { CloseRuntime(); } catch (Exception ex) { failure = ex; }
+            if (DeviceHandlesReleased && _cloudLease is not null)
+            {
+                try { _cloudLease.Release(); _cloudLease = null; }
+                catch (Exception ex) { failure = failure is null ? ex : new AggregateException(failure, ex); }
+            }
+            if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
     }
 
     public void Write(CanMessage message)

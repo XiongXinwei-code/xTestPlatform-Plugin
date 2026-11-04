@@ -19,6 +19,7 @@ public sealed class UdsSecurityAccessEditorPlugin : IStepEditorPlugin
 		var view = new UdsSecurityAccessEditorView();
 		view.SequenceFile = sequenceFile;
 		view.RefreshFromStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

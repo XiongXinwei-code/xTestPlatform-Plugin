@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace NiDaq;
 
-public sealed class NiDaqTaskStartPlugin : StepPluginBase<NiDaqTaskStartSetting>
+public sealed class NiDaqTaskStartPlugin : NiDaq.PluginInfrastructure.StrictStepPluginBase<NiDaqTaskStartSetting>
 {
     public override string StepTypeId => "NiDaq.TaskStart";
-    public override string DisplayName => "NiDaq_Task_Start";
+    public override string DisplayName => "NiDaq_TaskManagement_Start";
     public override string Category => "DataAcquisition";
     public override string IconPath => "pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_task_start.png";
 

@@ -19,6 +19,7 @@ public sealed class XcpDisconnectEditorPlugin : IStepEditorPlugin
         var view = new XcpDisconnectEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

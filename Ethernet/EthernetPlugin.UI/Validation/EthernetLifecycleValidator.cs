@@ -5,6 +5,23 @@ namespace Ethernet.UI.Validation;
 
 internal static class EthernetLifecycleValidator
 {
+    internal static void CheckPrecedingUdpOpen(StepEditorValidationContext context, string name, List<StepSettingError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(name) || context.Block == null || context.CurrentStep == null) return;
+        int index = context.Block.IndexOf(context.CurrentStep);
+        foreach (var step in context.Block.Take(Math.Max(0, index)))
+        {
+            if (step.StepSetting.StepType != "Ethernet.UdpOpen") continue;
+            try
+            {
+                var setting = (Models.UdpOpenSetting)new UdpOpenPlugin().CreateSerializer().Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+                if (string.Equals(setting.ConnectionName, name, StringComparison.Ordinal)) return;
+            }
+            catch (Exception) { /* 前置步骤设置由自身校验报告。 */ }
+        }
+        errors.Add(StepSettingError.Warning("ETH_UDP_LC01", $"当前块之前未找到 {name} 的 Ethernet.UdpOpen；若由 Setup/其他块建立，请确认执行顺序"));
+    }
+
     internal static void CheckPrecedingOpen(StepEditorValidationContext context, string name, bool doip, List<StepSettingError> errors)
     {
         if (string.IsNullOrWhiteSpace(name) || context.Block == null || context.CurrentStep == null) return;

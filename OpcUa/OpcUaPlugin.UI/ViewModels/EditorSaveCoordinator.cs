@@ -14,6 +14,7 @@ internal sealed class EditorSaveCoordinator
     private readonly List<Action> _detach = new();
     private Action? _pending;
     public Exception? LastError { get; private set; }
+    public Action<string, Action>? ExecuteCommand { get; set; }
 
     public EditorSaveCoordinator()
     {
@@ -34,7 +35,9 @@ internal sealed class EditorSaveCoordinator
     public void Queue(Action save)
     {
         _dispatcher.VerifyAccess();
-        _pending = save;
+        ArgumentNullException.ThrowIfNull(save);
+        var command = ExecuteCommand; // 固定原编辑步骤的宿主命令，刷新后不可指向新步骤。
+        _pending = command == null ? save : () => command("修改 OpcUa 参数", save);
         _timer.Stop(); _timer.Start();
     }
 

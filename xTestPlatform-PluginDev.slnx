@@ -37,6 +37,11 @@
     <Project Path="NiDaq/NiDaqPlugin.UI/NiDaqPlugin.UI.csproj" />
     <Project Path="NiDaq/NiDaqPlugin/NiDaqPlugin.csproj" />
   </Folder>
+  <Folder Name="/NI_gRPC/">
+    <Project Path="NiGrpc/NiGrpcPlugin.Tests/NiGrpcPlugin.Tests.csproj" />
+    <Project Path="NiGrpc/NiGrpcPlugin.UI/NiGrpcPlugin.UI.csproj" />
+    <Project Path="NiGrpc/NiGrpcPlugin/NiGrpcPlugin.csproj" />
+  </Folder>
   <Folder Name="/OPC_UA/" Id="ad1bf027-2a23-54fa-b8df-053e3de6f9bd">
     <Project Path="OpcUa/OpcUaPlugin.Tests/OpcUaPlugin.Tests.csproj" />
     <Project Path="OpcUa/OpcUaPlugin.UI/OpcUaPlugin.UI.csproj" />

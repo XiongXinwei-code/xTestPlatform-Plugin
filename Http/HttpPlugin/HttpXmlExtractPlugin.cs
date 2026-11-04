@@ -8,10 +8,10 @@ namespace Http;
 /// <summary>
 /// XML 提取插件，按 XPath 从 XML 文本中提取字段写入变量
 /// </summary>
-public sealed class HttpXmlExtractPlugin : StepPluginBase<HttpXmlExtractSetting>
+public sealed class HttpXmlExtractPlugin : Http.PluginInfrastructure.StrictStepPluginBase<HttpXmlExtractSetting>
 {
     public override string StepTypeId => "IO.HttpXmlExtract";
-    public override string DisplayName => "Http_XmlExtract";
+    public override string DisplayName => "Http_DataParsing_XmlExtract";
     public override string Category => "Network";
     public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_xml_extract.png";
 

@@ -11,6 +11,7 @@ public class LinWakeupViewModel : INotifyPropertyChanged
     private bool _suppressSave;
     public int TimeoutMs { get => _setting?.TimeoutMs ?? 3000; set { if (_setting == null || _setting.TimeoutMs == value) return; _setting.TimeoutMs = value; OnPropertyChanged(); QueueSave(); } }
     private readonly PluginCommon.EditorSaveScheduler _save = new();
+    public Action<string, Action>? ExecuteCommand { get => _save.ExecuteCommand; set => _save.ExecuteCommand = value; }
     public void Flush() => _save.Flush();
     private Step? _step;
     private IStepSettingSerializer? _serializer;

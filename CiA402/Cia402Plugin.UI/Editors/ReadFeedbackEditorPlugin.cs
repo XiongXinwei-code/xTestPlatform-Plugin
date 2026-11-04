@@ -19,6 +19,7 @@ public sealed class ReadFeedbackEditorPlugin : IStepEditorPlugin
 		var view = new ReadFeedbackEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new ReadFeedbackPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

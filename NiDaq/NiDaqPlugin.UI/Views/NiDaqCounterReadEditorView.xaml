@@ -1,0 +1,22 @@
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="NiDaq.UI.Views.NiDaqCounterReadEditorView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:syncfusion="http://schemas.syncfusion.com/wpf" xmlns:skin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
+ xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox" skin:SfSkinManager.Theme="{skin:SkinManagerExtension ThemeName=Windows11Light}">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="CounterRead" Image="pack://application:,,,/NiDaq.StepPlugin.UI;component/Resources/Icons/nidaq_ci_read.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <Grid Margin="16" MinWidth="550" VerticalAlignment="Top">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="TaskName" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="任务名表达式，求值结果为 string；配置后由 TaskStart/TaskStop 管理"/>
+                    <expr:ExpressionTextBox x:Name="TaskNameBox" Grid.Row="0" Grid.Column="1" Margin="0,4,0,4" ScriptText="{Binding TaskName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                    <TextBlock Grid.Row="1" Text="TimeoutMs" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="操作总期限 ms，大于0；包含表达式、排队和SDK调用"/>
+                    <TextBox x:Name="TimeoutMsBox" Grid.Row="1" Grid.Column="1" Margin="0,4,0,4" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="2" Text="ResultVariable" VerticalAlignment="Center" Margin="0,4,12,4" ToolTip="已声明的平台结果变量路径，不是表达式"/>
+                    <TextBox vardrop:VariableDrop.Target="True" x:Name="ResultVariableBox" Grid.Row="2" Grid.Column="1" Margin="0,4,0,4" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="0,12,0,0" TextWrapping="Wrap" Foreground="Gray" Text="结果变量在 CountEdges 模式接收 UInt32，在 Frequency 模式接收 double（Hz）。Encoder 任务须使用独立 Encoder Read。本步骤不会启动未启动的任务。"/>
+                </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

@@ -60,7 +60,7 @@ public sealed class SdkRestartLifecycleTests
             Assert.Equal(TestStatus.Error, result.StepResult.Status);
             Assert.Equal(0, factories);
             Assert.False(registry.Contains(CanHelper.GetAdapterKey("CAN1")));
-            Assert.Equal(TestStatus.Completed, (await executor.ExecuteAsync(Context(registry, setting), guard.Token)).StepResult.Status);
+            Assert.Equal(TestStatus.Passed, (await executor.ExecuteAsync(Context(registry, setting), guard.Token)).StepResult.Status);
             Assert.Equal(1, factories);
         }
         finally
@@ -95,7 +95,7 @@ public sealed class SdkRestartLifecycleTests
         {
             Assert.False(reopening.IsCompleted); Assert.Equal(0, created); Assert.Equal(0, old.CloseCount);
             old.Release.Set();
-            Assert.Equal(TestStatus.Completed, (await reopening.WaitAsync(guard.Token)).StepResult.Status);
+            Assert.Equal(TestStatus.Passed, (await reopening.WaitAsync(guard.Token)).StepResult.Status);
             Assert.Equal(1, created); Assert.Equal(1, old.CloseCount);
             Assert.True(nextRegistry.TryGet<ICanAdapter>(CanHelper.GetAdapterKey("CAN1"), out var current));
             Assert.True(current.IsConnected);

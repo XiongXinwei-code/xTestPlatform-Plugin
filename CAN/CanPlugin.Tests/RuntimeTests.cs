@@ -320,9 +320,13 @@ public sealed class RuntimeTests
     [Fact]
     public async Task ReceiveFailureAppearsInSnapshotAndStopsTargets()
     {
-        var fake = new FakeAdapter { ReadFailure = new InvalidOperationException("receive failure") };
+        using var release = new ManualResetEventSlim(false);
+        var fake = new FakeAdapter { ReadBlock = release, ReadFailure = new InvalidOperationException("receive failure") };
         var c = new CanConnectionResource(fake);
-        var s = c.StartService("one", Routes);
+        CanopenCyclicService s;
+        // Inject the fault after subscription, not in a race with StartService admission.
+        try { s = c.StartService("one", Routes); }
+        finally { release.Set(); }
         await Until(() => s.Snapshot().Receive.BackgroundError != null);
         Assert.Contains("receive failure", s.Snapshot().Receive.BackgroundError!);
         Assert.False(s.Snapshot().Receive.AllValid);

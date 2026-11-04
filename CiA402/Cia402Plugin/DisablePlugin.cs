@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class DisablePlugin : StepPluginBase<DisableSetting>
+public sealed class DisablePlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<DisableSetting>
 {
     public override string StepTypeId => "Motion.CiA402Disable";
-    public override string DisplayName => "CiA402_State_Disable";
+    public override string DisplayName => "CiA402_StateControl_Disable";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_disable.png";
 

@@ -4,9 +4,15 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.Models;
 
 /// <summary>Ethernet_UdpSend 步骤设置</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class UdpSendSetting
 {
+    /// <summary>false 保持一次性发送；true 必须使用已打开的 UDP 连接，不静默回退。</summary>
+    public bool UseConnection { get; set; }
+    [ExpressionField] public string ConnectionName { get; set; } = "\"UDP1\"";
+    /// <summary>仅用于一次性模式；命名模式采用 UdpOpen 的设置。</summary>
+    public bool EnableBroadcast { get; set; }
     /// <summary>目标 IP 地址（支持表达式）</summary>
     [ExpressionField]
     public string RemoteHost { get; set; } = "\"192.168.1.255\"";

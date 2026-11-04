@@ -8,10 +8,10 @@ namespace VISA;
 /// <summary>
 /// VISA 打开会话插件，通过 Resource String 建立与仪器的连接
 /// </summary>
-public sealed class VisaOpenPlugin : StepPluginBase<VisaOpenSetting>
+public sealed class VisaOpenPlugin : VISA.PluginInfrastructure.StrictStepPluginBase<VisaOpenSetting>
 {
     public override string StepTypeId => "IO.VisaOpen";
-    public override string DisplayName => "VISA_Open";
+    public override string DisplayName => "VISA_Connection_Open";
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_open.png";
 

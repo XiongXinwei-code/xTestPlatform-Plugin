@@ -9,7 +9,7 @@ namespace CAN.UI.Views;
 public partial class CanWriteEditorView : UserControl, IRefreshableEditor
 {
     public CanWriteViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(CanWriteEditorView),
             new PropertyMetadata(null));
@@ -24,6 +24,7 @@ public partial class CanWriteEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new CanWriteViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
         Unloaded += (_, _) => ViewModel.Flush();
     }
 
@@ -32,4 +33,8 @@ public partial class CanWriteEditorView : UserControl, IRefreshableEditor
         ViewModel.AttachSerializer(new CanWritePlugin().CreateSerializer());
         ViewModel.AttachStep(step);
     }
+
+    private void OnAddMessage(object sender, RoutedEventArgs e) => ViewModel.AddMessage();
+    private void OnRemoveMessage(object sender, RoutedEventArgs e)
+    { if (ViewModel.SelectedMessage is { } row) ViewModel.RemoveMessage(row); }
 }

@@ -19,6 +19,7 @@ public sealed class StopMotionEditorPlugin : IStepEditorPlugin
 		var view = new StopMotionEditorView { SequenceFile = sequenceFile };
 		view.ViewModel.AttachSerializer(new StopMotionPlugin().CreateSerializer());
 		view.ViewModel.AttachStep(step);
+		PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
 		return view;
 	}
 

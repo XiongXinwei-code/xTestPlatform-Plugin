@@ -6,10 +6,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 namespace OpcUa;
 
 /// <summary>OPC UA 订阅插件，等待节点值满足指定条件</summary>
-public sealed class OpcUaSubscribePlugin : StepPluginBase<OpcUaSubscribeSetting>
+public sealed class OpcUaSubscribePlugin : OpcUa.PluginInfrastructure.StrictStepPluginBase<OpcUaSubscribeSetting>
 {
     public override string StepTypeId => "OpcUa.Subscribe";
-    public override string DisplayName => "OpcUa_Subscribe";
+    public override string DisplayName => "OpcUa_AcquisitionSubscription_Subscribe";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/OpcUa.StepPlugin.UI;component/Resources/Icons/opcua_subscribe.png";
 

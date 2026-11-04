@@ -1,0 +1,36 @@
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.CanCaptureEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="CAN 报文采集" Image="pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_read.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid Margin="16" VerticalAlignment="Top">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="连接名称：" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                <expr:ExpressionTextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" ScriptText="{Binding ConnectionName, Mode=TwoWay}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="1" Text="目标 ID：" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                <expr:ExpressionTextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" ScriptText="{Binding FilterIds, Mode=TwoWay}" ExpectedResultType="String" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <TextBlock Grid.Row="2" Text="最长采集时间 (ms)：" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DurationMs, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="3" Text="准备超时 (ms)：" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SetupTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="4" Text="最大帧数：" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding MaxFrames, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="5" Text="JSON 结果变量：" Margin="0,0,8,8"/>
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="5" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="6" Grid.ColumnSpan="2" TextWrapping="Wrap" Text="目标 ID 为空字符串时采集全部；多个 ID 用逗号分隔。达到最大帧数即停止本窗口，保留已有数据并提前 PASS，结果注明“已满，后续数据不再采集”。其他 CAN 读取不受影响。"/>
+                <CheckBox Grid.Row="7" Grid.Column="1" x:Name="ExportEnabledCheckBox" Content="导出录制数据（UTF-8 JSON）" IsChecked="{Binding ExportEnabled, Mode=TwoWay}" Margin="0,16,0,8"/>
+                <TextBlock Grid.Row="8" Text="导出文件路径：" Margin="0,0,8,8" VerticalAlignment="Center"/>
+                <expr:ExpressionTextBox Grid.Row="8" Grid.Column="1" x:Name="ExportPathEditor" IsEnabled="{Binding ExportEnabled}" ScriptText="{Binding ExportFilePath, Mode=TwoWay}" ExpectedResultType="String" Margin="0,0,0,8" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                <CheckBox Grid.Row="9" Grid.Column="1" Content="允许覆盖已有文件" IsEnabled="{Binding ExportEnabled}" IsChecked="{Binding OverwriteExportFile, Mode=TwoWay}" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="10" Text="导出超时 (ms)：" Margin="0,0,8,8"/>
+                <TextBox Grid.Row="10" Grid.Column="1" IsEnabled="{Binding ExportEnabled}" Text="{Binding ExportTimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBlock Grid.Row="11" Grid.ColumnSpan="2" TextWrapping="Wrap" Text="路径使用字符串表达式，须为绝对文件路径且父目录已存在。文件与结果变量内容相同；导出失败返回 Error。文件替换已准入时不能撤回，取消/超时后请检查目标文件。"/>
+            </Grid>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

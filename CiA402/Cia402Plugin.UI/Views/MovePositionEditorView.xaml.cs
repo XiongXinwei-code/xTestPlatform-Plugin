@@ -22,6 +22,7 @@ public partial class MovePositionEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new MovePositionViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

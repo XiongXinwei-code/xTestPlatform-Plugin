@@ -17,6 +17,7 @@ public sealed class SomeIpSubscribeEditorPlugin : IStepEditorPlugin
         var view = new SomeIpSubscribeEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

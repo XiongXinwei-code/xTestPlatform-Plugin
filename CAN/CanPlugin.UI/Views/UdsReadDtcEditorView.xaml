@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.UdsReadDtcEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.UdsReadDtcEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -64,7 +64,7 @@
                          ToolTip="状态掩码必须为 0～255 的整数；超出范围不会保存。"/>
 
                 <TextBlock Grid.Row="6" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
             </Grid>
             </ScrollViewer>
         </syncfusion:TabItemExt>

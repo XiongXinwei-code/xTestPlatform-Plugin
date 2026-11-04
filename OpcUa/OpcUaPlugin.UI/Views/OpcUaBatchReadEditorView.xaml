@@ -1,4 +1,4 @@
-<UserControl x:Class="OpcUa.UI.Views.OpcUaBatchReadEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="OpcUa.UI.Views.OpcUaBatchReadEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -41,7 +41,7 @@
                     <TextBox Grid.Column="1" Width="200" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}"/>
                 </Grid>
 
-                <DataGrid x:Name="ItemsGrid" Grid.Row="2" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Margin="0,0,0,8">
+                <DataGrid vardrop:VariableDrop.Columns="ResultVariable" x:Name="ItemsGrid" Grid.Row="2" ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Margin="0,0,0,8">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Node ID" Binding="{Binding NodeId}" Width="*"/>
                         <DataGridTextColumn Header="Result Variable" Binding="{Binding ResultVariable}" Width="*"/>

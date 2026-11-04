@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace Ethernet.SomeIP.Models;
 
 /// <summary>SomeIp_SdDiscover 步骤设置（SOME/IP-SD 服务发现）</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class SomeIpSdDiscoverSetting
 {

@@ -8,10 +8,10 @@ namespace Modbus;
 /// <summary>
 /// Modbus 批量读取插件，一次执行多个地址段的读取操作
 /// </summary>
-public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSetting>
+public sealed class ModbusBatchReadPlugin : Modbus.PluginInfrastructure.StrictStepPluginBase<ModbusBatchReadSetting>
 {
 	public override string StepTypeId => "IO.ModbusBatchRead";
-	public override string DisplayName => "Modbus_BatchRead";
+	public override string DisplayName => "Modbus_ReadWrite_BatchRead";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_batch_read.png";
 
@@ -24,7 +24,7 @@ public sealed class ModbusBatchReadPlugin : StepPluginBase<ModbusBatchReadSettin
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | string([ExpressionField]) | 是 | "Modbus1" |
+		| ConnectionName | string([ExpressionField]) | 是 | "Modbus1" | 已建立的 Modbus 连接名，求值结果为 string |
 		| Items | 集合 | 是 | — | 读取项列表，元素字段见下方 |
 		| IntervalMs | int | 否 | 0 | 每项读取间隔毫秒数 |
 

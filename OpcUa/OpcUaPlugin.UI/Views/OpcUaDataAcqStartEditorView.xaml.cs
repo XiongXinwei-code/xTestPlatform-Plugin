@@ -10,7 +10,7 @@ namespace OpcUa.UI.Views;
 public partial class OpcUaDataAcqStartEditorView : UserControl, IRefreshableEditor
 {
     public OpcUaDataAcqStartViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(OpcUaDataAcqStartEditorView),
             new PropertyMetadata(null));
@@ -25,6 +25,7 @@ public partial class OpcUaDataAcqStartEditorView : UserControl, IRefreshableEdit
         InitializeComponent();
         ViewModel = new OpcUaDataAcqStartViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 

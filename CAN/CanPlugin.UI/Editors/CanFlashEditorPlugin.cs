@@ -19,6 +19,7 @@ public sealed class CanFlashEditorPlugin : IStepEditorPlugin
         var view = new CanFlashEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

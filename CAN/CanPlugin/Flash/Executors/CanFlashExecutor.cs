@@ -282,7 +282,7 @@ public sealed class CanFlashExecutor : IStepExecutor
 
             return new ExecutionResult
             {
-                StepResult = new StepResult { Status = TestStatus.Completed, Value = $"{writtenBytes} 字节" }
+                StepResult = new StepResult { Status = TestStatus.Passed, Value = $"{writtenBytes} 字节" }
             };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

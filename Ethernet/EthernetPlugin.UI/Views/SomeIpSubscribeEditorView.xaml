@@ -1,4 +1,4 @@
-<UserControl x:Class="Ethernet.UI.Views.SomeIpSubscribeEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="Ethernet.UI.Views.SomeIpSubscribeEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -48,7 +48,7 @@
                                            MinValue="1" Value="{Binding TimeoutMs, Mode=TwoWay}"/>
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8"
                          ToolTip="可选。非空须填写已声明的完整作用域 string 变量路径；当前值可为 null，通信前预检。" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </syncfusion:TabItemExt>

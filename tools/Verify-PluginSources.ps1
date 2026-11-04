@@ -8,10 +8,10 @@ $consoleEncoding = [Text.UTF8Encoding]::new($false)
 $OutputEncoding = $consoleEncoding
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $utf8 = [Text.UTF8Encoding]::new($false, $true)
-$roots = @('CAN', 'CiA402', 'Ethernet', 'Http', 'LIN', 'Modbus', 'NiDaq', 'OpcUa', 'SerialPort', 'VISA', 'Shared', 'tests', 'tools', 'docs', '.github')
+$roots = @('CAN', 'CiA402', 'Ethernet', 'Http', 'LIN', 'Modbus', 'NiDaq', 'OpcUa', 'SerialPort', 'VISA', 'NiGrpc', 'Shared', 'tests', 'tools', 'docs', '.github')
 # Match release.yml's conventional module/core-project discovery. Test projects
 # and deep artifact snapshots must not become phantom plugins in CI.
-$expectedModules = @($roots[0..9] | Sort-Object)
+$expectedModules = @($roots[0..10] | Sort-Object)
 $discoveredModules = @(Get-ChildItem -LiteralPath $repoRoot -Directory | Where-Object {
     (Get-ChildItem -LiteralPath $_.FullName -Depth 1 -File -Filter '*Plugin.csproj').Count -gt 0
 } | Select-Object -ExpandProperty Name | Sort-Object)
@@ -42,9 +42,17 @@ foreach ($file in $files) {
             $editors += $count
             if ($count -gt 1) { $issues.Add("多个步骤编辑器在同一文件：$relative") }
         }
-        if ($relative -notmatch '[\\/]UI[\\/]|Plugin\.UI[\\/]|\.Tests[\\/]' -and
-            $text -match '\bTestStatus\.(Passed|Failed)\b') {
-            $issues.Add("插件执行器不得代替判定步骤返回 Passed/Failed：$relative")
+        if ($relative -notmatch '[\\/]UI[\\/]|Plugin\.UI[\\/]|\.Tests[\\/]') {
+            # 2026-10-30 用户明确要求：仅 CAN 包正常执行显示 PASS。
+            # 其他插件仍遵守手册 §2.4；CAN 的错误/取消不得转换为成功。
+            $canCore = $relative -match '^CAN[\\/]CanPlugin[\\/]'
+            if ($text -match '\bTestStatus\.Failed\b' -or
+                (!$canCore -and $text -match '\bTestStatus\.Passed\b')) {
+                $issues.Add("插件执行状态不符合规范（仅 CAN 允许 Passed，均禁止 Failed）：$relative")
+            }
+            if ($canCore -and $text -match '\b(TestStatus|ExecutionResults)\.Completed\b') {
+                $issues.Add("CAN 成功出口应按专项约定返回 Passed：$relative")
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ public partial class EnableEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new EnableViewModel();
 		DataContext = ViewModel;
+		PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.Flush);
 		Unloaded += (_, _) => ViewModel.Flush();
 	}
 

@@ -8,10 +8,10 @@ namespace Modbus;
 /// <summary>
 /// Modbus 批量写入插件，一次执行多个地址段的写入操作
 /// </summary>
-public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSetting>
+public sealed class ModbusBatchWritePlugin : Modbus.PluginInfrastructure.StrictStepPluginBase<ModbusBatchWriteSetting>
 {
 	public override string StepTypeId => "IO.ModbusBatchWrite";
-	public override string DisplayName => "Modbus_BatchWrite";
+	public override string DisplayName => "Modbus_ReadWrite_BatchWrite";
 	public override string Category => "Communication";
 	public override string IconPath => "pack://application:,,,/Modbus.StepPlugin.UI;component/Resources/Icons/modbus_batch_write.png";
 
@@ -24,7 +24,7 @@ public sealed class ModbusBatchWritePlugin : StepPluginBase<ModbusBatchWriteSett
 
 		| 参数 | 类型 | 必填 | 默认值 | 说明 |
 		|------|------|------|--------|------|
-		| ConnectionName | string([ExpressionField]) | 是 | "Modbus1" |
+		| ConnectionName | string([ExpressionField]) | 是 | "Modbus1" | 已建立的 Modbus 连接名，求值结果为 string |
 		| Items | 集合 | 是 | — | 写入项列表，元素字段见下方 |
 		| IntervalMs | int | 否 | 0 | 每项写入间隔毫秒数 |
 

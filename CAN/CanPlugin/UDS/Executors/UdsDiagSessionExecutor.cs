@@ -29,7 +29,7 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
             {
                 await guard.RunAsync(() => client.SendOnlyAsync(request, cancellationToken));
                 guard.Log($"UDS DiagSession: 0x{(byte)setting.SessionType:X2} (抑制正响应)");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = setting.SessionType.ToString() } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = setting.SessionType.ToString() } };
             }
 
             var response = await guard.RunAsync(() => client.RequestAsync(request, cancellationToken));
@@ -37,7 +37,7 @@ public sealed class UdsDiagSessionExecutor : IStepExecutor
             if (response.IsPositive)
             {
                 guard.Log($"UDS DiagSession 切换成功: {setting.SessionType}");
-                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Completed, Value = setting.SessionType.ToString() } };
+                return new ExecutionResult { StepResult = new StepResult { Status = TestStatus.Passed, Value = setting.SessionType.ToString() } };
             }
             else
             {

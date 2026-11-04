@@ -32,7 +32,7 @@ public sealed class TcpSendExecutor : IStepExecutor
 
             var client = TcpConnectionManager.Get(name!, context.Resources);
             var bytes = EthernetDataHelper.Encode(dataStr!, setting.Encoding);
-            var stream = client.GetStream();
+            var stream = TcpConnectionManager.GetStream(client);
 
             // 对端不取数据导致发送缓冲区满时，WriteAsync 会一直等待，需限定超时
             var timeoutMs = setting.SendTimeoutMs;

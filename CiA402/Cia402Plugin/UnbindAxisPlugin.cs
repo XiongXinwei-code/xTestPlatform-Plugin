@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CiA402;
 
-public sealed class UnbindAxisPlugin : StepPluginBase<UnbindAxisSetting>
+public sealed class UnbindAxisPlugin : CiA402.PluginInfrastructure.StrictStepPluginBase<UnbindAxisSetting>
 {
     public override string StepTypeId => "Motion.CiA402UnbindAxis";
-    public override string DisplayName => "CiA402_Session_UnbindAxis";
+    public override string DisplayName => "CiA402_AxisConnection_UnbindAxis";
     public override string Category => "Motion";
     public override string IconPath => "pack://application:,,,/CiA402.StepPlugin.UI;component/Resources/Icons/cia402_unbindaxis.png";
 

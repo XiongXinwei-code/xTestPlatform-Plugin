@@ -17,6 +17,7 @@ public sealed class SomeIpFireAndForgetEditorPlugin : IStepEditorPlugin
         var view = new SomeIpFireAndForgetEditorView();
         view.SequenceFile = sequenceFile;
         view.RefreshFromStep(step);
+        PluginCommon.UI.PluginEditorScrolling.SetEnabled(view, true);
         return view;
     }
 

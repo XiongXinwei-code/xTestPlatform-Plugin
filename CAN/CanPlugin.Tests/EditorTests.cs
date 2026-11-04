@@ -116,6 +116,7 @@ public sealed class EditorTests
         confirmation.IsChecked = false;
         monitorView.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent));
         Assert.False(((CyclicSetting)monitorPlugin.CreateSerializer().Deserialize(monitorStep.StepSetting.Setting, 1)).RequireOnBusConfirmation);
+        monitorView.RaiseEvent(new RoutedEventArgs(FrameworkElement.LoadedEvent));
         monitorView.ViewModel.SyncData = "\"00\"";
         monitorView.RefreshFromStep(monitorStep);
         Assert.True(monitorView.ViewModel.EnableMonitoringSync);

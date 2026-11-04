@@ -51,7 +51,7 @@ public sealed class XcpShortUploadExecutor : IStepExecutor
             {
                 StepResult = new StepResult
                 {
-                    Status = TestStatus.Completed,
+                    Status = TestStatus.Passed,
                     Value  = hexValue
                 }
             };

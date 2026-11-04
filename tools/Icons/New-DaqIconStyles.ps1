@@ -33,6 +33,13 @@ $Ops = [ordered]@{
 	nidaq_sync_read      = @{ Wave = 'dual';   Badge = 'read' }
 	nidaq_task_start     = @{ Wave = 'sine';   Badge = 'start' }
 	nidaq_task_stop      = @{ Wave = 'sine';   Badge = 'stop' }
+	nidaq_ci_config      = @{ Wave = 'pulse';  Badge = 'config' }
+	nidaq_ci_read        = @{ Wave = 'pulse';  Badge = 'read' }
+	nidaq_co_config      = @{ Wave = 'pulse';  Badge = 'config' }
+	nidaq_di_config      = @{ Wave = 'square'; Badge = 'config' }
+	nidaq_do_config      = @{ Wave = 'square'; Badge = 'config' }
+	nidaq_digital_read   = @{ Wave = 'square'; Badge = 'read' }
+	nidaq_digital_write  = @{ Wave = 'square'; Badge = 'write' }
 }
 
 function Fill-RR($G, [single]$x, [single]$y, [single]$w, [single]$h, [single]$r, $Color) {

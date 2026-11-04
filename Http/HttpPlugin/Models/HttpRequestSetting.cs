@@ -7,6 +7,7 @@ namespace Http.Models;
 /// <summary>
 /// HTTP REST 请求步骤的设置参数
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class HttpRequestSetting
 {
@@ -30,6 +31,19 @@ public class HttpRequestSetting
 
     /// <summary>本次请求附加的请求头列表</summary>
     public ObservableCollection<HttpHeaderItem> Headers { get; set; } = [];
+
+    /// <summary>本次请求期限，0 沿用客户端；正值与客户端期限取较小者</summary>
+    public int TimeoutMs { get; set; }
+
+    /// <summary>允许读取的响应正文最大字节数，超出报错且不发布结果</summary>
+    public int MaxResponseBytes { get; set; } = 16 * 1024 * 1024;
+
+    /// <summary>响应正文字符串编码；Text 按响应 charset/BOM 解码</summary>
+    public HttpResponseFormat ResponseFormat { get; set; } = HttpResponseFormat.Text;
+
+    /// <summary>响应头 JSON 输出变量，名称映射至字符串数组；留空不写入</summary>
+    [VariablePathField]
+    public string ResponseHeadersVariable { get; set; } = string.Empty;
 
     /// <summary>存放响应体字符串的变量名，留空则不写入</summary>
     [VariablePathField]

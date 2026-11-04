@@ -9,7 +9,7 @@ namespace CAN.UI.Views;
 public partial class CanOpenEditorView : UserControl, IRefreshableEditor
 {
     public CanOpenViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(CanOpenEditorView),
             new PropertyMetadata(null));
@@ -24,6 +24,7 @@ public partial class CanOpenEditorView : UserControl, IRefreshableEditor
         InitializeComponent();
         ViewModel = new CanOpenViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 

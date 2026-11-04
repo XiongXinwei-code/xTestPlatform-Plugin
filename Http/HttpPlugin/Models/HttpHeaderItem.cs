@@ -8,6 +8,7 @@ namespace Http.Models;
 /// <summary>
 /// HTTP 默认请求头项，随客户端创建后附加到每次请求
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class HttpHeaderItem : INotifyPropertyChanged
 {
@@ -28,6 +29,9 @@ public class HttpHeaderItem : INotifyPropertyChanged
         get => _value;
         set => SetProperty(ref _value, value);
     }
+
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

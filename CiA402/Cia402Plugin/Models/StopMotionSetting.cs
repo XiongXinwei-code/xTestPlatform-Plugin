@@ -9,6 +9,7 @@ namespace CiA402.Models;
 /// <see cref="AxisSetting.TimeoutMs"/>（步骤总超时，毫秒）和
 /// <see cref="AxisSetting.PollIntervalMs"/>（状态轮询间隔，毫秒）。
 /// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public sealed class StopMotionSetting : AxisSetting
 {

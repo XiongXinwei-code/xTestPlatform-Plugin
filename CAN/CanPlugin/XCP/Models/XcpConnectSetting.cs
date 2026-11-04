@@ -5,6 +5,7 @@ namespace CAN.XCP.Models;
 
 /// <summary>XCP_Connect 步骤设置</summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class XcpConnectSetting : XcpCommonSetting
 {
     /// <summary>连接模式</summary>

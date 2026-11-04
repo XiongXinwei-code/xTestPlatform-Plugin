@@ -10,6 +10,7 @@ namespace NiDaq.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AoStopPolicy { Unspecified, DeviceDefined, WriteFinalValues }
 
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public sealed class NiDaqAoChannel : INotifyPropertyChanged
 {
@@ -19,6 +20,9 @@ public sealed class NiDaqAoChannel : INotifyPropertyChanged
     public string ColumnName { get => _columnName; set => Set(ref _columnName, value); }
     public double MinValue { get => _minValue; set => Set(ref _minValue, value); }
     public double MaxValue { get => _maxValue; set => Set(ref _maxValue, value); }
+    // 平台助手读取集合项时保留全部字段；界面与执行仍使用同一设置对象。
+    public override string ToString() => System.Text.Json.JsonSerializer.Serialize(this, GetType());
+
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {
@@ -28,6 +32,7 @@ public sealed class NiDaqAoChannel : INotifyPropertyChanged
     }
 }
 
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public sealed class NiDaqAoConfigSetting
 {

@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace Ethernet.SomeIP;
 
-public sealed class SomeIpRequestPlugin : StepPluginBase<SomeIpRequestSetting>
+public sealed class SomeIpRequestPlugin : Ethernet.PluginInfrastructure.StrictStepPluginBase<SomeIpRequestSetting>
 {
     public override string StepTypeId  => "SomeIp.Request";
-    public override string DisplayName => "SomeIp_Request";
+    public override string DisplayName => "SomeIp_ReadWrite_Request";
     public override string Category    => "Communication";
     public override string IconPath    => "pack://application:,,,/Ethernet.StepPlugin.UI;component/Resources/Icons/someip_request.png";
 

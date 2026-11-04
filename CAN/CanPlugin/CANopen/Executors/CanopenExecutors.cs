@@ -40,7 +40,7 @@ public sealed class CanopenSdoReadExecutor : IStepExecutor
                 guard.SetVariable(setting.ResultVariable, value);
 
             guard.Log($"SDO 读取 节点{node} 0x{index:X4}sub{sub}：{value}（原始数据 [{CanopenExecutorHelper.ToHex(raw)}]）");
-            return CanopenExecutorHelper.Result(TestStatus.Completed, value);
+            return CanopenExecutorHelper.Result(TestStatus.Passed, value);
         }
         catch (Exception ex)
         {
@@ -88,7 +88,7 @@ public sealed class CanopenSdoWriteExecutor : IStepExecutor
             await guard.RunAsync(() => client.DownloadAsync((ushort)index, (byte)sub, data, block, cancellationToken));
 
             guard.Log($"SDO 写入 节点{node} 0x{index:X4}sub{sub}：{text}（数据 [{CanopenExecutorHelper.ToHex(data)}]）");
-            return CanopenExecutorHelper.Result(TestStatus.Completed, text);
+            return CanopenExecutorHelper.Result(TestStatus.Passed, text);
         }
         catch (Exception ex)
         {
@@ -129,7 +129,7 @@ public sealed class CanopenNmtControlExecutor : IStepExecutor
             // NMT 报文：[命令字, 节点 ID]，节点 ID 0 表示广播
             await guard.RunAsync(() => bus.SendAsync(0x000, [cs, node], setting.SendTimeoutMs, cancellationToken));
             guard.Log($"NMT {setting.Command} → {(node == 0 ? "所有节点" : $"节点{node}")}");
-            return CanopenExecutorHelper.Result(TestStatus.Completed, setting.Command.ToString());
+            return CanopenExecutorHelper.Result(TestStatus.Passed, setting.Command.ToString());
         }
         catch (Exception ex)
         {
@@ -183,7 +183,7 @@ public sealed class CanopenWaitHeartbeatExecutor : IStepExecutor
                     if (!string.IsNullOrWhiteSpace(setting.StateVariable))
                         guard.SetVariable(setting.StateVariable, name);
                     guard.Log($"收到节点{node}心跳，状态 {name}");
-                    return CanopenExecutorHelper.Result(TestStatus.Completed, name);
+                    return CanopenExecutorHelper.Result(TestStatus.Passed, name);
                 }
             }
 
@@ -235,7 +235,7 @@ public sealed class CanopenPdoSendExecutor : IStepExecutor
             await guard.RunAsync(() => bus.SendAsync(cobId, data, setting.SendTimeoutMs, cancellationToken));
             var hex = CanopenExecutorHelper.ToHex(data);
             guard.Log($"PDO 发送 0x{cobId:X3}: [{hex}]");
-            return CanopenExecutorHelper.Result(TestStatus.Completed, hex);
+            return CanopenExecutorHelper.Result(TestStatus.Passed, hex);
         }
         catch (Exception ex)
         {
@@ -275,7 +275,7 @@ public sealed class CanopenPdoReceiveExecutor : IStepExecutor
                 guard.SetVariable(setting.ResultVariable, hex);
 
             guard.Log($"PDO 接收 0x{cobId:X3}: [{hex}]");
-            return CanopenExecutorHelper.Result(TestStatus.Completed, hex);
+            return CanopenExecutorHelper.Result(TestStatus.Passed, hex);
         }
         catch (Exception ex)
         {
@@ -316,7 +316,7 @@ public sealed class CanopenSyncSendExecutor : IStepExecutor
             guard.Log(counter == 0
                 ? $"SYNC 发送 0x{cobId:X3}"
                 : $"SYNC 发送 0x{cobId:X3}，计数器 {counter}");
-            return CanopenExecutorHelper.Result(TestStatus.Completed, counter);
+            return CanopenExecutorHelper.Result(TestStatus.Passed, counter);
         }
         catch (Exception ex)
         {
@@ -392,7 +392,7 @@ public sealed class CanopenEmcyReceiveExecutor : IStepExecutor
 
                 var resetHint = errorCode == 0 ? "（错误复位）" : string.Empty;
                 guard.Log($"收到节点{node} EMCY 错误码 {codeText}{resetHint}，错误寄存器 {regText}，厂商数据 [{mfrText}]");
-                return CanopenExecutorHelper.Result(TestStatus.Completed, codeText);
+                return CanopenExecutorHelper.Result(TestStatus.Passed, codeText);
             }
 
             var target = expected == null ? "EMCY" : $"错误码 0x{expected:X4} 的 EMCY";

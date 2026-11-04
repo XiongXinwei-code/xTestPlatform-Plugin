@@ -10,7 +10,7 @@ public partial class SerialPortQueryEditorView : UserControl, IRefreshableEditor
 {
 	public SerialPortQueryViewModel ViewModel { get; }
 
-	public Action<string, Action>? ExecuteCommand { get; set; }
+	public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 	public static readonly DependencyProperty SequenceFileProperty =
 	    DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(SerialPortQueryEditorView),
 	        new PropertyMetadata(null));
@@ -25,6 +25,7 @@ public partial class SerialPortQueryEditorView : UserControl, IRefreshableEditor
 		InitializeComponent();
 		ViewModel = new SerialPortQueryViewModel();
 		DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
 	}
 

@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace OpcUa.Models;
 
 /// <summary>OPC UA 断开连接步骤的设置参数</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class OpcUaDisconnectSetting
 {

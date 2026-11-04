@@ -8,10 +8,10 @@ namespace Http;
 /// <summary>
 /// SOAP 请求插件，发送 SOAP Envelope 并将响应 XML 存入变量
 /// </summary>
-public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSetting>
+public sealed class HttpSoapRequestPlugin : Http.PluginInfrastructure.StrictStepPluginBase<HttpSoapRequestSetting>
 {
     public override string StepTypeId => "IO.HttpSoapRequest";
-    public override string DisplayName => "Http_SoapRequest";
+    public override string DisplayName => "Http_RequestResponse_SoapRequest";
     public override string Category => "Network";
     public override string IconPath => "pack://application:,,,/Http.StepPlugin.UI;component/Resources/Icons/http_soap_request.png";
 
@@ -30,6 +30,8 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
         | SoapAction | string([ExpressionField]) | 否 | — | SOAPAction 值，通常为命名空间加操作名，求值结果为 string |
         | Envelope | string([ExpressionField]) | 是 | — | 完整的 SOAP Envelope XML，可用表达式拼接变量，求值结果为 string |
         | Headers | 集合 | 否 | 空 | 本次请求附加的请求头；Name 为请求头名称，Value 为请求头值（string([ExpressionField])，求值结果为 string） |
+        | TimeoutMs | int | 否 | 0 | 本次网络请求期限（毫秒）；0 沿用客户端期限，正值与客户端期限取较小者，不能为负；不修改共享客户端 |
+        | MaxResponseBytes | int | 否 | 16777216 | 响应正文最大字节数，必须大于 0；超出返回 Error，不发布本次输出 |
         | ResponseVariable | string(VariablePathField) | 否 | Locals.SoapResponse | 响应 XML 写入的变量名，写入类型为 string，为空时不写入 |
         | StatusCodeVariable | string(VariablePathField) | 否 | — | 响应状态码写入的变量名，写入类型为 int；如 Locals.statusCode |
         | TreatSoapFaultAsFailure | bool | 否 | true | 响应包含 SOAP Fault 时是否返回执行 Error，不判定测试通过/失败 |
@@ -37,6 +39,9 @@ public sealed class HttpSoapRequestPlugin : StepPluginBase<HttpSoapRequestSettin
         | LogPayload | bool | 否 | true | 兼容字段名，仅控制脱敏摘要，不记录Action/Envelope、响应正文或路径参数 |
 
         ## 行为
+
+        - 本次请求期限覆盖排队、发送、响应等待和完整正文读取；内部超时返回 Error，只有原调用方取消返回 Aborted。停止等待不等于远端动作撤回，原请求仍由客户端收尾跟踪
+        - 响应正文默认最多 16 MiB，旧序列沿用客户端期限；大响应需显式提高 MaxResponseBytes，不发布超限截断 XML
 
         - 非空响应/状态码路径在发送前验证声明及已知 string/int 类型，并要求完整作用域；每项发布及最终结果均复查本次连接归属、运行代次和原始取消
 

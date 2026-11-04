@@ -4,6 +4,7 @@ using xTestPlatform.Core.Models.StepSettings;
 namespace NiDaq.Models;
 
 /// <summary>编码器读取设置（硬件参数由 EncoderConfig 配置）</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 [MessagePackObject(true)]
 public class NiDaqEncoderSetting
 {

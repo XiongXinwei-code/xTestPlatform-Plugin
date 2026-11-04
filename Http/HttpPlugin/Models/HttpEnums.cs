@@ -49,7 +49,19 @@ public enum BodyContentType
     Text,
 
     /// <summary>application/x-www-form-urlencoded</summary>
-    FormUrlEncoded
+    FormUrlEncoded,
+
+    /// <summary>application/octet-stream，Body 为十六进制字节</summary>
+    Bytes
+}
+
+/// <summary>响应正文写入字符串变量时的编码方式</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum HttpResponseFormat
+{
+    Text,
+    Hex,
+    Base64
 }
 
 /// <summary>SOAP 协议版本</summary>

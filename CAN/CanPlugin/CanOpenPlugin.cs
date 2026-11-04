@@ -5,10 +5,10 @@ using xTestPlatform.Core.Plugins.Contracts;
 
 namespace CAN;
 
-public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
+public sealed class CanOpenPlugin : CAN.PluginInfrastructure.StrictStepPluginBase<CanOpenSetting>
 {
     public override string StepTypeId => "IO.CanOpen";
-    public override string DisplayName => "CAN_Open";
+    public override string DisplayName => "CAN_Connection_Open";
     public override string Category => "Communication";
     public override string IconPath => "pack://application:,,,/CAN.StepPlugin.UI;component/Resources/Icons/can_open.png";
 
@@ -34,7 +34,30 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         | DataSamplePoint | double | FD 时 | 80.0 | 数据段目标采样点百分比，范围 7.5%~97.5%；与仲裁段采样点独立配置 |
         | RxQueueSize | int | 否 | 8192 | 接收缓冲区大小（帧数）；NI-XNET 同时由后台接收泵持续排空驱动队列 |
         | ConnectionName | string([ExpressionField]) | 是 | — | 连接标识名，序列内唯一，求值结果为 string |
-        | TimeoutMs | int | 否 | 5000 | 可配置打开总超时（ms，必须大于 0），包含登记排队、旧连接实际收尾与本次驱动打开；不是各阶段各等待一次 |
+        | TimeoutMs | int | 否 | 5000 | 可配置打开总超时（ms，必须大于 0），包含表达式求值、登记排队、旧连接实际收尾与本次驱动打开；不是各阶段各等待一次 |
+
+        ### ZLG 专用连接参数
+
+        下列参数均为设置模型的公开字段，可由平台助手直接读写；只在 ZLG 且对应型号下应用。字符串字段为表达式，字符串常量需要双引号。选择目录型号或修改设备/通道索引后自动更新 Channel，无需单独应用；打开或刷新编辑器不会改写已有 Channel 表达式。Hardware filter (Regex) 可按型号名称或编号筛选（不区分大小写，例如 `USB|PCIE`、`^CANFD.*TCP`）；筛选本身不改配置，清空恢复完整目录，当前已选型号始终保留。
+
+        | 参数 | 类型 | 默认值 | 说明 |
+        |------|------|--------|------|
+        | ZlgRemoteAddress | string([ExpressionField]) | "" | 网络设备 IPv4，PC Client 或 UDP 必填 |
+        | ZlgRemotePort | int | 4001 | 设备工作端口，1~65535 |
+        | ZlgLocalPort | int | 4001 | PC Server 或 UDP 本地端口，1~65535 |
+        | ZlgNetworkWorkMode | int | 0 | PC 端 TCP 角色，Client=0 / Server=1；UDP 忽略 |
+        | ZlgConfigurationPath | string([ExpressionField]) | "" | CANFDCOM 厂商配置文件路径，对应 SDK file_path，不是 COM 端口名 |
+        | ZlgCloudUserName | string([ExpressionField]) | "" | Cloud 用户名 |
+        | ZlgCloudPassword | string([ExpressionField]) | "" | Cloud 密码；建议引用受保护变量，内联常量会保存在序列中；运行日志不输出凭据 |
+        | ZlgCloudHttpServer | string([ExpressionField]) | "" | HTTP 主机名/IP，Cloud 时必填；每次明确设置，避免继承旧登录端点 |
+        | ZlgCloudHttpPort | int | 80 | HTTP 端口，1~65535 |
+        | ZlgCloudAuthServer | string([ExpressionField]) | "" | 认证主机名/IP，Cloud 时必填，不包含 URL 路径 |
+        | ZlgCloudAuthPort | int | 80 | 认证端口，1~65535 |
+
+        - 网络设备在 InitCAN 前配置连接地址；网络 CAN FD 不沿用 USB 波特率属性。多数网络型号、Cloud、Bluetooth、CANFDCOM 和虚拟设备的总线参数由设备或厂商工具管理，本步骤不修改、不虚报实际波特率/采样点/电阻状态。
+        - CANDTU-100UR/200UR 与 ZPSCANFD 按各自 SDK 在 InitCAN 后设置波特率；CANSCOPE 的波特率及电阻在 InitCAN 前设置。各型号按照自身属性定义接入，不能通用套用 USB。
+        - Cloud 的设备索引是 SDK devIndex，不是目录行号；校验设备在线、通道启用及双向上传/下载能力。仅共享本插件创建的同身份登录，不接管外部登录；关闭一个通道不会登出仍被其他连接使用的登录。设备关闭或最终登出失败时保留归属供 CAN Close 重试。
+        - 缺失型号内核、外部配对/配置工具和真实硬件测试属于部署条件；识别 SDK 枚举及软件验证不代表全部型号已经实机验证。
 
         ## 通道命名规则
 
@@ -43,7 +66,7 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - NI（NI-XNET）：接口名格式为 `CAN<编号>`，如 `CAN1`、`CAN2`，编号从 1 开始，在 NI MAX 的"设备和接口"中查看（多端口板卡每个端口一个接口名）
         - PEAK（PCAN-Basic）：通道名格式为 `PCAN_USBBUS<编号>`，如 `PCAN_USBBUS1`（也可简写为数字 `1`~`16`），在 PCAN-View 中查看
         - Vector（XL Driver Library）：全局通道索引，如 `0`、`1`，在 Vector Hardware Config 中查看
-        - ZLG（周立功）：格式为 `<设备类型>/<设备索引>/<通道索引>`，如 `USBCAN2/0/0`、`USBCANFD-200U/0/1`、`PCI5010U/0/0`、`PCIe9120/0/1`、`PCIE-CANFD-200U/0/1`；设备索引、通道索引从 0 开始。支持现有 USB 型号和当前 SDK 全部 PCI / PCIe 型号，含 PCIe CAN FD 的 EX、MINI、M2、800U、1200U、MINI-PCIE-CANFD；型号不区分大小写，兼容 SDK 的 `ZCAN_*` 名称，完整列表见 ZLG 原生库 README
+        - ZLG（周立功）：格式为 `<设备类型>/<设备索引>/<通道索引>`，如 `USBCAN2/0/0`、`USBCANFD-200U/0/1`、`PCI5010U/0/0`、`PCIe9120/0/1`、`PCIE-CANFD-200U/0/1`；设备索引、通道索引从 0 开始。识别随包 SDK 全部型号名称（USB、PCI/PCIe、TCP/UDP、WiFi、DTU、CANFDCOM、Bluetooth、Cloud、Virtual 等）及别名，完整目录见 ZLG Hardware 页；型号不区分大小写并兼容 SDK 的 `ZCAN_*` 名称。型号列出不等于当前包具有内核或本机已安装驱动；缺少映射或型号 DLL 时明确报错，不尝试伪装 USB 设备
         - Kvaser（CANlib）：通道索引，如 `0`、`1`，在 Kvaser Hardware 工具中查看
         - TOSUN（同星）：通道索引，如 `0`、`1`，默认连接第一个 USB 设备
 
@@ -58,9 +81,9 @@ public sealed class CanOpenPlugin : StepPluginBase<CanOpenSetting>
         - 硬件不存在或通道被占用时步骤报错
         - NI-XNET 的 FD+BRS 会话可混合发送经典 CAN 与 CAN FD：经典帧使用 CAN20_Data，FD 帧使用 CANFDBRS_Data；Classic 会话保持 CAN_Data
         - 界面只配置采样点百分比，不暴露厂商专用的 BRP/SJW/TSEG1/TSEG2；适配器内部根据设备时钟与驱动能力换算
-        - 运行日志会分别输出 Nominal/Data 两段的目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略。PCI5010U / PCI5020U 为明确例外：使用驱动标准波特率，采样点由驱动决定，日志明确提示目标采样点未应用，不虚报实际采样点
+        - 运行日志会分别输出 Nominal/Data 两段的目标采样点以及驱动实际采用的位时序；无法表达目标采样点时明确报错，不会静默忽略。PCI5010U / PCI5020U、扩展 USB FD 与 DTU 等驱动标准波特率型号为明确例外：使用驱动标准波特率，采样点由驱动决定，日志明确提示目标采样点未应用，不虚报实际采样点
         - 经典 CAN 仅使用仲裁段采样点；CAN FD 的仲裁段（Nominal Bit Rate）和数据段（Data Bit Rate）分别使用 ArbitrationSamplePoint 与 DataSamplePoint
-        - NI、PEAK、Vector、Kvaser 支持分别按百分比换算仲裁段与 CAN FD 数据段；当前 libTSCAN 及 ZLG USB CAN FD 标准波特率接口使用 80% 仲裁段和 80% 数据段采样点。ZLG PCIe CAN FD 型号在 Classic / FD 下均使用 80% 仲裁段采样点；FD 的 5 Mbps 数据段使用 75%，其他 SDK 标准数据段使用 80%，超出 SDK 标准波特率范围时报错
+        - NI、PEAK、Vector、Kvaser 支持分别按百分比换算仲裁段与 CAN FD 数据段；当前 libTSCAN 及 ZLG USBCANFD-100U/200U/MINI 的 FD 标准波特率接口使用 80% 仲裁段和 80% 数据段采样点。ZLG PCIe CAN FD 型号在 Classic / FD 下均使用 80% 仲裁段采样点；FD 的 5 Mbps 数据段使用 75%，其他 SDK 标准数据段使用 80%，超出 SDK 标准波特率范围时报错
         - PCI / PCIe 设备需要对应型号的 x64 二次开发板卡库和 Windows 驱动；仅存在 zlgcan.dll 或设备 XML 不代表依赖完整，打开失败时会提示板卡库缺失。PCIe9220 在当前 dll_cfg.ini 中没有映射，需使用包含该型号的官方 SDK
         - 软件终端电阻当前接入 NI-XNET、ZLGCAN 与 libTSCAN；PEAK、Vector、Kvaser 请使用外置 120 Ω 电阻
         - NI-XNET 接收会话启动后由后台接收泵持续抽取总线帧，UDS/普通读取按目标 ID 从内存队列路由取帧，未匹配 ID 的帧会保留给后续读取；后台泵异常或队列达到上限丢帧会立即记录诊断

@@ -8,10 +8,10 @@ namespace VISA;
 /// <summary>
 /// VISA 等待操作完成插件，发送 *OPC? 并等待仪器返回 1
 /// </summary>
-public sealed class VisaWaitOpcPlugin : StepPluginBase<VisaWaitOpcSetting>
+public sealed class VisaWaitOpcPlugin : VISA.PluginInfrastructure.StrictStepPluginBase<VisaWaitOpcSetting>
 {
     public override string StepTypeId => "IO.VisaWaitOpc";
-    public override string DisplayName => "VISA_WaitOPC";
+    public override string DisplayName => "VISA_Synchronization_WaitOPC";
     public override string Category => "Instrument";
     public override string IconPath => "pack://application:,,,/VISA.StepPlugin.UI;component/Resources/Icons/visa_wait_opc.png";
 

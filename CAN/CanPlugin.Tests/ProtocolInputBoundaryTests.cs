@@ -35,7 +35,7 @@ public sealed class ProtocolInputBoundaryTests
         state.Adapter = new FakeAdapter(); state.Plugin = new UdsRawRequestPlugin();
         state.Setting = new UdsRawRequestSetting { RequestData = "\"27 12 DE AD BE EF\"", WaitResponse = false };
         var result = await state.Plugin.CreateExecutor().ExecuteAsync(context);
-        Assert.Equal(TestStatus.Completed, result.StepResult.Status);
+        Assert.Equal(TestStatus.Passed, result.StepResult.Status);
         Assert.DoesNotContain("DE AD BE EF", string.Join("\n", state.Logs));
         Assert.DoesNotContain("DE AD BE EF", result.StepResult.Value?.ToString() ?? "");
     }

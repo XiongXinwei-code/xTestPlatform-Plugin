@@ -12,7 +12,7 @@ namespace Http.UI.Views;
 public partial class HttpClientCreateEditorView : UserControl, IRefreshableEditor
 {
     public HttpClientCreateViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
 
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(HttpClientCreateEditorView),
@@ -29,6 +29,7 @@ public partial class HttpClientCreateEditorView : UserControl, IRefreshableEdito
         InitializeComponent();
         ViewModel = new HttpClientCreateViewModel();
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 

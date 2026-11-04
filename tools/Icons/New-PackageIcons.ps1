@@ -8,7 +8,7 @@
 	预览输出到 tools\Icons\preview\package\。
 #>
 [CmdletBinding()]
-param()
+param([string[]]$Package)
 
 $ErrorActionPreference = 'Stop'
 $root = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
@@ -20,6 +20,7 @@ $DaqDraw = $Styles['D']
 ${function:New-DaqIcon} = ${function:New-StyleIcon}
 
 $Packages = [ordered]@{
+	NiGrpc = @{ Res = 'NiGrpc\NiGrpcPlugin.UI\Resources\Icons\nigrpc.png'; Kind = 'letter'; Text = 'NI'; Color = $Groups['NiGrpc'].Color }
 	CAN        = @{ Res = 'CAN\CanPlugin.UI\Resources\Icons\can.png';                Kind = 'letter'; Text = 'CAN';    Color = $Groups['CAN'].Color }
 	Ethernet   = @{ Res = 'Ethernet\EthernetPlugin.UI\Resources\Icons\ethernet.png'; Kind = 'letter'; Text = 'TCP/IP'; Color = $Groups['TCP'].Color }
 	Http       = @{ Res = 'Http\HttpPlugin.UI\Resources\Icons\http.png';             Kind = 'letter'; Text = 'HTTP';   Color = $Groups['HTTP'].Color }
@@ -64,6 +65,7 @@ $pv = Join-Path $root 'preview\package'
 if (-not (Test-Path $pv)) { New-Item -ItemType Directory -Path $pv -Force | Out-Null }
 
 foreach ($name in $Packages.Keys) {
+	if ($Package -and $name -notin $Package) { continue }
 	$pkg = $Packages[$name]
 	$b64 = New-PackageIcon $pkg 64
 	$b64.Save((Join-Path $repo "$name\icon.png"), [System.Drawing.Imaging.ImageFormat]::Png)

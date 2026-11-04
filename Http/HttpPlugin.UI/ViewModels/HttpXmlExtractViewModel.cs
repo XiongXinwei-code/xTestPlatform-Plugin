@@ -13,6 +13,7 @@ namespace Http.UI.ViewModels;
 public class HttpXmlExtractViewModel : INotifyPropertyChanged
 {
     private readonly PluginCommon.EditorSaveScheduler _saver = new();
+    public Action<string, Action>? ExecuteCommand { get => _saver.ExecuteCommand; set => _saver.ExecuteCommand = value; }
     private readonly HashSet<HttpExtractItem> _observedItems = new();
     public void FlushPendingSave() => _saver.Flush();
     private bool _suppressSave;
@@ -20,8 +21,8 @@ public class HttpXmlExtractViewModel : INotifyPropertyChanged
     private IStepSettingSerializer? _serializer;
     private HttpXmlExtractSetting? _setting;
 
-    public void AttachSerializer(IStepSettingSerializer s) { _serializer = s; if (_step != null) Load(); }
-    public void AttachStep(Step step) { _step = step; Load(); }
+    public void AttachSerializer(IStepSettingSerializer s) { _saver.Flush(); _serializer = s; if (_step != null) Load(); }
+    public void AttachStep(Step step) { _saver.Flush(); _step = step; Load(); }
 
     private void Load()
     {

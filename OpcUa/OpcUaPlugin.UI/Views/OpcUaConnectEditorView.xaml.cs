@@ -10,7 +10,7 @@ public partial class OpcUaConnectEditorView : UserControl, IRefreshableEditor
 {
     private bool _syncingPassword;
     public OpcUaConnectViewModel ViewModel { get; }
-    public Action<string, Action>? ExecuteCommand { get; set; }
+    public Action<string, Action>? ExecuteCommand { get => ViewModel.ExecuteCommand; set => ViewModel.ExecuteCommand = value; }
     public static readonly DependencyProperty SequenceFileProperty =
         DependencyProperty.Register(nameof(SequenceFile), typeof(SequenceFile), typeof(OpcUaConnectEditorView),
             new PropertyMetadata(null));
@@ -30,6 +30,7 @@ public partial class OpcUaConnectEditorView : UserControl, IRefreshableEditor
                 SyncPasswordFromViewModel();
         };
         DataContext = ViewModel;
+        PluginCommon.UI.PluginEditorCommit.Attach(this, ViewModel.FlushPendingSave);
         Unloaded += (_, _) => ViewModel.FlushPendingSave();
     }
 

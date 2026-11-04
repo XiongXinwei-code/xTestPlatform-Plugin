@@ -9,6 +9,7 @@ namespace CAN.Flash.Models;
 /// 需由前置步骤完成 0x10 会话切换与 0x27 解锁。
 /// </summary>
 [MessagePackObject(true)]
+[System.Text.Json.Serialization.JsonConverter(typeof(PluginCommon.Serialization.StrictSettingJsonConverter))]
 public class CanFlashSetting : UdsCommonSetting
 {
     /// <summary>固件文件路径</summary>
