@@ -1,4 +1,4 @@
-<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
 			 xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
@@ -39,7 +39,7 @@
 					<CheckBox Grid.Row="2" Grid.Column="1" Margin="0,6" VerticalAlignment="Center"
 							  IsChecked="{Binding FailOnMissingPath}" />
 					<TextBlock Grid.Row="3" Grid.Column="0" Text="提取映射:" VerticalAlignment="Top" Margin="0,10" />
-					<DataGrid Grid.Row="3" Grid.Column="1" Margin="0,6" Height="200"
+					<DataGrid vardrop:VariableDrop.Columns="TargetVariable" Grid.Row="3" Grid.Column="1" Margin="0,6" Height="200"
 							  ItemsSource="{Binding Items}" AutoGenerateColumns="False" CanUserAddRows="True" ToolTip="全部目标须是已声明的 string 完整路径，如 Locals.result；配置错误在首次写变量前报告。">
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="XPath" Width="*" Binding="{Binding Path, UpdateSourceTrigger=PropertyChanged}" />

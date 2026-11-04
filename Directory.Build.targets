@@ -15,6 +15,7 @@
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').Contains('Plugin.UI'))">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/UI/EditorSaveScheduler.cs" Exclude="@(Compile)" Link="Internal/EditorSaveScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/UI/PluginEditorCommit.cs" Exclude="@(Compile)" Link="Internal/PluginEditorCommit.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/UI/VariableDrop.cs" Exclude="@(Compile)" Link="Internal/VariableDrop.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/UI/PluginEditorScrolling.cs" Exclude="@(Compile)" Link="Internal/PluginEditorScrolling.cs" />
     <Page Include="$(MSBuildThisFileDirectory)Shared/UI/PluginEditorScrollingResources.xaml" Exclude="@(Page)" Link="Internal/PluginEditorScrollingResources.xaml" />
   </ItemGroup>

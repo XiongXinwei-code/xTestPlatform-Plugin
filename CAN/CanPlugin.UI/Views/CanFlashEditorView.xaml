@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.CanFlashEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.CanFlashEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:appearance="clr-namespace:CAN.UI.Appearance"
@@ -339,7 +339,7 @@
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="进度变量:" Style="{StaticResource LabelStyle}"/>
                 <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,8">
-                    <TextBox Width="200" HorizontalAlignment="Left"
+                    <TextBox vardrop:VariableDrop.Target="True" Width="200" HorizontalAlignment="Left"
                              Text="{Binding ProgressVariable, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                Text="烧录过程中写入 0~100 的整数百分比，留空则不写入。"/>
@@ -347,7 +347,7 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="结果变量:" Style="{StaticResource LabelStyle}"/>
                 <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,8">
-                    <TextBox Width="200" HorizontalAlignment="Left"
+                    <TextBox vardrop:VariableDrop.Target="True" Width="200" HorizontalAlignment="Left"
                              Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                Text="烧录完成后写入实际传输的总字节数，留空则不写入。"/>

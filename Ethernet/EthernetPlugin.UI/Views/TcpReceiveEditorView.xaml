@@ -1,4 +1,4 @@
-<UserControl x:Class="Ethernet.UI.Views.TcpReceiveEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="Ethernet.UI.Views.TcpReceiveEditorView"
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -28,7 +28,7 @@
                 <TextBlock Grid.Row="7" Text="Encoding:" VerticalAlignment="Center" Margin="0,0,8,8"/>
                 <ComboBox Grid.Row="7" Grid.Column="1" Margin="0,0,0,8" SelectedIndex="{Binding EncodingIndex, Mode=TwoWay}" Width="220" HorizontalAlignment="Left"><ComboBoxItem Content="Hex"/><ComboBoxItem Content="Utf8"/><ComboBoxItem Content="Ascii"/></ComboBox>
                 <TextBlock Grid.Row="8" Text="ResultVariable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="8" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" ToolTip="可选；须填写已声明的完整作用域 string 变量路径；当前值可为 null，通信前预检。"/>
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="8" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" ToolTip="可选；须填写已声明的完整作用域 string 变量路径；当前值可为 null，通信前预检。"/>
     </Grid>
    </ScrollViewer>
   </syncfusion:TabItemExt>

@@ -1,4 +1,4 @@
-<UserControl x:Class="Modbus.UI.Views.ModbusBatchReadEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="Modbus.UI.Views.ModbusBatchReadEditorView"
 			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -36,7 +36,7 @@
 					<Button Content="Add Item" Padding="12,4" Click="AddItem_Click"/>
 					<Button Content="Remove Selected" Padding="12,4" Margin="8,0,0,0" Click="RemoveItem_Click"/>
 				</StackPanel>
-				<DataGrid x:Name="ItemsGrid" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
+				<DataGrid vardrop:VariableDrop.Columns="ResultVariable" x:Name="ItemsGrid" ItemsSource="{Binding Items}" AutoGenerateColumns="False"
 						  CanUserAddRows="False" CanUserDeleteRows="False" ToolTip="首次通信前检查全部项：位 1～2000、寄存器 1～125，32 位数量为偶数，地址不越界；结果路径可留空，否则须声明且类型/形状匹配。">
 					<DataGrid.Columns>
 						<DataGridTextColumn Header="Slave" Binding="{Binding SlaveAddress, UpdateSourceTrigger=PropertyChanged}" Width="60"/>

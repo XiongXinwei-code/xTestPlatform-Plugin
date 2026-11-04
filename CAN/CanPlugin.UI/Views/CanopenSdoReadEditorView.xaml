@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.CanopenSdoReadEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.CanopenSdoReadEditorView"
 			 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -108,7 +108,7 @@
 
                 <!-- 结果变量：用户已声明的变量路径，读取值写入该变量；留空则不写入 -->
                 <TextBlock Grid.Row="9" Grid.Column="0" Text="Result Variable:" VerticalAlignment="Center" Margin="0,0,8,8"/>
-                <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="9" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left" Margin="0,0,0,8"/>
 
             </Grid>
 			</ScrollViewer>

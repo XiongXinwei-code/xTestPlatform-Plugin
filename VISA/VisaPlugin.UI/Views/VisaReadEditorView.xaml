@@ -1,4 +1,4 @@
-<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
              xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
@@ -28,7 +28,7 @@
                     SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="结果变量:" VerticalAlignment="Center" Margin="0,6"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,6"
+                <TextBox vardrop:VariableDrop.Target="True" Grid.Row="1" Grid.Column="1" Margin="0,6"
                     Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="200" HorizontalAlignment="Left"/>
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="去除空白:" VerticalAlignment="Center" Margin="0,6"/>
                 <CheckBox Grid.Row="2" Grid.Column="1" Margin="0,6" IsChecked="{Binding TrimResponse}" />

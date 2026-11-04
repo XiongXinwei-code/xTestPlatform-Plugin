@@ -123,6 +123,7 @@ public sealed class CyclicServiceEditorView : UserControl, IRefreshableEditor
         {
             var text = new TextBox { MinWidth = 100 };
             text.SetBinding(TextBox.TextProperty, Bind(property));
+            if (property == "ResultVariable") PluginCommon.UI.VariableDrop.SetTarget(text, true);
             editor = text;
         }
         RegisterName(property + "Editor", editor);

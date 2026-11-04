@@ -1,6 +1,6 @@
 # HTTP 步骤插件
 
-当前版本 **1.0.33**：REST 增加 Bytes 请求体、Text/Hex/Base64 响应及响应头 JSON 输出；REST/SOAP 增加独立请求期限和正文大小上限。关闭仍以请求、取消回调和 Dispose 的真实退出为准。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+当前版本 **1.0.34**：REST 增加 Bytes 请求体、Text/Hex/Base64 响应及响应头 JSON 输出；REST/SOAP 增加独立请求期限和正文大小上限。关闭仍以请求、取消回调和 Dispose 的真实退出为准。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
 修改汇总与交付边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 

@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.CanBackgroundEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.CanBackgroundEditorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -27,7 +27,7 @@
                             <TextBlock x:Name="OutputFormatBox" Text="JSON 字符串"/>
                         </StackPanel>
                         <TextBlock x:Name="ResultVariableLabel" Grid.Row="6" Text="{Binding ResultLabel}" Margin="0,0,8,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}"/>
-                        <TextBox x:Name="ResultVariableBox" Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}" ToolTip="{Binding ResultHelp}"/>
+                        <TextBox vardrop:VariableDrop.Target="True" x:Name="ResultVariableBox" Grid.Row="6" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}" ToolTip="{Binding ResultHelp}"/>
                         <TextBlock x:Name="ResultHelpText" Grid.Row="7" Grid.Column="1" Text="{Binding ResultHelp}" TextWrapping="Wrap" Margin="0,0,0,12" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}"/>
                     </Grid>
                     <CheckBox x:Name="IncludeInactiveCheckBox" Content="包含非活动任务（已停止、故障、被接管）" IsChecked="{Binding IncludeInactive, Mode=TwoWay}" Margin="0,0,0,8" Visibility="{Binding IsStatus, Converter={StaticResource BoolVisibility}}"/>
@@ -41,7 +41,7 @@
                                 <DataGridTemplateColumn Header="目标 ID 表达式" Width="230"><DataGridTemplateColumn.CellTemplate><DataTemplate><expr:ExpressionTextBox ScriptText="{Binding CanId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String" IsEnabled="{Binding Enabled}" SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="帧类型" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox SelectedIndex="{Binding FrameType, Mode=TwoWay}" IsEnabled="{Binding Enabled}"><ComboBoxItem Content="标准帧"/><ComboBoxItem Content="扩展帧"/></ComboBox></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="帧格式" Width="130"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox SelectedIndex="{Binding FrameFormat, Mode=TwoWay}" IsEnabled="{Binding Enabled}"><ComboBoxItem Content="经典 / FD 均接收"/><ComboBoxItem Content="仅经典 CAN"/><ComboBoxItem Content="仅 CAN FD"/></ComboBox></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="最新十六进制数据 → 字符串变量" Width="320"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBox Text="{Binding DataVariable, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Enabled}" ToolTip="例如 Locals.Latest123。可留空，仅写 JSON；不同映射不得共用输出变量。"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="最新十六进制数据 → 字符串变量" Width="320"><DataGridTemplateColumn.CellTemplate><DataTemplate><TextBox vardrop:VariableDrop.Target="True" Text="{Binding DataVariable, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Enabled}" ToolTip="例如 Locals.Latest123。可留空，仅写 JSON；不同映射不得共用输出变量。"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         <TextBlock Text="每行匹配一个标准/扩展 CAN ID，最多 128 行；禁用行不参与运行校验。变量保留最近一次值，不因后续无报文自动清空；请通过 JSON/任务状态判断是否过期。Shift + 鼠标滚轮可横向滚动。" TextWrapping="Wrap" Margin="0,8,0,0"/>

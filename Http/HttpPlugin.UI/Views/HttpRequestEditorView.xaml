@@ -1,4 +1,4 @@
-<UserControl xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 			 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 			 xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
 			 xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
@@ -57,13 +57,13 @@
 						SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
 						EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
 					<TextBlock Grid.Row="5" Grid.Column="0" Text="响应变量:" VerticalAlignment="Center" Margin="0,6" />
-					<TextBox Grid.Row="5" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
+					<TextBox vardrop:VariableDrop.Target="True" Grid.Row="5" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
 							 Text="{Binding ResponseVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 					<TextBlock Grid.Row="6" Grid.Column="0" Text="状态码变量:" VerticalAlignment="Center" Margin="0,6" />
-					<TextBox Grid.Row="6" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
+					<TextBox vardrop:VariableDrop.Target="True" Grid.Row="6" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
 							 Text="{Binding StatusCodeVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 					<TextBlock Grid.Row="7" Grid.Column="0" Text="耗时变量:" VerticalAlignment="Center" Margin="0,6" />
-					<TextBox Grid.Row="7" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
+					<TextBox vardrop:VariableDrop.Target="True" Grid.Row="7" Grid.Column="1" Margin="0,6" Width="240" HorizontalAlignment="Left"
 							 Text="{Binding ElapsedVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 					<TextBlock Grid.Row="8" Grid.Column="0" Text="非2xx返回执行错误:" VerticalAlignment="Center" Margin="0,6" />
                     <StackPanel Grid.Row="8" Grid.Column="1" Orientation="Horizontal" Margin="0,6">
@@ -97,7 +97,7 @@
                     <ComboBox Width="240" HorizontalAlignment="Left" ItemsSource="{Binding ResponseFormats}" SelectedItem="{Binding ResponseFormat, Mode=TwoWay}" />
                     <TextBlock Text="{Binding ResponseHint}" TextWrapping="Wrap" Margin="0,6,0,16" />
                     <TextBlock Text="响应头 JSON 输出变量（可选）" Margin="0,6" />
-                    <TextBox Text="{Binding ResponseHeadersVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox vardrop:VariableDrop.Target="True" Text="{Binding ResponseHeadersVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     <TextBlock Text="JSON 对象：每个响应头名称对应一个字符串数组，包含内容头和接收完成后的尾部头。可能包含 Cookie 等敏感值，请仅映射到所需变量。" TextWrapping="Wrap" Margin="0,6,0,16" />
                     <TextBlock Text="本次请求期限 (ms)" Margin="0,6" />
                     <TextBox Width="240" HorizontalAlignment="Left" Text="{Binding TimeoutMs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />

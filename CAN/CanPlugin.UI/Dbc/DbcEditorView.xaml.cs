@@ -91,6 +91,56 @@ public partial class DbcEditorView : UserControl, IRefreshableEditor
         SignalsGrid.CurrentCell = new DataGridCellInfo(row, cell.Column);
         if (SignalsGrid.BeginEdit(e)) e.Handled = true;
     }
+
+    private static bool TryGetDraggedText(IDataObject data, out string value)
+    {
+        value = data.GetDataPresent(DataFormats.StringFormat)
+            ? data.GetData(DataFormats.StringFormat) as string ?? "" : "";
+        return !string.IsNullOrWhiteSpace(value) && !value.Contains('\r') && !value.Contains('\n');
+    }
+
+    private void OnVariablePathDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = TryGetDraggedText(e.Data, out _) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnResultVariableDrop(object sender, DragEventArgs e)
+    {
+        if (sender is not TextBox box || !TryGetDraggedText(e.Data, out string value)) return;
+        box.SetCurrentValue(TextBox.TextProperty, value);
+        e.Effects = DragDropEffects.Copy;
+        e.Handled = true;
+    }
+
+    private void OnSignalDragOver(object sender, DragEventArgs e)
+    {
+        if (sender is not DataGridCell cell || cell.DataContext is not DbcSignalRow row ||
+            (cell.Column != ValueColumn && cell.Column != OutputVariableColumn)) return;
+        // An active expression editor owns caret insertion and its native drop handling.
+        if (cell.Column == ValueColumn && cell.IsEditing) return;
+        e.Effects = CanEditSignal(cell.Column, row) && TryGetDraggedText(e.Data, out _)
+            ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnSignalDrop(object sender, DragEventArgs e)
+    {
+        if (sender is not DataGridCell cell || cell.DataContext is not DbcSignalRow row ||
+            (cell.Column != ValueColumn && cell.Column != OutputVariableColumn)) return;
+        if (cell.Column == ValueColumn && cell.IsEditing) return;
+        if (!CanEditSignal(cell.Column, row) || !TryGetDraggedText(e.Data, out string value))
+        {
+            e.Handled = true;
+            return;
+        }
+        if (!CommitSignalCell()) { e.Handled = true; return; }
+        if (!ViewModel.SignalRows.Contains(row)) { e.Handled = true; return; }
+        if (cell.Column == ValueColumn) row.Value = value;
+        else row.OutputVariable = value;
+        e.Effects = DragDropEffects.Copy;
+        e.Handled = true;
+    }
     private async void OnBrowse(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog { Filter = "CAN 数据库 (*.dbc)|*.dbc|所有文件 (*.*)|*.*", CheckFileExists = true, Multiselect = false };

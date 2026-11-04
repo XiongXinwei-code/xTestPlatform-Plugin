@@ -21,7 +21,7 @@
                             SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}" EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
         </DataTemplate>
         <DataTemplate x:Key="IssueGridTemplate">
-            <DataGrid x:Name="LoadIssuesGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding LoadIssues}"
+            <DataGrid x:Name="LoadIssuesGrid" dbc:DbcSelectionPalette.Enabled="True" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding LoadIssues}"
                       AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False"
                       CanUserSortColumns="False" HeadersVisibility="Column" MaxHeight="180" MinRowHeight="32"
                       HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Auto">
@@ -42,7 +42,7 @@
                     <Button x:Name="BatchConfirmButton" Content="应用选择" Click="OnConfirmBatchAdd" Padding="10,4" Margin="0,0,8,0"/>
                     <Button Content="取消" Click="OnCancelBatchAdd" Padding="10,4"/>
                 </WrapPanel>
-                <DataGrid x:Name="BatchMessagesGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding VisibleRows}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="True" MinRowHeight="32" Height="230" SelectionMode="Extended" SelectionUnit="FullRow">
+                <DataGrid x:Name="BatchMessagesGrid" dbc:DbcSelectionPalette.Enabled="True" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding VisibleRows}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="True" MinRowHeight="32" Height="230" SelectionMode="Extended" SelectionUnit="FullRow">
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="保留" Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                             <CheckBox IsChecked="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanSelect}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -68,7 +68,7 @@
                     <Border x:Name="BatchSelectionPanel" Visibility="{Binding HasBatchSelection, Converter={StaticResource BoolVisibility}}" BorderThickness="1" BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" Padding="10" Margin="0,0,0,10">
                             <ContentControl x:Name="BatchPickerHost" HorizontalContentAlignment="Stretch"/>
                     </Border>
-                    <DataGrid x:Name="MessagesGrid" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding ConfiguredMessages}" SelectedItem="{Binding SelectedConfiguredMessage, Mode=TwoWay}"
+                    <DataGrid x:Name="MessagesGrid" dbc:DbcSelectionPalette.Enabled="True" appearance:CanListAppearance.Enabled="True" ItemsSource="{Binding ConfiguredMessages}" SelectedItem="{Binding SelectedConfiguredMessage, Mode=TwoWay}"
                               AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" SelectionMode="Extended" SelectionUnit="FullRow" MinRowHeight="32" MinHeight="85" MaxHeight="220">
                         <DataGrid.Columns>
                             <DataGridCheckBoxColumn Header="启用" Binding="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
@@ -123,7 +123,7 @@
                     <TextBox Grid.Row="7" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding MaxFrames, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
                     <CheckBox Grid.Row="8" Grid.Column="1" Content="采集 DBC 内全部报文（仅单 ID 模式可用）" IsChecked="{Binding AllDbcMessages, Mode=TwoWay}" IsEnabled="{Binding CanCaptureAll}" Margin="0,0,0,8" Visibility="{Binding IsCapture, Converter={StaticResource BoolVisibility}}"/>
                     <TextBlock Grid.Row="9" Text="JSON 结果变量：" Margin="0,0,8,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}"/>
-                    <TextBox x:Name="ResultVariableBox" Grid.Row="9" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}" ToolTip="填写已声明的字符串变量完整路径，如 Locals.DbcResult；若已配置逐信号输出可留空。不得与信号输出共用目标变量。"/>
+                    <TextBox x:Name="ResultVariableBox" Grid.Row="9" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" Visibility="{Binding HasResult, Converter={StaticResource BoolVisibility}}" AllowDrop="True" PreviewDragOver="OnVariablePathDragOver" PreviewDrop="OnResultVariableDrop" ToolTip="填写或拖入已声明的字符串变量完整路径，如 Locals.DbcResult；若已配置逐信号输出可留空。不得与信号输出共用目标变量。"/>
                     <TextBlock Grid.Row="10" Text="发布间隔 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}"/>
                     <TextBox x:Name="PublishIntervalBox" Grid.Row="10" Grid.Column="1" Width="160" HorizontalAlignment="Left" Text="{Binding PublishIntervalMs, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" Margin="0,0,0,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}" ToolTip="变量更新的合并间隔，不改变 CAN 总线采样频率。"/>
                     <TextBlock Grid.Row="11" Text="新鲜度期限 (ms)：" Margin="0,0,8,8" Visibility="{Binding IsBackgroundRead, Converter={StaticResource BoolVisibility}}"/>
@@ -167,7 +167,12 @@
                         <DataTrigger Binding="{Binding Error}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
                     </Style.Triggers></Style></Button.Style>
                 </Button>
-                <Grid x:Name="SignalRegion" MinHeight="180" Visibility="Collapsed"><DataGrid appearance:CanListAppearance.Enabled="True" MinRowHeight="36" x:Name="SignalsGrid" Visibility="Collapsed" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="0.25,0.25" ScrollViewer.CanContentScroll="True" PreviewMouseLeftButtonDown="OnSignalMouseDown" BeginningEdit="OnSignalBeginningEdit" PreparingCellForEdit="OnSignalPreparingEdit" MinHeight="180" MaxHeight="440">
+                <Grid x:Name="SignalRegion" MinHeight="180" Visibility="Collapsed"><DataGrid appearance:CanListAppearance.Enabled="True" MinRowHeight="36" x:Name="SignalsGrid" dbc:DbcSelectionPalette.Enabled="True" Visibility="Collapsed" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" EnableRowVirtualization="True" EnableColumnVirtualization="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.CacheLength="0.25,0.25" ScrollViewer.CanContentScroll="True" PreviewMouseLeftButtonDown="OnSignalMouseDown" BeginningEdit="OnSignalBeginningEdit" PreparingCellForEdit="OnSignalPreparingEdit" MinHeight="180" MaxHeight="440">
+                    <DataGrid.CellStyle><Style TargetType="DataGridCell">
+                        <Setter Property="AllowDrop" Value="True"/>
+                        <EventSetter Event="PreviewDragOver" Handler="OnSignalDragOver"/>
+                        <EventSetter Event="PreviewDrop" Handler="OnSignalDrop"/>
+                    </Style></DataGrid.CellStyle>
                     <DataGrid.GroupStyle>
                         <GroupStyle><GroupStyle.Panel><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></GroupStyle.Panel><GroupStyle.HeaderTemplate><DataTemplate>
                             <Border Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" Padding="8,6" Margin="0,4,0,0">
@@ -187,7 +192,7 @@
                         <DataGridTextColumn Header="信号" Binding="{Binding Name}" IsReadOnly="True" Width="170"/>
                         <DataGridTemplateColumn x:Name="ValueColumn" Header="发送值表达式" Width="220">
                             <DataGridTemplateColumn.CellTemplate><DataTemplate>
-                                <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Margin="4,0" IsEnabled="{Binding IsEditable}" ToolTip="单击编辑发送值表达式，或按 F2 编辑当前单元格。"/>
+                                <TextBlock Text="{Binding Value}" VerticalAlignment="Center" Margin="4,0" IsEnabled="{Binding IsEditable}" ToolTip="拖入变量替换表达式，或单击编辑后在光标处插入。"/>
                             </DataTemplate></DataGridTemplateColumn.CellTemplate>
                             <DataGridTemplateColumn.CellEditingTemplate><DataTemplate>
                             <expr:ExpressionTextBox ScriptText="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}"
@@ -200,7 +205,7 @@
                             <ComboBox Loaded="OnKindEditorLoaded" SelectedIndex="{Binding ValueKind, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsEditable}"><ComboBoxItem Content="物理值"/><ComboBoxItem Content="原始值 Raw"/></ComboBox>
                         </DataTemplate></DataGridTemplateColumn.CellEditingTemplate></DataGridTemplateColumn>
                         <DataGridTemplateColumn x:Name="OutputVariableColumn" Header="输出变量（留空不输出）" Width="250"><DataGridTemplateColumn.CellTemplate><DataTemplate>
-                                <TextBlock Text="{Binding OutputVariable}" Margin="4,0" VerticalAlignment="Center" IsEnabled="{Binding CanBindOutput}" ToolTip="单击输入平台变量路径，或按 F2 编辑。"/>
+                                <TextBlock Text="{Binding OutputVariable}" Margin="4,0" VerticalAlignment="Center" IsEnabled="{Binding CanBindOutput}" ToolTip="拖入平台变量，或单击输入完整变量路径。"/>
                             </DataTemplate></DataGridTemplateColumn.CellTemplate>
                             <DataGridTemplateColumn.CellEditingTemplate><DataTemplate>
                             <TextBox Text="{Binding OutputVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanBindOutput}"

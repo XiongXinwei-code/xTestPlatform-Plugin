@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using System.Reflection;
 using CAN.Dbc;
 using CAN.UI.Dbc;
 using CAN.UI.Views;
@@ -78,9 +79,35 @@ internal static class DbcRenderTests
                 Assert.Null(view.FindName("ProtectionEditor"));
                 Assert.Equal(model.HasTaskName, view.FindName("TaskNameEditor") != null);
                 var grid = Assert.IsType<DataGrid>(view.FindName("SignalsGrid"));
+                Assert.Equal(Color.FromRgb(0xDF, 0xEE, 0xFA),
+                    Assert.IsType<SolidColorBrush>(grid.TryFindResource(SystemColors.HighlightBrushKey)).Color);
+                Assert.Equal(Color.FromRgb(0x1F, 0x29, 0x37),
+                    Assert.IsType<SolidColorBrush>(grid.TryFindResource(SystemColors.HighlightTextBrushKey)).Color);
+                var messages = Assert.IsType<DataGrid>(view.FindName("MessagesGrid"));
+                Assert.Equal(Color.FromRgb(0xDF, 0xEE, 0xFA),
+                    Assert.IsType<SolidColorBrush>(messages.TryFindResource(SystemColors.HighlightBrushKey)).Color);
+                CAN.UI.Dbc.DbcSelectionPalette.Apply(messages, true);
+                Assert.False(messages.Resources.Contains(SystemColors.HighlightBrushKey));
+                Assert.False(messages.Resources.Contains(SystemColors.HighlightTextBrushKey));
+                CAN.UI.Dbc.DbcSelectionPalette.Apply(messages, false);
                 Assert.Empty(Descendants(grid).OfType<DataGridRow>());
                 var scroller = Assert.IsType<ScrollViewer>(view.FindName("EditorScroll"));
                 scroller.ScrollToEnd(); Layout(view);
+                grid.SelectedItem = model.SignalRows[0];
+                view.UpdateLayout();
+                DependencyObject? selectedCell = grid.Columns[0].GetCellContent(model.SignalRows[0]);
+                while (selectedCell != null && selectedCell is not DataGridCell) selectedCell = VisualTreeHelper.GetParent(selectedCell);
+                var selected = Assert.IsType<DataGridCell>(selectedCell);
+                Assert.True(selected.IsSelected);
+                var selectedBackground = Assert.IsType<SolidColorBrush>(selected.Background).Color;
+                Assert.True(selectedBackground == Color.FromRgb(0xDF, 0xEE, 0xFA) ||
+                    selectedBackground == Color.FromRgb(0xED, 0xF4, 0xFA),
+                    $"选中单元格背景未采用浅蓝色：{selectedBackground}");
+                var text = Descendants(grid.Columns[0].GetCellContent(model.SignalRows[0]))
+                    .OfType<TextBlock>().First();
+                var foreground = Assert.IsType<SolidColorBrush>(text.Foreground).Color;
+                Assert.True(foreground.R < 128 && foreground.G < 128 && foreground.B < 128,
+                    $"浅色选中背景下的文字颜色过亮：{foreground}");
                 Assert.Equal(64, model.TotalSignalCount); Assert.Equal(50, grid.Items.Count); Assert.Equal(4, grid.Items.Groups!.Count);
                 int realized = Descendants(grid).OfType<DataGridRow>().Count();
                 Assert.InRange(realized, 1, grid.Items.Count - 1);
@@ -89,6 +116,12 @@ internal static class DbcRenderTests
                 {
                     var row = model.SignalRows.First(); row.Selected = true;
                     var column = grid.Columns.Single(c => Equals(c.Header, "发送值表达式"));
+                    DropOnCell(grid, row, column, view, "Locals.Dragged");
+                    Assert.Equal("Locals.Dragged", row.Value);
+                    row.Selected = false;
+                    DropOnCell(grid, row, column, view, "Locals.Disabled");
+                    Assert.Equal("Locals.Dragged", row.Value);
+                    row.Selected = true;
                     var editor = EditValue(grid, row, column, view);
                     editor.GetType().GetProperty("ScriptText")!.SetValue(editor, "Locals.Target");
                     Assert.True(grid.CommitEdit(DataGridEditingUnit.Cell, true));
@@ -96,6 +129,21 @@ internal static class DbcRenderTests
                     var saved = (DbcCanSetting)plugin.CreateSerializer().Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
                     Assert.Equal("Locals.Target", saved.Messages[0].Signals.Single(s => s.Name == "S0").Value);
                     Assert.DoesNotContain(Descendants(grid), v => v.GetType().Name == "ExpressionTextBox");
+                }
+                if (model.IsRead)
+                {
+                    var row = model.SignalRows.First();
+                    var column = grid.Columns.Single(c => Equals(c.Header, "输出变量（留空不输出）"));
+                    DropOnCell(grid, row, column, view, "Locals.DraggedOutput");
+                    var other = model.SignalRows.First(r => r.MessageId != row.MessageId);
+                    DropOnCell(grid, other, column, view, "Locals.OtherOutput");
+                    var result = Assert.IsType<TextBox>(view.FindName("ResultVariableBox"));
+                    RaiseDrop(result, "Locals.DraggedResult");
+                    model.Flush();
+                    var saved = (DbcReadSetting)plugin.CreateSerializer().Deserialize(step.StepSetting.Setting, step.StepSetting.SettingVersion);
+                    Assert.Equal("Locals.DraggedOutput", saved.Messages[0].SignalOutputs.Single(s => s.Name == "S0").TargetVariable);
+                    Assert.Equal("Locals.OtherOutput", saved.Messages[1].SignalOutputs.Single(s => s.Name == "S0").TargetVariable);
+                    Assert.Equal("Locals.DraggedResult", saved.ResultVariable);
                 }
                 var tabs = Assert.IsType<Syncfusion.Windows.Tools.Controls.TabControlExt>(view.Content);
                 tabs.SelectedIndex = 1; Layout(view);
@@ -116,7 +164,46 @@ internal static class DbcRenderTests
             }
             finally { view.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent)); }
         }
+        var snapshotPlugin = new CAN.CANopen.Cyclic.SnapshotReadPlugin();
+        var snapshotSerializer = snapshotPlugin.CreateSerializer();
+        var snapshotStep = new Step();
+        snapshotStep.StepSetting.StepType = snapshotPlugin.StepTypeId;
+        snapshotStep.StepSetting.SettingVersion = snapshotSerializer.SettingVersion;
+        snapshotStep.StepSetting.Setting = snapshotSerializer.Serialize(snapshotSerializer.CreateDefault());
+        var snapshot = new CyclicServiceEditorView(snapshotPlugin);
+        try
+        {
+            snapshot.RefreshFromStep(snapshotStep);
+            DbcStageQueue.LayoutOnce(snapshot, new Size(1300, 850));
+            var result = Assert.IsType<TextBox>(snapshot.FindName("ResultVariableEditor"));
+            Assert.True(result.AllowDrop);
+            RaiseDrop(result, "Locals.CanSnapshot");
+            snapshot.ViewModel.Flush();
+            var saved = (CAN.CANopen.Cyclic.CyclicSetting)snapshotSerializer.Deserialize(snapshotStep.StepSetting.Setting, snapshotSerializer.SettingVersion);
+            Assert.Equal("Locals.CanSnapshot", saved.ResultVariable);
+        }
+        finally { snapshot.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent)); }
         File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "dbc-render-ui.json"), JsonSerializer.Serialize(evidence));
+    }
+
+    private static void DropOnCell(DataGrid grid, DbcSignalRow row, DataGridColumn column, FrameworkElement view, string text)
+    {
+        grid.ScrollIntoView(row, column);
+        view.UpdateLayout();
+        DependencyObject node = column.GetCellContent(row);
+        while (node is not DataGridCell) node = VisualTreeHelper.GetParent(node);
+        RaiseDrop((DataGridCell)node, text);
+    }
+
+    private static void RaiseDrop(UIElement target, string text)
+    {
+        var data = new DataObject(DataFormats.StringFormat, text);
+        var constructor = typeof(DragEventArgs).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic,
+            null, [typeof(IDataObject), typeof(DragDropKeyStates), typeof(DragDropEffects), typeof(DependencyObject), typeof(Point)], null)!;
+        var args = (DragEventArgs)constructor.Invoke([data, DragDropKeyStates.LeftMouseButton, DragDropEffects.Copy, target, new Point()]);
+        args.RoutedEvent = UIElement.PreviewDropEvent;
+        target.RaiseEvent(args);
+        Assert.True(args.Handled);
     }
 
     private static void Layout(FrameworkElement view)

@@ -1,4 +1,4 @@
-<UserControl x:Class="NiGrpc.UI.Views.NiGrpcEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="NiGrpc.UI.Views.NiGrpcEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -31,7 +31,7 @@
                     </Grid>
                     <Grid x:Name="ResultRow" Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <TextBlock Text="响应字符串变量" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox vardrop:VariableDrop.Target="True" Grid.Column="1" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                     </Grid>
                     <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="155"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <TextBlock Text="总期限 (ms)" VerticalAlignment="Center"/>

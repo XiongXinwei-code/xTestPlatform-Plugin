@@ -1,6 +1,6 @@
 # OpcUa 插件
 
-当前版本 **1.0.32**：远端关闭与本地 Session 释放分账；使用 SDK 显式无隐式 Dispose 的关闭重载，再执行一次本地 Dispose。取消/采集历史错误保存诊断，不阻断真实释放；保留子采集故障。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
+当前版本 **1.0.33**：远端关闭与本地 Session 释放分账；使用 SDK 显式无隐式 Dispose 的关闭重载，再执行一次本地 Dispose。取消/采集历史错误保存诊断，不阻断真实释放；保留子采集故障。 软件验证与限制见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 
 修改汇总与交付边界见 [插件修改说明](../docs/PLUGIN_CHANGES.md)。
 

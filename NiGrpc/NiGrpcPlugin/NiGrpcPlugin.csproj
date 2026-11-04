@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <Description>通过 NI gRPC Device Server 调用 DAQmx 和 XNET 的步骤插件</Description>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>

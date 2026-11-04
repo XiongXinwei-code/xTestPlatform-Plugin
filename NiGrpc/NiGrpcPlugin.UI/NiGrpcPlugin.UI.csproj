@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>1.0.5</Version><TargetFramework>net8.0-windows</TargetFramework><Nullable>enable</Nullable><UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings><AssemblyName>NiGrpc.StepPlugin.UI</AssemblyName><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Version>1.0.6</Version><TargetFramework>net8.0-windows</TargetFramework><Nullable>enable</Nullable><UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings><AssemblyName>NiGrpc.StepPlugin.UI</AssemblyName><CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup><Resource Include="Resources/Icons/*.png" CopyToOutputDirectory="Never" /></ItemGroup>
   <ItemGroup>

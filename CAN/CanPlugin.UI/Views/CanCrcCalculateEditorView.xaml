@@ -1,4 +1,4 @@
-<UserControl x:Class="CAN.UI.Views.CanCrcCalculateEditorView"
+<UserControl xmlns:vardrop="clr-namespace:PluginCommon.UI" x:Class="CAN.UI.Views.CanCrcCalculateEditorView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
@@ -15,7 +15,7 @@
                     <TextBlock Grid.Row="1" Text="计算超时 (ms)：" Margin="0,0,8,8" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TimeoutMs, UpdateSourceTrigger=PropertyChanged}" Width="240" HorizontalAlignment="Left" Margin="0,0,0,8"/>
                     <TextBlock Grid.Row="2" Text="CRC 结果变量（可选）：" Margin="0,0,8,8" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
+                    <TextBox vardrop:VariableDrop.Target="True" Grid.Row="2" Grid.Column="1" Text="{Binding ResultVariable, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" Margin="0,0,0,8"/>
                     <TextBlock Grid.Row="3" Grid.ColumnSpan="2" TextWrapping="Wrap" Foreground="#666666" Text="纯离线计算，无需 CAN 连接。输入完整报文字节，计算范围在 CRC 配置中选择；结果为 0x 开头的十六进制字符串。可填已声明的字符串变量路径（如 Locals.Crc），留空时只返回步骤结果。只读取现有 Counter / NIBBLE，不累加 RC、不改写输入报文、不发送报文。"/>
                 </Grid>
             </ScrollViewer>
