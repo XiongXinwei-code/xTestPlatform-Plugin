@@ -65,7 +65,10 @@ jobs:
         run: |
           $newVersion = "${{ steps.bump_version.outputs.new_version }}"
 
-          $pluginDirs = Get-ChildItem -Directory | Where-Object {
+          $pluginDirs = @(
+              Get-ChildItem -Directory
+              Get-ChildItem Widgets -Directory -ErrorAction SilentlyContinue
+          ) | Where-Object {
               (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
           }
 
@@ -114,12 +117,20 @@ jobs:
         shell: pwsh
         run: |
           # 约定：<模块>/<核心项目>/*Plugin.csproj；不能把测试或深层产物当成插件。
-          $pluginDirs = Get-ChildItem -Directory | Where-Object {
+          $pluginDirs = @(
+              Get-ChildItem -Directory
+              Get-ChildItem Widgets -Directory -ErrorAction SilentlyContinue
+          ) | Where-Object {
               (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
           }
 
           if ($pluginDirs.Count -eq 0) {
               Write-Error "❌ 未找到任何插件目录"
+              exit 1
+          }
+          dotnet build tools\WidgetInfoExtractor\WidgetInfoExtractor.csproj -c Release --nologo -v q
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "❌ WidgetInfoExtractor 编译失败"
               exit 1
           }
 
@@ -285,21 +296,36 @@ jobs:
                   }
               }
 
-              # 包含的步骤：反射扫描编译产物中的 *.StepPlugin.dll，提取所有 IStepPlugin 实现的 DisplayName/Description
+              # 按程序集类型分别提取步骤和控件元数据；混合包可以同时包含两类。
               $steps = @()
-              $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)" --strict
-              if ($LASTEXITCODE -eq 0 -and $stepsJson) {
+              $widgets = @()
+              if (Get-ChildItem $dir.FullName -Filter "*.StepPlugin.dll") {
+                $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)" --strict
+                if ($LASTEXITCODE -eq 0 -and $stepsJson) {
                   try {
                       $steps = @(($stepsJson -join "`n") | ConvertFrom-Json)
                   } catch {
                       Write-Error "$pluginName 步骤信息 JSON 解析失败：$_"
                       exit 1
                   }
-              } else {
+                } else {
                   Write-Error "$pluginName 核心/UI/步骤契约严格校验失败，停止发布"
                   exit 1
+                }
               }
-              if ($steps.Count -eq 0) { Write-Error "$pluginName 未提取到任何步骤"; exit 1 }
+              if (Get-ChildItem $dir.FullName -Filter "*.WidgetPlugin.dll") {
+                $widgetsJson = dotnet run --project tools\WidgetInfoExtractor -c Release --no-build -- "$($dir.FullName)" --strict
+                if ($LASTEXITCODE -eq 0 -and $widgetsJson) {
+                  try { $widgets = @(($widgetsJson -join "`n") | ConvertFrom-Json) }
+                  catch { Write-Error "$pluginName 控件信息 JSON 解析失败：$_"; exit 1 }
+                } else {
+                  Write-Error "$pluginName 控件契约严格校验失败，停止发布"; exit 1
+                }
+              }
+              if ($steps.Count -eq 0 -and $widgets.Count -eq 0) { Write-Error "$pluginName 未提取到步骤或控件"; exit 1 }
+              $pluginTypes = @()
+              if ($steps.Count) { $pluginTypes += 'Step' }
+              if ($widgets.Count) { $pluginTypes += 'Widget' }
 
               $entries += [ordered]@{
                   name               = $pluginName
@@ -311,10 +337,16 @@ jobs:
                   sha256             = $sha256
                   size               = $size
                   minPlatformVersion = ""
+                  minWidgetSdkVersion = $(if ($widgets.Count) { "1.0.0" } else { "" })
+                  maxWidgetSdkVersion = ""
+                  targetFramework    = $(if ($widgets.Count) { "net8.0-windows" } else { "" })
+                  architecture       = "x64"
+                  pluginTypes        = $pluginTypes
                   readme             = $readme
                   changelog          = $changelog
                   icon               = $icon
                   steps              = $steps
+                  widgets            = $widgets
               }
               Write-Host "  📦 $pluginZip  v$pluginVersion  ($([math]::Round($size/1KB,1)) KB)"
           }

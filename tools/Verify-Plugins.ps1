@@ -29,6 +29,10 @@ $modules = @(
     @{ Name = 'VISA'; Project = 'VisaPlugin' },
     @{ Name = 'NiGrpc'; Project = 'NiGrpcPlugin' }
 )
+$widgetModules = @(
+    @{ Name = 'Waveform'; ProjectPath = 'Widgets/Waveform/WaveformWidgetPlugin/WaveformWidgetPlugin.csproj'; TestPath = 'Widgets/Waveform/WaveformWidget.Tests/WaveformWidget.Tests.csproj' },
+    @{ Name = 'SfWaveform'; ProjectPath = 'Widgets/SfWaveform/SfWaveformWidgetPlugin/SfWaveformWidgetPlugin.csproj'; TestPath = 'Widgets/SfWaveform/SfWaveformWidget.Tests/SfWaveformWidget.Tests.csproj' }
+)
 function Invoke-Dotnet([string[]]$Arguments) {
     & dotnet @Arguments
     if ($LASTEXITCODE -ne 0) { throw "dotnet 失败，退出码=$LASTEXITCODE，参数=$($Arguments -join ' ')" }
@@ -82,8 +86,29 @@ if ($Mode -eq 'Package') {
     }
 }
 
+foreach ($widget in $widgetModules) {
+    $destination = Join-Path $outputPath "Plugins/$($widget.Name)"
+    New-Item -ItemType Directory -Force -Path $destination | Out-Null
+    Invoke-Dotnet @('build', $widget.ProjectPath, '-c', 'Release', '-m:1', '-v', 'minimal', '--no-restore',
+        '-p:Platform=x64', "-p:OutputPath=$destination")
+    Invoke-Dotnet @('build', $widget.TestPath, '-c', 'Release', '-m:1', '-v', 'minimal', '--no-restore')
+}
+
 Invoke-Dotnet @('build', 'tools/StepInfoExtractor/StepInfoExtractor.csproj', '-c', 'Release', '--no-restore',
     '-v', 'minimal', "-p:OutputPath=$logs/inspector")
+Invoke-Dotnet @('build', 'tools/WidgetInfoExtractor/WidgetInfoExtractor.csproj', '-c', 'Release', '--no-restore',
+    '-v', 'minimal', "-p:OutputPath=$logs/widget-inspector")
+$widgetRecords = @()
+foreach ($widget in $widgetModules) {
+    $destination = Join-Path $outputPath "Plugins/$($widget.Name)"
+    $metadata = & dotnet (Join-Path $logs 'widget-inspector/WidgetInfoExtractor.dll') $destination '--strict'
+    if ($LASTEXITCODE -ne 0) { throw "$($widget.Name) 控件契约与依赖加载失败" }
+    $metadataJson = $metadata -join [Environment]::NewLine
+    [IO.File]::WriteAllText((Join-Path $logs "$($widget.Name)-widgets.json"), $metadataJson, [Text.UTF8Encoding]::new($false))
+    $widgets = @($metadataJson | ConvertFrom-Json)
+    if (-not $widgets.Count) { throw "$($widget.Name) 未发现控件插件" }
+    $widgetRecords += @{ name = $widget.Name; widgetCount = $widgets.Count }
+}
 $records = @()
 foreach ($module in $modules) {
     $destination = Join-Path $outputPath "Plugins/$($module.Name)"

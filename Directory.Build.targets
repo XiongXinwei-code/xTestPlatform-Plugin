@@ -1,9 +1,9 @@
 <Project>
-  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Plugin'))">
+  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Plugin')) and !$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('WidgetPlugin'))">
     <DefineConstants>$(DefineConstants);PLUGIN_$(RootNamespace)</DefineConstants>
   </PropertyGroup>
   <!-- Private source links keep plugin folders independently deployable. -->
-  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Plugin'))">
+  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('Plugin')) and !$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('WidgetPlugin'))">
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Serialization/*.cs" Link="Internal/Serialization/%(Filename)%(Extension)" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/PendingIoGate.cs" Link="Internal/PendingIoGate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Shared/Runtime/RetiringResources.cs" Link="Internal/RetiringResources.cs" />
