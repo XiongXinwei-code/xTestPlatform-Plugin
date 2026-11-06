@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <SelfContained>false</SelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LabVIEWCall.BridgeTestHost</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../BridgeProtocol/*.cs" Link="BridgeProtocol/%(Filename)%(Extension)" />
+    <Compile Include="../LabVIEWCallPlugin/LVadapter/**/*.cs" Link="LVadapter/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

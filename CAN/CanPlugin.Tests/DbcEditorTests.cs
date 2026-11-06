@@ -3,7 +3,6 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Threading;
 using CAN.Dbc;
 using CAN.Models;
 using CAN.UI.Dbc;
@@ -33,7 +32,7 @@ public sealed class DbcEditorTests
     // Called by the shared real-view STA test; Syncfusion caches cannot span dispatchers.
     internal static void VerifyAllEditorWorkflows()
     {
-        RunWithDispatcher(VerifyActualDbcPagesAsync);
+        DbcEditorTestContext.Run(nameof(DbcEditorTests), TimeSpan.FromSeconds(10), VerifyActualDbcPagesAsync);
         VerifyReadProtectionPresentation();
     }
 
@@ -48,36 +47,11 @@ public sealed class DbcEditorTests
         await VerifyUncooperativeFileReadAsync();
     }
 
-    private static void RunWithDispatcher(Func<Task> action)
-    {
-        var dispatcher = Dispatcher.CurrentDispatcher;
-        var previous = SynchronizationContext.Current;
-        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
-        try
-        {
-            var task = action();
-            if (!task.IsCompleted)
-            {
-                var frame = new DispatcherFrame();
-                bool timedOut = false;
-                var timer = new DispatcherTimer(DispatcherPriority.Send, dispatcher) { Interval = TimeSpan.FromSeconds(10) };
-                timer.Tick += (_, _) => { timedOut = true; frame.Continue = false; };
-                _ = task.ContinueWith(_ => dispatcher.BeginInvoke(() => frame.Continue = false), TaskScheduler.Default);
-                timer.Start();
-                try { Dispatcher.PushFrame(frame); }
-                finally { timer.Stop(); }
-                Assert.False(timedOut, "DBC 页面测试等待后台加载超过 10 秒");
-            }
-            task.GetAwaiter().GetResult();
-        }
-        finally { SynchronizationContext.SetSynchronizationContext(previous); }
-    }
-
-    internal static async Task VerifyActualDbcPagesAsync()
+    private static async Task VerifyActualDbcPagesAsync(DbcEditorTestContext ui)
     {
         var plugin = new DbcWritePlugin(); var first = MakeStep(plugin, new DbcWriteSetting());
         var next = MakeStep(plugin, new DbcWriteSetting());
-        var view = DbcStageQueue.Create(plugin); view.RefreshFromStep(first);
+        var view = DbcStageQueue.Create(ui.CreateModel(plugin)); view.RefreshFromStep(first);
         var temporary = Path.Combine(Path.GetTempPath(), $"xtest-dbc-{Guid.NewGuid():N}.dbc");
         try
         {
@@ -125,7 +99,7 @@ public sealed class DbcEditorTests
         {
             var setting = (DbcSourceSetting)other.CreateSerializer().CreateDefault(); setting.Document = Document();
             if (setting is DbcCanSetting can) { can.UseMessageList = false; can.MessageId = 0x123; }
-            var current = DbcStageQueue.Create(other); current.RefreshFromStep(MakeStep(other, setting));
+            var current = DbcStageQueue.Create(ui.CreateModel(other)); current.RefreshFromStep(MakeStep(other, setting));
             await current.ViewModel.LoadTask; Layout(current);
             Assert.Empty(current.ViewModel.LoadError); Assert.Equal(2, current.ViewModel.Messages.Count);
             Assert.Equal(4, current.ViewModel.SignalRows.Count); Assert.True(current.ViewModel.HasConnection);
@@ -145,7 +119,7 @@ public sealed class DbcEditorTests
             Assert.Same(current.ViewModel.Protection, Assert.IsType<PayloadProtectionEditorView>(current.FindName("ProtectionEditor")).DataContext);
             current.ViewModel.Deactivate();
         }
-        await DbcOutputEditorTests.VerifyActualOutputPagesAsync();
+        await DbcOutputEditorTests.VerifyActualOutputPagesAsync(ui);
     }
 
     private static async Task VerifyLateParseAsync()

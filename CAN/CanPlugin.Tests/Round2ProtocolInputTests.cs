@@ -17,19 +17,24 @@ namespace CAN.Tests;
 public sealed class Round2ProtocolInputTests
 {
     [Theory]
-    [InlineData("UdsDiagSession", "SessionType")]
-    [InlineData("UdsRoutineControl", "ControlType")]
-    public async Task UnknownUdsEnumCannotTruncateToAnotherSubfunction(string name, string field)
+    [InlineData("UdsDiagSession", "SessionType", "未知的诊断会话类型")]
+    [InlineData("UdsRoutineControl", "ControlType", "未知的例程控制类型")]
+    public async Task UnknownUdsEnumCannotTruncateToAnotherSubfunction(string name, string field, string expectedError)
     {
         var plugin = (IStepPlugin)Activator.CreateInstance(typeof(CanOpenPlugin).Assembly.GetType($"CAN.UDS.{name}Plugin")!)!;
         var setting = (UdsCommonSetting)plugin.CreateSerializer().CreateDefault(); setting.ResponseTimeoutMs = 30;
         var property = setting.GetType().GetProperty(field)!; property.SetValue(setting, Enum.ToObject(property.PropertyType, 257));
+        var invalidSave = Assert.Throws<System.Text.Json.JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains("$." + field, invalidSave.Message);
+        var stored = Round2XcpContractTests.Context(plugin, setting, untrustedInput: true);
         var context = DispatchProxy.Create<IExecutionContext, CloseContext>(); var state = (CloseContext)(object)context;
         var raw = new FakeAdapter(); state.Adapter = raw; state.Plugin = plugin; state.Setting = setting;
+        state.SettingBytes = stored.Setting;
         var result = await plugin.CreateExecutor().ExecuteAsync(context);
         Assert.Empty(raw.Sent); Assert.Equal(TestStatus.Error, result.StepResult.Status);
+        Assert.StartsWith(expectedError, result.StepResult.Error?.Message);
         var editor = (StepEditor.Abstractions.IStepEditorPlugin)Activator.CreateInstance(typeof(CAN.UI.XcpConnectEditorPlugin).Assembly.GetType($"CAN.UI.{name}EditorPlugin")!)!;
-        Assert.Contains(await editor.ValidateWithContextAsync(Round2XcpContractTests.Context(plugin, setting)), e => e.Code == "CAN_VALUE_RANGE");
+        Assert.Contains(await editor.ValidateWithContextAsync(stored), e => e.Code == "CAN_VALUE_RANGE");
     }
 
     [Theory]

@@ -27,6 +27,12 @@
     <Project Path="LIN/LinPlugin.UI/LinPlugin.UI.csproj" />
     <Project Path="LIN/LinPlugin/LinPlugin.csproj" />
   </Folder>
+  <Folder Name="/LabVIEWCall/">
+    <Project Path="LabVIEWCall/LabVIEWCallBridgeHost/LabVIEWCallBridgeHost.csproj" />
+    <Project Path="LabVIEWCall/LabVIEWCallPlugin/LabVIEWCallPlugin.csproj" />
+    <Project Path="LabVIEWCall/LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj" />
+    <Project Path="LabVIEWCall/LabVIEWCallPlugin.Tests/LabVIEWCallPlugin.Tests.csproj" />
+  </Folder>
     <Folder Name="/Modbus/">
       <Project Path="Modbus/ModbusPlugin.Tests/ModbusPlugin.Tests.csproj" />
       <Project Path="Modbus/ModbusPlugin.UI/ModbusPlugin.UI.csproj" />
@@ -57,8 +63,21 @@
     <Project Path="VISA/VisaPlugin.UI/VisaPlugin.UI.csproj" />
     <Project Path="VISA/VisaPlugin/VisaPlugin.csproj" />
   </Folder>
+  <Folder Name="/Widgets/Waveform/">
+    <Project Path="Widgets/Waveform/WaveformWidgetPlugin/WaveformWidgetPlugin.csproj" />
+    <Project Path="Widgets/Waveform/WaveformWidget.Tests/WaveformWidget.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Widgets/SfWaveform/">
+    <Project Path="Widgets/SfWaveform/SfWaveformWidgetPlugin/SfWaveformWidgetPlugin.csproj" />
+    <Project Path="Widgets/SfWaveform/SfWaveformWidget.Tests/SfWaveformWidget.Tests.csproj" />
+  </Folder>
   <Folder Name="/RegressionTests/">
     <Project Path="tests/PluginRegression.Tests/PluginRegression.Tests.csproj" />
+  </Folder>
+  <Folder Name="/ZlgEtherCat/">
+    <Project Path="ZlgEtherCat/ZlgEtherCatPlugin/ZlgEtherCatPlugin.csproj" />
+    <Project Path="ZlgEtherCat/ZlgEtherCatPlugin.UI/ZlgEtherCatPlugin.UI.csproj" />
+    <Project Path="ZlgEtherCat/ZlgEtherCatPlugin.Tests/ZlgEtherCatPlugin.Tests.csproj" />
   </Folder>
 </Solution>
 

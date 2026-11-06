@@ -125,14 +125,14 @@ public class BoundaryContext : DispatchProxy
     public void UseRegistry(IResourceRegistry registry) => _registry = registry;
     private object _registry = null!;
     private StepExecutionInfo _step = null!;
-    public static (IExecutionContext Context, BoundaryContext State) Create(IStepPlugin plugin, object setting, BoundaryStore? sharedStore = null)
+    public static (IExecutionContext Context, BoundaryContext State) Create(IStepPlugin plugin, object setting, BoundaryStore? sharedStore = null, byte[]? storedBytes = null)
     {
         var context = DispatchProxy.Create<IExecutionContext, BoundaryContext>();
         var state = (BoundaryContext)(object)context;
         var step = new Step();
         step.StepSetting.StepType = plugin.StepTypeId;
         step.StepSetting.SettingVersion = plugin.CreateSerializer().SettingVersion;
-        step.StepSetting.Setting = plugin.CreateSerializer().Serialize(setting);
+        step.StepSetting.Setting = storedBytes ?? plugin.CreateSerializer().Serialize(setting);
         state._step = new() { Step = step };
         var type = typeof(IExecutionContext).GetProperty("Resources")?.PropertyType ??
             typeof(IExecutionContext).GetInterfaces().SelectMany(i => i.GetProperties()).First(p => p.Name == "Resources").PropertyType;

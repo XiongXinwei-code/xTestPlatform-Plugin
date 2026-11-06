@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using CAN.Dbc;
 using CAN.Models;
 using CAN.UI.Dbc;
@@ -168,24 +167,19 @@ public sealed class DbcBatchSelectionTests
     internal static void VerifyActualPages()
     {
         WriteProgress("DBC suite enter");
-        var dispatcher = Dispatcher.CurrentDispatcher; var previous = SynchronizationContext.Current;
-        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
         try
         {
-            // Preload DBC models before constructing any Syncfusion control. Pumping
-            // unrelated SDK license notifications while views exist enters a modal
-            // Window.ShowDialog in the unlicensed software-only test host.
-            var task = PreparePagesAsync(); WriteProgress("DBC model preload task created"); var frame = new DispatcherFrame();
-            var timer = new DispatcherTimer(DispatcherPriority.Send, dispatcher) { Interval = TimeSpan.FromSeconds(12) };
-            bool timedOut = false; timer.Tick += (_, _) => { WriteProgress("DBC 12-second dispatcher timeout"); timedOut = true; frame.Continue = false; };
-            _ = task.ContinueWith(_ => dispatcher.BeginInvoke(() => frame.Continue = false), TaskScheduler.Default);
-            timer.Start(); try { if (!task.IsCompleted) Dispatcher.PushFrame(frame); } finally { timer.Stop(); }
-            WriteProgress("DBC preload frame exited"); Assert.False(timedOut, "DBC batch model preload exceeded 12 seconds");
-            VerifyPreparedPages(task.GetAwaiter().GetResult());
+            DbcEditorTestContext.Run(nameof(DbcBatchSelectionTests), TimeSpan.FromSeconds(12), async ui =>
+            {
+                var prepared = await PreparePagesAsync(ui);
+                WriteProgress("DBC model preload complete");
+                VerifyPreparedPages(prepared);
+            });
         }
-        finally { SynchronizationContext.SetSynchronizationContext(previous); WriteProgress("DBC suite exit"); }
+        finally { WriteProgress("DBC suite exit"); }
     }
-    private static async Task<List<(IStepPlugin Plugin, Step Step, DbcEditorViewModel Model)>> PreparePagesAsync()
+
+    private static async Task<List<(IStepPlugin Plugin, Step Step, DbcEditorViewModel Model)>> PreparePagesAsync(DbcEditorTestContext ui)
     {
         IStepPlugin[] plugins = [new DbcReadPlugin(), new DbcWritePlugin(), new DbcCyclicWritePlugin(), new DbcCapturePlugin(), new DbcReadBackgroundStartPlugin()];
         var prepared = new List<(IStepPlugin, Step, DbcEditorViewModel)>();
@@ -193,7 +187,7 @@ public sealed class DbcBatchSelectionTests
         {
             WriteProgress(plugin.StepTypeId + " preload model");
             var setting = (DbcCanSetting)plugin.CreateSerializer().CreateDefault(); setting.Document = Document(); setting.UseMessageList = true;
-            var step = Step(plugin, setting); var model = new DbcEditorViewModel(plugin); model.Attach(step); await model.LoadTask;
+            var step = Step(plugin, setting); var model = ui.CreateModel(plugin); model.Attach(step); await model.LoadTask;
             prepared.Add((plugin, step, model));
         }
         return prepared;

@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+	<Version>1.0.31</Version>
+		<TargetFramework>net8.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Platforms>AnyCPU;x64</Platforms>
+		<PlatformTarget>x64</PlatformTarget>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<AssemblyName>LabVIEWCall.StepPlugin</AssemblyName>
+		<RootNamespace>LabVIEWCallPlugin</RootNamespace>
+		<OutputPath>..\..\..\xTestPlatform\xTestPlatform\bin\$(Configuration)\$(TargetFramework)\win-x64\Plugins\LabVIEWCall\</OutputPath>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MessagePack" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xTestPlatform.StepEditor.SDK" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="Resources\lvLib.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<TargetPath>lvLib.dll</TargetPath>
+		</Content>
+		<Content Include="Resources\lvLibItems.vi">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<TargetPath>lvLibItems.vi</TargetPath>
+		</Content>
+	</ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\BridgeProtocol\*.cs" Link="BridgeProtocol\%(Filename)%(Extension)" />
+    <ProjectReference Include="..\LabVIEWCallBridgeHost\LabVIEWCallBridgeHost.csproj" ReferenceOutputAssembly="false" Private="false"
+                      GlobalPropertiesToRemove="OutputPath;OutDir;PluginOutputRoot;AppendRuntimeIdentifierToOutputPath;AppendTargetFrameworkToOutputPath" />
+    <Content Include="..\LabVIEWCallBridgeHost\bin\$(Configuration)\net8.0-windows\win-x64\LabVIEWCall.BridgeHost.exe;
+                      ..\LabVIEWCallBridgeHost\bin\$(Configuration)\net8.0-windows\win-x64\LabVIEWCall.BridgeHost.dll;
+                      ..\LabVIEWCallBridgeHost\bin\$(Configuration)\net8.0-windows\win-x64\LabVIEWCall.BridgeHost.deps.json;
+                      ..\LabVIEWCallBridgeHost\bin\$(Configuration)\net8.0-windows\win-x64\LabVIEWCall.BridgeHost.runtimeconfig.json;
+                      Resources\lvLib.dll;Resources\lvLibItems.vi"
+             Link="bridge\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <InternalsVisibleTo Include="LabVIEWCall.StepPlugin.UI" />
+    <InternalsVisibleTo Include="LabVIEWCallPlugin.Tests" />
+  </ItemGroup>
+</Project>

@@ -14,6 +14,8 @@ namespace Ethernet.PluginInfrastructure;
 namespace Http.PluginInfrastructure;
 #elif PLUGIN_LIN
 namespace LIN.PluginInfrastructure;
+#elif PLUGIN_LabVIEWCallPlugin
+namespace LabVIEWCallPlugin.PluginInfrastructure;
 #elif PLUGIN_Modbus
 namespace Modbus.PluginInfrastructure;
 #elif PLUGIN_NiDaq
@@ -26,6 +28,8 @@ namespace OpcUa.PluginInfrastructure;
 namespace SerialPort.PluginInfrastructure;
 #elif PLUGIN_VISA
 namespace VISA.PluginInfrastructure;
+#elif PLUGIN_ZlgEtherCat
+namespace ZlgEtherCat.PluginInfrastructure;
 #else
 #error Strict settings base requires a plugin-specific compile symbol.
 #endif

@@ -1,9 +1,11 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using LIN.Models;
 using LIN.UI.Editors;
 using LIN.UI.Views;
+using PluginTestCommon;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
@@ -59,12 +61,17 @@ public sealed class Round2EditorContractTests
         IStepPlugin plugin = wake ? new LinWakeupPlugin() : new LinSleepPlugin();
         IStepEditorPlugin editor = wake ? new LinWakeupEditorPlugin() : new LinSleepEditorPlugin();
         object setting = wake ? new LinWakeupSetting { WakeupMode = (LinWakeupMode)77, PostWakeupDelayMs = 0 } : new LinSleepSetting { SleepMode = (LinSleepMode)77, PostSleepDelayMs = 0 };
-        Assert.Contains(await editor.ValidateWithContextAsync(Validation(plugin, setting)), e => e.Code == "LIN_MODE");
-        var context = DispatchProxy.Create<IExecutionContext, LinContext>(); var state = (LinContext)(object)context;
-        state.Plugin = plugin; state.Setting = setting;
-        var result = await plugin.CreateExecutor().ExecuteAsync(context);
+        var rejected = Assert.Throws<JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains(wake ? "$.WakeupMode" : "$.SleepMode", rejected.Message);
+        var validation = Validation(plugin, setting, DamagedSettings.Serialize(plugin, setting));
+        Assert.Contains(await editor.ValidateWithContextAsync(validation), e => e.Code == "LIN_MODE");
+        var state = (LinContext)(object)validation.ExecutionContext;
+        using var adapter = new BlockingAdapter();
+        state.Items[LIN.Helpers.LinHelper.GetAdapterKey("LIN1")] = adapter;
+        var result = await plugin.CreateExecutor().ExecuteAsync(validation.ExecutionContext);
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
-        Assert.Contains("模式", result.StepResult.Error!.Message);
+        Assert.Contains(wake ? "唤醒模式无效" : "睡眠模式无效", result.StepResult.Error!.Message);
+        Assert.Equal(0, adapter.BusActionCalls);
     }
 
     [Fact]
@@ -97,10 +104,11 @@ public sealed class Round2EditorContractTests
         yield return root;
         foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>()) foreach (var nested in Tree(child)) yield return nested;
     }
-    static StepEditorValidationContext Validation(IStepPlugin plugin, object setting)
+    static StepEditorValidationContext Validation(IStepPlugin plugin, object setting, byte[]? storedBytes = null)
     {
         var context = DispatchProxy.Create<IExecutionContext, LinContext>(); var state = (LinContext)(object)context;
-        state.Plugin = plugin; state.Setting = setting; var step = context.CurrentStep!.Step;
+        state.Plugin = plugin; state.Setting = setting; state.PayloadOverride = storedBytes;
+        var step = context.CurrentStep!.Step;
         return new() { Setting = step.StepSetting.Setting, CurrentStep = step, Block = [step], SequenceFile = new(), ExecutionContext = context, Evaluator = ExpressionEvaluatorFactory.Default };
     }
 }

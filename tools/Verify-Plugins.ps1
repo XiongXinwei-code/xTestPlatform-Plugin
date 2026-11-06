@@ -22,12 +22,18 @@ $modules = @(
     @{ Name = 'Ethernet'; Project = 'EthernetPlugin' },
     @{ Name = 'Http'; Project = 'HttpPlugin' },
     @{ Name = 'LIN'; Project = 'LinPlugin' },
+    @{ Name = 'LabVIEWCall'; Project = 'LabVIEWCallPlugin' },
     @{ Name = 'Modbus'; Project = 'ModbusPlugin' },
     @{ Name = 'NiDaq'; Project = 'NiDaqPlugin' },
     @{ Name = 'OpcUa'; Project = 'OpcUaPlugin' },
     @{ Name = 'SerialPort'; Project = 'SerialPortPlugin' },
     @{ Name = 'VISA'; Project = 'VisaPlugin' },
-    @{ Name = 'NiGrpc'; Project = 'NiGrpcPlugin' }
+    @{ Name = 'NiGrpc'; Project = 'NiGrpcPlugin' },
+    @{ Name = 'ZlgEtherCat'; Project = 'ZlgEtherCatPlugin' }
+)
+$widgetModules = @(
+    @{ Name = 'Waveform'; ProjectPath = 'Widgets/Waveform/WaveformWidgetPlugin/WaveformWidgetPlugin.csproj'; TestPath = 'Widgets/Waveform/WaveformWidget.Tests/WaveformWidget.Tests.csproj' },
+    @{ Name = 'SfWaveform'; ProjectPath = 'Widgets/SfWaveform/SfWaveformWidgetPlugin/SfWaveformWidgetPlugin.csproj'; TestPath = 'Widgets/SfWaveform/SfWaveformWidget.Tests/SfWaveformWidget.Tests.csproj' }
 )
 function Invoke-Dotnet([string[]]$Arguments) {
     & dotnet @Arguments
@@ -40,6 +46,12 @@ function Read-Project([string]$Path) {
     if (-not $version -or -not $assembly) { throw "缺少显式版本/程序集名称：$Path" }
     return @{ Version = [string]$version; Assembly = [string]$assembly }
 }
+function Get-PackageFiles([string]$destination) {
+    @(Get-ChildItem -LiteralPath $destination -Recurse -File | Sort-Object FullName | ForEach-Object {
+        @{ path = [IO.Path]::GetRelativePath($destination, $_.FullName).Replace('\', '/');
+           bytes = $_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+    })
+}
 foreach ($module in $modules) {
     $module.CorePath = "$($module.Name)/$($module.Project)/$($module.Project).csproj"
     $module.UiPath = "$($module.Name)/$($module.Project).UI/$($module.Project).UI.csproj"
@@ -47,8 +59,13 @@ foreach ($module in $modules) {
     $module.UI = Read-Project $module.UiPath
     if ($module.Core.Version -ne $module.UI.Version) { throw "$($module.Name) 核心/UI 版本不一致" }
 }
+foreach ($widget in $widgetModules) {
+    $widget.Project = Read-Project $widget.ProjectPath
+    if (-not (Test-Path -LiteralPath $widget.TestPath -PathType Leaf)) { throw "缺少控件测试项目：$($widget.TestPath)" }
+}
 if ($Mode -eq 'Inventory') {
     $modules | ForEach-Object { Write-Output "$($_.Name) $($_.Core.Version) $($_.CorePath) $($_.UiPath)" }
+    $widgetModules | ForEach-Object { Write-Output "Widget $($_.Name) $($_.Project.Version) $($_.ProjectPath) $($_.TestPath)" }
     exit 0
 }
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
@@ -60,6 +77,9 @@ if ($Mode -eq 'Test') {
             Where-Object { $_.FullName -notmatch '[\\/](bin|obj|artifacts)[\\/]' }
     })
     if ($tests.Count -lt 9) { throw "测试项目库存异常：$($tests.Count)" }
+    # Motion.UnitTests does not match *.Tests.csproj. Widget projects live outside the step plugin roots.
+    $tests += Get-Item -LiteralPath 'ZlgEtherCat/ZlgEtherCatPlugin.Tests/Motion.UnitTests.csproj'
+    $tests += @($widgetModules | ForEach-Object { Get-Item -LiteralPath $_.TestPath })
     foreach ($test in $tests) {
         $testOutput = Join-Path $logs "test-bin/$($test.BaseName)"
         Invoke-Dotnet @('test', $test.FullName, '-c', 'Release', '--no-restore', '-m:1', '-v', 'minimal',
@@ -80,10 +100,45 @@ if ($Mode -eq 'Package') {
             if (Test-Path -LiteralPath $source) { Copy-Item -LiteralPath $source -Destination $destination -Force }
         }
     }
+    foreach ($widget in $widgetModules) {
+        $destination = Join-Path $outputPath "Plugins/$($widget.Name)"
+        New-Item -ItemType Directory -Force -Path $destination | Out-Null
+        Invoke-Dotnet @('build', $widget.ProjectPath, '-c', 'Release', '-t:Rebuild', '-m:1', '-v', 'minimal', '--no-restore',
+            '-r', 'win-x64', '-p:Platform=x64', '-p:SelfContained=false', '-p:AppendRuntimeIdentifierToOutputPath=false',
+            "-p:OutputPath=$destination", "-flp:logfile=$logs/$($widget.Name)-build.log;verbosity=normal")
+        foreach ($name in @('README.md', 'CHANGELOG.md')) {
+            Copy-Item -LiteralPath (Join-Path "Widgets/$($widget.Name)" $name) -Destination $destination -Force
+        }
+        $icon = Join-Path "Widgets/$($widget.Name)" 'icon.png'
+        if (Test-Path -LiteralPath $icon) { Copy-Item -LiteralPath $icon -Destination $destination -Force }
+    }
 }
 
 Invoke-Dotnet @('build', 'tools/StepInfoExtractor/StepInfoExtractor.csproj', '-c', 'Release', '--no-restore',
     '-v', 'minimal', "-p:OutputPath=$logs/inspector")
+Invoke-Dotnet @('build', 'tools/WidgetInfoExtractor/WidgetInfoExtractor.csproj', '-c', 'Release', '--no-restore',
+    '-v', 'minimal', "-p:OutputPath=$logs/widget-inspector")
+$widgetRecords = @()
+foreach ($widget in $widgetModules) {
+    $destination = Join-Path $outputPath "Plugins/$($widget.Name)"
+    $dll = Join-Path $destination "$($widget.Project.Assembly).dll"
+    if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) { throw "缺少控件程序集：$dll" }
+    if ([Reflection.AssemblyName]::GetAssemblyName($dll).Version -ne [version]"$($widget.Project.Version).0") {
+        throw "$($widget.Name) 控件产物版本错误：$dll"
+    }
+    $testFiles = @(Get-ChildItem -LiteralPath $destination -Recurse -File | Where-Object {
+        $_.Name -match '(\.Tests\.dll$|^xunit|^testhost|^Microsoft\.TestPlatform)'
+    })
+    if ($testFiles.Count) { throw "控件部署包混入测试文件：$($testFiles.FullName -join ', ')" }
+    $metadata = & dotnet (Join-Path $logs 'widget-inspector/WidgetInfoExtractor.dll') $destination '--strict'
+    if ($LASTEXITCODE -ne 0) { throw "$($widget.Name) 控件契约与依赖加载失败" }
+    $metadataJson = $metadata -join [Environment]::NewLine
+    $widgets = @($metadataJson | ConvertFrom-Json)
+    if (-not $widgets.Count) { throw "$($widget.Name) 未发现控件插件" }
+    [IO.File]::WriteAllText((Join-Path $logs "$($widget.Name)-widgets.json"), $metadataJson, [Text.UTF8Encoding]::new($false))
+    $widgetRecords += @{ name = $widget.Name; version = $widget.Project.Version; pluginTypes = @('Widget');
+        widgetCount = $widgets.Count; widgets = $widgets; files = @(Get-PackageFiles $destination) }
+}
 $records = @()
 foreach ($module in $modules) {
     $destination = Join-Path $outputPath "Plugins/$($module.Name)"
@@ -113,10 +168,7 @@ foreach ($module in $modules) {
             throw "$($module.Name) 的 System.IO.Ports 不是 Windows 运行实现"
         }
     }
-    $files = @(Get-ChildItem -LiteralPath $destination -Recurse -File | Sort-Object FullName | ForEach-Object {
-        @{ path = [IO.Path]::GetRelativePath($destination, $_.FullName).Replace('\', '/');
-           bytes = $_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
-    })
+    $files = @(Get-PackageFiles $destination)
     $records += @{ name = $module.Name; version = $module.Core.Version; stepCount = $steps.Count; files = $files }
 }
 $sourceCommit = & git rev-parse HEAD
@@ -124,7 +176,7 @@ if ($LASTEXITCODE -ne 0) { throw '无法读取交付源码提交号，拒绝生�
 $sourceChanges = @(& git status --porcelain=v1 --untracked-files=normal)
 if ($LASTEXITCODE -ne 0) { throw '无法读取工作区状态，拒绝猜测源码是否包含未提交改动。' }
 $manifest = @{ generatedUtc = [DateTime]::UtcNow.ToString('o'); target = 'net8.0-windows/win-x64';
-    hardwareValidated = $false; sourceCommit = $sourceCommit; sourceIncludesUncommittedChanges = ($sourceChanges.Count -gt 0); plugins = $records }
+    hardwareValidated = $false; sourceCommit = $sourceCommit; sourceIncludesUncommittedChanges = ($sourceChanges.Count -gt 0); plugins = $records; widgets = $widgetRecords }
 $utf8 = [Text.UTF8Encoding]::new($false)
 [IO.File]::WriteAllText((Join-Path $outputPath 'build-manifest.json'), ($manifest | ConvertTo-Json -Depth 8), $utf8)
-Write-Output "已验证 $($records.Count) 个独立插件文件夹；清单：$outputPath/build-manifest.json"
+Write-Output "已验证 $($records.Count) 个步骤插件和 $($widgetRecords.Count) 个控件插件文件夹；清单：$outputPath/build-manifest.json"

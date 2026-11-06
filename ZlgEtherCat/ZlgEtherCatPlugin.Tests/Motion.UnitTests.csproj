@@ -1,0 +1,28 @@
+<Project>
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>obj/Motion/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>obj/Motion/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>bin/Motion/</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Motion*Tests.cs" />
+    <Compile Include="../ZlgEtherCatPlugin/Motion/*.cs" Link="Motion/%(Filename)%(Extension)" />
+    <Compile Include="../ZlgEtherCatPlugin/Contracts/ZlgRequest.cs" Link="Contracts/ZlgRequest.cs" />
+    <Compile Include="../ZlgEtherCatPlugin/Runtime/ZlgMotionOperations.cs" Link="Runtime/ZlgMotionOperations.cs" Condition="Exists('../ZlgEtherCatPlugin/Runtime/ZlgMotionOperations.cs')" />
+    <Compile Include="../ZlgEtherCatPlugin/Runtime/SdkWorker.cs" Link="Runtime/SdkWorker.cs" />
+    <Compile Include="../ZlgEtherCatPlugin/Models/Enums.cs" Link="Models/Enums.cs" />
+    <Compile Include="WorkerTests.cs" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+</Project>

@@ -7,7 +7,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using xTestPlatform.Core.Plugins.Contracts;
 using xTestPlatform.Core.SequenceModels;
 using Xunit;
@@ -160,29 +159,19 @@ public sealed class DbcSelectionSyncTests
 
     internal static void VerifyActualPages()
     {
-        var dispatcher = Dispatcher.CurrentDispatcher; var previous = SynchronizationContext.Current;
-        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
-        try
+        DbcEditorTestContext.Run(nameof(DbcSelectionSyncTests), TimeSpan.FromSeconds(12), async ui =>
         {
-            // Parse all models before constructing Syncfusion controls: do not pump
-            // their unrelated licensing dialogs in this software-only test host.
-            var loading = PrepareViewsAsync(); var frame = new DispatcherFrame(); bool timeout = false;
-            var timer = new DispatcherTimer(DispatcherPriority.Send, dispatcher) { Interval = TimeSpan.FromSeconds(12) };
-            timer.Tick += (_, _) => { timeout = true; frame.Continue = false; };
-            _ = loading.ContinueWith(_ => dispatcher.BeginInvoke(() => frame.Continue = false), TaskScheduler.Default);
-            timer.Start(); try { if (!loading.IsCompleted) Dispatcher.PushFrame(frame); } finally { timer.Stop(); }
-            Assert.False(timeout, "DBC selection models exceeded preload deadline");
-            foreach (var (plugin, step, model) in loading.GetAwaiter().GetResult()) VerifyView(plugin, step, model);
-        }
-        finally { SynchronizationContext.SetSynchronizationContext(previous); }
+            var prepared = await PrepareViewsAsync(ui);
+            foreach (var (plugin, step, model) in prepared) VerifyView(plugin, step, model);
+        });
     }
 
-    private static async Task<List<(IStepPlugin, Step, DbcEditorViewModel)>> PrepareViewsAsync()
+    private static async Task<List<(IStepPlugin, Step, DbcEditorViewModel)>> PrepareViewsAsync(DbcEditorTestContext ui)
     {
         var result = new List<(IStepPlugin, Step, DbcEditorViewModel)>();
         for (int kind = 0; kind < 5; kind++)
         {
-            var plugin = Plugin(kind); var step = CreateStep(plugin); var model = new DbcEditorViewModel(plugin);
+            var plugin = Plugin(kind); var step = CreateStep(plugin); var model = ui.CreateModel(plugin);
             model.Attach(step); await model.LoadTask; model.RemoveMessages([model.ConfiguredMessages[2]]); model.Flush();
             result.Add((plugin, step, model));
         }

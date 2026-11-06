@@ -40,7 +40,6 @@ public sealed class CanEditorAppearanceTests
 
     internal static void VerifyActualPages()
     {
-        PluginEditorScrollingTests.VerifyActualPages();
         var write = new CanWriteEditorView();
         write.RefreshFromStep(Step(new CanWritePlugin(), new CanWriteSetting { Messages =
             [new() { CanId = "\"0x123\"", Data = "\"00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF\"", UseFdFrame = true }] }));

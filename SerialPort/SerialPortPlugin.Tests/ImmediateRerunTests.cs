@@ -4,6 +4,7 @@ using Xunit;
 
 namespace SerialPort.ContractTests;
 
+[Collection("Serial followup isolated")]
 public sealed class ImmediateRerunTests
 {
     [Fact]

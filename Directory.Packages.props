@@ -6,6 +6,7 @@
   <ItemGroup>
 	<!-- xTestPlatform 插件 SDK -->
 	<PackageVersion Include="xTestPlatform.StepEditor.SDK" Version="1.2.8" />
+	<PackageVersion Include="xTestPlatform.DashboardWidget.SDK" Version="1.0.0" />
 
 	<!-- 序列化：须 ≥ xTestPlatform.Core 引用的版本，否则报 CS1705 -->
 	<PackageVersion Include="MessagePack" Version="3.1.9" />
@@ -25,6 +26,7 @@
 	<PackageVersion Include="Syncfusion.SfGrid.WPF" Version="32.1.25" />
 	<PackageVersion Include="Syncfusion.SfInput.WPF" Version="32.1.25" />
 	<PackageVersion Include="Syncfusion.SfBusyIndicator.WPF" Version="32.2.3" />
+	<PackageVersion Include="Syncfusion.SfChart.WPF" Version="35.1.41" />
 
 	<!-- 通信协议 -->
 	<PackageVersion Include="Google.Protobuf" Version="3.28.2" />

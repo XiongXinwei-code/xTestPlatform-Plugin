@@ -1,0 +1,40 @@
+<UserControl x:Class="ZlgEtherCat.UI.Views.ConfigureAutoClearEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+    xmlns:common="clr-namespace:PluginCommon.UI" common:PluginEditorScrolling.Enabled="True">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="配置自动清错" Image="pack://application:,,,/ZlgEtherCat.StepPlugin.UI;component/Resources/Icons/zlg_configureautoclear.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <TextBlock Text="{Binding OperationTitle}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="{Binding OperationHelp}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
+                    <StackPanel Visibility="{Binding ConnectionNameVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ConnectionNameLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox x:Name="ConnectionNameEditor" ScriptText="{Binding ConnectionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="{Binding ConnectionNameInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding EnabledVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding EnabledLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <CheckBox x:Name="EnabledEditor" IsChecked="{Binding Enabled, Mode=TwoWay}" Content="{Binding EnabledLabel}" />
+                        <TextBlock Text="{Binding EnabledInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding TimeoutMsVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding TimeoutMsLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="TimeoutMsEditor"  Text="{Binding TimeoutMsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding TimeoutMsInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ResultVariableVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ResultVariableLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ResultVariableEditor" common:VariableDrop.Target="True" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ResultVariableInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

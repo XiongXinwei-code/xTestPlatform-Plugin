@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Description>通过 ZLG EtherCAT 主站卡提供 PDO/SDO、从站 I/O、双读取功能池和独立伺服运动控制步骤</Description>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ZlgEtherCat.StepPlugin</AssemblyName>
+    <RootNamespace>ZlgEtherCat</RootNamespace>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>../../artifacts/$(Configuration)/Plugins/ZlgEtherCat/</OutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xTestPlatform.StepEditor.SDK" />
+    <PackageReference Include="MessagePack" />
+    <InternalsVisibleTo Include="ZlgEtherCatPlugin.Tests" />
+    <None Update="Native/vendor/x64/pci_zecm.dll" CopyToOutputDirectory="PreserveNewest" TargetPath="Native/pci_zecm.dll" />
+  </ItemGroup>
+</Project>

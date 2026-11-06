@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>LabVIEWCall.BridgeHost</AssemblyName>
+    <Version>1.0.31</Version>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PluginOutputRoot)' != ''">
+    <OutputPath>$(PluginOutputRoot)/bridge/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../BridgeProtocol/*.cs" Link="Protocol/%(Filename)%(Extension)" />
+    <Compile Include="../LabVIEWCallPlugin/LVadapter/**/*.cs" Link="Native/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="../LabVIEWCallPlugin/Resources/lvLib.dll" Link="lvLib.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../LabVIEWCallPlugin/Resources/lvLibItems.vi" Link="lvLibItems.vi" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

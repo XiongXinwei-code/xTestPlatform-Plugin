@@ -61,13 +61,27 @@ public sealed class EditorContractBoundaryTests
     {
         var channel = new Channel(); var owner = new SerialConnectionResource(channel);
         var plugin = new SerialPortReadPlugin();
-        var (context, state) = PublicationContextProxy.Create(plugin, new SerialPortReadSetting { DataFormat = (SerialPortDataFormat)999, ReadBytes = 1, Terminator = "", ResultVariable = "Locals.rx" });
+        var setting = new SerialPortReadSetting { ReadBytes = 1, Terminator = "", ResultVariable = "Locals.rx" };
+        var (context, state) = PublicationContextProxy.Create(plugin, setting);
+        setting.DataFormat = (SerialPortDataFormat)999;
+        var rejected = Assert.Throws<System.Text.Json.JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains("$.DataFormat", rejected.Message);
+        var step = context.CurrentStep!.Step;
+        step.StepSetting.Setting = PluginTestCommon.DamagedSettings.Serialize(plugin, setting);
         state.Store.Values[SerialPortHelper.GetPortKey("COM1")] = owner;
         try
         {
+            var errors = await new SerialPortReadEditorPlugin().ValidateWithContextAsync(new StepEditorValidationContext
+            {
+                Setting = step.StepSetting.Setting, CurrentStep = step, Block = [step], SequenceFile = new SequenceFile(),
+                ExecutionContext = context, Evaluator = ExpressionEvaluatorFactory.Default
+            });
+            Assert.Contains(errors, error => error.Code == "SP_FORMAT" && error.Severity.ToString() == "Error");
             var result = await plugin.CreateExecutor().ExecuteAsync(context).WaitAsync(TimeSpan.FromSeconds(15));
             Assert.Equal(TestStatus.Error, result.StepResult.Status);
+            Assert.Contains("不支持的串口数据格式", result.StepResult.Error!.Message + result.StepResult.Error.Detail);
             Assert.Equal(0, channel.Reads);
+            Assert.Empty(state.Published);
         }
         finally { await owner.CloseAsync(2000, default); }
     }

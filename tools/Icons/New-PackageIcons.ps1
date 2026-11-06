@@ -20,6 +20,7 @@ $DaqDraw = $Styles['D']
 ${function:New-DaqIcon} = ${function:New-StyleIcon}
 
 $Packages = [ordered]@{
+	ZlgEtherCat = @{ Res = 'ZlgEtherCat\ZlgEtherCatPlugin.UI\Resources\Icons\zlgethercat.png'; Kind = 'letter'; Text = 'ZLG'; Color = $Groups['ZlgEtherCat'].Color }
 	NiGrpc = @{ Res = 'NiGrpc\NiGrpcPlugin.UI\Resources\Icons\nigrpc.png'; Kind = 'letter'; Text = 'NI'; Color = $Groups['NiGrpc'].Color }
 	CAN        = @{ Res = 'CAN\CanPlugin.UI\Resources\Icons\can.png';                Kind = 'letter'; Text = 'CAN';    Color = $Groups['CAN'].Color }
 	Ethernet   = @{ Res = 'Ethernet\EthernetPlugin.UI\Resources\Icons\ethernet.png'; Kind = 'letter'; Text = 'TCP/IP'; Color = $Groups['TCP'].Color }

@@ -26,7 +26,9 @@ public sealed class Round2NetworkSubmissionTests
         object setting = noResponse
             ? new SomeIpFireAndForgetSetting { Transport = (SomeIpTransport)999, RemoteHost = "\"127.0.0.1\"", SendTimeoutMs = 500 }
             : new SomeIpRequestSetting { Transport = (SomeIpTransport)999, RemoteHost = "\"127.0.0.1\"", TimeoutMs = 500 };
-        var (ctx, _) = TestContext.Create(plugin, setting);
+        var invalidSave = Assert.Throws<System.Text.Json.JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains("$.Transport", invalidSave.Message);
+        var (ctx, _) = TestContext.Create(plugin, setting, PluginTestCommon.DamagedSettings.Serialize(plugin, setting));
         var network = new FakeNetwork();
         IStepExecutor executor = noResponse ? new SomeIpFireAndForgetExecutor(network) : new SomeIpRequestExecutor(network);
         Assert.Equal(TestStatus.Error, (await executor.ExecuteAsync(ctx)).StepResult.Status);
@@ -41,7 +43,7 @@ public sealed class Round2NetworkSubmissionTests
         IStepPlugin plugin = noResponse ? new SomeIpFireAndForgetPlugin() : new SomeIpRequestPlugin();
         var setting = plugin.CreateSerializer().CreateDefault();
         setting.GetType().GetProperty("Transport")!.SetValue(setting, (SomeIpTransport)999);
-        var (ctx, state) = TestContext.Create(plugin, setting);
+        var (ctx, state) = TestContext.Create(plugin, setting, PluginTestCommon.DamagedSettings.Serialize(plugin, setting));
         IStepEditorPlugin editor = noResponse ? new Ethernet.UI.Editors.SomeIpFireAndForgetEditorPlugin() : new Ethernet.UI.Editors.SomeIpRequestEditorPlugin();
         var errors = await editor.ValidateWithContextAsync(new StepEditorValidationContext
         {
