@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<Version>1.0.0</Version>
+	<TargetFramework>net8.0-windows</TargetFramework>
+	<UseWPF>true</UseWPF>
+	<Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>xTestPlatformDev.SfWaveform.WidgetPlugin</AssemblyName>
+	<RootNamespace>xTestPlatformDev.SfWaveform</RootNamespace>
+	<Platforms>AnyCPU;x64</Platforms>
+	<PlatformTarget>x64</PlatformTarget>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<OutputPath>../../../artifacts/$(Configuration)/Plugins/SfWaveform/</OutputPath>
+	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+	<PackageReference Include="xTestPlatform.DashboardWidget.SDK" />
+	<PackageReference Include="Syncfusion.SfChart.WPF" />
+  </ItemGroup>
+</Project>

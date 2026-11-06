@@ -63,6 +63,14 @@
     <Project Path="VISA/VisaPlugin.UI/VisaPlugin.UI.csproj" />
     <Project Path="VISA/VisaPlugin/VisaPlugin.csproj" />
   </Folder>
+  <Folder Name="/Widgets/Waveform/">
+    <Project Path="Widgets/Waveform/WaveformWidgetPlugin/WaveformWidgetPlugin.csproj" />
+    <Project Path="Widgets/Waveform/WaveformWidget.Tests/WaveformWidget.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Widgets/SfWaveform/">
+    <Project Path="Widgets/SfWaveform/SfWaveformWidgetPlugin/SfWaveformWidgetPlugin.csproj" />
+    <Project Path="Widgets/SfWaveform/SfWaveformWidget.Tests/SfWaveformWidget.Tests.csproj" />
+  </Folder>
   <Folder Name="/RegressionTests/">
     <Project Path="tests/PluginRegression.Tests/PluginRegression.Tests.csproj" />
   </Folder>
