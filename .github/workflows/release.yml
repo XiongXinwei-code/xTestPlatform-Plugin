@@ -64,30 +64,23 @@ jobs:
         shell: pwsh
         run: |
           $newVersion = "${{ steps.bump_version.outputs.new_version }}"
-
-          $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
-          }
-
           $versions = [ordered]@{}
-          foreach ($dir in $pluginDirs) {
+          foreach ($module in ./tools/Get-ReleasePluginModules.ps1) {
               $v = $newVersion
-              $inputs = @("$($dir.Name)/", "Shared/", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", "global.json")
-              # CiA402 directly references CAN; a changed CAN contract also changes its build inputs.
-              if ($dir.Name -eq "CiA402") { $inputs += "CAN/" }
+              $inputs = @("$($module.SourcePath)/", 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'global.json')
+              if ($module.StepProjects.Count) { $inputs += 'Shared/' }
+              if ($module.WidgetProjects.Count) { $inputs += 'LocalPackages/xTestPlatform.DashboardWidget.SDK.*.nupkg' }
+              if ($module.Name -eq 'CiA402') { $inputs += 'CAN/' }
               $lastCommit = git log -1 --format=%H -- @inputs
-              if ($lastCommit) {
-                  $owning = git tag --contains $lastCommit |
-                      Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
-                      ForEach-Object { [version]$_.TrimStart('v') } |
-                      Sort-Object |
-                      Select-Object -First 1
-                  if ($owning) { $v = $owning.ToString() }
-              }
-              $versions[$dir.Name] = $v
-              Write-Host "  🔖 $($dir.Name): v$v"
+              if ($LASTEXITCODE -ne 0 -or -not $lastCommit) { throw "$($module.Name) 缺少编译输入的提交历史" }
+              $owning = git tag --contains $lastCommit |
+                  Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
+                  ForEach-Object { [version]$_.TrimStart('v') } |
+                  Sort-Object | Select-Object -First 1
+              if ($owning) { $v = $owning.ToString() }
+              $versions[$module.Name] = $v
+              Write-Host "  🔖 $($module.Name): v$v"
           }
-
           $utf8 = New-Object System.Text.UTF8Encoding($false)
           [IO.File]::WriteAllText("$env:GITHUB_WORKSPACE\plugin-versions.json", ($versions | ConvertTo-Json), $utf8)
 
@@ -113,72 +106,47 @@ jobs:
       - name: 编译所有插件
         shell: pwsh
         run: |
-          # 约定：<模块>/<核心项目>/*Plugin.csproj；不能把测试或深层产物当成插件。
-          $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
-          }
-
-          if ($pluginDirs.Count -eq 0) {
-              Write-Error "❌ 未找到任何插件目录"
-              exit 1
-          }
-
           $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
           New-Item -ItemType Directory -Force -Path $publishRoot | Out-Null
-
-          $versions = Get-Content "$env:GITHUB_WORKSPACE\plugin-versions.json" -Raw | ConvertFrom-Json
-
-          foreach ($dir in $pluginDirs) {
-              $v = $versions.$($dir.Name)
-              Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-              Write-Host "📦 编译插件: $($dir.Name)  (v$v)"
-              $projects = Get-ChildItem "$($dir.FullName)" -Recurse -Filter "*.csproj" |
-                  Where-Object { $_.Name -like '*Plugin.csproj' -or $_.Name -like '*Plugin.UI.csproj' }
-              foreach ($proj in $projects) {
-                  Write-Host "   🔨 $($proj.Name)"
-                  dotnet build $proj.FullName `
-                    -c Release -p:Platform=x64 -r win-x64 -p:SelfContained=false -p:AppendRuntimeIdentifierToOutputPath=false `
-                    -p:Version=$v `
-                    -p:OutputPath="$publishRoot\$($dir.Name)"
-                  if ($LASTEXITCODE -ne 0) {
-                      Write-Error "❌ 编译失败: $($proj.Name)"
-                      exit 1
-                  }
+          $versions = Get-Content "$env:GITHUB_WORKSPACE\plugin-versions.json" -Raw | ConvertFrom-Json -AsHashtable
+          foreach ($module in ./tools/Get-ReleasePluginModules.ps1) {
+              $version = $versions[$module.Name]
+              if (-not $version) { throw "$($module.Name) 缺少发布版本" }
+              $destination = Join-Path $publishRoot $module.Name
+              foreach ($project in $module.Projects) {
+                  Write-Host "编译 $project (v$version)"
+                  dotnet build $project -c Release -p:Platform=x64 -r win-x64 -p:SelfContained=false -p:AppendRuntimeIdentifierToOutputPath=false "-p:Version=$version" "-p:OutputPath=$destination"
+                  if ($LASTEXITCODE -ne 0) { throw "编译失败：$project" }
               }
           }
-
-          Write-Host "✅ 所有插件编译完成"
 
       # ── 6. 验证产物 ────────────────────────────────────────────────────
       - name: 验证编译产物
         shell: pwsh
         run: |
           $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
-          $pluginDirs = Get-ChildItem $publishRoot -Directory
-          if ($pluginDirs.Count -eq 0) {
-              Write-Error "❌ 未找到编译产物"
-              exit 1
-          }
-          foreach ($dir in $pluginDirs) {
-              Write-Host "📦 $($dir.Name):"
-              Get-ChildItem $dir.FullName -File | ForEach-Object {
-                  Write-Host "   $($_.Name)  ($([math]::Round($_.Length/1KB,1)) KB)"
+          foreach ($module in ./tools/Get-ReleasePluginModules.ps1) {
+              $destination = Join-Path $publishRoot $module.Name
+              foreach ($project in $module.Projects) {
+                  $xml = [xml](Get-Content -LiteralPath $project -Raw -Encoding UTF8)
+                  $assembly = @($xml.Project.PropertyGroup.AssemblyName | Where-Object { $_ })[0]
+                  if (-not $assembly -or -not (Test-Path -LiteralPath (Join-Path $destination "$assembly.dll") -PathType Leaf)) {
+                      throw "缺少发布程序集：$project → $destination/$assembly.dll"
+                  }
               }
+              Write-Host "已核对 $($module.Name) 的发布程序集"
           }
 
-      # ── 6.5 文档质量门禁（缺失仅警告，暂不阻断构建） ────────────────────────
+      # ── 6.5 文档校验（控件必须包含说明与变更记录） ────────────────────────
       - name: 检查插件文档
         shell: pwsh
         run: |
-          $pluginDirs = Get-ChildItem -Directory | Where-Object {
-              (Get-ChildItem "$($_.FullName)" -Depth 1 -File -Filter "*Plugin.csproj").Count -gt 0
-          }
-          foreach ($dir in $pluginDirs) {
-              if (-not (Test-Path (Join-Path $dir.FullName "README.md"))) {
-                  Write-Warning "$($dir.Name) 缺少 README.md，详情页将无功能介绍"
-              }
-              if (-not (Test-Path (Join-Path $dir.FullName "CHANGELOG.md"))) {
-                  Write-Warning "$($dir.Name) 缺少 CHANGELOG.md，详情页更新记录将由提交记录自动兜底"
+          foreach ($module in ./tools/Get-ReleasePluginModules.ps1) {
+              foreach ($file in 'README.md', 'CHANGELOG.md') {
+                  if (-not (Test-Path -LiteralPath (Join-Path $module.SourcePath $file) -PathType Leaf)) {
+                      if ($module.WidgetProjects.Count) { throw "$($module.SourcePath) 缺少必需的 $file" }
+                      Write-Warning "$($module.SourcePath) 缺少 $file"
+                  }
               }
           }
 
@@ -186,121 +154,97 @@ jobs:
       - name: 打包 ZIP
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $version = "${{ steps.bump_version.outputs.new_version }}"
-          $tag     = "${{ steps.bump_version.outputs.new_tag }}"
+          $tag = "${{ steps.bump_version.outputs.new_tag }}"
+          $prevTag = "${{ steps.bump_version.outputs.prev_tag }}"
           $zipName = "Plugins-v$version.zip"
-          $publishRoot = "$env:GITHUB_WORKSPACE\${{ env.PUBLISH_DIR }}"
+          $publishRoot = Join-Path $env:GITHUB_WORKSPACE $env:PUBLISH_DIR
+          $assetsDir = Join-Path $env:GITHUB_WORKSPACE "assets"
+          $modules = @(./tools/Get-ReleasePluginModules.ps1)
+          if (-not $modules.Count) { throw "发布模块清单为空" }
           $pluginVersions = Get-Content "$env:GITHUB_WORKSPACE\plugin-versions.json" -Raw | ConvertFrom-Json
+          [xml]$packageProps = Get-Content "$env:GITHUB_WORKSPACE\Directory.Packages.props" -Raw
+          $widgetSdkVersion = ($packageProps.Project.ItemGroup.PackageVersion | Where-Object Include -eq 'xTestPlatform.DashboardWidget.SDK').Version
 
-          # ⓪ 插件图标：将顶层 icon.png 复制到发布目录，使 zip 根目录包含 icon.png
-          foreach ($dir in Get-ChildItem $publishRoot -Directory) {
-              $iconSrc = Join-Path "$env:GITHUB_WORKSPACE\$($dir.Name)" "icon.png"
-              if (Test-Path $iconSrc) {
-                  Copy-Item $iconSrc (Join-Path $dir.FullName "icon.png") -Force
-              } else {
-                  Write-Warning "$($dir.Name) 缺少 icon.png，插件管理器将显示默认图标"
-              }
+          foreach ($tool in 'StepInfoExtractor', 'WidgetInfoExtractor') {
+              dotnet build "tools/$tool/$tool.csproj" -c Release --nologo -v q
+              if ($LASTEXITCODE -ne 0) { throw "$tool 编译失败" }
+          }
+          function Read-PluginMetadata([string]$tool, [string]$path) {
+              $json = dotnet run --project "tools/$tool/$tool.csproj" -c Release --no-build -- $path --strict
+              if ($LASTEXITCODE -ne 0 -or -not $json) { throw "$path 的 $tool 严格校验失败" }
+              $records = @(($json -join [Environment]::NewLine) | ConvertFrom-Json -ErrorAction Stop)
+              if (-not $records.Count) { throw "$tool 未在 $path 提取到声明的插件类型" }
+              $records
           }
 
-          # ① 整包（离线全量包 / 兼容旧流程）
-          Compress-Archive `
-            -Path "$publishRoot\*" `
-            -DestinationPath "$env:GITHUB_WORKSPACE\$zipName"
-
-          $zipFile = Get-Item "$env:GITHUB_WORKSPACE\$zipName"
-          Write-Host "✅ 已打包整包: $($zipFile.Name)  ($([math]::Round($zipFile.Length/1MB,2)) MB)"
-
-          # ② 单插件包 + manifest 条目
-          $assetsDir = "$env:GITHUB_WORKSPACE\assets"
           New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
-
-          # 预先编译步骤信息提取工具（反射扫描 *.StepPlugin.dll）
-          dotnet build tools\StepInfoExtractor\StepInfoExtractor.csproj -c Release --nologo -v q
-          if ($LASTEXITCODE -ne 0) {
-              Write-Error "❌ StepInfoExtractor 编译失败"
-              exit 1
-          }
-
           $entries = @()
-          foreach ($dir in Get-ChildItem $publishRoot -Directory) {
-              $pluginName = $dir.Name
-              $pluginZip  = "$pluginName-v$version.zip"
-              $pluginZipPath = Join-Path $assetsDir $pluginZip
-
-              Compress-Archive -Path "$($dir.FullName)\*" -DestinationPath $pluginZipPath
-
-              $sha256 = (Get-FileHash $pluginZipPath -Algorithm SHA256).Hash
-              $size   = (Get-Item $pluginZipPath).Length
-
-              # 插件版本：取自 3.5 步计算的结果（由 git tag 推导，未写回 csproj）
+          foreach ($module in $modules) {
+              $pluginName = $module.Name
+              $sourceDir = Join-Path $env:GITHUB_WORKSPACE $module.SourcePath
+              $dir = Get-Item -LiteralPath (Join-Path $publishRoot $pluginName) -ErrorAction Stop
               $pluginVersion = $pluginVersions.$pluginName
-              if (-not $pluginVersion) { $pluginVersion = $version }
-              $desc = ""
-              $csproj = Get-ChildItem "$env:GITHUB_WORKSPACE\$pluginName" -Recurse -Filter "*Plugin.csproj" -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($csproj) {
-                  $content = Get-Content $csproj.FullName -Raw
-                  if ($content -match '<Description>([^<]+)</Description>') { $desc = $Matches[1].Trim() }
-              }
+              if (-not $pluginVersion) { throw "$pluginName 缺少发布版本" }
 
-              # 作者/公司：从插件主 DLL 的 CompanyName 提取（由 csproj/Directory.Build.props 的 <Company> 写入）
-              $author = ""
-              $mainDll = Get-ChildItem $dir.FullName -Filter "$pluginName.StepPlugin.dll" | Select-Object -First 1
-              if (-not $mainDll) { $mainDll = Get-ChildItem $dir.FullName -Filter "*.StepPlugin.dll" | Select-Object -First 1 }
-              if (-not $mainDll) { $mainDll = Get-ChildItem $dir.FullName -Filter "*.dll" | Select-Object -First 1 }
-              if ($mainDll) {
-                  $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($mainDll.FullName)
-                  if ($info.CompanyName) { $author = $info.CompanyName.Trim() }
+              $steps = @()
+              $widgets = @()
+              $pluginTypes = @()
+              if ($module.StepProjects.Count) {
+                  $steps = @(Read-PluginMetadata StepInfoExtractor $dir.FullName)
+                  $pluginTypes += 'Step'
               }
+              if ($module.WidgetProjects.Count) {
+                  if (-not $widgetSdkVersion) { throw "缺少控件 SDK 基线版本" }
+                  $widgets = @(Read-PluginMetadata WidgetInfoExtractor $dir.FullName)
+                  $pluginTypes += 'Widget'
+              }
+              if (-not $pluginTypes.Count) { throw "$pluginName 未声明步骤或控件项目" }
 
-              # 发布时间：该插件目录最后一次实际提交时间（ISO 8601）
-              $publishedAt = git log -1 --format=%cI -- "$pluginName/"
+              # 只读取本模块自己的项目及主程序集，避免误取私有依赖 DLL 的作者或描述。
+              $coreProjects = @($module.StepProjects) + @($module.WidgetProjects)
+              [xml]$project = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $coreProjects[0])
+              $desc = [string](@($project.Project.PropertyGroup.Description | Where-Object { $_ })[0])
+              $assemblyName = @($project.Project.PropertyGroup.AssemblyName | Where-Object { $_ })[0]
+              if (-not $assemblyName) { $assemblyName = [IO.Path]::GetFileNameWithoutExtension($coreProjects[0]) }
+              $mainDll = Get-Item -LiteralPath (Join-Path $dir.FullName "$assemblyName.dll") -ErrorAction Stop
+              $author = [string][Diagnostics.FileVersionInfo]::GetVersionInfo($mainDll.FullName).CompanyName
+
+              $publishedAt = git log -1 --format=%cI -- $module.SourcePath
+              if ($LASTEXITCODE -ne 0) { throw "$pluginName 提交日期读取失败" }
               if (-not $publishedAt) { $publishedAt = (Get-Date).ToString("o") }
-
-              # 详情页内容：README（功能介绍）与 CHANGELOG（更新记录，缺失时用 git log 兜底）
               $readme = ""
               $changelog = ""
-              $readmePath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "README.md"
-              $changelogPath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "CHANGELOG.md"
-              if (Test-Path $readmePath) { $readme = Get-Content $readmePath -Raw -Encoding UTF8 }
-
-              # 插件图标：顶层 icon.png 转 Base64，供插件管理器在未安装时显示
               $icon = ""
-              $iconPath = Join-Path "$env:GITHUB_WORKSPACE\$pluginName" "icon.png"
-              if (Test-Path $iconPath) { $icon = [Convert]::ToBase64String([IO.File]::ReadAllBytes($iconPath)) }
-
-              if (Test-Path $changelogPath) {
-                  # 优先：手写 CHANGELOG
-                  $changelog = Get-Content $changelogPath -Raw -Encoding UTF8
-              } else {
-                  # 兜底：用该插件目录的提交记录自动生成本版本段落
-                  $prevTag = "${{ steps.bump_version.outputs.prev_tag }}"
-                  if ($prevTag) {
-                      $log = git log "$prevTag..HEAD" --pretty=format:"- %s" --no-merges -- "$pluginName/"
-                  } else {
-                      $log = git log --pretty=format:"- %s" --no-merges -- "$pluginName/"
+              foreach ($file in 'README.md', 'CHANGELOG.md', 'icon.png') {
+                  $source = Join-Path $sourceDir $file
+                  if (Test-Path -LiteralPath $source -PathType Leaf) {
+                      Copy-Item -LiteralPath $source -Destination (Join-Path $dir.FullName $file) -Force
+                      switch ($file) {
+                          'README.md'    { $readme = Get-Content -Raw -Encoding UTF8 -LiteralPath $source }
+                          'CHANGELOG.md' { $changelog = Get-Content -Raw -Encoding UTF8 -LiteralPath $source }
+                          'icon.png'     { $icon = [Convert]::ToBase64String([IO.File]::ReadAllBytes($source)) }
+                      }
+                  } elseif ($module.WidgetProjects.Count -and $file -ne 'icon.png') {
+                      throw "$pluginName 缺少必需的控件文档 $file"
                   }
+              }
+              if (-not $changelog) {
+                  $range = if ($prevTag) { "$prevTag..HEAD" } else { "HEAD" }
+                  $log = git log $range --pretty=format:"- %s" --no-merges -- $module.SourcePath
+                  if ($LASTEXITCODE -ne 0) { throw "$pluginName 提交记录读取失败" }
                   if ($log) {
-                      $changelog = "# 更新记录`n`n## v$pluginVersion - $(Get-Date -Format yyyy-MM-dd)`n$($log -join "`n")"
-                      Write-Warning "$pluginName 缺少 CHANGELOG.md，已用提交记录自动生成，请尽快补写"
+                      $changelog = (@("# 更新记录", "", "## v$pluginVersion - $(Get-Date -Format yyyy-MM-dd)") + $log) -join [Environment]::NewLine
+                      Write-Warning "$pluginName 从提交记录生成了更新说明"
                   }
               }
 
-              # 包含的步骤：反射扫描编译产物中的 *.StepPlugin.dll，提取所有 IStepPlugin 实现的 DisplayName/Description
-              $steps = @()
-              $stepsJson = dotnet run --project tools\StepInfoExtractor -c Release --no-build -- "$($dir.FullName)" --strict
-              if ($LASTEXITCODE -eq 0 -and $stepsJson) {
-                  try {
-                      $steps = @(($stepsJson -join "`n") | ConvertFrom-Json)
-                  } catch {
-                      Write-Error "$pluginName 步骤信息 JSON 解析失败：$_"
-                      exit 1
-                  }
-              } else {
-                  Write-Error "$pluginName 核心/UI/步骤契约严格校验失败，停止发布"
-                  exit 1
-              }
-              if ($steps.Count -eq 0) { Write-Error "$pluginName 未提取到任何步骤"; exit 1 }
-
+              $pluginZip = "$pluginName-v$version.zip"
+              $pluginZipPath = Join-Path $assetsDir $pluginZip
+              Compress-Archive -Path "$($dir.FullName)\*" -DestinationPath $pluginZipPath -Force
+              $sha256 = (Get-FileHash -LiteralPath $pluginZipPath -Algorithm SHA256).Hash
+              $size = (Get-Item -LiteralPath $pluginZipPath).Length
               $entries += [ordered]@{
                   name               = $pluginName
                   version            = $pluginVersion
@@ -311,23 +255,29 @@ jobs:
                   sha256             = $sha256
                   size               = $size
                   minPlatformVersion = ""
+                  minWidgetSdkVersion = $(if ($widgets.Count) { $widgetSdkVersion } else { "" })
+                  maxWidgetSdkVersion = ""
+                  targetFramework    = $(if ($widgets.Count) { "net8.0-windows" } else { "" })
+                  architecture       = "x64"
+                  pluginTypes        = $pluginTypes
                   readme             = $readme
                   changelog          = $changelog
                   icon               = $icon
                   steps              = $steps
+                  widgets            = $widgets
               }
-              Write-Host "  📦 $pluginZip  v$pluginVersion  ($([math]::Round($size/1KB,1)) KB)"
+              Write-Host "📦 $pluginZip  v$pluginVersion  ($([math]::Round($size/1KB,1)) KB)"
           }
-
-          # ③ 生成 manifest.json
+          # 保留原整包目录结构，仅纳入此次发布清单中的模块。
+          $moduleDirs = @($modules | ForEach-Object { Join-Path $publishRoot $_.Name })
+          Compress-Archive -LiteralPath $moduleDirs -DestinationPath (Join-Path $env:GITHUB_WORKSPACE $zipName) -Force
           $manifest = [ordered]@{
               manifestVersion = 1
               releaseTag      = $tag
               plugins         = $entries
           }
-          $manifest | ConvertTo-Json -Depth 6 | Set-Content "$assetsDir\manifest.json" -Encoding UTF8
-          Write-Host "✅ manifest.json 已生成（$($entries.Count) 个插件）"
-
+          $manifest | ConvertTo-Json -Depth 8 | Set-Content "$assetsDir\manifest.json" -Encoding UTF8
+          Write-Host "✅ $zipName 和 manifest.json 已生成（$($entries.Count) 个插件）"
           "ZIP_NAME=$zipName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # ── 7.5 生成历史版本索引 versions.json ─────────────────────────────
@@ -409,7 +359,7 @@ jobs:
           $index | ConvertTo-Json -Depth 6 | Set-Content "$assetsDir\versions.json" -Encoding UTF8
           Write-Host "✅ versions.json 已生成（$($plugins.Count) 个插件）"
 
-      # ── 7.9 构建/测试/打包成功后创建并推送 tag ──────────────────────────────────────────────
+      # ── 7.9 构建/打包成功后创建并推送 tag ──────────────────────────────────────────────
       - name: 创建并推送标签
         shell: pwsh
         run: |

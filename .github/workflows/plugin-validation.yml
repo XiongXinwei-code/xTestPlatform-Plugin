@@ -40,3 +40,11 @@ jobs:
           path: |
             artifacts/Release/2026-10-23-audit-fixes/verification
             artifacts/Release/2026-10-23-audit-fixes/build-manifest.json
+      - name: 上传两个波形控件的可部署目录
+        uses: actions/upload-artifact@v4
+        with:
+          name: waveform-widget-plugins
+          if-no-files-found: error
+          path: |
+            artifacts/Release/2026-10-23-audit-fixes/Plugins/Waveform
+            artifacts/Release/2026-10-23-audit-fixes/Plugins/SfWaveform
