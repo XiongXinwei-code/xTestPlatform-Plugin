@@ -8,10 +8,11 @@ $consoleEncoding = [Text.UTF8Encoding]::new($false)
 $OutputEncoding = $consoleEncoding
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $utf8 = [Text.UTF8Encoding]::new($false, $true)
-$roots = @('CAN', 'CiA402', 'Ethernet', 'Http', 'LIN', 'Modbus', 'NiDaq', 'OpcUa', 'SerialPort', 'VISA', 'NiGrpc', 'Shared', 'tests', 'tools', 'docs', '.github')
+$pluginRoots = @('CAN', 'CiA402', 'Ethernet', 'Http', 'LIN', 'LabVIEWCall', 'Modbus', 'NiDaq', 'OpcUa', 'SerialPort', 'VISA', 'NiGrpc', 'ZlgEtherCat')
+$roots = $pluginRoots + @('Shared', 'tests', 'tools', 'docs', '.github')
 # Match release.yml's conventional module/core-project discovery. Test projects
 # and deep artifact snapshots must not become phantom plugins in CI.
-$expectedModules = @($roots[0..10] | Sort-Object)
+$expectedModules = @($pluginRoots | Sort-Object)
 $discoveredModules = @(Get-ChildItem -LiteralPath $repoRoot -Directory | Where-Object {
     (Get-ChildItem -LiteralPath $_.FullName -Depth 1 -File -Filter '*Plugin.csproj').Count -gt 0
 } | Select-Object -ExpandProperty Name | Sort-Object)

@@ -13,6 +13,7 @@ using Xunit;
 
 namespace CAN.Tests;
 
+[Collection("CAN blocked I/O")]
 public sealed class LifecycleGuardTests
 {
     private static Task<IDisposable> Enter(object registry, string name, CancellationToken ct = default)
@@ -39,7 +40,14 @@ public sealed class LifecycleGuardTests
         {
             var closing = new CanCloseExecutor().ExecuteAsync(context);
             await state.LookedUp.Task.WaitAsync(TimeSpan.FromSeconds(2));
-            Assert.False(closing.IsCompleted);
+            bool completedBeforeSwap = closing.IsCompleted;
+            string diagnostic = "关闭应等待已持有的连接锁";
+            if (completedBeforeSwap && closing.IsCompletedSuccessfully)
+            {
+                var early = await closing;
+                diagnostic = $"替换前关闭已返回 {early.StepResult.Status}，错误：{early.StepResult.Error?.Message}";
+            }
+            Assert.False(completedBeforeSwap, diagnostic);
             // 模拟持有生命周期锁的 Open 已将旧代次替换为新代次。
             state.Adapter = replacement;
             state.Closing = closing;

@@ -1,10 +1,12 @@
 using System.IO;
 using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using NiDaq.Models;
+using PluginTestCommon;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -52,6 +54,19 @@ public sealed class ExpansionEditorTests
     });
 
     [Theory]
+    [InlineData("CounterInputConfig", "$.MinimumFrequency")]
+    [InlineData("EncoderConfig", "$.ZIndexPhase")]
+    public void NormalSaveRejectsInvalidExpansionValues(string name, string field)
+    {
+        var plugin = (IStepPlugin)Activator.CreateInstance(typeof(NiDaqAiConfigPlugin).Assembly.GetType("NiDaq.NiDaq" + name + "Plugin")!)!;
+        var serializer = plugin.CreateSerializer();
+        var setting = serializer.CreateDefault();
+        MakeInvalid(setting);
+        var error = Assert.Throws<JsonException>(() => serializer.Serialize(setting));
+        Assert.Contains(field, error.Message);
+    }
+
+    [Theory]
     [InlineData("CounterInputConfig")]
     [InlineData("CounterOutputConfig")]
     [InlineData("DiConfig")]
@@ -70,6 +85,18 @@ public sealed class ExpansionEditorTests
         var context = new StepEditorValidationContext { Setting = serializer.Serialize(setting), Evaluator = ExpressionEvaluatorFactory.Default,
             ExecutionContext = AuditTestSupport.ContextProxy.Create(), SequenceFile = new SequenceFile(), Block = [], CurrentStep = new Step() };
         Assert.DoesNotContain(await editor.ValidateWithContextAsync(context), e => e.Severity.ToString() == "Error");
+        MakeInvalid(setting);
+        var bytes = name is "CounterInputConfig" or "EncoderConfig"
+            ? DamagedSettings.Serialize(plugin, setting)
+            : serializer.Serialize(setting);
+        context = new StepEditorValidationContext { Setting = bytes, Evaluator = ExpressionEvaluatorFactory.Default,
+            ExecutionContext = AuditTestSupport.ContextProxy.Create(), SequenceFile = new SequenceFile(), Block = [], CurrentStep = new Step() };
+        var expectedCode = name == "EncoderConfig" ? "DAQ_ENCODER_POSITION" : "DAQ_CONFIG";
+        Assert.Contains(await editor.ValidateWithContextAsync(context), e => e.Severity.ToString() == "Error" && e.Code == expectedCode);
+    }
+
+    private static void MakeInvalid(object setting)
+    {
         switch (setting)
         {
             case NiDaqCounterInputConfigSetting s: s.Mode = CounterInputMode.Frequency; s.MinimumFrequency = double.NaN; break;
@@ -79,10 +106,8 @@ public sealed class ExpansionEditorTests
             case NiDaqDigitalReadSetting s: s.SamplesPerChannel = 0; break;
             case NiDaqCounterReadSetting s: s.ResultVariable = ""; break;
             case NiDaqDigitalWriteSetting s: s.Values = ""; break;
+            default: throw new ArgumentException("Unsupported test setting", nameof(setting));
         }
-        context = new StepEditorValidationContext { Setting = serializer.Serialize(setting), Evaluator = ExpressionEvaluatorFactory.Default,
-            ExecutionContext = AuditTestSupport.ContextProxy.Create(), SequenceFile = new SequenceFile(), Block = [], CurrentStep = new Step() };
-        Assert.Contains(await editor.ValidateWithContextAsync(context), e => e.Severity.ToString() == "Error");
     }
 
     [Fact]

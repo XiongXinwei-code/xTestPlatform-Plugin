@@ -135,6 +135,7 @@ public sealed class DbcEditorViewModel : INotifyPropertyChanged
     private Step? _conflictStep;
     private int _attachFlushDepth;
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+    private readonly Func<Action, Task>? _postToEditor;
     private Step? _step;
     private DbcSourceSetting? _setting;
     private DbcDatabase? _database;
@@ -174,9 +175,11 @@ public sealed class DbcEditorViewModel : INotifyPropertyChanged
     private readonly DbcProjectionCollection<DbcConfiguredMessageRow> _configuredMessages = [];
     private DbcBatchMessageSelection? _batchSelection;
     public DbcEditorViewModel(IStepPlugin plugin) : this(plugin, DbcDocumentIO.ReadAsync) { }
-    internal DbcEditorViewModel(IStepPlugin plugin, Func<string, string, CancellationToken, Task<DbcDocumentSetting>> readDocument)
+    internal DbcEditorViewModel(IStepPlugin plugin, Func<string, string, CancellationToken, Task<DbcDocumentSetting>> readDocument,
+        Func<Action, Task>? postToEditor = null)
     {
         _plugin = plugin; _serializer = plugin.CreateSerializer(); _readDocument = readDocument;
+        _postToEditor = postToEditor;
         SignalView = CollectionViewSource.GetDefaultView(SignalRows);
         SignalView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(DbcSignalRow.MessageGroup)));
     }
@@ -698,7 +701,7 @@ public sealed class DbcEditorViewModel : INotifyPropertyChanged
     {
         if (_dispatcher.HasShutdownStarted || _dispatcher.HasShutdownFinished) return Task.CompletedTask;
         if (_dispatcher.CheckAccess()) { action(); return Task.CompletedTask; }
-        return _dispatcher.InvokeAsync(action).Task;
+        return _postToEditor is null ? _dispatcher.InvokeAsync(action).Task : _postToEditor(action);
     }
     private static readonly Lazy<string> DefaultProtection = new(() => new CanPayloadProtectionSetting().ToString());
     private static bool HasSingleMessageConfiguration(DbcCanSetting setting)

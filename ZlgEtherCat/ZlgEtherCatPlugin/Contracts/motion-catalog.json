@@ -1,0 +1,563 @@
+[
+  {
+    "op": "BindAxis",
+    "group": "Session",
+    "title": "绑定轴",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "SlaveIndex",
+        "type": "expression",
+        "def": "0",
+        "label": "从站索引",
+        "evalType": "int",
+        "info": "求值结果为 int；驱动原始单位"
+      },
+      {
+        "name": "AllowedModes",
+        "type": "string",
+        "def": "1",
+        "label": "允许的驱动模式",
+        "info": "显式驱动能力白名单：1/3/4/6/8/9/10，逗号分隔"
+      },
+      {
+        "name": "MaxFeedbackAgeMs",
+        "type": "int",
+        "def": 100,
+        "label": "反馈最大本地接收年龄（ms）",
+        "min": 1,
+        "max": 3600000
+      },
+      {
+        "name": "PollIntervalMs",
+        "type": "int",
+        "def": 10,
+        "label": "轮询间隔（ms）",
+        "min": 1,
+        "max": 1000
+      },
+      {
+        "name": "InputByteOffset",
+        "type": "int",
+        "def": 0,
+        "label": "InputByteOffset",
+        "min": 0,
+        "max": 16777215
+      },
+      {
+        "name": "OutputByteOffset",
+        "type": "int",
+        "def": 0,
+        "label": "OutputByteOffset",
+        "min": 0,
+        "max": 16777215
+      },
+      {
+        "name": "InputByteLength",
+        "type": "int",
+        "def": 0,
+        "label": "InputByteLength",
+        "min": 0,
+        "max": 16777215
+      },
+      {
+        "name": "OutputByteLength",
+        "type": "int",
+        "def": 0,
+        "label": "OutputByteLength",
+        "min": 0,
+        "max": 16777215
+      },
+      {
+        "name": "StatusWordOffset",
+        "type": "int",
+        "def": -1,
+        "label": "StatusWordOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "ActualPositionOffset",
+        "type": "int",
+        "def": -1,
+        "label": "ActualPositionOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "ActualVelocityOffset",
+        "type": "int",
+        "def": -1,
+        "label": "ActualVelocityOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "ActualTorqueOffset",
+        "type": "int",
+        "def": -1,
+        "label": "ActualTorqueOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "ModeDisplayOffset",
+        "type": "int",
+        "def": -1,
+        "label": "ModeDisplayOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "ControlWordOffset",
+        "type": "int",
+        "def": -1,
+        "label": "ControlWordOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "TargetPositionOffset",
+        "type": "int",
+        "def": -1,
+        "label": "TargetPositionOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "TargetVelocityOffset",
+        "type": "int",
+        "def": -1,
+        "label": "TargetVelocityOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "TargetTorqueOffset",
+        "type": "int",
+        "def": -1,
+        "label": "TargetTorqueOffset",
+        "min": -1,
+        "max": 16777215
+      },
+      {
+        "name": "ModeCommandOffset",
+        "type": "int",
+        "def": -1,
+        "label": "ModeCommandOffset",
+        "min": -1,
+        "max": 16777215
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "UnbindAxis",
+    "group": "Session",
+    "title": "解绑轴",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "ReadAxisState",
+    "group": "State",
+    "title": "读取轴状态",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "ReadAxisDiagnostics",
+    "group": "Feedback",
+    "title": "读取轴报警诊断",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "ResetAxisFault",
+    "group": "State",
+    "title": "复位轴故障",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "ReadAxisMode",
+    "group": "State",
+    "title": "读取实际模式",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "SetAxisMode",
+    "group": "State",
+    "title": "设置运行模式",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Mode",
+        "type": "int",
+        "def": 1,
+        "label": "运行模式",
+        "min": 1,
+        "max": 10
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "EnableAxis",
+    "group": "State",
+    "title": "伺服使能",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "DisableAxis",
+    "group": "State",
+    "title": "伺服去使能",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "MovePosition",
+    "group": "Motion",
+    "title": "位置运动",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Position",
+        "type": "expression",
+        "def": "0",
+        "label": "目标位置",
+        "evalType": "int",
+        "info": "求值结果为 int；驱动原始单位"
+      },
+      {
+        "name": "Relative",
+        "type": "bool",
+        "def": false,
+        "label": "相对运动"
+      },
+      {
+        "name": "ProfileVelocity",
+        "type": "expression",
+        "def": "0",
+        "label": "轮廓速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      },
+      {
+        "name": "Acceleration",
+        "type": "expression",
+        "def": "0",
+        "label": "加速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      },
+      {
+        "name": "Deceleration",
+        "type": "expression",
+        "def": "0",
+        "label": "减速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "RunVelocity",
+    "group": "Motion",
+    "title": "速度运动",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Velocity",
+        "type": "expression",
+        "def": "0",
+        "label": "目标速度",
+        "evalType": "int",
+        "info": "求值结果为 int；驱动原始单位"
+      },
+      {
+        "name": "Acceleration",
+        "type": "expression",
+        "def": "0",
+        "label": "加速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      },
+      {
+        "name": "Deceleration",
+        "type": "expression",
+        "def": "0",
+        "label": "减速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "RunTorque",
+    "group": "Motion",
+    "title": "转矩控制",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Torque",
+        "type": "expression",
+        "def": "0",
+        "label": "目标转矩",
+        "evalType": "short",
+        "info": "求值结果为 short；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "HomeAxis",
+    "group": "Motion",
+    "title": "回零",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Method",
+        "type": "expression",
+        "def": "0",
+        "label": "回零方法",
+        "evalType": "sbyte",
+        "info": "求值结果为 sbyte；驱动原始单位"
+      },
+      {
+        "name": "SearchVelocity",
+        "type": "expression",
+        "def": "0",
+        "label": "寻找开关速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      },
+      {
+        "name": "ZeroVelocity",
+        "type": "expression",
+        "def": "0",
+        "label": "寻找零位速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      },
+      {
+        "name": "Acceleration",
+        "type": "expression",
+        "def": "0",
+        "label": "加速度",
+        "evalType": "uint",
+        "info": "求值结果为 uint；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "StopMotion",
+    "group": "Motion",
+    "title": "停止运动",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "QuickStop",
+        "type": "bool",
+        "def": false,
+        "label": "使用快速停止"
+      },
+      {
+        "name": "VelocityTolerance",
+        "type": "expression",
+        "def": "0",
+        "label": "停稳速度容差",
+        "evalType": "int",
+        "info": "求值结果为 int；驱动原始单位"
+      }
+    ],
+    "behavior": "请求 Halt 或 QuickStop 后确认反馈；CSP/CSV/CST 必须显式 QuickStop=true，驱动停止选项须正确配置。停止确认需两张不同 PDO 样本或两次 SDO 实际速度读取，仍不证明物理或功能安全停止。"
+  },
+  {
+    "op": "ReadAxisFeedback",
+    "group": "Feedback",
+    "title": "读取综合反馈",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      }
+    ],
+    "behavior": "有 PDO 映射时读取一张完整快照；无 PDO 映射时按顺序读取 SDO，Sequence=0，数据不保证原子一致。"
+  },
+  {
+    "op": "WriteCspTarget",
+    "group": "Cyclic",
+    "title": "写入 CSP 位置目标",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Position",
+        "type": "expression",
+        "def": "0",
+        "label": "位置目标",
+        "evalType": "int",
+        "info": "求值结果为 int；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "WriteCsvTarget",
+    "group": "Cyclic",
+    "title": "写入 CSV 速度目标",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Velocity",
+        "type": "expression",
+        "def": "0",
+        "label": "速度目标",
+        "evalType": "int",
+        "info": "求值结果为 int；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  },
+  {
+    "op": "WriteCstTarget",
+    "group": "Cyclic",
+    "title": "写入 CST 转矩目标",
+    "fields": [
+      {
+        "name": "AxisName",
+        "type": "expression",
+        "def": "\"Axis1\"",
+        "label": "轴名称",
+        "info": "求值结果为 string；本插件独立轴会话标识"
+      },
+      {
+        "name": "Torque",
+        "type": "expression",
+        "def": "0",
+        "label": "转矩目标",
+        "evalType": "short",
+        "info": "求值结果为 short；驱动原始单位"
+      }
+    ],
+    "behavior": "独立实现 CiA402 轴控制，使用 ZLG CoE/PDO 通路；只操作已绑定的当前轴，不依赖其他设备插件。"
+  }
+]

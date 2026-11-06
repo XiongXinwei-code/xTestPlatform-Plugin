@@ -5,6 +5,7 @@ using Xunit;
 
 namespace SerialPort.Tests;
 
+[Collection("Serial followup isolated")]
 public sealed class CloudSerialShutdownTests
 {
     [Fact]
@@ -57,9 +58,11 @@ public sealed class CloudSerialShutdownTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Infinite_write_is_interrupted_before_final_dispose_and_both_real_exits_are_confirmed(bool interruptFails)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Infinite_write_is_interrupted_before_final_dispose_and_both_real_exits_are_confirmed(bool interruptFails, bool interruptReturnsFirst)
     {
         using var guard = new CancellationTokenSource(15000);
         using var ioExit = new ManualResetEventSlim();
@@ -71,15 +74,26 @@ public sealed class CloudSerialShutdownTests
         var closing = owner.CloseAsync(5000, default);
         try
         {
-            await channel.InterruptEntered.Task.WaitAsync(TimeSpan.FromSeconds(1));
+            // Observe actual entry, independent of when the runner schedules the interrupt worker.
+            await channel.InterruptEntered.Task.WaitAsync(guard.Token);
             Assert.Equal(1, channel.InterruptCalls);
             Assert.False(owner.IsClosed);
             Assert.Equal(0, channel.DisposeCalls);
-            ioExit.Set();
-            await channel.IoExited.Task.WaitAsync(guard.Token);
+            if (interruptReturnsFirst)
+            {
+                abortExit.Set();
+                await channel.InterruptExited.Task.WaitAsync(guard.Token);
+                Assert.False(channel.IoExited.Task.IsCompleted);
+            }
+            else
+            {
+                ioExit.Set();
+                await channel.IoExited.Task.WaitAsync(guard.Token);
+                Assert.False(channel.InterruptExited.Task.IsCompleted);
+            }
             Assert.False(closing.IsCompleted);
             Assert.Equal(0, channel.DisposeCalls);
-            abortExit.Set();
+            ioExit.Set(); abortExit.Set();
             await closing.WaitAsync(guard.Token);
             Assert.Equal(interruptFails, owner.CloseWarning != null);
             Assert.True(owner.IsClosed);
@@ -99,9 +113,9 @@ public sealed class CloudSerialShutdownTests
     {
         internal readonly TaskCompletionSource Writing = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource InterruptEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal readonly TaskCompletionSource InterruptExited = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource IoExited = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int InterruptCalls, DisposeCalls;
-        private bool _abortReturned;
         public bool IsOpen => DisposeCalls == 0;
         public int ReadTimeout { get; set; } = -1;
         public int WriteTimeout { get; set; } = -1;
@@ -113,13 +127,14 @@ public sealed class CloudSerialShutdownTests
         }
         public void CancelPendingIo()
         {
-            Interlocked.Increment(ref InterruptCalls); InterruptEntered.TrySetResult(); ioExit.Set(); abortExit.Wait(guard); _abortReturned = true;
+            Interlocked.Increment(ref InterruptCalls); InterruptEntered.TrySetResult(); abortExit.Wait(guard);
+            InterruptExited.TrySetResult();
             if (interruptFails) throw new IOException("interrupt failed after its native call exited");
         }
         public void Dispose()
         {
             Assert.True(IoExited.Task.IsCompleted);
-            if (InterruptEntered.Task.IsCompleted) Assert.True(_abortReturned);
+            Assert.True(InterruptExited.Task.IsCompleted);
             Interlocked.Increment(ref DisposeCalls);
         }
     }

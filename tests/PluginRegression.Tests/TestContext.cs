@@ -16,21 +16,21 @@ public class TestContext : DispatchProxy
     public StepExecutionInfo Current { get; set; } = null!;
     private object? _registry;
 
-    public static (IExecutionContext Context, TestContext State) Create(IStepPlugin plugin, object setting)
+    public static (IExecutionContext Context, TestContext State) Create(IStepPlugin plugin, object setting, byte[]? storedBytes = null)
     {
         var ctx = Create<IExecutionContext, TestContext>();
         var state = (TestContext)(object)ctx;
-        state.SetStep(plugin, setting);
+        state.SetStep(plugin, setting, storedBytes);
         return (ctx, state);
     }
 
-    public void SetStep(IStepPlugin plugin, object setting)
+    public void SetStep(IStepPlugin plugin, object setting, byte[]? storedBytes = null)
     {
         var serializer = plugin.CreateSerializer();
         var step = new Step();
         step.StepSetting.StepType = plugin.StepTypeId;
         step.StepSetting.SettingVersion = serializer.SettingVersion;
-        step.StepSetting.Setting = serializer.Serialize(setting);
+        step.StepSetting.Setting = storedBytes ?? serializer.Serialize(setting);
         Current = new StepExecutionInfo { Step = step };
     }
 

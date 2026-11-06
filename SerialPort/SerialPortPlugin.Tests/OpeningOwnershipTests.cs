@@ -2,6 +2,7 @@ using AuditTestSupport;
 using SerialPort.Helpers;
 using Xunit;
 namespace SerialPort.ContractTests;
+[Collection("Serial followup isolated")]
 public class OpeningOwnershipTests
 {
     [Fact]

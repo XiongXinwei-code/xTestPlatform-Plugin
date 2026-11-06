@@ -10,10 +10,12 @@ using Xunit;
 
 namespace CAN.Tests;
 
+[Collection("CAN blocked I/O")]
 public sealed class PluginEditorScrollingTests
 {
-    // Called from the existing real-view STA fixture to share Syncfusion caches.
-    internal static void VerifyActualPages()
+    // These standard WPF windows need to process real Loaded/Unloaded notifications on their own STA.
+    [StaFact]
+    public void Standard_windows_preserve_scroll_layout_routing_theme_and_input_lifecycle()
     {
         Overlay_template_gets_a_real_row_and_restores_it_on_exit();
         Shift_routing_scrolls_the_nearest_viewer_and_hands_over_at_the_edge();

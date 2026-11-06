@@ -53,14 +53,14 @@ public class PublicationContextProxy : DispatchProxy
     private StepExecutionInfo _current = null!;
     [ModuleInitializer]
     internal static void LoadExpressionImports() => Assembly.Load("System.Text.Json");
-    public static (IExecutionContext Context, PublicationContextProxy State) Create(IStepPlugin plugin, object setting, PublicationStoreProxy? shared = null)
+    public static (IExecutionContext Context, PublicationContextProxy State) Create(IStepPlugin plugin, object setting, PublicationStoreProxy? shared = null, byte[]? storedBytes = null)
     {
         var context = DispatchProxy.Create<IExecutionContext, PublicationContextProxy>();
         var state = (PublicationContextProxy)(object)context;
         var step = new Step(); var serializer = plugin.CreateSerializer();
         step.StepSetting.StepType = plugin.StepTypeId;
         step.StepSetting.SettingVersion = serializer.SettingVersion;
-        step.StepSetting.Setting = serializer.Serialize(setting);
+        step.StepSetting.Setting = storedBytes ?? serializer.Serialize(setting);
         state._current = new StepExecutionInfo { Step = step };
         var type = typeof(IExecutionContext).GetProperty("Resources")?.PropertyType ??
             typeof(IExecutionContext).GetInterfaces().SelectMany(i => i.GetProperties()).First(p => p.Name == "Resources").PropertyType;

@@ -68,8 +68,15 @@ public sealed class CanMultiWriteEditorTests
         var plugin = new CanWritePlugin(); var editor = new CanWriteEditorPlugin();
         var setting = new CanWriteSetting { UseMessageList = true, CanId = "invalid old expression", Data = "invalid old expression", Messages =
         [new() { CanId = "\"0x100\"", Data = "\"00\"" }, new() { Enabled = false, CanId = "", Data = "", FrameType = (CanFrameType)99, Protection = new() { CrcEnabled = true, CrcAlgorithm = CanCrcAlgorithm.Custom, CrcPolynomial = "invalid" } }] };
-        var errors = await editor.ValidateWithContextAsync(Round2XcpContractTests.Context(plugin, setting));
-        Assert.DoesNotContain(errors, e => e.Code is "CAN_021E" or "CAN_W20E" or "CAN_PAYLOAD_PROTECTION" or "CAN_WRITE_FRAME_TYPE");
+        var invalidSave = Assert.Throws<System.Text.Json.JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains("$.Messages[1].FrameType", invalidSave.Message);
+        var errors = await editor.ValidateWithContextAsync(Round2XcpContractTests.Context(plugin, setting, untrustedInput: true));
+        Assert.DoesNotContain(errors, e => e.Code is "CAN_021" or "CAN_021E" or "CAN_W20" or "CAN_W20E" or "CAN_PAYLOAD_PROTECTION" or "CAN_WRITE_FRAME_TYPE");
+        setting.Messages[1].Enabled = true;
+        errors = await editor.ValidateWithContextAsync(Round2XcpContractTests.Context(plugin, setting, untrustedInput: true));
+        Assert.Contains(errors, e => e.Code == "CAN_WRITE_FRAME_TYPE" && e.Message.Contains("第 2 行"));
+        setting.Messages[1].Enabled = false;
+        setting.Messages[1].FrameType = CanFrameType.Standard;
         setting.Messages[0].Protection = new() { CrcEnabled = true, CrcStartByte = 7, CrcEndByte = 7 };
         errors = await editor.ValidateWithContextAsync(Round2XcpContractTests.Context(plugin, setting));
         Assert.Contains(errors, e => e.Code == "CAN_PAYLOAD_PROTECTION" && e.Message.Contains("第 1 行"));

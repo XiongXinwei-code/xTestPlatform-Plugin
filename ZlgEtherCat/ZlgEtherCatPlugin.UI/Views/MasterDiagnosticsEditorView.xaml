@@ -1,0 +1,38 @@
+<UserControl x:Class="ZlgEtherCat.UI.Views.MasterDiagnosticsEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+    xmlns:common="clr-namespace:PluginCommon.UI" common:PluginEditorScrolling.Enabled="True">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="主站诊断读取" Image="pack://application:,,,/ZlgEtherCat.StepPlugin.UI;component/Resources/Icons/zlg_masterdiagnostics.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <TextBlock Text="功能" FontWeight="SemiBold" Margin="0,4,0,4" />
+                    <ComboBox x:Name="OperationEditor" ItemsSource="{Binding OperationChoices}" SelectedValuePath="Key" DisplayMemberPath="Value" SelectedValue="{Binding Operation, Mode=TwoWay}" Margin="0,0,0,8" />
+                    <TextBlock Text="切换功能保留本组已填参数；只显示、校验和执行当前功能的参数。输入/输出方向随当前功能说明确定。" TextWrapping="Wrap" Opacity="0.7" Margin="0,0,0,12" />
+                    <TextBlock Text="{Binding OperationTitle}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="{Binding OperationHelp}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
+                    <StackPanel Visibility="{Binding ConnectionNameVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ConnectionNameLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox x:Name="ConnectionNameEditor" ScriptText="{Binding ConnectionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="{Binding ConnectionNameInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding TimeoutMsVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding TimeoutMsLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="TimeoutMsEditor"  Text="{Binding TimeoutMsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding TimeoutMsInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ResultVariableVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ResultVariableLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ResultVariableEditor" common:VariableDrop.Target="True" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ResultVariableInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

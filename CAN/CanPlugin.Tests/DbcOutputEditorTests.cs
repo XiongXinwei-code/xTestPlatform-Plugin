@@ -153,12 +153,12 @@ public sealed class DbcOutputEditorTests
         Assert.DoesNotContain(errors, e => e.Code.StartsWith("DBC_OUTPUT", StringComparison.Ordinal));
     }
 
-    internal static async Task VerifyActualOutputPagesAsync()
+    internal static async Task VerifyActualOutputPagesAsync(DbcEditorTestContext ui)
     {
         foreach (IStepPlugin plugin in new IStepPlugin[] { new DbcReadPlugin(), new DbcCapturePlugin() })
         {
             var setting = (DbcReadSetting)plugin.CreateSerializer().CreateDefault(); setting.Document = Document(); setting.UseMessageList = false; setting.MessageId = 0x123;
-            var step = Step(plugin, setting); var view = DbcStageQueue.Create(plugin); view.RefreshFromStep(step);
+            var step = Step(plugin, setting); var view = DbcStageQueue.Create(ui.CreateModel(plugin)); view.RefreshFromStep(step);
             await view.ViewModel.LoadTask;
             DbcStageQueue.LayoutAndFinish(view, new Size(1500, 1000));
             var grid = (DataGrid)view.FindName("SignalsGrid");

@@ -66,7 +66,10 @@ public sealed class SettingContractBoundaryTests
         var setting = new OpcUaConnectSetting { ConnectionName = "\"C\"", EndpointUrl = "\"opc.tcp://unit.test:4840\"" };
         if (security) setting.SecurityPolicy = (OpcUaSecurityPolicy)99;
         else setting.AuthMode = (OpcUaAuthMode)99;
-        var (context, _) = BoundaryContext.Create(plugin, setting);
+        var invalidSave = Assert.Throws<System.Text.Json.JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains(security ? "$.SecurityPolicy" : "$.AuthMode", invalidSave.Message);
+        var bytes = PluginTestCommon.DamagedSettings.Serialize(plugin, setting);
+        var (context, _) = BoundaryContext.Create(plugin, setting, storedBytes: bytes);
         int factories = 0;
         var executor = new OpcUaConnectExecutor(_ =>
         {
@@ -77,7 +80,7 @@ public sealed class SettingContractBoundaryTests
         Assert.Equal(TestStatus.Error, result.StepResult.Status);
         Assert.Equal(0, factories);
         Assert.Contains(security ? "SecurityPolicy" : "AuthMode", result.StepResult.Error!.Message);
-        var errors = await ValidateAsync(plugin, setting);
+        var errors = await ValidateAsync(plugin, setting, bytes);
         Assert.Contains(errors, error => error.Message.Contains(security ? "SecurityPolicy" : "AuthMode"));
     }
 
@@ -86,7 +89,10 @@ public sealed class SettingContractBoundaryTests
     {
         var plugin = new OpcUaWritePlugin();
         var setting = new OpcUaWriteSetting { ConnectionName = "\"C\"", NodeId = "ns=2;s=V", WriteValue = "\"7\"", DataType = (OpcUaDataType)99 };
-        var (context, state) = BoundaryContext.Create(plugin, setting);
+        var invalidSave = Assert.Throws<System.Text.Json.JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains("$.DataType", invalidSave.Message);
+        var bytes = PluginTestCommon.DamagedSettings.Serialize(plugin, setting);
+        var (context, state) = BoundaryContext.Create(plugin, setting, storedBytes: bytes);
         var owner = new OpcUaConnectionResource(() => Task.CompletedTask, 1000);
         state.Store.Values["OpcUa_C"] = owner;
         int writes = 0;
@@ -97,7 +103,7 @@ public sealed class SettingContractBoundaryTests
             var result = await executor.ExecuteAsync(context);
             Assert.Equal(TestStatus.Error, result.StepResult.Status);
             Assert.Equal(0, writes);
-            var errors = await ValidateAsync(plugin, setting);
+            var errors = await ValidateAsync(plugin, setting, bytes);
             Assert.Contains(errors, error => error.Message.Contains("DataType"));
         }
         finally { await owner.CloseAsync(1000); }
@@ -106,16 +112,16 @@ public sealed class SettingContractBoundaryTests
     private static IEnumerable<Type> PluginTypes() => typeof(OpcUaConnectPlugin).Assembly.GetTypes()
         .Where(type => !type.IsAbstract && typeof(IStepPlugin).IsAssignableFrom(type));
 
-    private static Task<IReadOnlyList<StepSettingError>> ValidateAsync(IStepPlugin plugin, object setting)
+    private static Task<IReadOnlyList<StepSettingError>> ValidateAsync(IStepPlugin plugin, object setting, byte[]? storedBytes = null)
     {
         var editorType = typeof(OpcUa.UI.OpcUaConnectEditorPlugin).Assembly.GetTypes().Single(type =>
             !type.IsAbstract && typeof(IStepEditorPlugin).IsAssignableFrom(type) &&
             ((IStepEditorPlugin)Activator.CreateInstance(type)!).StepTypeId == plugin.StepTypeId);
         var editor = (IStepEditorPlugin)Activator.CreateInstance(editorType)!;
-        var (context, _) = BoundaryContext.Create(plugin, setting);
+        var (context, _) = BoundaryContext.Create(plugin, setting, storedBytes: storedBytes);
         return editor.ValidateWithContextAsync(new StepEditorValidationContext
         {
-            Setting = plugin.CreateSerializer().Serialize(setting), Evaluator = ExpressionEvaluatorFactory.Default,
+            Setting = context.CurrentStep!.Step.StepSetting.Setting, Evaluator = ExpressionEvaluatorFactory.Default,
             ExecutionContext = context, SequenceFile = new SequenceFile(), Block = [], CurrentStep = new Step()
         });
     }

@@ -1,0 +1,134 @@
+<UserControl x:Class="ZlgEtherCat.UI.Views.BindAxisEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
+    xmlns:expr="clr-namespace:ExpressionTextBox;assembly=ExpressionTextBox"
+    xmlns:common="clr-namespace:PluginCommon.UI" common:PluginEditorScrolling.Enabled="True">
+    <syncfusion:TabControlExt CloseButtonType="Hide" AllowDragDrop="False" EnableLabelEdit="False">
+        <syncfusion:TabItemExt Header="绑定轴" Image="pack://application:,,,/ZlgEtherCat.StepPlugin.UI;component/Resources/Icons/zlg_bindaxis.png" ImageHeight="20" ImageWidth="20">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="16">
+                    <TextBlock Text="{Binding OperationTitle}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <TextBlock Text="{Binding OperationHelp}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <TextBlock Text="{Binding Error}" Foreground="Firebrick" TextWrapping="Wrap" />
+                    <StackPanel Visibility="{Binding ConnectionNameVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ConnectionNameLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox x:Name="ConnectionNameEditor" ScriptText="{Binding ConnectionName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="{Binding ConnectionNameInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding AxisNameVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding AxisNameLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox x:Name="AxisNameEditor" ScriptText="{Binding AxisName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ExpectedResultType="String"
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="{Binding AxisNameInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding SlaveIndexVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding SlaveIndexLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <expr:ExpressionTextBox x:Name="SlaveIndexEditor" ScriptText="{Binding SlaveIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                            SequenceFile="{Binding SequenceFile, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            EditPosition="{Binding EditPosition, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        <TextBlock Text="{Binding SlaveIndexInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding AllowedModesVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding AllowedModesLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="AllowedModesEditor"  Text="{Binding AllowedModes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding AllowedModesInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding MaxFeedbackAgeMsVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding MaxFeedbackAgeMsLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="MaxFeedbackAgeMsEditor"  Text="{Binding MaxFeedbackAgeMsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding MaxFeedbackAgeMsInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding PollIntervalMsVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding PollIntervalMsLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="PollIntervalMsEditor"  Text="{Binding PollIntervalMsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding PollIntervalMsInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding InputByteOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding InputByteOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="InputByteOffsetEditor"  Text="{Binding InputByteOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding InputByteOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding OutputByteOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding OutputByteOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="OutputByteOffsetEditor"  Text="{Binding OutputByteOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding OutputByteOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding InputByteLengthVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding InputByteLengthLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="InputByteLengthEditor"  Text="{Binding InputByteLengthText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding InputByteLengthInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding OutputByteLengthVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding OutputByteLengthLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="OutputByteLengthEditor"  Text="{Binding OutputByteLengthText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding OutputByteLengthInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding StatusWordOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding StatusWordOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="StatusWordOffsetEditor"  Text="{Binding StatusWordOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding StatusWordOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ActualPositionOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ActualPositionOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ActualPositionOffsetEditor"  Text="{Binding ActualPositionOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ActualPositionOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ActualVelocityOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ActualVelocityOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ActualVelocityOffsetEditor"  Text="{Binding ActualVelocityOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ActualVelocityOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ActualTorqueOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ActualTorqueOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ActualTorqueOffsetEditor"  Text="{Binding ActualTorqueOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ActualTorqueOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ModeDisplayOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ModeDisplayOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ModeDisplayOffsetEditor"  Text="{Binding ModeDisplayOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ModeDisplayOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ControlWordOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ControlWordOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ControlWordOffsetEditor"  Text="{Binding ControlWordOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ControlWordOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding TargetPositionOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding TargetPositionOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="TargetPositionOffsetEditor"  Text="{Binding TargetPositionOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding TargetPositionOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding TargetVelocityOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding TargetVelocityOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="TargetVelocityOffsetEditor"  Text="{Binding TargetVelocityOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding TargetVelocityOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding TargetTorqueOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding TargetTorqueOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="TargetTorqueOffsetEditor"  Text="{Binding TargetTorqueOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding TargetTorqueOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ModeCommandOffsetVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ModeCommandOffsetLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ModeCommandOffsetEditor"  Text="{Binding ModeCommandOffsetText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ModeCommandOffsetInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding TimeoutMsVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding TimeoutMsLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="TimeoutMsEditor"  Text="{Binding TimeoutMsText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding TimeoutMsInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                    <StackPanel Visibility="{Binding ResultVariableVisibility}" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding ResultVariableLabel}" FontWeight="SemiBold" Margin="0,4,0,4" />
+                        <TextBox x:Name="ResultVariableEditor" common:VariableDrop.Target="True" Text="{Binding ResultVariable, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
+                        <TextBlock Text="{Binding ResultVariableInfo}" TextWrapping="Wrap" Opacity="0.7" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </syncfusion:TabItemExt>
+    </syncfusion:TabControlExt>
+</UserControl>

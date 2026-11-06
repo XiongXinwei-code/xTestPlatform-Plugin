@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -6,6 +7,7 @@ using System.Windows.Media;
 using Modbus.Models;
 using Modbus.UI;
 using Modbus.UI.Views;
+using PluginTestCommon;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Plugins.Contracts;
@@ -26,7 +28,10 @@ public sealed class EditorContractBoundaryTests
         IStepEditorPlugin editor = write ? new ModbusWriteEditorPlugin() : new ModbusReadEditorPlugin();
         object setting = write ? new ModbusWriteSetting { RegisterType = (ModbusRegisterType)999, DataFormat = (ModbusDataFormat)999 } :
             new ModbusReadSetting { RegisterType = (ModbusRegisterType)999, DataFormat = (ModbusDataFormat)999, ResultVariable = "Locals.rx" };
-        var (context, _) = PublicationContextProxy.Create(plugin, setting); var step = context.CurrentStep!.Step;
+        var rejected = Assert.Throws<JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+        Assert.Contains("$.RegisterType", rejected.Message);
+        var (context, _) = PublicationContextProxy.Create(plugin, setting, storedBytes: DamagedSettings.Serialize(plugin, setting));
+        var step = context.CurrentStep!.Step;
         var errors = await editor.ValidateWithContextAsync(new StepEditorValidationContext { Setting = step.StepSetting.Setting, ExecutionContext = context,
             Evaluator = ExpressionEvaluatorFactory.Default, CurrentStep = step, SequenceFile = new SequenceFile(), Block = [step] });
         Assert.Contains(errors, error => error.Code == "MB_ENUM_TYPE");

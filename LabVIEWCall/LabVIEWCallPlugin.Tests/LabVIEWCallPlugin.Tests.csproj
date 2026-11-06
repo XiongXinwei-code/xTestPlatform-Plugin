@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LabVIEWCallPlugin/LabVIEWCallPlugin.csproj" />
+    <ProjectReference Include="../LabVIEWCallPlugin.UI/LabVIEWCallPlugin.UI.csproj" />
+    <ProjectReference Include="../LabVIEWCallBridgeTestHost/LabVIEWCallBridgeTestHost.csproj" ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="OutputPath;OutDir;PluginOutputRoot;AppendRuntimeIdentifierToOutputPath;AppendTargetFrameworkToOutputPath" />
+    <Content Include="../LabVIEWCallBridgeTestHost/bin/$(Configuration)/net8.0-windows/win-x64/LabVIEWCall.BridgeTestHost.exe;
+                      ../LabVIEWCallBridgeTestHost/bin/$(Configuration)/net8.0-windows/win-x64/LabVIEWCall.BridgeTestHost.dll;
+                      ../LabVIEWCallBridgeTestHost/bin/$(Configuration)/net8.0-windows/win-x64/LabVIEWCall.BridgeTestHost.deps.json;
+                      ../LabVIEWCallBridgeTestHost/bin/$(Configuration)/net8.0-windows/win-x64/LabVIEWCall.BridgeTestHost.runtimeconfig.json"
+             Link="bridge-test/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Xunit.StaFact" />
+  </ItemGroup>
+</Project>

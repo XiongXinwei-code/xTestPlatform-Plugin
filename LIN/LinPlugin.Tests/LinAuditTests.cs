@@ -236,6 +236,7 @@ public sealed class BlockingAdapter : ILinAdapter
     public readonly ManualResetEventSlim Release = new();
     public readonly TaskCompletionSource Entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public int CloseCount;
+    public int BusActionCalls;
     public Exception? WriteFailure;
     public bool IsConnected => true;
     public void Open(LinAdapterConfig c) { }
@@ -243,8 +244,8 @@ public sealed class BlockingAdapter : ILinAdapter
     public void Write(LinFrame f) { Entered.TrySetResult(); if (WriteFailure != null) throw WriteFailure; Release.Wait(); }
     public LinFrame? Read(int t, CancellationToken c = default) => null;
     public LinFrame? Read(byte id, int t, CancellationToken c = default) => null;
-    public void Wakeup(bool r = true) { }
-    public void Sleep(bool r = true) { }
+    public void Wakeup(bool r = true) => Interlocked.Increment(ref BusActionCalls);
+    public void Sleep(bool r = true) => Interlocked.Increment(ref BusActionCalls);
     public void Dispose() { }
 }
 

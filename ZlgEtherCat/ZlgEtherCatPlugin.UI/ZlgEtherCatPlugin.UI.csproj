@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ZlgEtherCat.StepPlugin.UI</AssemblyName>
+    <RootNamespace>ZlgEtherCat.UI</RootNamespace>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <OutputPath>..\..\artifacts\$(Configuration)\Plugins\ZlgEtherCat\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Icons\*.png" />
+    <ProjectReference Include="..\ZlgEtherCatPlugin\ZlgEtherCatPlugin.csproj" />
+    <PackageReference Include="xTestPlatform.StepEditor.SDK" />
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="AvalonEdit" />
+    <PackageReference Include="Syncfusion.Themes.Windows11Light.WPF" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" />
+    <PackageReference Include="Syncfusion.Tools.WPF" />
+  </ItemGroup>
+</Project>

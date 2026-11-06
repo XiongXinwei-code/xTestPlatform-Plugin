@@ -7,6 +7,11 @@ $today = Get-Date -Format 'yyyy-MM-dd'
 
 # 各插件的功能概述 / 支持的硬件或协议 / 使用前提（面向使用者）
 $meta = @{
+	'ZlgEtherCat' = @{
+		Overview = '通过ZLG主站卡提供EtherCAT主站、PDO/SDO、I/O、独立运动控制及两类读取功能池。'
+		Hardware = @('ZLG HPCIe-2E（具体SDK/固件及250/500μs周期须实测）')
+		Prereq = '需要厂商驱动及匹配ENI/DC；读取功能池复用固定线程。HPCIe-2E不开放未确认支持的PDO看门狗和板载I/O。'
+	}
 	'CAN' = @{
 		Overview = '通过 CAN 总线与被测设备通信，支持 CAN 2.0 Classic 与 CAN FD 报文的收发、周期发送，并内置 UDS 诊断（ISO 14229）与 XCP 标定协议步骤。'
 		Hardware = @('Vector（需安装 XL Driver Library）', 'PEAK PCAN', 'NI-XNET', 'ZLG 周立功', 'Kvaser', 'TOSUN 同星')
@@ -20,7 +25,7 @@ $meta = @{
 	'LabVIEWCall' = @{
 		Overview = '调用 LabVIEW 编写的 VI 程序并交换输入输出参数，便于复用既有 LabVIEW 测试资产。'
 		Hardware = @('无特定硬件要求（取决于被调用 VI）')
-		Prereq   = '需安装与 VI 版本匹配的 LabVIEW Runtime 或开发环境。'
+		Prereq   = '调用源 VI 的目标组合为 Windows x64、LabVIEW 2026 64 位及兼容的本地桥接运行引擎。先用无硬件 VI 验证本机默认端口 3363 的可达性、参数和返回值。'
 	}
 	'LIN' = @{
 		Overview = '通过 LIN 总线与被测设备通信，支持主节点报文的读、写、写读组合以及调度表周期发送的启停。'

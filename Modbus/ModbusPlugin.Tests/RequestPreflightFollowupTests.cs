@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.IO;
+using System.Text.Json;
 using Modbus.Helpers;
 using Modbus.Models;
 using Modbus.UI;
 using NModbus;
+using PluginTestCommon;
 using StepEditor.Abstractions;
 using xTestPlatform.Core.Engine;
 using xTestPlatform.Core.Models;
@@ -39,8 +41,21 @@ public sealed class RequestPreflightFollowupTests
             case "large-coils": setting.RegisterType = ModbusRegisterType.Coil; setting.Quantity = "2001"; break;
             case "address-overflow": setting.StartAddress = "65535"; setting.Quantity = "2"; break;
         }
-        await Run(new ModbusReadPlugin(), setting, initial, (result, probe, state) =>
-        { Assert.Equal(TestStatus.Error, result.StepResult.Status); Assert.Equal(0, probe.Calls); Assert.Empty(state.Published); });
+        var plugin = new ModbusReadPlugin();
+        byte[]? storedBytes = null;
+        if (invalid == "unknown-format")
+        {
+            var rejected = Assert.Throws<JsonException>(() => plugin.CreateSerializer().Serialize(setting));
+            Assert.Contains("$.DataFormat", rejected.Message);
+            storedBytes = DamagedSettings.Serialize(plugin, setting);
+        }
+        await Run(plugin, setting, initial, (result, probe, state) =>
+        {
+            Assert.Equal(TestStatus.Error, result.StepResult.Status);
+            if (invalid == "unknown-format") Assert.Contains("不支持的 Modbus 数据格式", result.StepResult.Error!.Message);
+            Assert.Equal(0, probe.Calls);
+            Assert.Empty(state.Published);
+        }, storedBytes: storedBytes);
     }
 
     [Theory]
@@ -150,11 +165,11 @@ public sealed class RequestPreflightFollowupTests
     }
 
     private static async Task Run(IStepPlugin plugin, object setting, object? initial, Action<ExecutionResult, Probe, PublicationContextProxy> verify,
-        int failAt = 0, bool allowUnknownValue = false)
+        int failAt = 0, bool allowUnknownValue = false, byte[]? storedBytes = null)
     {
         var native = DispatchProxy.Create<IModbusMaster, Probe>(); var probe = (Probe)(object)native; probe.FailAt = failAt;
         var owner = new ModbusConnectionResource(native, new Noop(), 2000);
-        var (context, state) = PublicationContextProxy.Create(plugin, setting);
+        var (context, state) = PublicationContextProxy.Create(plugin, setting, storedBytes: storedBytes);
         state.Variables = new() { ["Locals.rx"] = allowUnknownValue ? null : initial, ["rx"] = initial };
         state.Store.Values[ModbusHelper.GetConnectionKey("C")] = owner;
         try { verify(await plugin.CreateExecutor().ExecuteAsync(context).WaitAsync(TimeSpan.FromSeconds(15)), probe, state); }

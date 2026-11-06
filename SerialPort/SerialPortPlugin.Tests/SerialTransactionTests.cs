@@ -5,6 +5,7 @@ using Xunit;
 
 namespace SerialPort.ContractTests;
 
+[Collection("Serial followup isolated")]
 public class SerialTransactionTests
 {
     [Fact]

@@ -22,12 +22,14 @@ $modules = @(
     @{ Name = 'Ethernet'; Project = 'EthernetPlugin' },
     @{ Name = 'Http'; Project = 'HttpPlugin' },
     @{ Name = 'LIN'; Project = 'LinPlugin' },
+    @{ Name = 'LabVIEWCall'; Project = 'LabVIEWCallPlugin' },
     @{ Name = 'Modbus'; Project = 'ModbusPlugin' },
     @{ Name = 'NiDaq'; Project = 'NiDaqPlugin' },
     @{ Name = 'OpcUa'; Project = 'OpcUaPlugin' },
     @{ Name = 'SerialPort'; Project = 'SerialPortPlugin' },
     @{ Name = 'VISA'; Project = 'VisaPlugin' },
-    @{ Name = 'NiGrpc'; Project = 'NiGrpcPlugin' }
+    @{ Name = 'NiGrpc'; Project = 'NiGrpcPlugin' },
+    @{ Name = 'ZlgEtherCat'; Project = 'ZlgEtherCatPlugin' }
 )
 function Invoke-Dotnet([string[]]$Arguments) {
     & dotnet @Arguments

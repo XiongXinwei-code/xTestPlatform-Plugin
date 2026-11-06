@@ -1,0 +1,138 @@
+// Offline source generator. Produces explicit step and WPF source files; never loads the vendor DLL.
+const fs = require('fs'), path = require('path');
+const core = path.resolve(__dirname, '..'), ui = path.resolve(core, '../ZlgEtherCatPlugin.UI');
+const write=(p,s)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,s.replace(/\r?\n/g,'\r\n'),'utf8');};
+const f=(name,type,def,label,min,max,info='')=>({name,type,def,label,min,max,info});
+const str=(name,def,label,info='')=>f(name,'expression',def,label,undefined,undefined,info);
+const txt=(name,def,label,info='')=>f(name,'string',def,label,undefined,undefined,info);
+const integer=(name,def,label,min=0,max=2147483647,info='')=>f(name,'int',def,label,min,max,info);
+const boolean=(name,def,label)=>f(name,'bool',def,label);
+const en=(name,type,def,label)=>f(name,type,def,label);
+const conn=str('ConnectionName','"ECAT1"','连接名','求值结果为 string；已打开的板卡通道连接标识');
+const timeout=integer('TimeoutMs',5000,'步骤总超时（ms）',1,3600000,'包括排队、表达式和执行等待；超时不证明原生调用已退出');
+const result=f('ResultVariable','variable','','结果变量',undefined,undefined,'可选已声明的完整变量路径，输出类型由步骤返回值决定');
+const slave=integer('SlaveIndex',0,'从站位置索引',0,65534,'从 0 开始，不是站地址或别名');
+const offset=integer('Offset',0,'从站映像字节偏移',0,16777215);
+const length=integer('Length',1,'字节长度',1,1048576);
+const data={...str('Data','new byte[] { 0 }','写入数据','求值结果为 byte[]；多字节按小端编码'),evalType:'byte[]'};
+const mask={...str('Mask','new byte[] { 255 }','位掩码','求值结果为 byte[]；长度必须与数据相同'),evalType:'byte[]'};
+const pool=str('PoolName','"ReadPool1"','功能池名','求值结果为 string；周期池与常驻池独立命名');
+const item=str('ItemName','"Input1"','读取项名','求值结果为 string；池内唯一');
+const maxAge=integer('MaxAgeMs',1000,'本地接收最大年龄（ms）',1,3600000,'只约束主机接收年龄，不等于设备真实采样年龄');
+const type=en('DataType','PdoDataType','Bytes','数据类型');
+const itemResult=f('DataVariable','variable','','读取项结果变量',undefined,undefined,'必填，已声明的完整变量路径；后台只写此显式配置目标');
+const specs=[];
+function add(op,group,title,fields=[],behavior='',needsConnection=true){specs.push({op,group,title,fields:[...(needsConnection?[conn]:[]),timeout,...fields,result].map(f=>({...f})),behavior,needsConnection});}
+add('EnumerateBoards','Master','枚举板卡',[],'读取驱动/API及板卡通道信息，不打开主站。',false);
+add('Open','Master','打开板卡通道',[str('BoardSelector','"AL1"','板卡标识','求值结果为 string；SDK ID索引、AL别名或NO序列号'),integer('Channel',0,'通道号',0,255)],'以 ConnectionName 注册连接；同名或同物理通道重复打开报错，不静默替换。');
+add('Close','Master','关闭板卡通道',[],'关闭连接并释放自己的资源；连接不存在报错；等待真实调用退出，不把软超时当作关闭完成。');
+add('BeginExit','Master','开始退出流程',[],'锁存指定通道的退出状态，停止接受新的业务写入和运动请求；保留现有输入读取以及停止、去使能、解绑和关闭步骤，用于完成退出。该步骤不新建工作线程，只锁存退出，不证明运动已经停止。');
+add('StartBus','Master','加载 ENI 并启动主站',[str('EniPath','""','ENI 文件路径','求值结果为 string；现有本地 ENI 文件'),integer('ExpectedCycleUs',500,'预期总线周期（μs）',1,1000000,'与 ENI 中的总线周期一致；HPCIe-2E 目标为 250 μs 或 500 μs'),boolean('RequireDc',true,'要求 ENI 配置 DC')],'DC 和总线周期由 ENI 配置，启动前检查与本步骤预期一致；不以 Windows 工作循环保证 250/500 μs 实时运动。启动前必须配置本次映像初始化策略；启动会复位 PI 使能及相关 SDK 配置。');
+add('StopBus','Master','停止主站',[],'必须先结束运动及周期服务；停止主站不等于物理轴已经停止。');
+add('RequestState','Master','切换并等待主站状态',[en('State','MasterState','Operational','目标状态'),integer('PollIntervalMs',20,'状态检查间隔（ms）',1,10000)],'请求状态后轮询确认；未达到目标在总期限内报错。');
+add('ReadMasterStatus','Master','读取主站状态');
+add('ReadEniInfo','Configuration','读取 ENI 信息');
+add('CheckEni','Configuration','核对运行 ENI',[str('EniPath','""','ENI 文件路径')]);
+add('ConfigureReinit','Configuration','配置映像初始化策略',[en('ReinitMode','PiReinitMode','ClearAll','启动时策略')],'本地模式在下一次 StartBus 时生效，不自动改变已运行总线。');
+add('ConfigureExchange','Configuration','配置 PDO 交换',[en('ExchangeMode','ExchangeMode','Queue','交换通路'),integer('QueuePrefill',2,'输出队列预填数量',0,4096),{...str('InitialOutput','new byte[0]','初始输出','求值结果为 byte[]；须与主站输出映像长度一致，不能假设全零安全'),evalType:'byte[]'}],'运行中禁止切换通路；映像、队列与所有输出由单一通道运行时管理。');
+add('EnablePi','Configuration','使能过程映像交换');
+add('DisablePi','Configuration','禁用过程映像交换');
+add('ReadPiRange','Configuration','读取从站 PDO 范围',[slave]);
+add('EnumerateSlaves','Diagnostics','枚举从站');
+add('ReadSlaveInfo','Diagnostics','读取从站信息',[slave]);
+add('ReadSlaveStatus','Diagnostics','读取从站状态',[slave]);
+add('ReadDiagnostics','Diagnostics','读取综合诊断');
+add('ReadLinkDiagnostics','Diagnostics','读取链路诊断');
+add('ReadLastError','Diagnostics','读取 SDK 错误详情');
+add('ClearSlaveError','Diagnostics','确认从站状态错误',[slave]);
+add('ConfigureAutoClear','Diagnostics','配置自动清错',[boolean('Enabled',false,'自动清错使能')]);
+add('ConfigureReadyLost','Diagnostics','配置就绪丢失超时',[integer('ReadyLostTimeoutMs',0,'就绪丢失超时（ms）',0,3600000)],'StartBus 后该配置复位，需要再次显式应用。');
+add('StartAcquisition','PDO','启动 PDO 后台采集',[integer('NativeWaitMs',20,'单次队列等待（ms）',1,1000),integer('HistoryCapacity',1024,'历史缓冲容量',1,1000000),boolean('LatestOnly',false,'跳过积压，仅取最新'),en('AcquisitionThreadPriority','AcquisitionPriority','Normal','共享 SDK 线程优先级'),integer('RxHighWatermarkPercent',80,'RX 队列高水位（%）',1,100),integer('RxBacklogWarningMs',10,'RX 积压告警持续时间（ms）',1,60000),integer('RxAlarmRepeatMs',1000,'RX 重复告警最小间隔（ms）',100,3600000)],'每通道唯一固定采集工作循环；步骤返回后继续采集，重复启动报错；不为读取项创建线程。');
+add('StopAcquisition','PDO','停止 PDO 后台采集',[],'等待本通道采集任务真实退出；未启动报错；仍有依赖读取池或运动时拒绝直接停止。');
+add('ReadAcquisitionStatus','PDO','读取采集状态');
+add('ReadPdo','PDO','读取 PDO 当前值',[slave,offset,length,type,maxAge],'读取完整快照，不直接竞争 SDK 输入队列。');
+add('WaitNextPdo','PDO','等待新 PDO 样本',[slave,offset,length,type,maxAge,integer('AfterSequence',0,'已读取的软件样本序号',0)],'等待序号大于 AfterSequence 的样本；主机序号不代表硬件周期号。');
+add('ReadPdoBits','PDO','按位读取 PDO',[slave,offset,integer('BitOffset',0,'字节内起始位',0,7),integer('BitLength',1,'位数',1,64),maxAge]);
+add('WritePdo','PDO','写入 PDO',[slave,offset,data],'通过统一输出所有者提交，禁止覆盖已绑定轴区域；提交不是设备动作确认。');
+add('WritePdoMasked','PDO','掩码写入 PDO',[slave,offset,data,mask]);
+add('StartCyclicOutput','PDO','启动 PDO 周期输出',[integer('IntervalMs',10,'目标更新周期（ms）',1,60000),integer('CommandLeaseMs',1000,'目标续期有效时间（ms）',1,3600000)],'启动通道周期输出服务；目标超期必须报告，不无限重复旧目标掩盖控制失效。');
+add('StopCyclicOutput','PDO','停止 PDO 周期输出',[],'停止成功表示周期输出工作已退出；存在受控轴时须先完成停轴。');
+add('ReadExchangeStatus','PDO','读取交换状态');
+add('ReadHistory','PDO','读取历史采样',[integer('AfterSequence',0,'起始软件序号',0),integer('MaxSamples',100,'最多样本数',1,10000)],'读取有界缓冲内样本；报告无法提供的历史范围，不伪造丢帧数。');
+for(const kind of ['Background','Periodic']){
+ const group=kind==='Background'?'Background Reading':'Periodic Reading', name=kind==='Background'?'常驻读取':'周期读取';
+ add(kind+'PoolCreate',group,'创建'+name+'池',[pool,integer('MaxItems',128,'读取项容量',1,1024,'每类读取功能池合计最多 1024 个读取项')],'以 PoolName 注册独立功能池；重名报错。固定工作循环不随读取项数量增长。');
+ add(kind+'PoolClose',group,'关闭'+name+'池',[pool],'等待池内在途发布结束再移除；池不存在报错，不关闭通道采集。');
+ const fields=[pool,item,slave,offset,length,type,itemResult,maxAge,...(kind==='Periodic'?[integer('IntervalMs',100,'读取周期（ms）',1,3600000)]:[])];
+ add(kind+'PoolAddItem',group,'添加'+name+'项',fields,'池内 ItemName 必须唯一；只更新功能池配置，不创建线程或独立循环。');
+ add(kind+'PoolUpdateItem',group,'更新'+name+'项',fields,'仅修改已有读取项；等待旧配置在途发布结束，不增加工作循环。');
+ add(kind+'PoolStopItem',group,'停止'+name+'项',[pool,item],'等待该项在途发布退出再移除；成功返回后不再由该项写入变量；其他读取项不受影响。');
+ add(kind+'PoolStatus',group,'读取'+name+'池状态',[pool]);
+}
+const sdo=[slave,integer('Index',0x1000,'对象索引',0,65535),integer('SubIndex',0,'子索引',0,255),boolean('CompleteAccess',false,'完全访问')];
+add('ReadSdo','SDO','读取 SDO 参数',[...sdo,integer('Capacity',4,'接收缓冲容量',1,1048576),type]);
+add('WriteSdo','SDO','写入 SDO 参数',[...sdo,data,boolean('VerifyReadback',false,'写后读回验证')],'不自动改变PDO映射；设备状态必须满足该对象的访问要求。');
+add('ReadDigitalInput','IO','读取数字量输入',[slave,offset,integer('BitOffset',0,'输入位',0,7),maxAge]);
+add('WriteDigitalOutput','IO','写入数字量输出',[slave,offset,integer('BitOffset',0,'输出位',0,7),boolean('Value',false,'输出值')]);
+add('ReadAnalogInput','IO','读取模拟量输入',[slave,offset,en('DataType','PdoDataType','Int16','数据类型'),f('Scale','double',1,'比例',-1e12,1e12),f('Bias','double',0,'偏移',-1e12,1e12),maxAge]);
+add('WriteAnalogOutput','IO','写入模拟量输出',[slave,offset,en('DataType','PdoDataType','Int16','数据类型'),f('Value','double',0,'工程值',-1e12,1e12),f('Scale','double',1,'比例',-1e12,1e12),f('Bias','double',0,'偏移',-1e12,1e12)]);
+add('ConfigureWatchdog','Watchdog','配置看门狗输出',[slave,data,mask],'主站启动后配置从站超时输出；输出值由现场定义。');
+add('ReadWatchdog','Watchdog','读取看门狗配置',[slave]);
+add('EnableWatchdog','Watchdog','启用 PI 看门狗',[integer('WatchdogTimeoutMs',1000,'看门狗期限（ms）',1,3600000)]);
+add('DisableWatchdog','Watchdog','禁用 PI 看门狗');
+add('FeedWatchdog','Watchdog','手动喂狗',[],'仅显式执行时喂狗；后台输入读取不会自动喂狗，不以通信活跃代替工艺健康。');
+add('ConfigureForceOutput','Advanced','设置强制输出',[slave,offset,data],'使用 SDK cmd1 的原始输出字节，不解释厂商 cmd2 打包掩码；需显式解除，禁止覆盖受控轴区域。');
+add('ReadForceOutput','Advanced','读取强制输出',[slave]);
+add('DisableForceOutput','Advanced','解除强制输出',[slave]);
+const local=str('LocalPath','""','本地文件路径'),remote=str('RemotePath','""','设备文件路径');
+add('FoeRead','Maintenance','FoE 读取文件',[slave,local,remote]);
+add('FoeWrite','Maintenance','FoE 写入文件',[slave,local,remote],'设备文件写入可能更新固件，按从站手册明确使用；不自动重试写操作。');
+add('ResetChannel','Maintenance','复位主站通道',[],'仅停机维护时使用；不是普通停轴操作。');
+add('ReadSlaveMemory','Maintenance','读取 ESC 内存',[slave,integer('Address',0,'ESC 地址',0,65535),integer('Length',2,'长度',1,65535)]);
+add('WriteSlaveMemory','Maintenance','写入 ESC 内存',[slave,integer('Address',0,'ESC 地址',0,65535),data],'仅停机维护使用，不自动恢复或重试。');
+add('ReadSlaveEeprom','Maintenance','读取从站 EEPROM',[slave,integer('Address',0,'起始地址',0,65535),integer('Length',2,'长度',1,65535)]);
+add('WriteSlaveEeprom','Maintenance','写入从站 EEPROM',[slave,integer('Address',0,'起始地址',0,65535),data],'仅停机维护使用，可能影响从站身份与启动。');
+add('StartCapture','Diagnostics','启动 SDK 抓包',[integer('Capacity',1048576,'抓包缓冲容量',1,16777216)]);
+add('ReadCapture','Diagnostics','读取 SDK 抓包',[integer('Capacity',1048576,'接收容量',1,16777216)]);
+add('StopCapture','Diagnostics','停止 SDK 抓包');
+add('ReadBoardDi','Board IO','读取板载 DI');
+add('ReadBoardDo','Board IO','读取板载 DO');
+add('WriteBoardDo','Board IO','写入板载 DO',[integer('Value',0,'DO 位图',0,65535)]);
+add('StartBoardPwm','Board IO','启动板载 PWM',[integer('Port',0,'输出通道',0,3),integer('FrequencyHz',1000,'频率（Hz）',1,10000000),integer('Duty',50,'占空比',0,100)]);
+add('StopBoardPwm','Board IO','停止板载 PWM',[integer('Port',0,'输出通道',0,3)]);
+add('ReadBoardPwm','Board IO','读取板载 PWM 配置',[integer('Port',0,'输出通道',0,3)]);
+add('ConfigureBoardPulse','Board IO','配置板载脉冲',[integer('Port',0,'输出通道',0,3),integer('PulseMode',0,'脉冲模式',0,3),integer('FrequencyHz',1000,'频率（Hz）',1,10000000),integer('Direction',0,'输出方向',0,1),integer('Duty',50,'占空比',0,100),boolean('Continuous',false,'连续输出')],'Continuous=true 配置立即开始输出；只在显式执行步骤时调用 SDK。');
+add('OutputBoardPulse','Board IO','输出板载脉冲',[integer('Port',0,'输出通道',0,3),integer('PulseCount',1,'脉冲数量',1)]);
+add('StopBoardPulse','Board IO','停止板载脉冲',[integer('Port',0,'输出通道',0,3)]);
+add('ReadBoardPulse','Board IO','读取板载脉冲配置',[integer('Port',0,'输出通道',0,3)]);
+add('ConfigureBoardLatch','Board IO','配置板载编码器锁存',[integer('PortSelection',0,'引脚选择位图',0,255),integer('LatchMode',1,'厂商锁存模式',1,136,'仅支持 SDK 定义的离散模式；须与 Continuous 一致'),boolean('Continuous',false,'连续锁存')]);
+add('StartBoardLatch','Board IO','启动板载锁存',[boolean('Continuous',false,'连续锁存'),integer('Count',1,'记录样本数',0,1023)],'Continuous 须与已应用的锁存配置相同；Count=0 触发锁存但不记录。');
+add('StopBoardLatch','Board IO','停止板载锁存');
+add('ReadBoardLatch','Board IO','读取板载锁存',[integer('Port',0,'锁存通道',0,3),boolean('Continuous',false,'连续锁存'),integer('SampleIndex',0,'记录样本索引',0,1022)],'Continuous 须与已应用的锁存配置相同；样本索引须小于实际已记录样本数。');
+add('ResetBoardLatchCounter','Board IO','复位锁存计数器');
+add('ResetBoard','Maintenance','复位板卡',[],'影响整块板卡，必须确认本插件拥有全部通道且已停机；不能用作普通错误恢复。');
+add('BoardFileRead','Maintenance','读取板卡文件',[local,remote]);
+add('BoardFileWrite','Maintenance','写入板卡文件',[local,remote]);
+add('BoardUpdate','Maintenance','更新板卡文件',[local],'仅停机维护使用，依据厂商文件格式；不自动复位或重试。');
+// Motion contracts are appended from a separate reviewed JSON by the motion implementation owner.
+const motionFile=path.join(__dirname,'motion-catalog.json');if(fs.existsSync(motionFile)){for(const s of JSON.parse(fs.readFileSync(motionFile,'utf8')))add(s.op,'Motion_'+s.group,s.title,s.fields,s.behavior);}
+// Literal fallback plus optional expressions are explicit parameter choices.
+for(const s of specs){
+ const optional=(target,name,evalType,info)=>{
+  const at=s.fields.findIndex(f=>f.name===target),fallback=s.fields[at];
+  s.fields.splice(at+1,0,{...str(name,'',fallback.label+'表达式（可选）',info),evalType,optionalExpression:true,overrideExpressionFor:target,min:fallback.min,max:evalType==='long'?undefined:fallback.max});
+ };
+ if(s.fields.some(f=>f.name==='SlaveIndex'&&f.type==='int'))optional('SlaveIndex','SlaveIndexExpression','int','留空使用上方从站常量；非空时优先求值。结果为本连接 ENI 中从 0 开始的 SlaveIdx，不是物理站位、站地址或别名。范围 0～65534。');
+ if(['WriteDigitalOutput','WriteAnalogOutput','WriteBoardDo'].includes(s.op))optional('Value','ValueExpression',s.fields.find(f=>f.name==='Value').type,'留空使用上方常量；非空时用此表达式的结果作为本次输出，避免改写步骤配置。');
+ if(['WaitNextPdo','ReadHistory'].includes(s.op))optional('AfterSequence','AfterSequenceExpression','long','留空使用上方常量；非空时读取 long 软件样本序号，例如上一张样本的 Sequence，结果必须大于等于 0。');
+ if(['ReadPdo','WaitNextPdo'].includes(s.op))s.fields.splice(s.fields.length-1,0,boolean('ReturnSample',false,'返回带序号的样本'));
+ if(['WritePdo','WritePdoMasked','WriteSdo'].includes(s.op)){
+  const at=s.fields.findIndex(f=>f.name==='Data');s.fields.splice(at,0,en('DataType','PdoDataType','Bytes','写入数据类型'));
+  Object.assign(s.fields.find(f=>f.name==='Data'),{typedData:true,evalType:'object',info:'按 DataType 求值：Bytes 要求 byte[]；其余要求相应标量类型。标量按小端编码，整数溢出或类型不符报错，不截断；Bytes 原样写入。'});
+ }
+}
+require('./step-semantics.cjs')(specs);
+write(path.join(__dirname,'step-catalog.json'),JSON.stringify(specs,null,2)+'\n');
+if(process.argv.includes('--catalog-only'))process.exit(0);
+require('./emit-operation-settings.cjs')({specs,core,ui,write});
+require('./emit-groups.cjs')({specs,core,ui,write});
