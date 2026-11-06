@@ -102,16 +102,6 @@ jobs:
             ${{ env.DOTNET_VERSION }}
             10.0.x
 
-      - name: 全部无设备回归测试门禁
-        shell: pwsh
-        run: |
-          pwsh -NoProfile -File tools/Verify-PluginSources.ps1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet restore xTestPlatform-PluginDev.slnx -r win-x64
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          pwsh -NoProfile -File tools/Verify-Plugins.ps1 -Mode Test
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
       # ── 5. 自动发现并编译所有插件 ──────────────────────────────────────
       - name: 编译所有插件
         shell: pwsh

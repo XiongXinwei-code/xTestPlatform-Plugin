@@ -48,6 +48,10 @@ public sealed class SfWaveformWidgetPluginTests
     [StaFact]
     public void Element_AcceptsWaveformAndNumericSeries()
     {
+        Assert.True(
+            SyncfusionLicenseInitializer.IsRegistered,
+            "未配置 SYNCFUSION_LICENSE_KEY，无法创建 Syncfusion 控件。");
+
         var element = Assert.IsType<SfWaveformControl>(new SfWaveformWidgetPlugin().CreateElement(new TestContext
         {
             Settings = new SfWaveformWidgetSettings { MaxPoints = 4 }

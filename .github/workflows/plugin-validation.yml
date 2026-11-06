@@ -26,6 +26,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet restore tools/StepInfoExtractor/StepInfoExtractor.csproj
       - name: 无设备回归测试
+        env:
+          SYNCFUSION_LICENSE_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
         run: |
           pwsh -NoProfile -File tools/Verify-PluginSources.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
