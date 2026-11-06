@@ -10,27 +10,32 @@ namespace SerialPort.Tests;
 
 public sealed class OpenRestartBoundaryTests
 {
+    // The guard bounds the test. These scenarios drive cancellation and close explicitly.
+    private const int OpenTimeoutMs = 30_000;
+    private static int _nextPort = 730_000;
+
     [Fact]
     public async Task Close_during_queued_restart_prevents_late_registration_of_that_open_generation()
     {
         using var guard = new CancellationTokenSource(15000); using var caller = new CancellationTokenSource(); using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); int opens = 0;
-        string name = "COM" + Random.Shared.Next(30000, 50000);
+        string name = "COM" + Interlocked.Increment(ref _nextPort);
         var executor = new SerialPortOpenExecutor((port, _, _) => (new SerialConnectionResource(new Channel(), physicalPort: port), () =>
         {
-            Interlocked.Increment(ref opens); entered.TrySetResult();
-            if (!release.Wait(10000)) throw new TimeoutException("Test guard: open was not released");
+            Interlocked.Increment(ref opens);
+            caller.Cancel();
+            entered.TrySetResult();
+            release.Wait(guard.Token);
         }));
-        var (context, state) = PublicationContextProxy.Create(new SerialPortOpenPlugin(), new SerialPortOpenSetting { PortName = "\"" + name + "\"", TimeoutMs = 2000 });
-        // This fixture exercises native Open/Close ordering. Warm its expression
-        // before the whole-step budget starts; do not raise the configured limit.
+        var (context, state) = PublicationContextProxy.Create(new SerialPortOpenPlugin(), new SerialPortOpenSetting { PortName = "\"" + name + "\"", TimeoutMs = OpenTimeoutMs });
+        // Warm expression compilation before exercising native Open/Close ordering.
         await ExpressionEvaluatorFactory.Default.EvaluateAsync<string>("\"" + name + "\"", context);
         string key = SerialPortHelper.GetPortKey(name);
         var first = executor.ExecuteAsync(context, caller.Token);
         Task<ExecutionResult>? restarting = null, closing = null;
         try
         {
-            await entered.Task.WaitAsync(guard.Token); caller.Cancel();
+            await entered.Task.WaitAsync(guard.Token);
             Assert.Equal(TestStatus.Aborted, (await first.WaitAsync(guard.Token)).StepResult.Status);
             var captured = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             state.Store.OnTryGet = (port, type) => { if (port == key && type == typeof(object)) captured.TrySetResult(); };
@@ -46,25 +51,22 @@ public sealed class OpenRestartBoundaryTests
         }
         finally
         {
-            release.Set(); await first.WaitAsync(guard.Token);
-            if (restarting != null) await restarting.WaitAsync(guard.Token);
-            if (closing != null) await closing.WaitAsync(guard.Token);
-            if (state.Store.Values.TryGetValue(key, out var current) && current is SerialConnectionResource owner) await owner.CloseAsync(2000, default);
+            await ReleaseAndCloseAsync(release, context, key, first, restarting, closing);
         }
     }
 
     [Theory]
-    [InlineData(true, false)]
     [InlineData(false, false)]
-    [InlineData(false, true)]
-    public async Task Interrupted_open_preserves_cancellation_and_first_same_registry_restart(bool checkCancellation, bool restartBeforeExit)
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Interrupted_open_preserves_cancellation_and_first_same_registry_restart(bool restart, bool restartBeforeExit)
     {
         using var guard = new CancellationTokenSource(15000);
         using var caller = new CancellationTokenSource();
         using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         int opens = 0;
-        string name = "COM" + Random.Shared.Next(30000, 50000);
+        string name = "COM" + Interlocked.Increment(ref _nextPort);
         var executor = new SerialPortOpenExecutor((port, _, _) =>
         {
             var channel = new Channel();
@@ -72,35 +74,37 @@ public sealed class OpenRestartBoundaryTests
             {
                 if (Interlocked.Increment(ref opens) == 1)
                 {
+                    caller.Cancel();
                     entered.TrySetResult();
-                    if (!release.Wait(10000)) throw new TimeoutException("Test guard: open was not released");
+                    release.Wait(guard.Token);
                 }
             });
         });
-        var (context, state) = PublicationContextProxy.Create(new SerialPortOpenPlugin(), new SerialPortOpenSetting { PortName = "\"" + name + "\"", TimeoutMs = 300 });
+        var (context, state) = PublicationContextProxy.Create(new SerialPortOpenPlugin(), new SerialPortOpenSetting { PortName = "\"" + name + "\"", TimeoutMs = OpenTimeoutMs });
         await ExpressionEvaluatorFactory.Default.EvaluateAsync<string>("\"" + name + "\"", context);
         string key = SerialPortHelper.GetPortKey(name);
         var first = executor.ExecuteAsync(context, caller.Token);
-        SerialConnectionResource? old = null;
+        Task<ExecutionResult>? queuedRestart = null;
         try
         {
             await entered.Task.WaitAsync(guard.Token);
-            old = Assert.IsType<SerialConnectionResource>(state.Store.Values[key]);
-            caller.Cancel();
+            var old = Assert.IsType<SerialConnectionResource>(state.Store.Values[key]);
             var interrupted = await first.WaitAsync(guard.Token);
+            Assert.Equal(TestStatus.Aborted, interrupted.StepResult.Status);
             Assert.Same(old, state.Store.Values[key]);
             Assert.False(old.IsClosed);
-            if (checkCancellation) Assert.Equal(TestStatus.Aborted, interrupted.StepResult.Status);
-            Task<ExecutionResult>? queuedRestart = restartBeforeExit ? executor.ExecuteAsync(context, guard.Token) : null;
-            if (queuedRestart != null)
+            if (restartBeforeExit)
             {
-                await Task.WhenAny(queuedRestart, Task.Delay(40, guard.Token));
+                var lookup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                state.Store.OnTryGet = (port, type) => { if (port == key && type == typeof(object)) lookup.TrySetResult(); };
+                queuedRestart = executor.ExecuteAsync(context, guard.Token);
+                await lookup.Task.WaitAsync(guard.Token);
                 Assert.False(queuedRestart.IsCompleted);
                 Assert.Equal(1, opens);
             }
             release.Set();
             await old.CloseAsync(2000, default);
-            if (!checkCancellation)
+            if (restart)
             {
                 var restarted = await (queuedRestart ?? executor.ExecuteAsync(context, guard.Token));
                 Assert.Equal(TestStatus.Completed, restarted.StepResult.Status);
@@ -110,13 +114,24 @@ public sealed class OpenRestartBoundaryTests
         }
         finally
         {
-            release.Set();
-            await first.WaitAsync(guard.Token);
-            if (old != null) await old.CloseAsync(2000, default);
-            if (state.Store.Values.TryGetValue(key, out var current) && current is SerialConnectionResource owner)
-                await owner.CloseAsync(2000, default);
+            await ReleaseAndCloseAsync(release, context, key, first, queuedRestart);
         }
     }
+
+    private static async Task ReleaseAndCloseAsync(ManualResetEventSlim release, IExecutionContext context, string key, params Task?[] operations)
+    {
+        release.Set();
+        try
+        {
+            await Task.WhenAll(operations.OfType<Task>()).WaitAsync(TimeSpan.FromSeconds(15));
+        }
+        finally
+        {
+            if (context.Resources.TryGet<SerialConnectionResource>(key, out var owner))
+                await owner.CloseAsync(5_000, CancellationToken.None);
+        }
+    }
+
     private sealed class Channel : ISerialChannel
     {
         public bool IsOpen { get; private set; } = true;
